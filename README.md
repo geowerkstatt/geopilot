@@ -205,6 +205,10 @@ Dabei wird geprüft, dass das Token von der angegebenen Authority ausgestellt wu
 Zusätzlich werden folgende Claims im Token vorausgesetzt: `sub`, `email` und `name`.
 Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) `openid`, `profile` und `email` mitgeliefert.
 
+### Maschinen-Clients
+
+Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
