@@ -59,7 +59,16 @@
       "secret": "geopilot-api-secret",
       "serviceAccountsEnabled": true,
       "publicClient": false,
-      "protocol": "openid-connect"
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles",
+        "web-origins",
+        "acr",
+        "basic",
+        "geopilot.api"
+      ]
     }
   ],
   "clientScopes": [
@@ -837,6 +846,12 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "id": "2d4f8c6e-1a3b-4d5e-9f7a-8b6c5d4e3f2a",
+      "username": "service-account-geopilot-api",
+      "enabled": true,
+      "serviceAccountClientId": "geopilot-api"
     }
   ]
 }
