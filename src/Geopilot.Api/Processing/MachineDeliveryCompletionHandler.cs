@@ -38,7 +38,7 @@ public class MachineDeliveryCompletionHandler : IJobCompletionHandler
         DeliveryDeclarationResult result;
         try
         {
-            result = await declarationService.DeclareAsync(jobId, submission.DeliveryFields, submission.DeclaringUserId, cancellationToken);
+            result = await declarationService.DeclareAsync(jobId, submission.DeliveryFields, submission.Declarer, cancellationToken);
         }
         catch (Exception ex)
         {

@@ -61,7 +61,7 @@ public class DeliveryController : ControllerBase
 
         var user = await context.GetUserByPrincipalAsync(User);
         var fields = new DeliveryFields(declaration.PartialDelivery, declaration.PrecursorDeliveryId, declaration.Comment);
-        var result = await deliveryDeclarationService.DeclareAsync(declaration.JobId, fields, user.Id, HttpContext.RequestAborted);
+        var result = await deliveryDeclarationService.DeclareAsync(declaration.JobId, fields, Declarer.ForUser(user.Id), HttpContext.RequestAborted);
 
         if (result is not { Status: DeliveryDeclarationStatus.Created, DeliveryId: int deliveryId })
         {
@@ -134,7 +134,7 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var mandate = await mandateService.GetMandateForUser(mandateId, user);
+        var mandate = await mandateService.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id));
         if (mandate == null)
             return NotFound();
 

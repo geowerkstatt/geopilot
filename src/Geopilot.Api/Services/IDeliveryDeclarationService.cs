@@ -13,12 +13,12 @@ public interface IDeliveryDeclarationService
     /// </summary>
     /// <param name="jobId">The processing job the delivery is declared for.</param>
     /// <param name="fields">The delivery fields whose evaluation the mandate configures.</param>
-    /// <param name="declaringUserId">The user the delivery is declared for. Passed as an id and not as an entity,
+    /// <param name="declarer">The user or machine client the delivery is declared for. Ids and not entities,
     /// because the declaration also runs outside a request, where an entity loaded earlier belongs to a context
     /// that is long gone.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The outcome of the declaration.</returns>
-    Task<DeliveryDeclarationResult> DeclareAsync(Guid jobId, DeliveryFields fields, int declaringUserId, CancellationToken cancellationToken);
+    Task<DeliveryDeclarationResult> DeclareAsync(Guid jobId, DeliveryFields fields, Declarer declarer, CancellationToken cancellationToken);
 }
 
 /// <summary>

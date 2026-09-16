@@ -8,9 +8,9 @@ namespace Geopilot.Api.Processing;
 /// </summary>
 /// <param name="JobId">The processing job that runs for this attempt.</param>
 /// <param name="MandateKey">The key the caller addressed the mandate by, echoed in the status.</param>
-/// <param name="DeclaringUserId">The user the delivery is declared for.</param>
+/// <param name="Declarer">The user or machine client the delivery is declared for.</param>
 /// <param name="DeliveryFields">The delivery fields the caller supplied up front.</param>
-public record Submission(Guid JobId, string MandateKey, int DeclaringUserId, DeliveryFields DeliveryFields)
+public record Submission(Guid JobId, string MandateKey, Declarer Declarer, DeliveryFields DeliveryFields)
 {
     /// <summary>
     /// The delivery that was declared for this attempt, once it exists.

@@ -2,6 +2,7 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace Geopilot.Api.Services;
 
@@ -53,14 +54,14 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
+    public async Task<Mandate?> GetMandateForDeclarerAsync(int mandateId, Declarer? declarer)
     {
-        var mandates = FilterMandatesByUser(context.Mandates.AsNoTracking(), user);
+        var mandates = FilterMandatesByDeclarer(context.Mandates.AsNoTracking(), declarer);
         return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateByKeyForUser(string key, User? user)
+    public async Task<Mandate?> GetMandateByKeyAsync(string key, Declarer? declarer)
     {
         // An empty key must not match: EF turns a null comparison into "every mandate without a key", which would
         // make SingleOrDefault throw as soon as a second one exists.
@@ -71,7 +72,7 @@ public class MandateService : IMandateService
         // or an environment variable does not miss its mandate over a trailing space. The comparison itself
         // stays exact, case included.
         var normalizedKey = key.Trim();
-        var mandates = FilterMandatesByUser(context.Mandates.AsNoTracking(), user);
+        var mandates = FilterMandatesByDeclarer(context.Mandates.AsNoTracking(), declarer);
         return await mandates.SingleOrDefaultAsync(m => m.Key == normalizedKey);
     }
 
@@ -118,10 +119,22 @@ public class MandateService : IMandateService
     }
 
     private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User? user)
+        => FilterMandatesByDeclarer(mandates, user is null ? null : Declarer.ForUser(user.Id));
+
+    /// <summary>
+    /// The one rule that decides who may deliver to a mandate: anyone for a public mandate, otherwise a member
+    /// of one of its organisations, whether that member is a person or a machine client.
+    /// </summary>
+    private static IQueryable<Mandate> FilterMandatesByDeclarer(IQueryable<Mandate> mandates, Declarer? declarer)
     {
-        return user == null
-            ? mandates.Where(m => m.IsPublic)
-            : mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        if (declarer is null)
+            return mandates.Where(m => m.IsPublic);
+
+        if (declarer.MachineClientId is int clientId)
+            return mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.MachineClients).Any(c => c.Id == clientId));
+
+        var userId = declarer.UserId ?? throw new UnreachableException("A declarer that is no machine client is a user.");
+        return mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == userId));
     }
 
     private IQueryable<Mandate> FilterMandatesByResolvablePipeline(IQueryable<Mandate> mandates)
