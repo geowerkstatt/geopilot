@@ -82,6 +82,7 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Id, _ => 0)
             .RuleFor(o => o.Name, f => f.Company.CompanyName())
             .RuleFor(o => o.Users, f => f.PickRandom(context.Users.ToList(), f.Random.Number(1, 4)).ToList())
+            .RuleFor(o => o.MachineClients, _ => new List<MachineClient>())
             .RuleFor(o => o.Mandates, _ => new List<Mandate>());
 
         Organisation SeedOrganisations(int seed) => organisationFaker.UseSeed(seed).Generate();
@@ -183,6 +184,11 @@ public static class ContextSeedExtensions
                 d.Mandate!.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
+
+            // The seed knows only human deliverers; the key follows the navigation, the client stays empty.
+            .Ignore(d => d.DeclaringUserId)
+            .Ignore(d => d.DeclaringClient)
+            .Ignore(d => d.DeclaringClientId)
             .RuleFor(d => d.Assets, _ => new List<Asset>())
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))

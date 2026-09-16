@@ -181,7 +181,7 @@ public class DeliveryController : ControllerBase
 
         var result = await context.DeliveriesWithIncludes
             .AsNoTracking()
-            .Where(d => d.DeclaringUser.Id == user.Id)
+            .Where(d => d.DeclaringUserId == user.Id)
             .ToListAsync();
 
         foreach (var delivery in result)
@@ -213,7 +213,7 @@ public class DeliveryController : ControllerBase
             var user = await context.GetUserByPrincipalAsync(User);
             if (!user.IsAdmin)
             {
-                deliveries = deliveries.Where(d => d.DeclaringUser.Id == user.Id);
+                deliveries = deliveries.Where(d => d.DeclaringUserId == user.Id);
             }
 
             var delivery = await deliveries.SingleOrDefaultAsync(d => d.Id == deliveryId);
