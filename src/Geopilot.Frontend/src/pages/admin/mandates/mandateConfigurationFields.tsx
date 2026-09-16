@@ -53,7 +53,10 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
   }, [usedKeys, trigger]);
 
   const validateUniqueKey = (value: string) => {
-    if (value && value !== mandate?.key && usedKeys?.includes(value)) {
+    // Trimmed like the backend does before it compares, so a stray space cannot pass here and still
+    // collide once the server has normalized it.
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== mandate?.key && usedKeys?.includes(trimmed)) {
       return "mandateKeyNotUnique";
     }
     return true;
