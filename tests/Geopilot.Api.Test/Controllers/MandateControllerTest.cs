@@ -419,6 +419,32 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual("GRUMPYFALCON", updated.Key, "The stored key must survive a save while machine delivery is disabled");
         }
 
+        [TestMethod]
+        public async Task GetKeysReturnsTheKeysInUse()
+        {
+            mandateServiceMock.Setup(s => s.GetMandateKeysAsync()).ReturnsAsync(new List<string> { "GRUMPYFALCON", "SOMBERSPORK" });
+            var controller = CreateController(machineDeliveryEnabled: true);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.GetKeys();
+
+            var keys = ActionResultAssert.IsOkObjectResult<List<string>>(result);
+            CollectionAssert.AreEquivalent(new[] { "GRUMPYFALCON", "SOMBERSPORK" }, keys);
+        }
+
+        [TestMethod]
+        public async Task GetKeysReturnsEmptyListWhenMachineDeliveryDisabled()
+        {
+            var controller = CreateController(machineDeliveryEnabled: false);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.GetKeys();
+
+            var keys = ActionResultAssert.IsOkObjectResult<string[]>(result);
+            Assert.IsEmpty(keys, "No key may be reported while machine delivery is disabled");
+            mandateServiceMock.Verify(s => s.GetMandateKeysAsync(), Times.Never);
+        }
+
         private MandateController CreateController(bool machineDeliveryEnabled)
             => new(
                 loggerMock.Object,
