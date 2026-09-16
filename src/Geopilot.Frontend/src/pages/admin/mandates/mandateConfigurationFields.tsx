@@ -54,8 +54,9 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   const validateUniqueKey = (value: string) => {
     // Trimmed like the backend does before it compares, so a stray space cannot pass here and still
-    // collide once the server has normalized it.
-    const trimmed = value.trim();
+    // collide once the server has normalized it. Optional chaining despite the typing: react-hook-form
+    // hands a field the user never touched as undefined, and throwing here would abort the submit.
+    const trimmed = value?.trim();
     if (trimmed && trimmed !== mandate?.key && usedKeys?.includes(trimmed)) {
       return "mandateKeyNotUnique";
     }
