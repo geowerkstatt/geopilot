@@ -146,6 +146,7 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
+builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
