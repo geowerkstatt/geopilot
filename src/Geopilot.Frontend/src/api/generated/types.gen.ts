@@ -155,7 +155,20 @@ export type Delivery = {
    * The date the delivery was declared.
    */
   date: string;
-  declaringUser: User;
+  declaringUser?: User;
+  /**
+   * The id of Geopilot.Api.Models.Delivery.DeclaringUser. Exposed so a query can filter on it without joining the user.
+   */
+  declaringUserId?: number | null;
+  declaringClient?: MachineClient;
+  /**
+   * The id of Geopilot.Api.Models.Delivery.DeclaringClient.
+   */
+  declaringClientId?: number | null;
+  /**
+   * The name of whoever declared the delivery, for display: the user's full name or the client's name.
+   */
+  readonly declarerName: string;
   mandate: Mandate;
   /**
    * Assets delivered or created by the validation and delivery process.
@@ -270,6 +283,51 @@ export type InitiateUploadResponse = {
 };
 
 /**
+ * A machine that delivers data on behalf of an organisation, authenticated with client credentials at the
+ * identity provider of the installation. Deliberately not a Geopilot.Api.Models.User: a client has no account in
+ * the web interface, and keeping it out of that type is what keeps its credentials out of the interface.
+ * A client is registered by an administrator; nothing creates one from a token.
+ */
+export type MachineClient = {
+  /**
+   * The unique identifier for the client.
+   */
+  id: number;
+  /**
+   * The identifier the identity provider puts into the token (the `sub` claim, or what the
+   * introspection reports as the subject). An administrator copies it from the identity provider or from
+   * the log line of a refused attempt; this is how a token is matched to its registration.
+   */
+  authIdentifier: string;
+  /**
+   * The display name, chosen by the administrator. It is what a delivery of this client names as the
+   * deliverer, since the token carries no name of its own.
+   */
+  name: string;
+  state: MachineClientState;
+  /**
+   * Organisations the client delivers for, and thereby the mandates it may deliver to.
+   */
+  organisations: Array<Organisation>;
+  /**
+   * Deliveries the client has declared.
+   */
+  deliveries: Array<Delivery>;
+};
+
+/**
+ * The status of a machine client. Its own enum rather than Geopilot.Api.Models.UserState, because a client is not
+ * a user account and the two must be free to grow apart.
+ */
+export const MachineClientState = { Inactive: "inactive", Active: "active" } as const;
+
+/**
+ * The status of a machine client. Its own enum rather than Geopilot.Api.Models.UserState, because a client is not
+ * a user account and the two must be free to grow apart.
+ */
+export type MachineClientState = (typeof MachineClientState)[keyof typeof MachineClientState];
+
+/**
  * A contract between the system owner and an organisation for data delivery.
  * The mandate describes where and in what format data should be delivered.
  */
@@ -379,6 +437,10 @@ export type Organisation = {
    */
   users: Array<User>;
   /**
+   * Machine clients that deliver for the organisation.
+   */
+  machineClients: Array<MachineClient>;
+  /**
    * Mandates the organisation has for delivering data to the system owner.
    */
   mandates: Array<Mandate>;
@@ -474,9 +536,13 @@ export type PipelineRunResponse = {
    */
   mandateId?: number | null;
   /**
-   * The user that started the run, or null when the job was started anonymously. Who declared the delivery is recorded on the delivery itself.
+   * The user that started the run, or null when a machine client started it or the job was started anonymously. Who declared the delivery is recorded on the delivery itself.
    */
   userId?: number | null;
+  /**
+   * The machine client that started the run, or null when a user started it or the job was started anonymously.
+   */
+  machineClientId?: number | null;
   clientKind: ClientKind;
   /**
    * The id of the upload the run processed.
@@ -1166,6 +1232,132 @@ export type GetApiV1DeliveryAssetsByAssetIdResponses = {
 
 export type GetApiV1DeliveryAssetsByAssetIdResponse =
   GetApiV1DeliveryAssetsByAssetIdResponses[keyof GetApiV1DeliveryAssetsByAssetIdResponses];
+
+export type GetApiV1MachineClientData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/MachineClient";
+};
+
+export type GetApiV1MachineClientResponses = {
+  /**
+   * Returns list of machine clients.
+   */
+  200: Array<MachineClient>;
+};
+
+export type GetApiV1MachineClientResponse = GetApiV1MachineClientResponses[keyof GetApiV1MachineClientResponses];
+
+export type PostApiV1MachineClientData = {
+  /**
+   * The machine client to register.
+   */
+  body?: MachineClient;
+  path?: never;
+  query?: never;
+  url: "/api/v1/MachineClient";
+};
+
+export type PostApiV1MachineClientErrors = {
+  /**
+   * The machine client could not be registered due to invalid input.
+   */
+  400: unknown;
+  /**
+   * The current user is not authorized to register a machine client.
+   */
+  401: unknown;
+  /**
+   * The identifier is already registered, or it belongs to a user.
+   */
+  409: unknown;
+  /**
+   * The server encountered an unexpected condition that prevented it from fulfilling the request.
+   */
+  500: ProblemDetails;
+};
+
+export type PostApiV1MachineClientError = PostApiV1MachineClientErrors[keyof PostApiV1MachineClientErrors];
+
+export type PostApiV1MachineClientResponses = {
+  /**
+   * The machine client was registered successfully.
+   */
+  201: MachineClient;
+};
+
+export type PostApiV1MachineClientResponse = PostApiV1MachineClientResponses[keyof PostApiV1MachineClientResponses];
+
+export type PutApiV1MachineClientData = {
+  /**
+   * The machine client to update.
+   */
+  body?: MachineClient;
+  path?: never;
+  query?: never;
+  url: "/api/v1/MachineClient";
+};
+
+export type PutApiV1MachineClientErrors = {
+  /**
+   * The machine client could not be updated due to invalid input.
+   */
+  400: unknown;
+  /**
+   * The current user is not authorized to update the machine client.
+   */
+  401: unknown;
+  /**
+   * The machine client could not be found.
+   */
+  404: unknown;
+  /**
+   * The identifier is already registered, or it belongs to a user.
+   */
+  409: unknown;
+  /**
+   * The machine client could not be updated due to an internal server error.
+   */
+  500: ProblemDetails;
+};
+
+export type PutApiV1MachineClientError = PutApiV1MachineClientErrors[keyof PutApiV1MachineClientErrors];
+
+export type PutApiV1MachineClientResponses = {
+  /**
+   * Returns the updated machine client.
+   */
+  200: MachineClient;
+};
+
+export type PutApiV1MachineClientResponse = PutApiV1MachineClientResponses[keyof PutApiV1MachineClientResponses];
+
+export type GetApiV1MachineClientByIdData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/api/v1/MachineClient/{id}";
+};
+
+export type GetApiV1MachineClientByIdErrors = {
+  /**
+   * The machine client could not be found.
+   */
+  404: unknown;
+};
+
+export type GetApiV1MachineClientByIdResponses = {
+  /**
+   * Returns the machine client with the specified id.
+   */
+  200: MachineClient;
+};
+
+export type GetApiV1MachineClientByIdResponse =
+  GetApiV1MachineClientByIdResponses[keyof GetApiV1MachineClientByIdResponses];
 
 export type GetApiV1MandateSummaryData = {
   body?: never;
