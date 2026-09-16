@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -120,6 +122,37 @@ public class JwtSecurityTest
             HttpStatusCode.Unauthorized,
             response.StatusCode,
             $"{description}: Anonymous endpoint should accept valid tokens too");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AnonymousEndpoints))]
+    public async Task AnonymousEndpointUnavailableIdpReturnsNon503(string method, string url, string description)
+    {
+        var token = JwtTestTokenBuilder.CreateIdpUnavailableToken();
+        using var request = CreateRequest(method, url, token);
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(
+            HttpStatusCode.ServiceUnavailable,
+            response.StatusCode,
+            $"{description}: Anonymous endpoint should not return 503 when IdP is unavailable");
+        Assert.AreNotEqual(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode,
+            $"{description}: Anonymous endpoint should accept valid tokens too");
+    }
+
+    [TestMethod]
+    public async Task AnonymousEndpointWithTokenDoesNotCallUserInfo()
+    {
+        var mockUserInfo = Mock.Get(app.Services.GetRequiredService<IGeopilotUserInfoService>());
+        mockUserInfo.Invocations.Clear();
+
+        var token = JwtTestTokenBuilder.CreateValidAdminToken();
+        using var request = CreateRequest("GET", "/api/v1/version", token);
+        var response = await client.SendAsync(request);
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        mockUserInfo.Verify(s => s.GetUserInfoAsync(token, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]

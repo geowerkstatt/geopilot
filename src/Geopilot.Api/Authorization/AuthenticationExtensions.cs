@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Geopilot.Api.Authorization;
@@ -92,6 +93,12 @@ public static class AuthenticationExtensions
                     },
                     OnTokenValidated = async context =>
                     {
+                        var endpoint = context.HttpContext.GetEndpoint();
+                        if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+                        {
+                            return;
+                        }
+
                         // Fetch user info during authentication, so an unreachable identity provider
                         // fails with a typed reason here instead of a 403 in the authorization handler.
                         // The result is discarded on purpose: GeopilotUserInfoService is scoped and caches

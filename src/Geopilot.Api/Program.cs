@@ -306,6 +306,8 @@ else
     app.UseCors();
 }
 
+app.UseAuthentication();
+
 app.Use(async (context, next) =>
 {
     var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
