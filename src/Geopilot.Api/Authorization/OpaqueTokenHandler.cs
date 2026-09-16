@@ -119,6 +119,12 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                 return AuthenticateResult.Fail(new IdentityProviderUnavailableException($"Introspection request failed with status code {response.StatusCode}."));
             }
 
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                Logger.LogWarning("Introspection credentials were rejected with status code {StatusCode}.", response.StatusCode);
+                return AuthenticateResult.Fail($"Introspection request failed with status code {response.StatusCode}.");
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 Logger.LogWarning("Introspection request failed with status code {StatusCode}.", response.StatusCode);

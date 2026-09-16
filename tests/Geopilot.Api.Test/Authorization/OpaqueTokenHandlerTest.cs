@@ -566,6 +566,22 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
+    [DataRow(HttpStatusCode.Unauthorized)]
+    [DataRow(HttpStatusCode.Forbidden)]
+    public async Task AuthenticateAsyncIntrospectionRejectedReturnsFail(HttpStatusCode statusCode)
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(statusCode));
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.AreEqual($"Introspection request failed with status code {statusCode}.", result.Failure?.Message);
+    }
+
+    [TestMethod]
     public async Task AuthenticateAsyncUnsupportedAuthMethodThrowsUnreachable()
     {
         options.IntrospectionAuthMethod = (IntrospectionAuthMethod)999;
