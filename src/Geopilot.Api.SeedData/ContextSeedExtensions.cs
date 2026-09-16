@@ -30,6 +30,7 @@ public static class ContextSeedExtensions
         context.SeedUsers();
         context.SeedOrganisations();
         context.SeedMandates();
+        context.SeedMachineClients();
         context.SeedDeliveries();
         context.SeedAssets();
         context.AddOrganisationsToDefaultUsers();
@@ -159,6 +160,33 @@ public static class ContextSeedExtensions
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,
+        });
+
+        context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Registers the service account of the Keycloak client <c>geopilot-api</c>, whose id is pinned in
+    /// <c>config/realms/keycloak-geopilot.json</c>, for the organisation of a mandate that carries a key. A
+    /// client credentials token from the dev stack can then deliver without any setup in the portal.
+    /// </summary>
+    private static void SeedMachineClients(this Context context)
+    {
+        var keyedMandate = context.Mandates
+            .Include(m => m.Organisations)
+            .OrderBy(m => m.Id)
+            .First(m => m.Organisations.Any());
+
+        // A client addresses its mandate by key, so this seed makes sure one carries it, instead of depending
+        // on which mandates the random rule in SeedMandates happened to give a key to.
+        keyedMandate.Key ??= "machine-delivery";
+
+        context.MachineClients.Add(new MachineClient
+        {
+            AuthIdentifier = "2d4f8c6e-1a3b-4d5e-9f7a-8b6c5d4e3f2a",
+            Name = "Service account geopilot-api",
+            State = MachineClientState.Active,
+            Organisations = keyedMandate.Organisations.Take(1).ToList(),
         });
 
         context.SaveChanges();
