@@ -3,84 +3,69 @@ import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { MachineClient, Mandate, Organisation, User } from "../../../api/generated";
+import { MachineClient, Organisation } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
-import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
-import { useLocalized } from "../../../hooks/useLocalized.ts";
 
-const Organisations = () => {
+const MachineClients = () => {
   const { t } = useTranslation();
-  const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
-  const { machineDeliveryEnabled } = useCapabilities();
   const { navigateTo } = useControlledNavigate();
-  const [organisations, setOrganisations] = useState<Organisation[]>();
+  const [machineClients, setMachineClients] = useState<MachineClient[]>();
   const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
-  const loadOrganisations = useCallback(() => {
-    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" })
-      .then(setOrganisations)
+  const loadMachineClients = useCallback(() => {
+    fetchApi<MachineClient[]>("/api/v1/machineclient", { errorMessageLabel: "machineClientsLoadingError" })
+      .then(setMachineClients)
       .finally(() => setIsLoading(false));
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
-    navigateTo(`/admin/organisations/${id}`);
+    navigateTo(`/admin/machine-clients/${id}`);
   };
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      if (organisations === undefined) {
-        loadOrganisations();
-      }
+    if (user?.isAdmin && machineClients === undefined) {
+      loadMachineClients();
     }
-  }, [loadOrganisations, organisations, user?.isAdmin]);
+  }, [loadMachineClients, machineClients, user?.isAdmin]);
 
   const columns: GridColDef[] = [
     {
       field: "name",
       headerName: t("name"),
       type: "string",
-      flex: 0.5,
+      flex: 1,
       minWidth: 200,
     },
     {
-      field: "mandates",
-      headerName: t("mandates"),
+      field: "authIdentifier",
+      headerName: t("machineClientIdentifier"),
+      type: "string",
       flex: 1,
-      minWidth: 400,
-      valueGetter: (mandates: Mandate[]) => {
-        const sortedNames = [...mandates].map(m => localized(m.name)).sort();
-        return sortedNames.join(", ");
+      minWidth: 280,
+    },
+    {
+      field: "state",
+      headerName: t("machineClientState"),
+      width: 160,
+      valueFormatter: (param: string) => {
+        return t(param);
       },
     },
     {
-      field: "users",
-      headerName: t("users"),
+      field: "organisations",
+      headerName: t("organisations"),
       flex: 1,
       minWidth: 400,
-      valueGetter: (users: User[]) => {
-        const sortedNames = [...users].map(u => u.fullName).sort();
+      valueGetter: (organisations: Organisation[]) => {
+        const sortedNames = [...organisations.map(o => o.name)].sort();
         return sortedNames.join(", ");
       },
     },
-    ...(machineDeliveryEnabled
-      ? [
-          {
-            field: "machineClients",
-            headerName: t("machineClients"),
-            flex: 1,
-            minWidth: 300,
-            valueGetter: (machineClients: MachineClient[]) => {
-              const sortedNames = [...machineClients].map(c => c.name).sort();
-              return sortedNames.join(", ");
-            },
-          },
-        ]
-      : []),
     {
       field: "actions",
       type: "actions",
@@ -107,14 +92,14 @@ const Organisations = () => {
 
   return (
     <GeopilotDataGrid
-      name="organisations"
-      addLabel="addOrganisation"
+      name="machineClients"
+      addLabel="addMachineClient"
       loading={isLoading}
-      rows={organisations}
+      rows={machineClients}
       columns={columns}
       onSelect={startEditing}
     />
   );
 };
 
-export default Organisations;
+export default MachineClients;
