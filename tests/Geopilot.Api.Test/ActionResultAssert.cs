@@ -61,6 +61,22 @@ internal class ActionResultAssert
         => AssertActionResult(actionResult, StatusCodes.Status409Conflict);
 
     /// <summary>
+    /// Asserts that the <see cref="IActionResult"/> is Conflict (409) and that its problem detail
+    /// contains <paramref name="expectedErrorMessageSubstring"/>.
+    /// </summary>
+    internal static void IsConflict(IActionResult? actionResult, string expectedErrorMessageSubstring)
+    {
+        AssertActionResult(actionResult, StatusCodes.Status409Conflict);
+
+        var problemDetails = (ProblemDetails)((ObjectResult)actionResult!).Value!;
+        Assert.Contains(
+            expectedErrorMessageSubstring,
+            problemDetails.Detail,
+            StringComparison.OrdinalIgnoreCase,
+            $"The error message does not contain the expected message '{expectedErrorMessageSubstring}'.");
+    }
+
+    /// <summary>
     /// Asserts that the <see cref="IActionResult"/> is InternalServerError (500).
     /// </summary>
     internal static void IsInternalServerError(IActionResult? actionResult)

@@ -135,7 +135,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be created due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create a mandate.")]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(Mandate mandate)
     {
@@ -174,7 +174,7 @@ public class MandateController : ControllerBase
         catch (DbUpdateException e) when (IsKeyConflict(e))
         {
             logger.LogInformation("Rejected mandate creation because the key is already in use.");
-            return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
+            return Problem($"Mandate key <{mandate?.Key}> is already in use.", statusCode: StatusCodes.Status409Conflict);
         }
         catch (Exception e)
         {
@@ -193,7 +193,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(Mandate mandate)
     {
@@ -243,7 +243,7 @@ public class MandateController : ControllerBase
         catch (DbUpdateException e) when (IsKeyConflict(e))
         {
             logger.LogInformation("Rejected update of mandate <{MandateId}> because the key is already in use.", mandate?.Id);
-            return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
+            return Problem($"Mandate key <{mandate?.Key}> is already in use.", statusCode: StatusCodes.Status409Conflict);
         }
         catch (Exception e)
         {
