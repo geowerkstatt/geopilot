@@ -19,6 +19,7 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import { px2rem } from "../../appTheme.ts";
 import { useGeopilotAuth } from "../../auth";
 import { useApplicationName } from "../../hooks/useApplicationName";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
@@ -153,7 +154,9 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               </Avatar>
             )}
             {authLoaded && user === null && <Button variant="text" onClick={login} label="logIn" />}
-            {authLoaded && user === undefined && <Skeleton variant="circular" width={40} height={40} />}
+            {authLoaded && user === undefined && (
+              <Skeleton variant="circular" sx={{ width: px2rem(40), height: px2rem(40) }} />
+            )}
           </Stack>
         </Toolbar>
       </AppBar>
