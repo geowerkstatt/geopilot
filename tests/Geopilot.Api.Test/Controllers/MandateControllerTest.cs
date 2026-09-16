@@ -333,10 +333,7 @@ namespace Geopilot.Api.Controllers
 
             var result = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
 
-            ActionResultAssert.IsConflict(result);
-            var message = (result as ConflictObjectResult)?.Value as string;
-            Assert.IsNotNull(message);
-            Assert.Contains("GRUMPYFALCON", message, StringComparison.Ordinal);
+            ActionResultAssert.IsConflict(result, "GRUMPYFALCON");
         }
 
         [TestMethod]

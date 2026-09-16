@@ -402,6 +402,39 @@ describe("Mandate tests", () => {
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
   });
 
+  it("surfaces the real conflict reason when a duplicate key is only caught by the server", () => {
+    // Skeleton rows carry no row id, so a click on one is silently lost: wait for a real row, and click
+    // a cell rather than the row itself.
+    cy.dataCy("mandates-grid")
+      .find(".MuiDataGrid-row:not(.MuiDataGrid-rowSkeleton)")
+      .first()
+      .find(".MuiDataGrid-cell")
+      .first()
+      .click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
+    });
+
+    setInput("name.en", getRandomManadateName());
+
+    // A key taken by another admin between page load and save is caught only by the database's unique
+    // index. The bare JSON string is what a controller answering with a plain string sends, which has
+    // neither detail nor title, so this pins that such a body still reaches the user.
+    cy.intercept(
+      { url: "/api/v1/mandate", method: "PUT" },
+      {
+        statusCode: 409,
+        headers: { "content-type": "application/json" },
+        body: '"Mandate key <public> is already in use."',
+      },
+    ).as("updateConflict");
+
+    cy.dataCy("save-button").click();
+    cy.wait("@updateConflict");
+
+    cy.get(".MuiAlert-message").should("contain.text", "already in use");
+  });
+
   it("prevents multiple save requests while waiting for the API response", () => {
     const randomMandateName = getRandomManadateName();
 
