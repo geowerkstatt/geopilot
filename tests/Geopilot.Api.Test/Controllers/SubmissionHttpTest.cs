@@ -41,6 +41,7 @@ public class SubmissionHttpTest
         using var app = new MachineDeliveryTestApp();
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<Context>();
+        TestMachineClients.EnsureRegistered(context);
         if (context.Mandates.Any(m => m.Key == MandateKey))
             return;
 
@@ -74,6 +75,48 @@ public class SubmissionHttpTest
             HttpStatusCode.Accepted,
             response.StatusCode,
             "MVC reads the body through its value providers for any form content type, before the action runs. Only a real request goes through them, which is why calling the action directly cannot show this.");
+    }
+
+    [TestMethod]
+    public async Task AcceptsADeliveryFromARegisteredMachineClient()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateValidClientToken());
+        using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/files", content);
+
+        Assert.AreEqual(
+            HttpStatusCode.Accepted,
+            response.StatusCode,
+            "A token issued for client credentials names no person, and the identity provider of this host describes none for it. The registration has to be all the installation needs.");
+    }
+
+    [TestMethod]
+    public async Task RefusesAMachineClientThatWasDeactivated()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateClientToken(JwtTestTokenBuilder.InactiveClientSub));
+        using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/files", content);
+
+        Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode, "Deactivating a client is how an administrator revokes it without touching the identity provider.");
+    }
+
+    [TestMethod]
+    public async Task RefusesAMachineNobodyRegistered()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateClientToken(Guid.NewGuid().ToString()));
+        using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/files", content);
+
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            "A valid token alone makes no client: which machines deliver is the administrator's decision, not the identity provider's.");
     }
 
     [TestMethod]
@@ -203,10 +246,10 @@ public class SubmissionHttpTest
             "Nothing may be read or stored for a resource this installation does not offer.");
     }
 
-    private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<Context> app)
+    private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<Context> app, string? token = null)
     {
         var client = app.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtTestTokenBuilder.CreateValidUserToken());
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token ?? JwtTestTokenBuilder.CreateValidUserToken());
         return client;
     }
 

@@ -185,7 +185,7 @@ public class UploadPollingTest
         var uploadedFiles = ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024));
         uploadStore.CreateUpload(uploadId, uploadedFiles);
 
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(mandate);
 
         // The pipeline is now instantiated up front in StartJobAsync (without files) and attached to the job.
         // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
@@ -194,7 +194,7 @@ public class UploadPollingTest
         pipeline.Setup(p => p.Dispose());
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        var job = await processingService.StartJobAsync(uploadId, mandate.Id, user);
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id));
 
         return (job.Id, uploadId, mandate, user);
     }

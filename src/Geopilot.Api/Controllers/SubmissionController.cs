@@ -92,7 +92,7 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="request">The mandate, the upload and the delivery details.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.Declarer)]
     [HttpPost]
     [SwaggerResponse(StatusCodes.Status202Accepted, "The attempt was accepted and is being processed.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
@@ -108,10 +108,10 @@ public class SubmissionController : ControllerBase
             return BadRequest("This installation takes the files with the request. Send them as multipart/form-data to api/v1/submission/files instead of referencing an upload.");
         }
 
-        var user = await context.GetUserByPrincipalAsync(User);
+        var declarer = await context.GetDeclarerAsync(User);
 
         // The key is free text from the request: it may be reflected to its sender, but it must not reach the log.
-        var mandate = await mandateService.GetMandateByKeyForUser(request.MandateKey, user);
+        var mandate = await mandateService.GetMandateByKeyAsync(request.MandateKey, declarer);
         if (mandate is null)
         {
             logger.LogInformation("A machine delivery was refused because no accessible mandate carries the given key.");
@@ -164,11 +164,11 @@ public class SubmissionController : ControllerBase
 
         // Started on the request thread: the execution protocol classifies the client from the current request,
         // and without it every machine delivery would be recorded as coming from an unknown client.
-        var job = await processingService.StartJobAsync(request.UploadId, mandate.Id, user);
+        var job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer);
 
         // The stored key is the one the mandate carries, not the one the request spelled: both routes echo the
         // same value back, whatever whitespace the caller sent.
-        var submission = new Submission(job.Id, mandate.Key ?? string.Empty, user.Id, fields);
+        var submission = new Submission(job.Id, mandate.Key ?? string.Empty, declarer, fields);
         submissionStore.Add(submission);
 
         logger.LogInformation("Accepted machine delivery <{JobId}> for mandate <{MandateId}>.", job.Id, mandate.Id);
@@ -181,7 +181,7 @@ public class SubmissionController : ControllerBase
     /// or a missing delivery detail is refused before any file content is read.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.Declarer)]
     [HttpPost("files")]
     [Consumes("multipart/form-data")]
     [SelfManagedBodySize]
@@ -213,7 +213,7 @@ public class SubmissionController : ControllerBase
 
         RaiseBodySizeLimit();
 
-        var user = await context.GetUserByPrincipalAsync(User);
+        var declarer = await context.GetDeclarerAsync(User);
         var uploadId = Guid.NewGuid();
         var storedFiles = new List<UploadedFileInfo>();
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -261,7 +261,7 @@ public class SubmissionController : ControllerBase
 
                 if (declaration is null)
                 {
-                    var (resolvedMandate, resolvedFields, failure) = await ResolveMandateAsync(fields, user, cancellationToken);
+                    var (resolvedMandate, resolvedFields, failure) = await ResolveMandateAsync(fields, declarer, cancellationToken);
                     if (resolvedMandate is null || resolvedFields is null)
                         return failure ?? BadRequest("The mandate and the delivery details could not be read from the request.");
 
@@ -284,8 +284,8 @@ public class SubmissionController : ControllerBase
             // The job is started before the attempt is remembered, because the job id is the identity of the
             // attempt. Nothing can finish the job in between: preflight, scanning and the run all happen on
             // other threads after this call returns.
-            var job = await processingService.StartJobAsync(uploadId, mandate.Id, user);
-            var submission = new Submission(job.Id, mandate.Key ?? string.Empty, user.Id, deliveryFields);
+            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer);
+            var submission = new Submission(job.Id, mandate.Key ?? string.Empty, declarer, deliveryFields);
             submissionStore.Add(submission);
             accepted = true;
 
@@ -317,7 +317,7 @@ public class SubmissionController : ControllerBase
     /// the delivery it created is the durable record.
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.Declarer)]
     [HttpGet("{id}", Name = nameof(GetSubmissionStatus))]
     [SwaggerResponse(StatusCodes.Status200OK, "The attempt was found.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
@@ -336,7 +336,7 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
     /// <param name="name">The storage name of the file, taken from the <c>url</c> of a download listed on the attempt. That URL, not this name, is what a client follows.</param>
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.Declarer)]
     [HttpGet("{id}/downloads/{name}", Name = nameof(GetDownload))]
     [SwaggerResponse(StatusCodes.Status200OK, "The file was found.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
@@ -371,8 +371,8 @@ public class SubmissionController : ControllerBase
             return (null, null);
 
         // An attempt belongs to the caller that started it; another caller must not learn its state.
-        var user = await context.GetUserByPrincipalAsync(User);
-        if (submission.DeclaringUserId != user.Id)
+        var declarer = await context.GetDeclarerAsync(User);
+        if (submission.Declarer != declarer)
             return (null, null);
 
         return (submission, processingService.GetJob(id));
@@ -450,13 +450,13 @@ public class SubmissionController : ControllerBase
         _ => SubmissionMessageSeverity.Info,
     };
 
-    private async Task<(Mandate? Mandate, DeliveryFields? Fields, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, User user, CancellationToken cancellationToken)
+    private async Task<(Mandate? Mandate, DeliveryFields? Fields, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, Declarer declarer, CancellationToken cancellationToken)
     {
         if (!fields.TryGetValue("mandateKey", out var mandateKey) || string.IsNullOrWhiteSpace(mandateKey))
             return (null, null, BadRequest("The form field <mandateKey> is required and must be sent before the files."));
 
         // The key is free text from the request: it may be reflected to its sender, but it must not reach the log.
-        var mandate = await mandateService.GetMandateByKeyForUser(mandateKey, user);
+        var mandate = await mandateService.GetMandateByKeyAsync(mandateKey, declarer);
         if (mandate is null)
         {
             logger.LogInformation("A machine delivery was refused because no accessible mandate carries the given key.");

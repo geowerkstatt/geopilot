@@ -33,7 +33,7 @@ public class MachineDeliveryCompletionHandlerTest
         await handler.OnJobFinishedAsync(jobId, CancellationToken.None);
 
         declarationServiceMock.Verify(
-            d => d.DeclareAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            d => d.DeclareAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Declarer>(), It.IsAny<CancellationToken>()),
             Times.Never,
             "A run started from the web interface declares its delivery itself.");
     }
@@ -113,7 +113,7 @@ public class MachineDeliveryCompletionHandlerTest
     {
         SetupSubmission();
         declarationServiceMock
-            .Setup(d => d.DeclareAsync(jobId, It.IsAny<DeliveryFields>(), 7, It.IsAny<CancellationToken>()))
+            .Setup(d => d.DeclareAsync(jobId, It.IsAny<DeliveryFields>(), Declarer.ForUser(7), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("The database went away."));
 
         await handler.OnJobFinishedAsync(jobId, CancellationToken.None);
@@ -126,12 +126,12 @@ public class MachineDeliveryCompletionHandlerTest
 
     private void SetupSubmission()
     {
-        var submission = new Submission(jobId, "GRUMPYFALCON", DeclaringUserId: 7, new DeliveryFields(null, null, null));
+        var submission = new Submission(jobId, "GRUMPYFALCON", Declarer.ForUser(7), new DeliveryFields(null, null, null));
         submissionStoreMock.Setup(s => s.GetSubmission(jobId)).Returns(submission);
     }
 
     private void SetupDeclaration(DeliveryDeclarationResult result)
         => declarationServiceMock
-            .Setup(d => d.DeclareAsync(jobId, It.IsAny<DeliveryFields>(), 7, It.IsAny<CancellationToken>()))
+            .Setup(d => d.DeclareAsync(jobId, It.IsAny<DeliveryFields>(), Declarer.ForUser(7), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 }

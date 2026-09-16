@@ -7,7 +7,8 @@
 public enum MachineClientState
 {
     /// <summary>
-    /// The client is inactive: its token is refused everywhere, its registration and its deliveries stay.
+    /// The client is inactive: its token no longer identifies it, so the delivery refuses it and everywhere
+    /// else it counts as nobody. Its registration and its deliveries stay.
     /// </summary>
     Inactive = 0,
 

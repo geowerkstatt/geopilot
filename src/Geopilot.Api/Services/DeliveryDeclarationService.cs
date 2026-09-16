@@ -34,9 +34,10 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
     }
 
     /// <inheritdoc/>
-    public async Task<DeliveryDeclarationResult> DeclareAsync(Guid jobId, DeliveryFields fields, int declaringUserId, CancellationToken cancellationToken)
+    public async Task<DeliveryDeclarationResult> DeclareAsync(Guid jobId, DeliveryFields fields, Declarer declarer, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fields);
+        ArgumentNullException.ThrowIfNull(declarer);
 
         var job = processingService.GetJob(jobId);
         if (job == null)
@@ -69,10 +70,13 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.AlreadyDeclared, existingDeliveryId, $"Job with id <{jobId}> was already delivered.");
         }
 
-        var user = await context.Users.SingleAsync(u => u.Id == declaringUserId, cancellationToken);
+        // Loaded here rather than passed in: the declaration also runs outside a request, where an entity from
+        // the request would belong to a context that no longer exists. Exactly one of the two is set.
+        var user = declarer.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
+        var client = declarer.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
 
-        // Do not reuse the mandate returned from GetMandateForUser, because it is not tracked and has no includes.
-        var hasMandatePermission = await mandateService.GetMandateForUser(job.MandateId.Value, user) != null;
+        // Do not reuse the mandate returned from GetMandateForDeclarerAsync, because it is not tracked and has no includes.
+        var hasMandatePermission = await mandateService.GetMandateForDeclarerAsync(job.MandateId.Value, declarer) != null;
         var mandate = hasMandatePermission
             ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
             : null;
@@ -95,6 +99,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             JobId = jobId,
             Mandate = mandate,
             DeclaringUser = user,
+            DeclaringClient = client,
             PrecursorDelivery = precursorDelivery,
             Partial = fields.PartialDelivery,
             Comment = fields.Comment?.Trim() ?? string.Empty,

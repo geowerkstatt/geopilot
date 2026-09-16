@@ -825,7 +825,7 @@ public class DeliveryControllerTest
             : context.Mandates.AsNoTracking().First(m => m.Id == mandateId);
 
         mandateServiceMock
-            .Setup(s => s.GetMandateForUser(mandateId, user))
+            .Setup(s => s.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id)))
             .ReturnsAsync(detachedMandate);
     }
 }
