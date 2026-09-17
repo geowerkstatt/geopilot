@@ -1,0 +1,152 @@
+# Opt-in override that runs ZITADEL as the local identity provider instead of Keycloak.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up
+#
+# Why: production runs ZITADEL, local development runs Keycloak. That asymmetry is harmless
+# for everyday work but not for changes to the login flow, because that is exactly where the
+# two products differ (refresh tokens need the offline_access scope on ZITADEL, not on
+# Keycloak). Those differences never show up against Keycloak.
+#
+# Keycloak stays the default and keeps running on 4011; the Cypress tests are wired to it and
+# are not affected by this file. Nothing here is reached unless you pass -f explicitly.
+#
+# Three containers, not one: since v4 the login UI is a separate service, and it must answer
+# under the same origin as the API because the OIDC issuer is http://localhost:4012. nginx
+# does the routing that Traefik does in the cluster. This mirrors the official ZITADEL
+# compose reference (zitadel/zitadel, deploy/compose).
+#
+# First start: see "ZITADEL lokal" in README.md. The instance is empty until you create the
+# project and the two applications once in the console, then put their ids into .env.
+services:
+  # The API. Not published directly: the browser always goes through zitadel-proxy, so that
+  # the issuer, the console and the login UI share one origin.
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v4.15.3 # matches geow-ops (chart 10.0.4), so differences never come from the version
+    restart: unless-stopped
+    user: "0" # needs to write the login-client token into the bootstrap volume
+    command: start-from-init --masterkeyFromEnv
+    environment:
+      # Local-only dev credentials, same category as the Keycloak and Postgres ones in
+      # docker-compose.yml. Never reuse these anywhere that is reachable from outside.
+      ZITADEL_MASTERKEY: geopilotLocalDevMasterKey32Byte! # must be exactly 32 bytes
+
+      # The issuer in the discovery document is derived from these values, and it must equal
+      # the Auth__Authority the API validates against AND the URL the browser opens.
+      # localhost:4012 satisfies both: the browser reaches the published proxy port, and the
+      # geopilot container resolves localhost to the host gateway (see its extra_hosts).
+      ZITADEL_PORT: "8080"
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_EXTERNALPORT: "4012"
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_TLS_ENABLED: "false"
+
+      # Shares the geopilot Postgres instead of running a second one; local weight matters
+      # more than the lifecycle isolation geow-ops has in the cluster. The admin user creates
+      # the zitadel database on first start, HAPPYWALK is the superuser of that instance.
+      ZITADEL_DATABASE_POSTGRES_HOST: db
+      ZITADEL_DATABASE_POSTGRES_PORT: "5432"
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_MAXOPENCONNS: "10"
+      ZITADEL_DATABASE_POSTGRES_MAXIDLECONNS: "5"
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: HAPPYWALK
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: SOMBERSPORK
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: HAPPYWALK
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: SOMBERSPORK
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+
+      # Console login, created once against the empty database. Editing any FIRSTINSTANCE or
+      # DEFAULTINSTANCE value later has no effect: they only apply while the database is empty.
+      ZITADEL_FIRSTINSTANCE_ORG_NAME: geopilot
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: LocalDev1!
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+
+      # The login UI authenticates against the API with a machine token that is minted here
+      # and handed over through the shared bootstrap volume.
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
+      # Quoted: unquoted, YAML parses this as a timestamp and reformats it into a shape
+      # ZITADEL rejects ("cannot parse ... as T").
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+
+      # Where ZITADEL sends the browser to authenticate. The v1 login UI no longer serves
+      # content in v4, so these must point at the separate login service.
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "true"
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:4012/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:4012/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:4012/ui/v2/login/logout?post_logout_redirect=
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:rw
+    healthcheck:
+      test: ["CMD", "/app/zitadel", "ready"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The login UI. Separate service since v4; forgetting it makes the console fail with a 404
+  # on /ui/v2/login, because that is where every authentication request is sent.
+  zitadel-login:
+    image: ghcr.io/zitadel/zitadel-login:v4.15.3
+    restart: unless-stopped
+    user: "0" # reads the login-client token from the bootstrap volume
+    environment:
+      ZITADEL_API_URL: http://zitadel:8080
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
+      CUSTOM_REQUEST_HEADERS: Host:localhost,X-Forwarded-Proto:http
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "node /app/healthcheck.mjs http://localhost:3000/ui/v2/login/healthy"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      zitadel:
+        condition: service_healthy
+
+  # Puts the API and the login UI under one origin. Traefik does this in the cluster.
+  zitadel-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./config/nginx-zitadel.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "4012:80"
+    depends_on:
+      zitadel:
+        condition: service_healthy
+      zitadel-login:
+        condition: service_healthy
+
+  geopilot:
+    environment:
+      # Same set of values production sets via AUTH_* (geopilot-hosting/.env.example:110-117),
+      # pointed at the local instance. The endpoint paths are ZITADEL's and differ from
+      # Keycloak's, which is the point of running this override.
+      Auth__Authority: http://localhost:4012
+      Auth__AuthorizationUrl: http://localhost:4012/oauth/v2/authorize
+      Auth__TokenUrl: http://localhost:4012/oauth/v2/token
+      Auth__UserInfoUrl: http://localhost:4012/oidc/v1/userinfo
+      # Filled in after the one-time console setup, see README.md. The defaults are deliberate
+      # nonsense so the first start works and a forgotten step fails visibly at login.
+      Auth__PublicClientId: ${ZITADEL_CLIENT_ID:-set-me-see-README}
+      Auth__Audience: ${ZITADEL_API_ID:-set-me-see-README}
+      # Mirrors production. No project scope is needed as long as the OIDC app and the API app
+      # live in the same project: ZITADEL then puts the API id into aud on its own.
+      Auth__Scope: "profile email openid"
+      Auth__SwaggerAdditionalScopes: ""
+    depends_on:
+      zitadel-proxy:
+        condition: service_started
+
+volumes:
+  # Carries the login-client token from the API container to the login container.
+  zitadel-bootstrap:
