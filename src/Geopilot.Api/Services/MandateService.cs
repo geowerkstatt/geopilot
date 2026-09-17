@@ -140,8 +140,10 @@ public class MandateService : IMandateService
             .Distinct()
             .ToList();
 
+        // An upload always has files (initiation refuses an empty one), but none of them may carry an
+        // extension, and without extensions there is nothing to match a mandate's file types against.
         if (fileExtensions.Count == 0)
-            throw new InvalidOperationException($"Upload with id <{uploadId}> has no file associated.");
+            throw new InvalidOperationException($"Upload with id <{uploadId}> has no file with a file extension.");
 
         foreach (var extension in fileExtensions)
         {

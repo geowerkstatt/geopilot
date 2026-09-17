@@ -118,6 +118,20 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task RefusesAnUploadWhoseFilesHaveNoExtension()
+    {
+        var controller = CreateController();
+        SetupMandateLookup();
+        mandateServiceMock
+            .Setup(m => m.GetDeliverabilityAsync(mandate, uploadId))
+            .ThrowsAsync(new InvalidOperationException("no file extension"));
+
+        var result = await controller.Create(NewRequest(), CancellationToken.None);
+
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result, "Files without an extension cannot be checked against a mandate; that is a fault of the request, not of the installation.");
+    }
+
+    [TestMethod]
     public async Task RefusesDeliveryDetailsTheMandateDoesNotAllow()
     {
         mandate.EvaluateComment = FieldEvaluationType.Required;

@@ -57,6 +57,7 @@ public class MandateController : ControllerBase
     [HttpGet("summary")]
     [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The upload has no file with a file extension, so no mandate can be matched against it.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No upload with the provided id exists.")]
     public async Task<IActionResult> GetSummary(
         [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions. Omit it to list the deliverable mandates without that filter, for a caller that has not uploaded anything yet.")]
@@ -78,6 +79,12 @@ public class MandateController : ControllerBase
         {
             logger.LogTrace("No upload with id <{UploadId}> found.", uploadId);
             return NotFound($"No upload with id <{uploadId}> found.");
+        }
+        catch (InvalidOperationException)
+        {
+            // The upload exists but none of its files carries an extension, so there is nothing to match against.
+            logger.LogTrace("Upload with id <{UploadId}> has no file with a file extension.", uploadId);
+            return BadRequest($"Upload <{uploadId}> has no file with a file extension, so no mandate can be matched against it.");
         }
     }
 

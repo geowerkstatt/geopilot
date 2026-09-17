@@ -171,6 +171,17 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetSummaryWithUploadWithoutFileExtensionsReturnsBadRequest()
+        {
+            var uploadId = Guid.NewGuid();
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ThrowsAsync(new InvalidOperationException($"Upload with id <{uploadId}> has no file with a file extension."));
+
+            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId), "Files without an extension cannot be matched against a mandate; that is a fault of the request, not of the installation.");
+        }
+
+        [TestMethod]
         public async Task GetSetsCoordinatesOnResults()
         {
             mandateController.SetupTestUser(adminUser);
