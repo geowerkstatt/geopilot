@@ -1181,6 +1181,10 @@ export type GetApiV1MandateSummaryData = {
 
 export type GetApiV1MandateSummaryErrors = {
   /**
+   * The upload has no file with a file extension, so no mandate can be matched against it.
+   */
+  400: unknown;
+  /**
    * No upload with the provided id exists.
    */
   404: unknown;
@@ -1699,7 +1703,7 @@ export type PostApiV1SubmissionData = {
 
 export type PostApiV1SubmissionErrors = {
   /**
-   * This installation takes the files with the request, or the delivery details violate the rules of the mandate.
+   * This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.
    */
   400: ValidationProblemDetails;
   /**
