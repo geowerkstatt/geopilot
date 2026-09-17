@@ -8,9 +8,18 @@ namespace Geopilot.Api.Authorization;
 /// </summary>
 public class GeopilotUserInfoService : IGeopilotUserInfoService
 {
+    /// <summary>
+    /// The name of the configured HTTP client for user info requests.
+    /// </summary>
+    public const string HttpClientName = "GeopilotUserInfo";
+
     private readonly HttpClient httpClient;
     private readonly IConfiguration configuration;
     private readonly ILogger<GeopilotUserInfoService> logger;
+
+    // Invariant: single-slot cache requires Scoped service lifetime.
+    private string? cachedToken;
+    private UserInfoResponse? cachedUserInfo;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,10 +29,21 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// <summary>
     /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
     /// </summary>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="configuration">The application configuration.</param>
+    /// <param name="logger">The logger for user info service related logging.</param>
+    public GeopilotUserInfoService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
+        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), configuration, logger)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
+    /// </summary>
     /// <param name="httpClient">The HTTP client for making requests to the identity provider.</param>
     /// <param name="configuration">The application configuration.</param>
     /// <param name="logger">The logger for user info service related logging.</param>
-    public GeopilotUserInfoService(HttpClient httpClient, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
+    internal GeopilotUserInfoService(HttpClient httpClient, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
     {
         this.httpClient = httpClient;
         this.configuration = configuration;
@@ -31,22 +51,32 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     }
 
     /// <inheritdoc/>
-    public async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken)
+    public async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
     {
+        if (accessToken == cachedToken && cachedUserInfo is not null)
+        {
+            return cachedUserInfo;
+        }
+
         try
         {
             var userInfoEndpoint = configuration["Auth:UserInfoUrl"];
             using var request = new HttpRequestMessage(HttpMethod.Get, userInfoEndpoint);
             request.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            if ((int)response.StatusCode >= 500)
+            {
+                throw new IdentityProviderUnavailableException($"User info request failed with status code {response.StatusCode}.");
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to retrieve user info. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             var userInfo = JsonSerializer.Deserialize<UserInfoResponse>(content, JsonOptions);
             if (string.IsNullOrEmpty(userInfo?.Sub) || string.IsNullOrEmpty(userInfo?.Email) ||
@@ -56,9 +86,19 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
                 return null;
             }
 
+            cachedToken = accessToken;
+            cachedUserInfo = userInfo;
             return userInfo;
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            throw new IdentityProviderUnavailableException("User info request failed.", ex);
+        }
+        catch (Exception ex) when (ex is not IdentityProviderUnavailableException)
         {
             logger.LogError(ex, "Error retrieving user info.");
             return null;

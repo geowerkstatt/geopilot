@@ -79,13 +79,13 @@ export type BrowserAuthOptions = {
    */
   authority: string;
   /**
-   * The client id of the client application registered at the authority.
+   * The client id of the public client application registered at the authority.
    */
-  clientAudience: string;
+  publicClientId: string;
   /**
-   * The scope required for a client to authenticate with the IDP.
+   * The scopes requested during the authorization flow.
    */
-  fullScope: string;
+  scope: string;
 };
 
 /**
