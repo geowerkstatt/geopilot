@@ -124,7 +124,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | Code | Wann |
 | --- | --- |
 | `202` | Der Versuch ist angenommen und läuft. |
-| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht, oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
+| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |
 | `409` | Das Mandat nimmt keine Lieferungen an, oder es nennt keine Pipeline, die diese Installation anbietet. |

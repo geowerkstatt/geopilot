@@ -95,7 +95,7 @@ public class SubmissionController : ControllerBase
     [Authorize(Policy = GeopilotPolicies.User)]
     [HttpPost]
     [SwaggerResponse(StatusCodes.Status202Accepted, "The attempt was accepted and is being processed.", typeof(SubmissionResponse), "application/json")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No mandate with the given key is accessible, or the upload does not exist.")]
     [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate cannot take a delivery.")]
@@ -127,6 +127,12 @@ public class SubmissionController : ControllerBase
         {
             logger.LogInformation("A machine delivery was refused because upload <{UploadId}> is unknown.", request.UploadId);
             return NotFound($"No upload with id <{request.UploadId}> found.");
+        }
+        catch (InvalidOperationException)
+        {
+            // The upload exists but none of its files carries an extension, so its file types cannot be checked.
+            logger.LogInformation("A machine delivery was refused because upload <{UploadId}> has no file with a file extension.", request.UploadId);
+            return BadRequest($"Upload <{request.UploadId}> has no file with a file extension, so its file types cannot be checked against the mandate.");
         }
 
         switch (deliverability)
