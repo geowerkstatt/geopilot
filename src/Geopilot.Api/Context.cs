@@ -267,6 +267,11 @@ public class Context : DbContext
             run.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Restrict);
             run.HasOne(r => r.MachineClient).WithMany().HasForeignKey(r => r.MachineClientId).OnDelete(DeleteBehavior.Restrict);
 
+            // A run is started by a user, by a machine client or anonymously, never by both. The recorder
+            // cannot write both (a Declarer is one or the other); the constraint holds that promise for every
+            // other writer, the way the one on the delivery does.
+            run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
+
             run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
             run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
         });

@@ -126,6 +126,35 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task TheDatabaseRefusesARunStartedByAUserAndAMachineClient()
+    {
+        // The recorder cannot write this, a Declarer is one or the other, so only the database keeps every
+        // other writer from recording a run that two principals started.
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "TWINLANTERN" }).Entity;
+        context.SaveChanges();
+
+        context.PipelineRuns.Add(new PipelineRun
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "test",
+            MandateId = mandate.Id,
+            UserId = user.Id,
+            MachineClientId = client.Id,
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = DateTime.UtcNow,
+            StartedAt = DateTime.UtcNow,
+        });
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(),
+            "A run names the user or the machine client that started it, or nobody; a row with both would leave the protocol unable to say who acted.");
+        context.ChangeTracker.Clear();
+    }
+
+    [TestMethod]
     public async Task RecordJobStartedThrowsWhenRecordCannotBeWritten()
     {
         // Deliberately hard: the caller must not start a job it cannot account for. A duplicate job id

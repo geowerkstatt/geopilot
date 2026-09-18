@@ -99,7 +99,9 @@ export type CapabilitiesResponse = {
 };
 
 /**
- * The kind of client that started a processing job, classified from the request. Persisted as text.
+ * The way a processing job was started, classified from the request. Persisted as text. It says nothing about
+ * who started the job: that is the user or the machine client on the run, and a person calling the API from
+ * Swagger or a script is as much an Geopilot.Api.Models.ClientKind.ApiClient as a registered machine is.
  */
 export const ClientKind = {
   Unknown: "unknown",
@@ -108,7 +110,9 @@ export const ClientKind = {
 } as const;
 
 /**
- * The kind of client that started a processing job, classified from the request. Persisted as text.
+ * The way a processing job was started, classified from the request. Persisted as text. It says nothing about
+ * who started the job: that is the user or the machine client on the run, and a person calling the API from
+ * Swagger or a script is as much an Geopilot.Api.Models.ClientKind.ApiClient as a registered machine is.
  */
 export type ClientKind = (typeof ClientKind)[keyof typeof ClientKind];
 
