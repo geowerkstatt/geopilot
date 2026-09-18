@@ -47,7 +47,7 @@ public class GeopilotUserResolver : IGeopilotUserResolver
         // token. This is what keeps client credentials out of the web interface, and it must not depend on
         // the identity provider refusing user info for a machine.
         var subject = httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        if (subject is not null && await dbContext.MachineClients.AnyAsync(c => c.AuthIdentifier == subject))
+        if (await IsRegisteredMachineClientAsync(subject, httpContext.RequestAborted))
         {
             logger.LogWarning("Subject <{Sub}> is a registered machine client and cannot act as a user.", subject);
             return null;
@@ -91,6 +91,18 @@ public class GeopilotUserResolver : IGeopilotUserResolver
 
         return user;
     }
+
+    /// <inheritdoc/>
+    public async Task PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken)
+    {
+        if (await IsRegisteredMachineClientAsync(subject, cancellationToken))
+            return;
+
+        await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
+    }
+
+    private async Task<bool> IsRegisteredMachineClientAsync(string? subject, CancellationToken cancellationToken) =>
+        subject is not null && await dbContext.MachineClients.AnyAsync(c => c.AuthIdentifier == subject, cancellationToken);
 
     private static string? ExtractAccessToken(HttpContext? httpContext)
     {

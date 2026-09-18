@@ -14,4 +14,16 @@ public interface IGeopilotUserResolver
     /// belongs to a registered machine client, which is never a user.
     /// </summary>
     Task<User?> ResolveAsync();
+
+    /// <summary>
+    /// Requests the user info of a person's token while the request is still being authenticated, so an
+    /// unreachable identity provider surfaces there as <see cref="IdentityProviderUnavailableException"/>
+    /// instead of as a refusal by an authorization handler. The response stays with the scoped user info
+    /// service for <see cref="ResolveAsync"/>. Does nothing for a subject registered as a machine client:
+    /// its token names no person, and most identity providers answer a failure when asked for one.
+    /// </summary>
+    /// <param name="subject">The subject the token was authenticated as, if it carries one.</param>
+    /// <param name="accessToken">The access token of the request.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    Task PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken);
 }
