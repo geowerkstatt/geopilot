@@ -230,6 +230,40 @@ public class GeopilotUserResolverTest
         userInfoServiceMock.Verify(x => x.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never, "The decision must not depend on what the identity provider answers.");
     }
 
+    [TestMethod]
+    public async Task PrefetchSkipsARegisteredMachineClient()
+    {
+        var subject = Guid.NewGuid().ToString();
+        context.MachineClients.Add(new MachineClient { AuthIdentifier = subject, Name = "QUIETLANTERN" });
+        context.SaveChanges();
+
+        await resolver.PrefetchUserInfoAsync(subject, "mock-token", CancellationToken.None);
+
+        userInfoServiceMock.Verify(
+            x => x.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "A machine names no person, so there is nothing to ask the identity provider, and asking anyway logs a failed request for every call of the machine.");
+    }
+
+    [TestMethod]
+    public async Task PrefetchRequestsTheUserInfoOfAPerson()
+    {
+        await resolver.PrefetchUserInfoAsync(Guid.NewGuid().ToString(), "mock-token", CancellationToken.None);
+
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task PrefetchLetsAnUnavailableIdentityProviderThrough()
+    {
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IdentityProviderUnavailableException("User info request failed."));
+
+        await Assert.ThrowsExactlyAsync<IdentityProviderUnavailableException>(
+            () => resolver.PrefetchUserInfoAsync(Guid.NewGuid().ToString(), "mock-token", CancellationToken.None),
+            "The authentication handlers turn this into a 503; swallowing it here would leave them a 403.");
+    }
+
     private void SetupHttpContextWithToken(string token, string? subject = null)
     {
         var httpContext = new DefaultHttpContext();
