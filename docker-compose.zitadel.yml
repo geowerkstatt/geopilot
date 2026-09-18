@@ -65,11 +65,35 @@ services:
       # The login UI authenticates against the API with a machine token that is minted here
       # and handed over through the shared bootstrap volume.
       ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
+
+      # A second machine user with IAM_OWNER, used by zitadel-provision to create the project,
+      # the applications and the development users. Its key lands in the same bootstrap
+      # volume, so provisioning needs no manually created credential.
+      #
+      # A key, not a personal access token: the terraform provider pinned to ~>2.2.0 offers
+      # only jwt_file, jwt_profile_file and jwt_profile_json. Token support arrived later
+      # under the name access_token. Production authenticates the same way.
+      ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /zitadel/bootstrap/admin-key.json
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: terraform
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Local provisioning
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: "1" # 1 is JSON, the only supported value
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
       # Quoted: unquoted, YAML parses this as a timestamp and reformats it into a shape
       # ZITADEL rejects ("cannot parse ... as T").
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+
+      # Relaxes the password policy so the development users can share the same simple
+      # password as the Keycloak realm. The default demands an upper case letter, a number and
+      # a symbol. Set here rather than through terraform because the provider's
+      # zitadel_password_complexity_policy resource is broken: it creates the policy and then
+      # reports "Root object was present, but now absent", which aborts the apply.
+      ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_MINLENGTH: "8"
+      ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_HASLOWERCASE: "true"
+      ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_HASUPPERCASE: "false"
+      ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_HASNUMBER: "false"
+      ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_HASSYMBOL: "false"
 
       # Where ZITADEL sends the browser to authenticate. The v1 login UI no longer serves
       # content in v4, so these must point at the separate login service.
@@ -118,13 +142,71 @@ services:
     restart: unless-stopped
     volumes:
       - ./config/nginx-zitadel.conf:/etc/nginx/nginx.conf:ro
+    # Same port inside and outside, see the comment in nginx-zitadel.conf.
     ports:
-      - "4012:80"
+      - "4012:4012"
     depends_on:
       zitadel:
         condition: service_healthy
       zitadel-login:
         condition: service_healthy
+
+  # Applies terraform/local once and exits, which creates the organization, the project, both
+  # applications and the development users. This is the counterpart to Keycloak's
+  # --import-realm, so nobody has to set the instance up by hand.
+  #
+  # The configuration is mounted read-only and copied into the state volume before running,
+  # so terraform never writes into the repository and leaves no root-owned files behind.
+  zitadel-provision:
+    image: hashicorp/terraform:1.14
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        # Wait for the proxy to serve, not just to have started: terraform does not retry a
+        # failed connection, and a race here fails the whole provisioning run.
+        i=0
+        until wget -q -O /dev/null http://localhost:4012/.well-known/openid-configuration; do
+          i=$$((i + 1))
+          [ "$$i" -lt 30 ] || { echo "ZITADEL not reachable on localhost:4012"; exit 1; }
+          sleep 2
+        done
+        cp /terraform/*.tf /work/
+        cd /work
+        # -upgrade because the lock file persists in this volume: without it a changed version
+        # constraint in versions.tf aborts init and demands the flag anyway.
+        terraform init -input=false -upgrade
+        terraform apply -auto-approve -input=false
+        # Via variables, not straight into the file: "echo x=$(cmd)" succeeds even when cmd
+        # fails, which would write empty ids and only surface later as a confusing login
+        # error. An assignment under set -e aborts instead, and the emptiness check catches
+        # an output that succeeds but returns nothing.
+        CLIENT_ID=$$(terraform output -raw oidc_client_id)
+        API_ID=$$(terraform output -raw api_client_id)
+        if [ -z "$$CLIENT_ID" ] || [ -z "$$API_ID" ]; then
+          echo "terraform returned an empty client id, aborting"
+          exit 1
+        fi
+        mkdir -p /generated
+        printf 'ZITADEL_CLIENT_ID=%s\nZITADEL_API_ID=%s\n' "$$CLIENT_ID" "$$API_ID" > /generated/zitadel.env
+        echo "provisioned. Start with --env-file .env --env-file config/generated/zitadel.env"
+    volumes:
+      - ./terraform/local:/terraform:ro
+      - ./config/generated:/generated
+      - zitadel-terraform:/work
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    # Shares the proxy's network namespace, so localhost:4012 really is the proxy and the
+    # Host header matches the issuer. Addressing the container as zitadel:8080 instead would
+    # send a different Host and ZITADEL would not resolve the instance.
+    #
+    # extra_hosts with host-gateway does NOT work here: Docker appends that entry after the
+    # default "127.0.0.1 localhost" in /etc/hosts, so localhost still resolves to the
+    # container's own loopback and the connection is refused.
+    network_mode: "service:zitadel-proxy"
+    depends_on:
+      zitadel-proxy:
+        condition: service_started
 
   geopilot:
     environment:
@@ -135,18 +217,30 @@ services:
       Auth__AuthorizationUrl: http://localhost:4012/oauth/v2/authorize
       Auth__TokenUrl: http://localhost:4012/oauth/v2/token
       Auth__UserInfoUrl: http://localhost:4012/oidc/v1/userinfo
-      # Filled in after the one-time console setup, see README.md. The defaults are deliberate
-      # nonsense so the first start works and a forgotten step fails visibly at login.
-      Auth__PublicClientId: ${ZITADEL_CLIENT_ID:-set-me-see-README}
-      Auth__Audience: ${ZITADEL_API_ID:-set-me-see-README}
       # Mirrors production. No project scope is needed as long as the OIDC app and the API app
       # live in the same project: ZITADEL then puts the API id into aud on its own.
       Auth__Scope: "profile email openid"
       Auth__SwaggerAdditionalScopes: ""
+      # ZITADEL generates both client ids and they cannot be pinned, so these two come from
+      # the environment. zitadel-provision writes them to config/generated/zitadel.env, which
+      # is passed in with a second --env-file at start, see README.md.
+      #
+      # Not via the service-level env_file key: the Keycloak values in docker-compose.yml are
+      # set under environment and would take precedence over it. Making them overridable there
+      # would in turn let a ZITADEL id break the default Keycloak start. These two names are
+      # referenced only here, so they stay inert in Keycloak mode.
+      Auth__PublicClientId: ${ZITADEL_CLIENT_ID:-run-zitadel-provision-first}
+      Auth__Audience: ${ZITADEL_API_ID:-run-zitadel-provision-first}
     depends_on:
+      zitadel-provision:
+        condition: service_completed_successfully
       zitadel-proxy:
         condition: service_started
 
 volumes:
-  # Carries the login-client token from the API container to the login container.
+  # Carries the login-client and provisioning tokens from the API container to the
+  # login and provisioning containers.
   zitadel-bootstrap:
+  # Terraform working directory and state. A volume, not a repository path, so a reset is
+  # "remove the volume" and the checkout stays clean.
+  zitadel-terraform:
