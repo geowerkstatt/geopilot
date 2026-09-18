@@ -195,7 +195,7 @@
   "userLoadingError": "Une erreur s'est produite lors du chargement d'utilisateur: {{error}}",
   "userNoPermission": "L'utilisateur n'est pas autorisé à utiliser Geopilot.",
   "userSaveError": "Une erreur s'est produite lors de l'enregistrement de l'utilisateur: {{error}}",
-  "userState": "Stato",
+  "userState": "État",
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",
   "validate": "Valider",
