@@ -78,37 +78,75 @@ internal static class InputBinder
     /// </summary>
     private static object? BindToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
-        var value = ResolveToSingleValue(target, input, resolve);
-        if (value is null)
+        var resolved = ResolveToSingleValue(target, input, resolve);
+        if (resolved.Value is null)
         {
             if (target.IsNullable)
                 return null;
 
-            throw new PipelineRunException($"Input for parameter '{target.Name}' is null, but the parameter is not nullable.");
+            throw new PipelineRunException(MissingSingleValueMessage(target, resolved));
         }
 
-        if (RawValueConverter.TryConvert(value, target.Type, out var converted))
+        if (RawValueConverter.TryConvert(resolved.Value, target.Type, out var converted))
             return converted;
 
         throw new PipelineRunException(
-            $"Input for parameter '{target.Name}' of type <{value.GetType().Name}> cannot be converted to <{target.Type.Name}>.");
+            $"Input for parameter '{target.Name}' of type <{resolved.Value.GetType().Name}> cannot be converted to <{target.Type.Name}>.");
     }
 
     /// <summary>
-    /// Reduces an input to the one value a single valued parameter expects. A list, whether it comes
-    /// from a resolved reference or a written sequence, is unwrapped: no element becomes null, one
-    /// element is that value, and more than one is rejected.
+    /// Explains why a single valued parameter ended up without a value. A parameter that is empty
+    /// because the step it reads from was skipped names that step, so the cause is not mistaken for a
+    /// wrong reference.
     /// </summary>
-    private static object? ResolveToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
+    private static string MissingSingleValueMessage(BindingTarget target, ResolvedInput resolved) =>
+        resolved.AbsentReference is InputValue.StepOutputReference stepOutput
+            ? $"Input for parameter '{target.Name}' references '{stepOutput.StepId}.{stepOutput.OutputName}', but step '{stepOutput.StepId}' was skipped and the parameter is not nullable."
+            : $"Input for parameter '{target.Name}' is null, but the parameter is not nullable.";
+
+    /// <summary>
+    /// Reduces an input to the one value a single valued parameter expects. Every source contributes
+    /// its candidates, spread one level exactly as a list target spreads them, and the result must be a
+    /// single candidate: none becomes null, one is that value, and more than one is rejected. A written
+    /// sequence is therefore reduced like the sources written on their own, which is what lets several
+    /// sources, of which all but one are empty or absent, still yield the one value.
+    /// </summary>
+    private static ResolvedInput ResolveToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
-        if (input is InputValue.Sequence sequence)
-            return UnwrapToSingleValue(target, sequence.Items.Select(item => Resolve(item, resolve)).ToList());
+        var resolvedItems = input is InputValue.Sequence sequence
+            ? sequence.Items.Select(item => Resolve(item, resolve)).ToList()
+            : [Resolve(input, resolve)];
 
-        var resolved = Resolve(input, resolve);
-        if (resolved is not null && target.Type.IsInstanceOfType(resolved))
-            return resolved;
+        var candidates = new List<object?>();
+        foreach (var item in resolvedItems.Where(item => !item.IsAbsent))
+            AppendSingleValueCandidates(target, candidates, item.Value);
 
-        return TryAsCollection(resolved, out var items) ? UnwrapToSingleValue(target, items) : resolved;
+        // Nothing left means every source was absent or empty; keep an absent one so a failure can name it.
+        return candidates.Count == 0
+            ? resolvedItems.FirstOrDefault(item => item.IsAbsent)
+            : ResolvedInput.Of(UnwrapToSingleValue(target, candidates));
+    }
+
+    /// <summary>
+    /// Adds a resolved value to the candidates for a single valued parameter, spreading one level the
+    /// same way <see cref="AppendToList"/> does for a list target: a value that already is the target
+    /// type counts as one candidate, a collection contributes its items, and anything else counts as
+    /// one candidate. Conversion happens afterwards, on the single surviving candidate.
+    /// </summary>
+    private static void AppendSingleValueCandidates(BindingTarget target, List<object?> candidates, object? value)
+    {
+        if (value is not null && target.Type.IsInstanceOfType(value))
+        {
+            candidates.Add(value);
+        }
+        else if (TryAsCollection(value, out var items))
+        {
+            candidates.AddRange(items);
+        }
+        else
+        {
+            candidates.Add(value);
+        }
     }
 
     /// <summary>
@@ -127,7 +165,8 @@ internal static class InputBinder
     /// Binds to a list parameter (an array or <see cref="IEnumerable{T}"/>). A written sequence
     /// contributes each of its items, and a missing (unwired) input yields an empty list. Any other
     /// input contributes its single resolved value; a resolved null means there is no list and is
-    /// accepted only when the parameter is nullable.
+    /// accepted only when the parameter is nullable. An absent input contributes nothing, so a
+    /// reference to a skipped step leaves the list as it is, exactly like an unwired input.
     /// </summary>
     private static Array? BindToList(BindingTarget target, Type elementType, InputValue? input, ReferenceResolver resolve)
     {
@@ -136,7 +175,11 @@ internal static class InputBinder
         if (input is InputValue.Sequence sequence)
         {
             foreach (var item in sequence.Items)
-                AppendToList(target, elementType, elements, Resolve(item, resolve));
+            {
+                var resolvedItem = Resolve(item, resolve);
+                if (!resolvedItem.IsAbsent)
+                    AppendToList(target, elementType, elements, resolvedItem.Value);
+            }
 
             return CreateArray(elementType, elements);
         }
@@ -145,7 +188,10 @@ internal static class InputBinder
             return CreateArray(elementType, elements);
 
         var resolved = Resolve(input, resolve);
-        if (resolved is null)
+        if (resolved.IsAbsent)
+            return CreateArray(elementType, elements);
+
+        if (resolved.Value is null)
         {
             if (target.IsNullable)
                 return null;
@@ -153,7 +199,7 @@ internal static class InputBinder
             throw new PipelineRunException($"Input for parameter '{target.Name}' is null, but the parameter is not nullable.");
         }
 
-        AppendToList(target, elementType, elements, resolved);
+        AppendToList(target, elementType, elements, resolved.Value);
         return CreateArray(elementType, elements);
     }
 
@@ -220,10 +266,10 @@ internal static class InputBinder
     /// Resolves an input to its runtime value: a literal yields its raw text, a reference (step output
     /// or file) is resolved through <paramref name="resolve"/>, and a missing input yields null.
     /// </summary>
-    private static object? Resolve(InputValue? input, ReferenceResolver resolve) => input switch
+    private static ResolvedInput Resolve(InputValue? input, ReferenceResolver resolve) => input switch
     {
-        null => null,
-        InputValue.Literal literal => literal.Raw,
+        null => ResolvedInput.Of(null),
+        InputValue.Literal literal => ResolvedInput.Of(literal.Raw),
         InputValue.StepOutputReference reference => ResolveReference(reference, resolve),
         InputValue.FileReference reference => ResolveReference(reference, resolve),
         InputValue.UploadReference reference => ResolveReference(reference, resolve),
@@ -231,15 +277,30 @@ internal static class InputBinder
     };
 
     /// <summary>
-    /// Resolves a reference (a step output or a file) through <paramref name="resolve"/>, or throws a
-    /// message describing the reference when it cannot be resolved in the current context.
+    /// Resolves a reference (a step output or a file) through <paramref name="resolve"/>. A reference
+    /// to a step that published nothing yields an absent input, which the callers drop; anything the
+    /// resolver cannot make sense of throws a message describing the reference.
     /// </summary>
-    private static object? ResolveReference(InputValue reference, ReferenceResolver resolve)
-    {
-        if (resolve(reference, out var value))
-            return value;
+    private static ResolvedInput ResolveReference(InputValue reference, ReferenceResolver resolve) =>
+        resolve(reference, out var value) switch
+        {
+            ReferenceResolution.Resolved => ResolvedInput.Of(value),
+            ReferenceResolution.Absent => ResolvedInput.AbsentFrom(reference),
+            _ => throw new PipelineRunException(UnresolvedReferenceMessage(reference)),
+        };
 
-        throw new PipelineRunException(UnresolvedReferenceMessage(reference));
+    /// <summary>
+    /// One resolved input: either a value (possibly null) or the absence of one, together with the
+    /// reference that was absent so a failure can name it. Absence travels as its own state instead of
+    /// as a null value, because the two mean different things to the binder.
+    /// </summary>
+    private readonly record struct ResolvedInput(InputValue? AbsentReference, object? Value)
+    {
+        internal bool IsAbsent => this.AbsentReference is not null;
+
+        internal static ResolvedInput Of(object? value) => new(null, value);
+
+        internal static ResolvedInput AbsentFrom(InputValue reference) => new(reference, null);
     }
 
     private static string UnresolvedReferenceMessage(InputValue reference) => reference switch
@@ -273,11 +334,29 @@ internal static class InputBinder
 
 /// <summary>
 /// Resolves an input reference (a <c>${step_output(...)}</c> or a <c>${file(...)}</c>) to its runtime
-/// value. Returns <see langword="true"/> and the value when the reference resolves in the current
-/// context, otherwise <see langword="false"/>, in which case the binder throws a message describing
-/// the reference. May throw a <see cref="PipelineRunException"/> for a more specific failure.
+/// value. May throw a <see cref="PipelineRunException"/> for a more specific failure than the binder
+/// can describe.
 /// </summary>
 /// <param name="reference">The reference to resolve.</param>
-/// <param name="value">The resolved value when the reference resolves.</param>
-/// <returns><see langword="true"/> when the reference was resolved.</returns>
-internal delegate bool ReferenceResolver(InputValue reference, out object? value);
+/// <param name="value">The resolved value, set only for <see cref="ReferenceResolution.Resolved"/>.</param>
+/// <returns>How the reference resolved in the current context.</returns>
+internal delegate ReferenceResolution ReferenceResolver(InputValue reference, out object? value);
+
+/// <summary>
+/// The outcome of resolving a single input reference.
+/// </summary>
+internal enum ReferenceResolution
+{
+    /// <summary>The reference resolved to a value, which may itself be null.</summary>
+    Resolved,
+
+    /// <summary>
+    /// The reference points at a step that ran no process and therefore published nothing, which is
+    /// what a skipped step does. There is no value, and that is not an error: the input contributes
+    /// nothing instead of failing the step.
+    /// </summary>
+    Absent,
+
+    /// <summary>The reference names no step, no output or no resolvable resource, which is an error.</summary>
+    Unresolvable,
+}
