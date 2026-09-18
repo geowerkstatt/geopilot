@@ -170,6 +170,7 @@ internal static class DtoMapperExtensions
             run.AppVersion,
             run.MandateId,
             run.UserId,
+            run.MachineClientId,
             run.ClientKind,
             run.UploadId,
             run.UploadStorageLocation,

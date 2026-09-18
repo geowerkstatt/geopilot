@@ -26,6 +26,13 @@ public class Context : DbContext
     public const string DeliveryJobIndexName = "IX_Deliveries_JobId";
 
     /// <summary>
+    /// Name of the unique index over <see cref="MachineClient.AuthIdentifier"/>. A violation of this index is
+    /// how the administration learns that an identifier is already registered, so the name is shared instead
+    /// of repeated as a literal.
+    /// </summary>
+    public const string MachineClientIdentifierIndexName = "IX_MachineClients_AuthIdentifier";
+
+    /// <summary>
     /// Database context to manage the database.
     /// </summary>
     /// <param name="options">Configuration options for the Context.</param>
@@ -53,6 +60,24 @@ public class Context : DbContext
     }
 
     /// <summary>
+    /// Set of all <see cref="MachineClient"/>.
+    /// </summary>
+    public DbSet<MachineClient> MachineClients { get; set; }
+
+    /// <summary>
+    /// Gets the <see cref="MachineClient"/> entity with all includes.
+    /// </summary>
+    public IQueryable<MachineClient> MachineClientsWithIncludes
+    {
+        get
+        {
+            return MachineClients
+                .Include(c => c.Organisations)
+                .Include(c => c.Deliveries);
+        }
+    }
+
+    /// <summary>
     /// Set of all <see cref="Organisation"/>.
     /// </summary>
     public DbSet<Organisation> Organisations { get; set; }
@@ -66,6 +91,7 @@ public class Context : DbContext
         {
             return Organisations
                 .Include(o => o.Users)
+                .Include(o => o.MachineClients)
                 .Include(o => o.Mandates);
         }
     }
@@ -86,6 +112,7 @@ public class Context : DbContext
                 .Include(d => d.Mandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
+                .Include(d => d.DeclaringClient)
                 .Include(d => d.PrecursorDelivery);
         }
     }
@@ -107,6 +134,8 @@ public class Context : DbContext
                 .ThenInclude(o => o.Users)
                 .Include(m => m.Deliveries)
                 .ThenInclude(d => d.DeclaringUser)
+                .Include(m => m.Deliveries)
+                .ThenInclude(d => d.DeclaringClient)
                 .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
@@ -176,6 +205,22 @@ public class Context : DbContext
             .HasFilter("\"Deleted\" = false")
             .HasDatabaseName(DeliveryJobIndexName);
 
+        // A delivery is declared by a user or by a machine client, never by both and never by neither. The
+        // navigations are optional so either can be absent, and the database keeps exactly one of them set.
+        // Restrict on both: users and clients are only ever deactivated, and a delivery must not lose who
+        // declared it.
+        modelBuilder.Entity<Delivery>(delivery =>
+        {
+            delivery.HasOne(d => d.DeclaringUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeclaringUserId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne(d => d.DeclaringClient).WithMany(c => c.Deliveries).HasForeignKey(d => d.DeclaringClientId).OnDelete(DeleteBehavior.Restrict);
+            delivery.ToTable(t => t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)"));
+        });
+
+        modelBuilder.Entity<MachineClient>()
+            .HasIndex(client => client.AuthIdentifier)
+            .IsUnique()
+            .HasDatabaseName(MachineClientIdentifierIndexName);
+
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
@@ -220,6 +265,12 @@ public class Context : DbContext
             // soft-deleted, and the protocol must not silently lose who a run belonged to.
             run.HasOne(r => r.Mandate).WithMany().HasForeignKey(r => r.MandateId).OnDelete(DeleteBehavior.Restrict);
             run.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Restrict);
+            run.HasOne(r => r.MachineClient).WithMany().HasForeignKey(r => r.MachineClientId).OnDelete(DeleteBehavior.Restrict);
+
+            // A run is started by a user, by a machine client or anonymously, never by both. The recorder
+            // cannot write both (a Declarer is one or the other); the constraint holds that promise for every
+            // other writer, the way the one on the delivery does.
+            run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
 
             run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
             run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);

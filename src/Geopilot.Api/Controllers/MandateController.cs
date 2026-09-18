@@ -71,8 +71,10 @@ public class MandateController : ControllerBase
         else
             logger.LogInformation("Getting list of mandate summaries without an upload filter.");
 
+        // A machine client gets the anonymous view: its surface is the submission, where it names its mandate
+        // itself. A token the application has never seen as a person is treated the same rather than failing.
         var user = User?.Identity?.IsAuthenticated == true
-            ? await context.GetUserByPrincipalAsync(User)
+            ? await context.GetUserOrDefaultByPrincipalAsync(User)
             : null;
 
         try

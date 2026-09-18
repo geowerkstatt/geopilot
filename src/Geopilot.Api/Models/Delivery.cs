@@ -23,9 +23,31 @@ public class Delivery
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// The user that declared the delivery.
+    /// The user that declared the delivery, or <see langword="null"/> when a machine client did.
     /// </summary>
-    public User DeclaringUser { get; set; } = null!;
+    public User? DeclaringUser { get; set; }
+
+    /// <summary>
+    /// The id of <see cref="DeclaringUser"/>. Exposed so a query can filter on it without joining the user.
+    /// </summary>
+    public int? DeclaringUserId { get; set; }
+
+    /// <summary>
+    /// The machine client that declared the delivery, or <see langword="null"/> when a user did. Exactly one
+    /// of <see cref="DeclaringUser"/> and <see cref="DeclaringClient"/> is set; the database enforces it.
+    /// </summary>
+    public MachineClient? DeclaringClient { get; set; }
+
+    /// <summary>
+    /// The id of <see cref="DeclaringClient"/>.
+    /// </summary>
+    public int? DeclaringClientId { get; set; }
+
+    /// <summary>
+    /// The name of whoever declared the delivery, for display: the user's full name or the client's name.
+    /// </summary>
+    [NotMapped]
+    public string DeclarerName => DeclaringUser?.FullName ?? DeclaringClient?.Name ?? string.Empty;
 
     /// <summary>
     /// The mandate the delivery fulfills.

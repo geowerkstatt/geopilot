@@ -794,7 +794,7 @@ public class DeliveryControllerTest
 
         var deliveries = Assert.IsInstanceOfType<List<Delivery>>(response?.Value);
         CollectionAssert.AllItemsAreUnique(deliveries);
-        Assert.IsTrue(deliveries.All(d => d.DeclaringUser.Id == user.Id), "All deliveries should belong to the user.");
+        Assert.IsTrue(deliveries.All(d => d.DeclaringUserId == user.Id), "All deliveries should belong to the user.");
         Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
     }
 
@@ -825,7 +825,7 @@ public class DeliveryControllerTest
             : context.Mandates.AsNoTracking().First(m => m.Id == mandateId);
 
         mandateServiceMock
-            .Setup(s => s.GetMandateForUser(mandateId, user))
+            .Setup(s => s.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id)))
             .ReturnsAsync(detachedMandate);
     }
 }

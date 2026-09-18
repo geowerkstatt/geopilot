@@ -141,11 +141,17 @@ builder.Services.AddAuthorization(options =>
         });
     });
 
+    // The machine delivery surface: a user or a registered machine client. Every other policy stays closed
+    // to clients, which is what keeps client credentials out of the web interface.
+    options.AddPolicy(GeopilotPolicies.Declarer, policy => policy.Requirements.Add(new DeclarerRequirement()));
+
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
     options.DefaultPolicy = adminPolicy;
     options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
+builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
+builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));

@@ -66,12 +66,14 @@ public class ProcessingController : ControllerBase
 
         try
         {
-            var user = User?.Identity?.IsAuthenticated == true
-                        ? await context.GetUserByPrincipalAsync(User)
+            // Open to everyone, so a valid token whose subject nobody knows yet (a person before the web
+            // created the user, a machine nobody registered) processes like a caller without a token.
+            var declarer = User?.Identity?.IsAuthenticated == true
+                        ? await context.GetDeclarerOrDefaultAsync(User)
                         : null;
 
-            logger.LogInformation("Starting job for upload <{UploadId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", startJobRequest.UploadId, startJobRequest.MandateId, user?.AuthIdentifier ?? "Unauthenticated");
-            var job = await processingService.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, user);
+            logger.LogInformation("Starting job for upload <{UploadId}> with mandate <{MandateId}> for <{Declarer}>.", startJobRequest.UploadId, startJobRequest.MandateId, declarer?.ToString() ?? "Unauthenticated");
+            var job = await processingService.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, declarer);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
             return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl));

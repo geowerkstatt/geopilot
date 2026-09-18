@@ -10,7 +10,19 @@ Maschinell und über die Weboberfläche angelieferte Daten landen in derselben A
 
 - **Die Installation bietet die Fähigkeit an.** Ohne `MachineDelivery:Enabled` existieren die Endpunkte nicht: sie sind weder erreichbar noch in der OpenAPI-Beschreibung sichtbar.
 - **Das Mandat trägt einen Schlüssel.** Der Client spricht ein Mandat über diesen Schlüssel an, nicht über seine Datenbank-Id. Administratorinnen und Administratoren vergeben ihn in der Mandatsverwaltung; er ist installationsweit eindeutig.
-- **Der Aufrufer ist angemeldet und darf auf das Mandat.** Sichtbar ist ein Mandat, wenn es öffentlich ist oder der Aufrufer einer Organisation angehört, der es zugeteilt ist. Anonyme maschinelle Lieferungen gibt es nicht: eine Lieferung hat immer einen Urheber.
+- **Der Aufrufer ist authentifiziert und darf auf das Mandat.** Ein Maschinen-Client ist in geopilot registriert und einer oder mehreren Organisationen zugeteilt (siehe [Authentifizierung](#authentifizierung)). Sichtbar ist ein Mandat, wenn es öffentlich ist oder der Aufrufer einer Organisation angehört, der es zugeteilt ist. Anonyme maschinelle Lieferungen gibt es nicht: eine Lieferung hat immer einen Urheber.
+
+## Authentifizierung
+
+Ein Maschinen-Client holt sich sein Token mit **Client Credentials** (Client ID und Secret) beim Identity Provider der Installation, demselben, an dem sich auch die Benutzerinnen und Benutzer anmelden: dieselbe Authority, dieselbe Audience. Je nach Identity Provider trägt das Token die Audience erst, wenn der Client sie beim Token-Aufruf über einen Scope anfordert; die Referenzskripte unter `scripts/` nehmen diesen Scope mit `-Scope`. Das Token schickt er unverändert als `Authorization: Bearer <token>` mit.
+
+Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client über seine **Kennung**, das `sub` seines Tokens. Bei opaken Tokens ist es das `sub` der Introspection-Antwort, ersatzweise deren `client_id`. Eine Administratorin oder ein Administrator registriert den Client in der Verwaltung unter *Maschinen-Clients* mit dieser Kennung und einem Anzeigenamen und teilt ihn Organisationen zu, so wie eine Person; über die Organisationen erreicht der Client seine Mandate. Nichts registriert einen Client von sich aus: ein gültiges Token mit unbekannter Kennung wird mit `403` abgewiesen, und das Log der Installation nennt die Kennung, damit sie beim Registrieren nicht am Identity Provider zusammengesucht werden muss. Ein deaktivierter Client wird ebenso abgewiesen, und auf den offenen Endpunkten der Verarbeitung zählt er ab dann als niemand, erreicht also auch die nicht öffentlichen Mandate seiner Organisationen nicht mehr. Das ist der Weg, einen Client zu sperren, ohne am Identity Provider etwas zu ändern.
+
+Die Zugangsdaten eines Clients öffnen die Weboberfläche nicht. Ein Client ist kein Benutzer: er erreicht ausschliesslich `api/v1/submission*`, weder eine Lieferungsliste noch die Verwaltung, und ein Token, dessen Kennung als Client registriert ist, wird nirgends als Person behandelt, auch wenn der Identity Provider dazu Benutzerinformationen liefern würde; geopilot fragt sie für einen registrierten Client gar nicht ab. Umgekehrt lässt sich die Kennung einer bestehenden Person nicht als Client registrieren.
+
+Der Anzeigename des Clients erscheint als Urheber der Lieferung, im Portal wie im STAC-Katalog, und das [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) hält den Client fest.
+
+Ein Benutzer-Token wird auf diesen Endpunkten derzeit ebenfalls angenommen. Das dient Probe und Support und wird in einem späteren Schritt auf Clients eingeschränkt.
 
 ## Der Ablauf
 
@@ -22,6 +34,8 @@ Wie die Dateien hereinkommen, hängt davon ab, wo die Installation ihre Uploads 
 | durch die API (lokales Verzeichnis) | `POST api/v1/submission/files` | `multipart/form-data`, die Dateien liegen im Request |
 
 Wer die falsche Route wählt, erhält `400` mit dem Hinweis auf die richtige. Ein Client wird einmal pro Installation eingerichtet und kennt danach seine Form, so wie er auch seinen Mandatsschlüssel kennt.
+
+Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je eine der beiden Formen von Anfang bis Ende fahren, vom Token bis zum Endstatus. Sie eignen sich als Startpunkt für einen eigenen Client.
 
 ### Variante mit vorherigem Upload
 
@@ -115,7 +129,7 @@ Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in
 
 Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie sein Verarbeitungsjob (`Processing:JobRetention`, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
 
-**Der dauerhafte Griff ist die `deliveryId`.** Die Lieferung ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang über seine Lieferungen, nicht über den Versuch.
+**Der dauerhafte Griff ist die `deliveryId`.** Die Lieferung ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient; einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
 
 Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden nach `Processing:DownloadRetention` aufgeräumt, standardmässig nach einer Stunde, während der Job einen Tag lebt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
 
@@ -126,6 +140,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | `202` | Der Versuch ist angenommen und läuft. |
 | `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
+| `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |
 | `409` | Das Mandat nimmt keine Lieferungen an, oder es nennt keine Pipeline, die diese Installation anbietet. |
 | `413` | Eine Datei ist grösser, als die Installation annimmt. |
@@ -148,4 +163,4 @@ Für Mandate, die maschinell bedient werden, gehören datenbedingte Ablehnungen 
 
 ## Wenn die Fähigkeit nicht eingeschaltet ist
 
-Ohne `MachineDelivery:Enabled` werden die Endpunkte gar nicht erst eingerichtet. Sie antworten nicht, und sie stehen nicht in der OpenAPI-Beschreibung der Installation. Ein Aufruf bekommt dann, was diese Installation auf einen unbekannten Pfad antwortet, und das ist kein verlässliches `404`: mit gültigem Token ist es `403`. Ob eine Installation maschinelle Lieferungen anbietet, ist eine Betriebsentscheidung und nichts, was ein Client zur Laufzeit aushandelt. Die Antwort auf die Frage steht in der OpenAPI-Beschreibung. Auch das Schlüsselfeld am Mandat wird in der Verwaltung dann nicht angeboten, und ein mitgeschickter Schlüssel wird ignoriert, ohne einen bereits gespeicherten zu überschreiben. So pflegt niemand einen Wert, der für seine Installation keine Bedeutung hat.
+Ohne `MachineDelivery:Enabled` werden die Endpunkte gar nicht erst eingerichtet. Sie antworten nicht, und sie stehen nicht in der OpenAPI-Beschreibung der Installation. Ein Aufruf bekommt dann, was diese Installation auf einen unbekannten Pfad antwortet, und das ist kein verlässliches `404`: mit gültigem Token ist es `403`. Ob eine Installation maschinelle Lieferungen anbietet, ist eine Betriebsentscheidung und nichts, was ein Client zur Laufzeit aushandelt. Die Antwort auf die Frage steht in der OpenAPI-Beschreibung. Auch das Schlüsselfeld am Mandat wird in der Verwaltung dann nicht angeboten, und ein mitgeschickter Schlüssel wird ignoriert, ohne einen bereits gespeicherten zu überschreiben. Dasselbe gilt für die Maschinen-Clients: ihre Verwaltung (`api/v1/machineclient` und die Seite *Maschinen-Clients*) existiert nicht, und eine Organisation behält ihre zugeteilten Clients, auch wenn sie ohne die Fähigkeit gespeichert wird. So pflegt niemand einen Wert, der für seine Installation keine Bedeutung hat.

@@ -32,6 +32,7 @@ public class SubmissionControllerTest
     private Mock<IUploadOrchestrationService> orchestrationMock;
     private Context context;
     private User user;
+    private Declarer declarer;
     private Mandate mandate;
     private Guid uploadId;
     private string uploadRoot;
@@ -55,6 +56,7 @@ public class SubmissionControllerTest
             EvaluatePartial = FieldEvaluationType.NotEvaluated,
             EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
         });
+        declarer = Declarer.ForUser(user.Id);
     }
 
     [TestCleanup]
@@ -84,7 +86,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
     }
 
     [TestMethod]
@@ -100,7 +102,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType(result, expected);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
     }
 
     [TestMethod]
@@ -146,7 +148,7 @@ public class SubmissionControllerTest
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A violated field rule must be reported per field.");
         Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.Comment)));
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
     }
 
     [TestMethod]
@@ -158,7 +160,7 @@ public class SubmissionControllerTest
 
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, It.Is<User>(u => u.Id == user.Id)))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer))
             .ReturnsAsync(new ProcessingJob(jobId, uploadId, mandate.Id, DateTime.UtcNow));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
@@ -169,7 +171,7 @@ public class SubmissionControllerTest
         Assert.AreEqual(SubmissionState.Processing, response.State);
         Assert.AreEqual(MandateKey, response.MandateKey);
         submissionStoreMock.Verify(
-            s => s.Add(It.Is<Submission>(sub => sub.JobId == jobId && sub.DeclaringUserId == user.Id && sub.MandateKey == MandateKey)),
+            s => s.Add(It.Is<Submission>(sub => sub.JobId == jobId && sub.Declarer == declarer && sub.MandateKey == MandateKey)),
             Times.Once);
     }
 
@@ -189,7 +191,7 @@ public class SubmissionControllerTest
     {
         var controller = CreateController(UploadBackend.Direct);
         mandateServiceMock
-            .Setup(m => m.GetMandateByKeyForUser("NOSUCHKEY", It.Is<User>(u => u.Id == user.Id)))
+            .Setup(m => m.GetMandateByKeyAsync("NOSUCHKEY", declarer))
             .ReturnsAsync(default(Mandate?));
         SetMultipartBody(controller, "NOSUCHKEY", [("data.xtf", "content")]);
 
@@ -211,8 +213,8 @@ public class SubmissionControllerTest
 
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, It.Is<User>(u => u.Id == user.Id)))
-            .ReturnsAsync((Guid upload, int mandateId, User declaring) => new ProcessingJob(jobId, upload, mandateId, DateTime.UtcNow));
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer))
+            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring) => new ProcessingJob(jobId, upload, mandateId, DateTime.UtcNow));
 
         SetMultipartBody(controller, MandateKey, [("data.xtf", "transfer content")]);
 
@@ -333,7 +335,7 @@ public class SubmissionControllerTest
         var jobId = Guid.NewGuid();
         submissionStoreMock
             .Setup(s => s.GetSubmission(jobId))
-            .Returns(new Submission(jobId, MandateKey, user.Id + 1, new DeliveryFields(null, null, null)));
+            .Returns(new Submission(jobId, MandateKey, Declarer.ForUser(user.Id + 1), new DeliveryFields(null, null, null)));
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -348,7 +350,7 @@ public class SubmissionControllerTest
         var jobId = Guid.NewGuid();
         submissionStoreMock
             .Setup(s => s.GetSubmission(jobId))
-            .Returns(new Submission(jobId, MandateKey, user.Id + 1, new DeliveryFields(null, null, null)));
+            .Returns(new Submission(jobId, MandateKey, Declarer.ForUser(user.Id + 1), new DeliveryFields(null, null, null)));
 
         var result = await controller.GetDownload(jobId, "validation_errorLog.log");
 
@@ -368,7 +370,7 @@ public class SubmissionControllerTest
         Assert.IsInstanceOfType<BadRequestObjectResult>(
             result,
             "The fields are checked before the first file, so a later one would be dropped without the caller noticing.");
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
     }
 
     [TestMethod]
@@ -399,7 +401,7 @@ public class SubmissionControllerTest
         var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, It.Is<User>(u => u.Id == user.Id)))
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer))
             .ThrowsAsync(new InvalidOperationException("The pipeline could not be built."));
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -508,7 +510,7 @@ public class SubmissionControllerTest
     private Guid SetupAttempt(int? deliveryId, string? declarationFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
     {
         var jobId = Guid.NewGuid();
-        var submission = new Submission(jobId, MandateKey, user.Id, new DeliveryFields(null, null, null))
+        var submission = new Submission(jobId, MandateKey, declarer, new DeliveryFields(null, null, null))
         {
             DeliveryId = deliveryId,
             DeclarationFailure = declarationFailure,
@@ -579,7 +581,7 @@ public class SubmissionControllerTest
 
     private void SetupMandateLookup(bool found = true)
         => mandateServiceMock
-            .Setup(m => m.GetMandateByKeyForUser(MandateKey, It.Is<User>(u => u.Id == user.Id)))
+            .Setup(m => m.GetMandateByKeyAsync(MandateKey, declarer))
             .ReturnsAsync(found ? mandate : null);
 
     private void SetupDeliverability(MandateDeliverability deliverability)

@@ -205,6 +205,10 @@ Dabei wird geprüft, dass das Token von der angegebenen Authority ausgestellt wu
 Zusätzlich werden folgende Claims im Token vorausgesetzt: `sub`, `email` und `name`.
 Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) `openid`, `profile` und `email` mitgeliefert.
 
+### Maschinen-Clients
+
+Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
@@ -229,9 +233,9 @@ Im Modus `Opaque` validiert die API Tokens über Introspection (RFC 7662) und be
 - `Auth:IntrospectionAuthMethod`: `ClientSecretBasic` wenn Basic Auth oder `ClientSecretPost` wenn via Form-Data authentifiziert.
 - `Auth:ConfidentialClientId`: Client-ID des Confidential Clients.
 - `Auth:ConfidentialClientSecret`: Client-Secret des Confidential Clients.
-- `Auth:UserInfoUrl`: URL des `userinfo_endpoint` (liefert `sub`, `email`, `name`).
+- `Auth:UserInfoUrl`: URL des `userinfo_endpoint` (liefert `email` und `name` einer Person; für einen registrierten Maschinen-Client wird er nicht abgefragt).
 
-Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Ist `Auth:Audience` konfiguriert, muss die Antwort das Feld `aud` mit diesem Wert enthalten. Fehlt `aud` oder weicht der Wert ab, lehnt die API das Token ab. Ist `Auth:Audience` leer, prüft die API keine Audience und akzeptiert jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden.
+Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Ist `Auth:Audience` konfiguriert, muss die Antwort das Feld `aud` mit diesem Wert enthalten. Fehlt `aud` oder weicht der Wert ab, lehnt die API das Token ab. Ist `Auth:Audience` leer, prüft die API keine Audience und akzeptiert jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden. Die Kennung des Tokens nimmt die API aus der Introspection-Antwort: aus `sub`, ersatzweise aus `client_id`. Fehlen beide, lehnt die API das Token ab.
 
 ### Appsettings
 

@@ -117,7 +117,7 @@ public class StacConverter
             item.Properties.Add("Teillieferung", delivery.Partial.Value ? "Ja" : "Nein");
         }
 
-        item.Properties.Add("Abgegeben durch", delivery.DeclaringUser.FullName);
+        item.Properties.Add("Abgegeben durch", delivery.DeclarerName);
         if (delivery.PrecursorDelivery != null)
         {
             item.Properties.Add("Vorgängerversion", delivery.PrecursorDelivery.Date.ToString("d.M.yyyy, H:mm:ss 'UTC'", CultureInfo.InvariantCulture));

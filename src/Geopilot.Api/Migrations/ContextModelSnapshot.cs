@@ -76,7 +76,10 @@ namespace Geopilot.Api.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DeclaringUserId")
+                    b.Property<int?>("DeclaringClientId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DeclaringUserId")
                         .HasColumnType("integer");
 
                     b.Property<bool>("Deleted")
@@ -96,6 +99,8 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeclaringClientId");
+
                     b.HasIndex("DeclaringUserId");
 
                     b.HasIndex("JobId")
@@ -107,7 +112,39 @@ namespace Geopilot.Api.Migrations
 
                     b.HasIndex("PrecursorDeliveryId");
 
-                    b.ToTable("Deliveries");
+                    b.ToTable("Deliveries", t =>
+                        {
+                            t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.MachineClient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthIdentifier")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("varchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthIdentifier")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MachineClients_AuthIdentifier");
+
+                    b.ToTable("MachineClients");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.Mandate", b =>
@@ -215,6 +252,9 @@ namespace Geopilot.Api.Migrations
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("MachineClientId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("MandateId")
                         .HasColumnType("integer");
 
@@ -256,11 +296,16 @@ namespace Geopilot.Api.Migrations
                     b.HasIndex("JobId")
                         .IsUnique();
 
+                    b.HasIndex("MachineClientId");
+
                     b.HasIndex("MandateId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PipelineRuns");
+                    b.ToTable("PipelineRuns", t =>
+                        {
+                            t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunArtifact", b =>
@@ -461,6 +506,21 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("MachineClientOrganisation", b =>
+                {
+                    b.Property<int>("MachineClientsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrganisationsId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MachineClientsId", "OrganisationsId");
+
+                    b.HasIndex("OrganisationsId");
+
+                    b.ToTable("MachineClientOrganisation");
+                });
+
             modelBuilder.Entity("MandateOrganisation", b =>
                 {
                     b.Property<int>("MandatesId")
@@ -504,11 +564,15 @@ namespace Geopilot.Api.Migrations
 
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
                 {
+                    b.HasOne("Geopilot.Api.Models.MachineClient", "DeclaringClient")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("DeclaringClientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Geopilot.Api.Models.User", "DeclaringUser")
                         .WithMany("Deliveries")
                         .HasForeignKey("DeclaringUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Geopilot.Api.Models.Mandate", "Mandate")
                         .WithMany("Deliveries")
@@ -520,6 +584,8 @@ namespace Geopilot.Api.Migrations
                         .WithMany()
                         .HasForeignKey("PrecursorDeliveryId");
 
+                    b.Navigation("DeclaringClient");
+
                     b.Navigation("DeclaringUser");
 
                     b.Navigation("Mandate");
@@ -529,6 +595,11 @@ namespace Geopilot.Api.Migrations
 
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
                 {
+                    b.HasOne("Geopilot.Api.Models.MachineClient", "MachineClient")
+                        .WithMany()
+                        .HasForeignKey("MachineClientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Geopilot.Api.Models.Mandate", "Mandate")
                         .WithMany()
                         .HasForeignKey("MandateId")
@@ -538,6 +609,8 @@ namespace Geopilot.Api.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("MachineClient");
 
                     b.Navigation("Mandate");
 
@@ -588,6 +661,21 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("PipelineRun");
                 });
 
+            modelBuilder.Entity("MachineClientOrganisation", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.MachineClient", null)
+                        .WithMany()
+                        .HasForeignKey("MachineClientsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Geopilot.Api.Models.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MandateOrganisation", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.Mandate", null)
@@ -621,6 +709,11 @@ namespace Geopilot.Api.Migrations
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
                 {
                     b.Navigation("Assets");
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.MachineClient", b =>
+                {
+                    b.Navigation("Deliveries");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.Mandate", b =>

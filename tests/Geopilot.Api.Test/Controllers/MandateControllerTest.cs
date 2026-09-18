@@ -146,6 +146,32 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetSummaryAsMachineClientPassesNullUser()
+        {
+            // An active client gets the anonymous view although its organisation holds mandates: its surface
+            // is the submission, where it names its mandate by key. Whoever resolves the declarer here instead
+            // of the user changes that behaviour, and this test is where it shows.
+            var uploadId = Guid.NewGuid();
+            var client = new MachineClient
+            {
+                AuthIdentifier = Guid.NewGuid().ToString(),
+                Name = "SILENTHARBOR",
+                State = MachineClientState.Active,
+            };
+            organisation.MachineClients.Add(client);
+            context.SaveChanges();
+            mandateController.SetupTestUser(new User { AuthIdentifier = client.AuthIdentifier });
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
+
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
+
+            Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
+        }
+
+        [TestMethod]
         public async Task GetSummaryWithoutUploadIdSkipsTheUploadFilter()
         {
             mandateServiceMock
@@ -563,7 +589,7 @@ namespace Geopilot.Api.Controllers
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
             var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
             deliveryController.SetupTestUser(editUser);
-            mandateServiceMock.Setup(s => s.GetMandateForUser(mandateToUpdate.Id, editUser)).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
+            mandateServiceMock.Setup(s => s.GetMandateForDeclarerAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 
             var request = new DeliveryRequest
             {

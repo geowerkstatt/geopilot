@@ -30,6 +30,7 @@ public static class ContextSeedExtensions
         context.SeedUsers();
         context.SeedOrganisations();
         context.SeedMandates();
+        context.SeedMachineClients();
         context.SeedDeliveries();
         context.SeedAssets();
         context.AddOrganisationsToDefaultUsers();
@@ -82,6 +83,7 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Id, _ => 0)
             .RuleFor(o => o.Name, f => f.Company.CompanyName())
             .RuleFor(o => o.Users, f => f.PickRandom(context.Users.ToList(), f.Random.Number(1, 4)).ToList())
+            .RuleFor(o => o.MachineClients, _ => new List<MachineClient>())
             .RuleFor(o => o.Mandates, _ => new List<Mandate>());
 
         Organisation SeedOrganisations(int seed) => organisationFaker.UseSeed(seed).Generate();
@@ -163,6 +165,33 @@ public static class ContextSeedExtensions
         context.SaveChanges();
     }
 
+    /// <summary>
+    /// Registers the service account of the Keycloak client <c>geopilot-api</c>, whose id is pinned in
+    /// <c>config/realms/keycloak-geopilot.json</c>, for the organisation of a mandate that carries a key. A
+    /// client credentials token from the dev stack can then deliver without any setup in the portal.
+    /// </summary>
+    private static void SeedMachineClients(this Context context)
+    {
+        var keyedMandate = context.Mandates
+            .Include(m => m.Organisations)
+            .OrderBy(m => m.Id)
+            .First(m => m.Organisations.Any());
+
+        // A client addresses its mandate by key, so this seed makes sure one carries it, instead of depending
+        // on which mandates the random rule in SeedMandates happened to give a key to.
+        keyedMandate.Key ??= "machine-delivery";
+
+        context.MachineClients.Add(new MachineClient
+        {
+            AuthIdentifier = "2d4f8c6e-1a3b-4d5e-9f7a-8b6c5d4e3f2a",
+            Name = "Service account geopilot-api",
+            State = MachineClientState.Active,
+            Organisations = keyedMandate.Organisations.Take(1).ToList(),
+        });
+
+        context.SaveChanges();
+    }
+
     private static void SeedDeliveries(this Context context)
     {
         var deliveryContracts =
@@ -183,6 +212,11 @@ public static class ContextSeedExtensions
                 d.Mandate!.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
+
+            // The seed knows only human deliverers; the key follows the navigation, the client stays empty.
+            .Ignore(d => d.DeclaringUserId)
+            .Ignore(d => d.DeclaringClient)
+            .Ignore(d => d.DeclaringClientId)
             .RuleFor(d => d.Assets, _ => new List<Asset>())
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))

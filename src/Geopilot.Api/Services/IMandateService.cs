@@ -30,20 +30,22 @@ public interface IMandateService
     Task<List<string>> GetMandateKeysAsync();
 
     /// <summary>
-    /// Retrieves the mandate with the specified id, if the specified user is allowed to access it.
+    /// Retrieves the mandate with the specified id, if the specified declarer is allowed to access it.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
-    /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
+    /// <param name="declarer">The user or machine client that tries to access the mandate. If null, the caller is
+    /// considered unauthenticated and reaches public mandates only.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateForUser(int mandateId, User? user);
+    Task<Mandate?> GetMandateForDeclarerAsync(int mandateId, Declarer? declarer);
 
     /// <summary>
-    /// Retrieves the mandate with the specified key, if the specified user is allowed to access it.
+    /// Retrieves the mandate with the specified key, if the specified declarer is allowed to access it.
     /// </summary>
     /// <param name="key">The unique key of the mandate. Compared exactly, including case.</param>
-    /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
+    /// <param name="declarer">The user or machine client that tries to access the mandate. If null, the caller is
+    /// considered unauthenticated and reaches public mandates only.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateByKeyForUser(string key, User? user);
+    Task<Mandate?> GetMandateByKeyAsync(string key, Declarer? declarer);
 
     /// <summary>
     /// Checks whether the mandate can take a delivery, and if not, what stands in the way.
