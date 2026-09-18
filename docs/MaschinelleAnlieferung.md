@@ -35,6 +35,8 @@ Wie die Dateien hereinkommen, hängt davon ab, wo die Installation ihre Uploads 
 
 Wer die falsche Route wählt, erhält `400` mit dem Hinweis auf die richtige. Ein Client wird einmal pro Installation eingerichtet und kennt danach seine Form, so wie er auch seinen Mandatsschlüssel kennt.
 
+Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je eine der beiden Formen von Anfang bis Ende fahren, vom Token bis zum Endstatus. Sie eignen sich als Startpunkt für einen eigenen Client.
+
 ### Variante mit vorherigem Upload
 
 1. `POST api/v2/upload` meldet die Dateien mit Name und Grösse an und liefert je Datei eine Upload-URL.
