@@ -153,7 +153,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Schritt muss eine gültige Referenz auf einen Prozess haben, welcher in der Liste der Prozesse definiert ist.
 - Eine Input-Referenz `${step_output(stepId.PropertyName)}` muss syntaktisch korrekt sein und auf einen in der Pipeline definierten Schritt zeigen.
 - Eine Input-Referenz darf nur auf vorgängige Schritte zeigen und nicht auf Schritte, welche nach dem aktuellen Schritt kommen.
-- Ob die referenzierte Property auf dem Ergebnistyp des referenzierten Schrittes tatsächlich existiert, wird nicht beim Laden geprüft, sondern erst zur Laufzeit (die Outputs sind implizit und werden per Reflection aufgelöst). Stimmt der Name mit keiner Property überein, schlägt der Schritt zur Laufzeit fehl.
+- Ob die referenzierte Property auf dem Ergebnistyp des referenzierten Schrittes existiert und sich in den Zielparameter binden lässt, wird beim Laden geprüft, sobald sich dieser Ergebnistyp auflösen lässt. Lässt er sich nicht auflösen, bleibt die Referenz ungeprüft, damit eine gültige Pipeline nie fälschlich abgelehnt wird; ein falscher Name fällt dann erst zur Laufzeit auf und lässt den Schritt fehlschlagen.
 - Jeder Input-Schlüssel muss einen Parameter der Run-Methode des Prozesses treffen (der `CancellationToken` wird nicht über den Input verdrahtet). Ein Schlüssel, welcher keinen solchen Parameter trifft, lässt die Validierung fehlschlagen.
 - Ein als Literal geschriebener Input-Wert muss sich in den Typ des Zielparameters konvertieren lassen.
 - Eine Datei-Referenz `${file(pfad)}` muss einen relativen Pfad ohne `..`-Segmente verwenden, so dass sie nicht aus dem Ressourcen-Verzeichnis ausbrechen kann.
@@ -389,7 +389,7 @@ Eine Detaillierte Übersicht über die Syntax-Elemente und deren Verwendung kann
 
 Zusätzlich zu den Standard-NCalc-Funktionen stellt geopilot folgende eigene Funktionen bereit:
 
-- `Length(parameter)`: Gibt die Anzahl Elemente einer Sammlung (Array oder Collection) zurück. Kann verwendet werden, um die Grösse von Resultaten vorheriger Schritte zu prüfen. Wirft einen Fehler, wenn der Parameter `null` ist oder kein Array bzw. keine Collection ist.
+- `Length(parameter)`: Gibt die Anzahl Elemente einer Sammlung (Array oder Collection) zurück. Kann verwendet werden, um die Grösse von Resultaten vorheriger Schritte zu prüfen. Ein `null`-Parameter ergibt 0, was insbesondere den Output eines übersprungenen Schrittes abdeckt. Ist der Parameter weder `null` noch ein Array bzw. eine Collection, wird ein Fehler geworfen.
 
 #### Beispiele für die Syntax
 

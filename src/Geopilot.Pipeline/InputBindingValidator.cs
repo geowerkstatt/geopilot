@@ -7,8 +7,9 @@ namespace Geopilot.Pipeline;
 /// <summary>
 /// Validates a pipeline step's input map against the run method of its process at load time: every
 /// input key must target a bindable run method parameter, and a literal value must be convertible to
-/// that parameter's type. Values sourced from an earlier step (<c>${step_output(...)}</c>) are not
-/// type checked here because the source type is only known at run time. A <c>${file(path)}</c>
+/// that parameter's type. A value sourced from an earlier step (<c>${step_output(...)}</c>) is checked
+/// against that step's result type whenever the type resolves, and left unchecked otherwise so a valid
+/// pipeline is never rejected for a type the loader cannot see. A <c>${file(path)}</c>
 /// reference is type checked against the parameter and, when the resources root is known, verified to
 /// exist under it.
 /// </summary>
