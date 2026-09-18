@@ -18,7 +18,7 @@ internal static class InputBindingValidator
     private static readonly ReferenceResolver NeverResolves = (InputValue reference, out object? value) =>
     {
         value = null;
-        return false;
+        return ReferenceResolution.Unresolvable;
     };
 
     /// <summary>
@@ -203,7 +203,7 @@ internal static class InputBindingValidator
             InputValue.UploadReference => SentinelFiles,
             _ => null,
         };
-        return value is not null;
+        return value is not null ? ReferenceResolution.Resolved : ReferenceResolution.Unresolvable;
     };
 
     /// <summary>
