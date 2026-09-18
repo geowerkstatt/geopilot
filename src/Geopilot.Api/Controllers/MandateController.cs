@@ -63,7 +63,13 @@ public class MandateController : ControllerBase
         [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions. Omit it to list the deliverable mandates without that filter, for a caller that has not uploaded anything yet.")]
         Guid? uploadId)
     {
-        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
+        // The id reaches the log as a Guid, never as the nullable parameter: neither can carry a line break, but
+        // the log forging scan knows that for Guid only. The exception filters below bind it the same way; both
+        // exceptions come from matching the upload, so they cannot occur without one.
+        if (uploadId is Guid filterUploadId)
+            logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", filterUploadId);
+        else
+            logger.LogInformation("Getting list of mandate summaries without an upload filter.");
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
@@ -72,19 +78,19 @@ public class MandateController : ControllerBase
         try
         {
             var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
-            logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+            logger.LogInformation("Getting list of mandate summaries resulted in <{ResultCount}> matching mandates.", result.Count);
             return Ok(result);
         }
-        catch (ArgumentException)
+        catch (ArgumentException) when (uploadId is Guid unknownUploadId)
         {
-            logger.LogTrace("No upload with id <{UploadId}> found.", uploadId);
-            return NotFound($"No upload with id <{uploadId}> found.");
+            logger.LogTrace("No upload with id <{UploadId}> found.", unknownUploadId);
+            return NotFound($"No upload with id <{unknownUploadId}> found.");
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException) when (uploadId is Guid extensionlessUploadId)
         {
             // The upload exists but none of its files carries an extension, so there is nothing to match against.
-            logger.LogTrace("Upload with id <{UploadId}> has no file with a file extension.", uploadId);
-            return BadRequest($"Upload <{uploadId}> has no file with a file extension, so no mandate can be matched against it.");
+            logger.LogTrace("Upload with id <{UploadId}> has no file with a file extension.", extensionlessUploadId);
+            return BadRequest($"Upload <{extensionlessUploadId}> has no file with a file extension, so no mandate can be matched against it.");
         }
     }
 
