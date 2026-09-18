@@ -63,7 +63,7 @@ public class PipelineRun
 
     /// <summary>
     /// The machine client that started the run, or <see langword="null"/> when a user or an anonymous caller
-    /// did. Never set together with <see cref="UserId"/>.
+    /// did. Never set together with <see cref="UserId"/>, which the database enforces.
     /// </summary>
     public int? MachineClientId { get; set; }
 
