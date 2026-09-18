@@ -98,6 +98,11 @@ namespace Geopilot.Api.Migrations
 
                     b.HasIndex("DeclaringUserId");
 
+                    b.HasIndex("JobId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Deliveries_JobId")
+                        .HasFilter("\"Deleted\" = false");
+
                     b.HasIndex("MandateId");
 
                     b.HasIndex("PrecursorDeliveryId");
@@ -141,6 +146,10 @@ namespace Geopilot.Api.Migrations
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Key")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -155,6 +164,10 @@ namespace Geopilot.Api.Migrations
                         .HasColumnType("geometry");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Mandates_Key");
 
                     b.ToTable("Mandates");
                 });

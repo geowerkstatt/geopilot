@@ -35,17 +35,6 @@ internal static class ContextExtensions
         #pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
     }
 
-    /// <summary>
-    /// Filters mandates to those that accept all files or the provided file extension.
-    /// </summary>
-    public static IQueryable<Mandate> FilterMandatesByFileExtensions(this IQueryable<Mandate> mandates, IEnumerable<string> fileExtensions)
-    {
-        var extensions = fileExtensions.Select(f => f.ToLowerInvariant()).ToHashSet();
-        #pragma warning disable CA1304, CA1311 // Specify a culture or use an invariant version
-        return mandates.Where(m => m.FileTypes.Any(ft => ft == ".*" || extensions.Contains(ft.ToLower())));
-        #pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
-    }
-
     public static void MigrateDatabase(this Context context)
     {
         if (context.IsPostgisInstalled())

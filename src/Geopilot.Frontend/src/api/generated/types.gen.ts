@@ -89,6 +89,16 @@ export type BrowserAuthOptions = {
 };
 
 /**
+ * The capabilities an installation offers, so the administration only shows what is configured.
+ */
+export type CapabilitiesResponse = {
+  /**
+   * Whether this installation offers machine based delivery.
+   */
+  machineDeliveryEnabled: boolean;
+};
+
+/**
  * The kind of client that started a processing job, classified from the request. Persisted as text.
  */
 export const ClientKind = {
@@ -269,6 +279,10 @@ export type Mandate = {
    */
   id: number;
   /**
+   * An optional unique key for the mandate, used for automated deliveries.
+   */
+  key?: string | null;
+  /**
    * The localized display name of the mandate.
    */
   name: {
@@ -323,6 +337,10 @@ export type MandateSummary = {
    * The unique identifier of the mandate.
    */
   id: number;
+  /**
+   * The unique key that addresses the mandate in an automated delivery, if one is configured.
+   */
+  key?: string | null;
   /**
    * The display name of the mandate.
    */
@@ -746,6 +764,127 @@ export type StepVisualizationResponse = {
 };
 
 /**
+ * A file the run offers for download, available while the attempt lives. What a step offers is its own
+ * decision: geopilot knows only that it was tagged for download, not whether it is a protocol, a report or
+ * converted data.
+ */
+export type SubmissionDownload = {
+  /**
+   * The step that produced it.
+   */
+  step: string;
+  /**
+   * The name the step gave the file. Together with `step` it identifies the file, and it is the name the download is served under. It is not part of the URL, because two steps may produce the same name.
+   */
+  name: string;
+  /**
+   * Where to download it, and the only supported way to fetch it. Do not build a URL from `name`.
+   */
+  url: string;
+};
+
+/**
+ * Something the run reported about one of its steps.
+ */
+export type SubmissionMessage = {
+  /**
+   * The step that reported it.
+   */
+  step: string;
+  severity: SubmissionMessageSeverity;
+  /**
+   * The message, per language.
+   */
+  text: {
+    [key: string]: string;
+  };
+};
+
+/**
+ * How much a message weighs.
+ */
+export const SubmissionMessageSeverity = {
+  Info: "info",
+  Warning: "warning",
+  Error: "error",
+} as const;
+
+/**
+ * How much a message weighs.
+ */
+export type SubmissionMessageSeverity = (typeof SubmissionMessageSeverity)[keyof typeof SubmissionMessageSeverity];
+
+/**
+ * Starts a machine delivery for files that were already uploaded. This is the shape an installation that
+ * stores uploads in the cloud expects, where the caller obtains the upload and its URLs beforehand.
+ */
+export type SubmissionRequest = {
+  /**
+   * The key of the mandate to deliver to. Compared exactly, including case.
+   */
+  mandateKey: string;
+  /**
+   * The upload whose files are delivered.
+   */
+  uploadId: string;
+  /**
+   * Whether the delivery covers only part of the mandate. Required, optional or rejected, depending on the
+   * mandate.
+   */
+  partialDelivery?: boolean | null;
+  /**
+   * The delivery this one supersedes. Required, optional or rejected, depending on the mandate.
+   */
+  precursorDeliveryId?: number | null;
+  /**
+   * The comment accompanying the delivery. Required, optional or rejected, depending on the mandate.
+   */
+  comment?: string | null;
+};
+
+/**
+ * The state of a machine delivery attempt.
+ */
+export type SubmissionResponse = {
+  /**
+   * The id of the attempt, which is also the id of its processing job.
+   */
+  id: string;
+  state: SubmissionState;
+  /**
+   * The mandate the attempt was started for.
+   */
+  mandateKey: string;
+  /**
+   * The delivery that was created, once it exists.
+   */
+  deliveryId?: number | null;
+  /**
+   * What the run reported, per step.
+   */
+  messages: Array<SubmissionMessage>;
+  /**
+   * The files the run offers for download, whatever its steps tagged as such.
+   */
+  downloads: Array<SubmissionDownload>;
+};
+
+/**
+ * Where a machine delivery attempt stands.
+ */
+export const SubmissionState = {
+  Processing: "processing",
+  Delivered: "delivered",
+  Rejected: "rejected",
+  Failed: "failed",
+} as const;
+
+/**
+ * Where a machine delivery attempt stands.
+ */
+export type SubmissionState = (typeof SubmissionState)[keyof typeof SubmissionState];
+
+/**
  * The upload settings response schema.
  */
 export type UploadSettingsResponse = {
@@ -824,6 +963,29 @@ export type VisualizationResponse = {
   data: unknown;
 };
 
+export type GetApiV1CapabilitiesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Capabilities";
+};
+
+export type GetApiV1CapabilitiesErrors = {
+  /**
+   * The current user is not authorized to read the capabilities.
+   */
+  401: unknown;
+};
+
+export type GetApiV1CapabilitiesResponses = {
+  /**
+   * The capabilities of this installation.
+   */
+  200: CapabilitiesResponse;
+};
+
+export type GetApiV1CapabilitiesResponse = GetApiV1CapabilitiesResponses[keyof GetApiV1CapabilitiesResponses];
+
 export type GetApiV1DeliveryData = {
   body?: never;
   path?: never;
@@ -863,6 +1025,10 @@ export type PostApiV1DeliveryErrors = {
    * The validation job could not be found.
    */
   404: unknown;
+  /**
+   * The job was already delivered.
+   */
+  409: unknown;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.
    */
@@ -1006,7 +1172,7 @@ export type GetApiV1MandateSummaryData = {
   path?: never;
   query?: {
     /**
-     * Filter mandates matching the uploaded files' extensions.
+     * Filter mandates matching the uploaded files' extensions. Omit it to list the deliverable mandates without that filter, for a caller that has not uploaded anything yet.
      */
     uploadId?: string;
   };
@@ -1015,9 +1181,13 @@ export type GetApiV1MandateSummaryData = {
 
 export type GetApiV1MandateSummaryErrors = {
   /**
-   * The request is missing an uploadId.
+   * The upload has no file with a file extension, so no mandate can be matched against it.
    */
   400: unknown;
+  /**
+   * No upload with the provided id exists.
+   */
+  404: unknown;
 };
 
 export type GetApiV1MandateSummaryResponses = {
@@ -1028,6 +1198,22 @@ export type GetApiV1MandateSummaryResponses = {
 };
 
 export type GetApiV1MandateSummaryResponse = GetApiV1MandateSummaryResponses[keyof GetApiV1MandateSummaryResponses];
+
+export type GetApiV1MandateKeysData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Mandate/keys";
+};
+
+export type GetApiV1MandateKeysResponses = {
+  /**
+   * Gets a list of all mandate keys.
+   */
+  200: Array<string>;
+};
+
+export type GetApiV1MandateKeysResponse = GetApiV1MandateKeysResponses[keyof GetApiV1MandateKeysResponses];
 
 export type GetApiV1MandateData = {
   body?: never;
@@ -1064,6 +1250,10 @@ export type PostApiV1MandateErrors = {
    * The current user is not authorized to create a mandate.
    */
   401: unknown;
+  /**
+   * The mandate key is already in use by another mandate.
+   */
+  409: ProblemDetails;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
@@ -1102,6 +1292,10 @@ export type PutApiV1MandateErrors = {
    * The mandate could not be found.
    */
   404: unknown;
+  /**
+   * The mandate key is already in use by another mandate.
+   */
+  409: ProblemDetails;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
@@ -1496,6 +1690,158 @@ export type GetVisualizationResponses = {
 };
 
 export type GetVisualizationResponse = GetVisualizationResponses[keyof GetVisualizationResponses];
+
+export type PostApiV1SubmissionData = {
+  /**
+   * The mandate, the upload and the delivery details.
+   */
+  body?: SubmissionRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Submission";
+};
+
+export type PostApiV1SubmissionErrors = {
+  /**
+   * This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.
+   */
+  400: ValidationProblemDetails;
+  /**
+   * The caller is not authorized.
+   */
+  401: unknown;
+  /**
+   * No mandate with the given key is accessible, or the upload does not exist.
+   */
+  404: unknown;
+  /**
+   * The mandate cannot take a delivery.
+   */
+  409: unknown;
+};
+
+export type PostApiV1SubmissionError = PostApiV1SubmissionErrors[keyof PostApiV1SubmissionErrors];
+
+export type PostApiV1SubmissionResponses = {
+  /**
+   * The attempt was accepted and is being processed.
+   */
+  202: SubmissionResponse;
+};
+
+export type PostApiV1SubmissionResponse = PostApiV1SubmissionResponses[keyof PostApiV1SubmissionResponses];
+
+export type PostApiV1SubmissionFilesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Submission/files";
+};
+
+export type PostApiV1SubmissionFilesErrors = {
+  /**
+   * This installation expects the files to be uploaded beforehand, or the delivery details violate the rules of the mandate.
+   */
+  400: ValidationProblemDetails;
+  /**
+   * The caller is not authorized.
+   */
+  401: unknown;
+  /**
+   * No mandate with the given key is accessible.
+   */
+  404: unknown;
+  /**
+   * The mandate cannot take a delivery.
+   */
+  409: unknown;
+  /**
+   * A file is larger than this installation accepts.
+   */
+  413: unknown;
+  /**
+   * This installation is at its upload capacity. Retry after the time the Retry-After header names.
+   */
+  503: unknown;
+};
+
+export type PostApiV1SubmissionFilesError = PostApiV1SubmissionFilesErrors[keyof PostApiV1SubmissionFilesErrors];
+
+export type PostApiV1SubmissionFilesResponses = {
+  /**
+   * The attempt was accepted and is being processed.
+   */
+  202: SubmissionResponse;
+};
+
+export type PostApiV1SubmissionFilesResponse =
+  PostApiV1SubmissionFilesResponses[keyof PostApiV1SubmissionFilesResponses];
+
+export type GetSubmissionStatusData = {
+  body?: never;
+  path: {
+    /**
+     * The id of the attempt.
+     */
+    id: string;
+  };
+  query?: never;
+  url: "/api/v1/Submission/{id}";
+};
+
+export type GetSubmissionStatusErrors = {
+  /**
+   * The caller is not authorized.
+   */
+  401: unknown;
+  /**
+   * This process knows no such attempt. It never existed, it expired with its job, or it belongs to another caller.
+   */
+  404: unknown;
+};
+
+export type GetSubmissionStatusResponses = {
+  /**
+   * The attempt was found.
+   */
+  200: SubmissionResponse;
+};
+
+export type GetSubmissionStatusResponse = GetSubmissionStatusResponses[keyof GetSubmissionStatusResponses];
+
+export type GetDownloadData = {
+  body?: never;
+  path: {
+    /**
+     * The id of the attempt.
+     */
+    id: string;
+    /**
+     * The storage name of the file, taken from the `url` of a download listed on the attempt. That URL, not this name, is what a client follows.
+     */
+    name: string;
+  };
+  query?: never;
+  url: "/api/v1/Submission/{id}/downloads/{name}";
+};
+
+export type GetDownloadErrors = {
+  /**
+   * The caller is not authorized.
+   */
+  401: unknown;
+  /**
+   * The attempt or the file cannot be found.
+   */
+  404: unknown;
+};
+
+export type GetDownloadResponses = {
+  /**
+   * The file was found.
+   */
+  200: unknown;
+};
 
 export type GetApiV2UploadData = {
   body?: never;
