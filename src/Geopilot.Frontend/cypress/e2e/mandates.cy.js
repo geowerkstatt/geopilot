@@ -306,10 +306,12 @@ describe("Mandate tests", () => {
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
     cy.intercept({ url: "/api/v1/mandate", method: "GET" }).as("getMandates");
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public"]).as("getUsedKeys");
 
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
     setInput("name.en", randomMandateName);
+    setInput("key", "current");
     setSelect("pipelineId", 0, 1);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setChipInput("fileTypes", ".xml");
@@ -324,6 +326,8 @@ describe("Mandate tests", () => {
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
+
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public", "current"]).as("getUsedKeys");
 
     // Test editing the mandate
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
@@ -371,6 +375,22 @@ describe("Mandate tests", () => {
     // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
 
+    // Set the mandate key to a value that is already in use to test uniqueness validation.
+    setInput("key", "public");
+    hasError("key", true);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
+
+    // Resetting the mandate key to empty should clear the uniqueness error.
+    setInput("key", "");
+    hasError("key", false);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Setting the mandate key to the previous value should also be allowed.
+    setInput("key", "current");
+    hasError("key", false);
+
     // Save; after saving we are redirected to the list, where the changes are visible.
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate");
@@ -380,6 +400,39 @@ describe("Mandate tests", () => {
     cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
+  });
+
+  it("surfaces the real conflict reason when a duplicate key is only caught by the server", () => {
+    // Skeleton rows carry no row id, so a click on one is silently lost: wait for a real row, and click
+    // a cell rather than the row itself.
+    cy.dataCy("mandates-grid")
+      .find(".MuiDataGrid-row:not(.MuiDataGrid-rowSkeleton)")
+      .first()
+      .find(".MuiDataGrid-cell")
+      .first()
+      .click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
+    });
+
+    setInput("name.en", getRandomManadateName());
+
+    // A key taken by another admin between page load and save is caught only by the database's unique
+    // index. The bare JSON string is what a controller answering with a plain string sends, which has
+    // neither detail nor title, so this pins that such a body still reaches the user.
+    cy.intercept(
+      { url: "/api/v1/mandate", method: "PUT" },
+      {
+        statusCode: 409,
+        headers: { "content-type": "application/json" },
+        body: '"Mandate key <public> is already in use."',
+      },
+    ).as("updateConflict");
+
+    cy.dataCy("save-button").click();
+    cy.wait("@updateConflict");
+
+    cy.get(".MuiAlert-message").should("contain.text", "already in use");
   });
 
   it("prevents multiple save requests while waiting for the API response", () => {

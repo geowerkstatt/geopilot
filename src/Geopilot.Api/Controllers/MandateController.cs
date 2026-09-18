@@ -5,6 +5,8 @@ using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 
@@ -21,6 +23,7 @@ public class MandateController : ControllerBase
     private readonly Context context;
     private readonly IMandateService mandateService;
     private readonly IPipelineService pipelineService;
+    private readonly MachineDeliveryOptions machineDeliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateController"/> class.
@@ -29,44 +32,85 @@ public class MandateController : ControllerBase
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="mandateService">The mandate service providing mandate filtering and retrieval.</param>
     /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
+    /// <param name="machineDeliveryOptions">The machine delivery settings, which decide whether a mandate carries a key.</param>
     public MandateController(
         ILogger<MandateController> logger,
         Context context,
         IMandateService mandateService,
-        IPipelineService pipelineService)
+        IPipelineService pipelineService,
+        IOptions<MachineDeliveryOptions> machineDeliveryOptions)
     {
+        ArgumentNullException.ThrowIfNull(machineDeliveryOptions);
+
         this.logger = logger;
         this.context = context;
         this.mandateService = mandateService;
         this.pipelineService = pipelineService;
+        this.machineDeliveryOptions = machineDeliveryOptions.Value;
     }
 
     /// <summary>
     /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
-    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
+    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned. Omit it to skip that filter.</param>
     /// <returns>List of mandates matching the filter criteria.</returns>
     [HttpGet("summary")]
     [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing an uploadId.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The upload has no file with a file extension, so no mandate can be matched against it.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "No upload with the provided id exists.")]
     public async Task<IActionResult> GetSummary(
-        [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
-        Guid uploadId)
+        [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions. Omit it to list the deliverable mandates without that filter, for a caller that has not uploaded anything yet.")]
+        Guid? uploadId)
     {
-        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
-
-        if (uploadId == default)
-        {
-            return BadRequest("Upload id is required.");
-        }
+        // The id reaches the log as a Guid, never as the nullable parameter: neither can carry a line break, but
+        // the log forging scan knows that for Guid only. The exception filters below bind it the same way; both
+        // exceptions come from matching the upload, so they cannot occur without one.
+        if (uploadId is Guid filterUploadId)
+            logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", filterUploadId);
+        else
+            logger.LogInformation("Getting list of mandate summaries without an upload filter.");
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;
 
-        var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
-        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+        try
+        {
+            var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
+            logger.LogInformation("Getting list of mandate summaries resulted in <{ResultCount}> matching mandates.", result.Count);
+            return Ok(result);
+        }
+        catch (ArgumentException) when (uploadId is Guid unknownUploadId)
+        {
+            logger.LogTrace("No upload with id <{UploadId}> found.", unknownUploadId);
+            return NotFound($"No upload with id <{unknownUploadId}> found.");
+        }
+        catch (InvalidOperationException) when (uploadId is Guid extensionlessUploadId)
+        {
+            // The upload exists but none of its files carries an extension, so there is nothing to match against.
+            logger.LogTrace("Upload with id <{UploadId}> has no file with a file extension.", extensionlessUploadId);
+            return BadRequest($"Upload <{extensionlessUploadId}> has no file with a file extension, so no mandate can be matched against it.");
+        }
+    }
+
+    /// <summary>
+    /// Gets a list of all mandate keys for automated deliveries that are in use.
+    /// </summary>
+    /// <returns>List of all mandate keys, or an empty list while machine delivery is not enabled.</returns>
+    [HttpGet("keys")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandate keys.", typeof(IEnumerable<string>), "application/json")]
+    public async Task<IActionResult> GetKeys()
+    {
+        if (!machineDeliveryOptions.Enabled)
+        {
+            logger.LogInformation("Reporting no mandate keys because machine delivery is not enabled.");
+            return Ok(Array.Empty<string>());
+        }
+
+        var result = await mandateService.GetMandateKeysAsync();
+        logger.LogInformation("Getting list of mandate keys resulted in <{ResultCount}> unique keys.", result.Count);
         return Ok(result);
     }
 
@@ -120,6 +164,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be created due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create a mandate.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(Mandate mandate)
     {
@@ -139,6 +184,8 @@ public class MandateController : ControllerBase
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
 
+            ApplyKey(mandate, storedKey: null);
+
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
@@ -152,6 +199,11 @@ public class MandateController : ControllerBase
 
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
             return Created(location, result);
+        }
+        catch (DbUpdateException e) when (IsKeyConflict(e))
+        {
+            logger.LogInformation("Rejected mandate creation because the key is already in use.");
+            return Problem($"Mandate key <{mandate?.Key}> is already in use.", statusCode: StatusCodes.Status409Conflict);
         }
         catch (Exception e)
         {
@@ -170,8 +222,8 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
-
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(Mandate mandate)
     {
         try
@@ -190,6 +242,8 @@ public class MandateController : ControllerBase
 
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
+
+            ApplyKey(mandate, existingMandate.Key);
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
@@ -215,6 +269,11 @@ public class MandateController : ControllerBase
 
             return Ok(result);
         }
+        catch (DbUpdateException e) when (IsKeyConflict(e))
+        {
+            logger.LogInformation("Rejected update of mandate <{MandateId}> because the key is already in use.", mandate?.Id);
+            return Problem($"Mandate key <{mandate?.Key}> is already in use.", statusCode: StatusCodes.Status409Conflict);
+        }
         catch (Exception e)
         {
             logger.LogError(e, $"An error occured while updating the mandate.");
@@ -229,4 +288,43 @@ public class MandateController : ControllerBase
         var pipeline = pipelineService.GetById(pipelineId);
         return pipeline != null;
     }
+
+    /// <summary>
+    /// Decides which key the mandate is saved with. While machine delivery is off the administration does
+    /// not render the field, so its payload carries no key at all: taking that literally would erase the
+    /// key of every mandate on its next save, which is why the stored one is kept. An incoming key is then
+    /// ignored rather than rejected, so that switching the capability off does not start failing saves on
+    /// mandates that are otherwise valid.
+    /// </summary>
+    /// <param name="mandate">The mandate about to be saved.</param>
+    /// <param name="storedKey">The key the mandate carries in the database, or <c>null</c> when it is new.</param>
+    private void ApplyKey(Mandate mandate, string? storedKey)
+    {
+        if (machineDeliveryOptions.Enabled)
+        {
+            NormalizeKey(mandate);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(mandate.Key))
+            logger.LogInformation("Ignored the key sent for a mandate because machine delivery is not enabled.");
+
+        mandate.Key = storedKey;
+    }
+
+    /// <summary>
+    /// Trims the key and turns a blank one into null. Any number of mandates may carry no key, but only
+    /// as null: the unique index would reject the second empty string. Trimming keeps a pasted key with
+    /// stray spaces from becoming a key that no machine client can ever match.
+    /// </summary>
+    private static void NormalizeKey(Mandate mandate)
+        => mandate.Key = string.IsNullOrWhiteSpace(mandate.Key) ? null : mandate.Key.Trim();
+
+    /// <summary>
+    /// Whether the save failed because the mandate key is already taken. The unique index is the only
+    /// place this is decided: a check before saving would still race a concurrent save.
+    /// </summary>
+    private static bool IsKeyConflict(DbUpdateException exception)
+        => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException
+            && string.Equals(postgresException.ConstraintName, Context.MandateKeyIndexName, StringComparison.Ordinal);
 }

@@ -28,7 +28,7 @@ public static class DirectUploadEndpoint
         ArgumentNullException.ThrowIfNull(app);
 
         app.MapPut("/api/v2/upload/{uploadId:guid}/{fileName}", HandleUploadAsync)
-            .WithMetadata(new SelfManagedBodySizeMetadata())
+            .WithMetadata(new SelfManagedBodySizeAttribute())
             .AllowAnonymous();
     }
 
@@ -107,8 +107,10 @@ public static class DirectUploadEndpoint
 
 /// <summary>
 /// Marks an endpoint that enforces its own request body size limit, exempting it from the
-/// application's global request size cap.
+/// global request size cap of the application. Usable on a minimal API endpoint as metadata and on an MVC
+/// action as an attribute, which MVC surfaces as the same endpoint metadata.
 /// </summary>
-public sealed class SelfManagedBodySizeMetadata
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class SelfManagedBodySizeAttribute : Attribute
 {
 }

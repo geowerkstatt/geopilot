@@ -128,7 +128,11 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
             .RuleFor(o => o.IsPublic, f => false)
             .RuleFor(o => o.AllowDelivery, f => true)
-            .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }));
+            .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }))
+
+            // Derived from the row index, because the key is unique in the database and a random word
+            // would sooner or later collide and break the whole seed run.
+            .RuleFor(o => o.Key, f => $"mandate-{f.IndexFaker}".OrNull(f, 0.5f));
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
