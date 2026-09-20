@@ -186,28 +186,31 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             }
         }
 
-        // The subject is what the authorization handlers look up, for a person as much as for a machine client,
-        // so it comes from the introspection itself: user info describes a person, and a token issued for client
-        // credentials has none. RFC 7662 leaves both fields optional; a provider that names no sub for a machine
-        // still names the client it issued the token to.
-        if (string.IsNullOrWhiteSpace(subject))
-        {
-            Logger.LogWarning("Introspection response names neither sub nor client_id.");
-            return AuthenticateResult.Fail("Introspection response contains no subject.");
-        }
-
-        // Requested for the same reason as on the JWT path: an identity provider that does not answer fails the
-        // authentication with a typed reason and gets a 503, instead of a 403 from the authorization handler. The
-        // response decides nothing here; the resolver keeps it for the authorization handlers and asks nothing
-        // for a registered machine client.
+        // The subject is what the authorization handlers look up, for a person as much as for a machine client.
+        // A token issued for client credentials names no person, so for a machine it has to come from the
+        // introspection itself: from sub, or from the client the token was issued to where a provider names no
+        // sub for a machine. RFC 7662 leaves both fields optional, and a person's token whose introspection names
+        // neither is still identified by its user info, as it was before the introspection named machines.
+        //
+        // User info is requested for the same reason as on the JWT path: an identity provider that does not
+        // answer fails the authentication with a typed reason and gets a 503, instead of a 403 from the
+        // authorization handler. The resolver keeps the response for the authorization handlers and asks
+        // nothing for a registered machine client.
         try
         {
-            await userResolver.PrefetchUserInfoAsync(subject, token, Context.RequestAborted);
+            var userInfo = await userResolver.PrefetchUserInfoAsync(subject, token, Context.RequestAborted);
+            subject ??= userInfo?.Sub;
         }
         catch (IdentityProviderUnavailableException ex)
         {
             Logger.LogWarning(ex, "User info request failed.");
             return AuthenticateResult.Fail(ex);
+        }
+
+        if (string.IsNullOrWhiteSpace(subject))
+        {
+            Logger.LogWarning("Introspection response names neither sub nor client_id, and user info describes no person.");
+            return AuthenticateResult.Fail("Introspection response contains no subject.");
         }
 
         var identity = new ClaimsIdentity(
@@ -235,8 +238,16 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
         Response.Headers.Append(HeaderNames.WWWAuthenticate, "Bearer");
     }
 
-    private static string? ReadString(JsonElement root, string propertyName) =>
-        root.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
-            ? property.GetString()
-            : null;
+    /// <summary>
+    /// Reads a string member of the introspection response, treating a blank one as absent so the next
+    /// fallback applies.
+    /// </summary>
+    private static string? ReadString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+            return null;
+
+        var value = property.GetString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 }

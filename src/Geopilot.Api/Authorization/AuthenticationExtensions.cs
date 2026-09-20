@@ -108,7 +108,7 @@ public static class AuthenticationExtensions
                         var userResolver = context.HttpContext.RequestServices.GetRequiredService<IGeopilotUserResolver>();
                         try
                         {
-                            await userResolver.PrefetchUserInfoAsync(subject, token, context.HttpContext.RequestAborted);
+                            _ = await userResolver.PrefetchUserInfoAsync(subject, token, context.HttpContext.RequestAborted);
                         }
                         catch (IdentityProviderUnavailableException ex)
                         {

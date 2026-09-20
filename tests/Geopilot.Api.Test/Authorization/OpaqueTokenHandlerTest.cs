@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -268,7 +269,8 @@ public class OpaqueTokenHandlerTest
     public async Task AuthenticateAsyncActiveTruePrefetchesTheUserInfoOfTheIntrospectedSubject()
     {
         // Whether the subject is a person the identity provider describes, or a machine it describes nothing
-        // for, is the resolver's business. The handler hands it the subject and the token and keeps the subject.
+        // for, is the resolver's business. The handler hands it the subject and the token and keeps the subject
+        // the introspection named, whatever the user info says.
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -276,6 +278,8 @@ public class OpaqueTokenHandlerTest
             {
                 Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"idp-sub\"}", Encoding.UTF8, "application/json"),
             });
+        userResolverMock.Setup(r => r.PrefetchUserInfoAsync("idp-sub", "opaque-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserInfoResponse { Sub = "someone-else", Email = "someone@example.com", Name = "Someone" });
 
         var (_, result) = await RunAuthenticateAsync(context);
 
@@ -285,14 +289,16 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncActiveTrueWithoutSubUsesClientId()
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"client_id\":\"machine-7\"}")]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"\",\"client_id\":\"machine-7\"}")]
+    public async Task AuthenticateAsyncActiveTrueWithoutSubUsesClientId(string introspectionResponse)
     {
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\",\"client_id\":\"machine-7\"}", Encoding.UTF8, "application/json"),
+                Content = new StringContent(introspectionResponse, Encoding.UTF8, "application/json"),
             });
 
         var (_, result) = await RunAuthenticateAsync(context);
@@ -302,7 +308,28 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncActiveTrueWithoutSubAndClientIdReturnsFail()
+    public async Task AuthenticateAsyncActiveTrueWithoutSubAndClientIdUsesTheUserInfoSub()
+    {
+        // RFC 7662 requires nothing but active. A person's token whose introspection names no subject is still
+        // identified by its user info, as it was before the introspection had to name machine clients.
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\"}", Encoding.UTF8, "application/json"),
+            });
+        userResolverMock.Setup(r => r.PrefetchUserInfoAsync(null, "opaque-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserInfoResponse { Sub = "person-9", Email = "person@example.com", Name = "Person" });
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsTrue(result.Succeeded);
+        Assert.AreEqual("person-9", result.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
+    }
+
+    [TestMethod]
+    public async Task AuthenticateAsyncActiveTrueWithoutSubAndClientIdAndNoPersonReturnsFail()
     {
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
@@ -311,12 +338,14 @@ public class OpaqueTokenHandlerTest
             {
                 Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\"}", Encoding.UTF8, "application/json"),
             });
+        userResolverMock.Setup(r => r.PrefetchUserInfoAsync(null, "opaque-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserInfoResponse?)null);
 
         var (_, result) = await RunAuthenticateAsync(context);
 
         Assert.IsFalse(result.Succeeded);
         Assert.AreEqual("Introspection response contains no subject.", result.Failure?.Message);
-        userResolverMock.Verify(r => r.PrefetchUserInfoAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        userResolverMock.Verify(r => r.PrefetchUserInfoAsync(null, "opaque-token", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]

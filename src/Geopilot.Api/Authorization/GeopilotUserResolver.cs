@@ -93,12 +93,12 @@ public class GeopilotUserResolver : IGeopilotUserResolver
     }
 
     /// <inheritdoc/>
-    public async Task PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken)
+    public async Task<UserInfoResponse?> PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken)
     {
         if (await IsRegisteredMachineClientAsync(subject, cancellationToken))
-            return;
+            return null;
 
-        await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
+        return await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
     }
 
     private async Task<bool> IsRegisteredMachineClientAsync(string? subject, CancellationToken cancellationToken) =>

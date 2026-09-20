@@ -237,8 +237,9 @@ public class GeopilotUserResolverTest
         context.MachineClients.Add(new MachineClient { AuthIdentifier = subject, Name = "QUIETLANTERN" });
         context.SaveChanges();
 
-        await resolver.PrefetchUserInfoAsync(subject, "mock-token", CancellationToken.None);
+        var userInfo = await resolver.PrefetchUserInfoAsync(subject, "mock-token", CancellationToken.None);
 
+        Assert.IsNull(userInfo);
         userInfoServiceMock.Verify(
             x => x.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never,
@@ -248,9 +249,28 @@ public class GeopilotUserResolverTest
     [TestMethod]
     public async Task PrefetchRequestsTheUserInfoOfAPerson()
     {
-        await resolver.PrefetchUserInfoAsync(Guid.NewGuid().ToString(), "mock-token", CancellationToken.None);
+        var expected = new UserInfoResponse { Sub = Guid.NewGuid().ToString(), Email = "SILVERCREEK@example.com", Name = "SILVERCREEK" };
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
+        var userInfo = await resolver.PrefetchUserInfoAsync(expected.Sub, "mock-token", CancellationToken.None);
+
+        Assert.AreSame(expected, userInfo);
         userInfoServiceMock.Verify(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task PrefetchWithoutASubjectRequestsTheUserInfo()
+    {
+        // An introspection response that names neither sub nor client_id leaves the opaque handler with the
+        // user info as the only source of a subject, so nothing may be skipped here.
+        var expected = new UserInfoResponse { Sub = Guid.NewGuid().ToString(), Email = "MAPLEHOLLOW@example.com", Name = "MAPLEHOLLOW" };
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var userInfo = await resolver.PrefetchUserInfoAsync(null, "mock-token", CancellationToken.None);
+
+        Assert.AreSame(expected, userInfo);
     }
 
     [TestMethod]
