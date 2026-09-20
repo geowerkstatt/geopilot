@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 
 namespace Geopilot.Api.Authorization;
 
@@ -22,8 +23,11 @@ public interface IGeopilotUserResolver
     /// service for <see cref="ResolveAsync"/>. Does nothing for a subject registered as a machine client:
     /// its token names no person, and most identity providers answer a failure when asked for one.
     /// </summary>
-    /// <param name="subject">The subject the token was authenticated as, if it carries one.</param>
+    /// <param name="subject">The subject the token was authenticated as, if it carries one. Without one, the user
+    /// info is always requested: it is then the only place the subject of a person's token can come from.</param>
     /// <param name="accessToken">The access token of the request.</param>
     /// <param name="cancellationToken">A token to cancel the request.</param>
-    Task PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken);
+    /// <returns>The user info the identity provider describes for the token, or <see langword="null"/> when the
+    /// subject is a registered machine client or the identity provider describes no person for the token.</returns>
+    Task<UserInfoResponse?> PrefetchUserInfoAsync(string? subject, string accessToken, CancellationToken cancellationToken);
 }
