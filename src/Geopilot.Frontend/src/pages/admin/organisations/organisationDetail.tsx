@@ -34,8 +34,14 @@ const OrganisationDetail = () => {
   const [machineClients, setMachineClients] = useState<MachineClient[]>();
 
   // Derived rather than set in the effect, and only once the option lists are there: a form that mounts in the
-  // very first render starts out dirty, so a new organisation waits for the requests it needs anyway.
-  const organisation = id === "0" ? (mandates && users ? newOrganisation : undefined) : loadedOrganisation;
+  // very first render starts out dirty, so a new organisation waits for the requests it needs anyway. The machine
+  // clients are only requested where the installation offers machine delivery, so only then are they waited for.
+  const organisation =
+    id === "0"
+      ? mandates && users && (!machineDeliveryEnabled || machineClients)
+        ? newOrganisation
+        : undefined
+      : loadedOrganisation;
 
   const loadOrganisation = useCallback(
     (id: string) => {
