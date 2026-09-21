@@ -106,7 +106,7 @@ public class MachineClientController : ControllerBase
             if (result == default)
                 return Problem("Unable to retrieve created machine client.");
 
-            var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/machineclient/{result.Id}"), UriKind.Relative);
+            var location = new Uri(string.Create(CultureInfo.InvariantCulture, $"/api/v1/machineclient/{result.Id}"), UriKind.Relative);
             return Created(location, result);
         }
         catch (DbUpdateException e) when (IsIdentifierConflict(e))
