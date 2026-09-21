@@ -49,6 +49,28 @@ public class PipelineDefinitionValidationTest
         Assert.IsNull(result.ErrorMessage);
     }
 
+    // The definitions shipped with the application are read only when it starts, so a mistake in one of them
+    // would otherwise surface as a failed start instead of a failed build. Enumerated rather than listed, so a
+    // new definition is covered on its own; the count guard keeps a broken link from passing vacuously.
+    // Note the limit: without the Pipeline:ProcessConfigs base layer and without a resources directory this
+    // catches structure, references, conditions and process signatures, but no base config collision and no
+    // missing ${file(...)} target.
+    [TestMethod]
+    public void ValidateDefinitionAcceptsShippedDefinitions()
+    {
+        var directory = Path.Combine(AppContext.BaseDirectory, "TestData", "PipelineDefinitions");
+        var definitions = Directory.GetFiles(directory, "*.yaml");
+
+        Assert.IsNotEmpty(definitions, $"no shipped pipeline definition was copied to {directory}.");
+
+        foreach (var definition in definitions)
+        {
+            var result = CreatePipelineFactoryForPath(definition).ValidateDefinition();
+
+            Assert.IsTrue(result.IsValid, $"{Path.GetFileName(definition)}: {result.ErrorMessage}");
+        }
+    }
+
     [TestMethod]
     public void ValidateDefinitionRejectsInvalidDefinition()
     {
@@ -93,9 +115,11 @@ public class PipelineDefinitionValidationTest
             "process errors must not be reported alongside definition errors");
     }
 
-    private PipelineFactory CreatePipelineFactory(string filename)
+    private PipelineFactory CreatePipelineFactory(string filename) =>
+        CreatePipelineFactoryForPath(Path.Combine(AppContext.BaseDirectory, "TestData", "Pipeline", filename + ".yaml"));
+
+    private PipelineFactory CreatePipelineFactoryForPath(string definitionPath)
     {
-        var definitionPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Pipeline", filename + ".yaml");
         var pipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline");
 
         return PipelineFactory
