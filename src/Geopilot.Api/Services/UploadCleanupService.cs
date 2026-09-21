@@ -1,12 +1,13 @@
 ﻿using Geopilot.Api.Processing;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Services;
 
 /// <summary>
 /// A background service that periodically cleans up stale upload files.
 /// </summary>
-public class UploadCleanupService : BackgroundService
+public partial class UploadCleanupService : BackgroundService
 {
     private readonly IUploadStorage uploadStorage;
     private readonly IUploadStore uploadStore;
@@ -153,13 +154,18 @@ public class UploadCleanupService : BackgroundService
         }
     }
 
+    // Matches a key that names a file inside an upload and captures the upload id. The file name is
+    // required: a key without one names no upload file, and reading it as one would leave the blob
+    // behind, because an upload is deleted by its prefix and not file by file.
+    [GeneratedRegex(@"^uploads/(?<uploadId>[^/]+)/.+$")]
+    private static partial Regex UploadFileKeyPattern();
+
     private static Guid? ExtractUploadId(string key)
     {
-        // Expected format: "uploads/{uploadId}/filename"
-        var parts = key.Split('/');
-        if (parts.Length >= 2 && Guid.TryParse(parts[1], out var uploadId))
-            return uploadId;
+        var match = UploadFileKeyPattern().Match(key);
 
-        return null;
+        return match.Success && Guid.TryParse(match.Groups["uploadId"].Value, out var uploadId)
+            ? uploadId
+            : null;
     }
 }

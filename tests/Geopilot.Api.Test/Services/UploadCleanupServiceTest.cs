@@ -185,6 +185,33 @@ public class UploadCleanupServiceTest
     }
 
     [TestMethod]
+    public async Task RunCleanupAsyncDeletesKeyWithoutFileNameSegment()
+    {
+        var uploadId = Guid.NewGuid();
+        var staleTimestamp = DateTime.UtcNow.AddHours(-49);
+
+        uploadStorageMock
+            .Setup(s => s.ListFilesAsync("uploads/"))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
+            {
+                ($"uploads/{uploadId}", 1024, staleTimestamp),
+            });
+
+        uploadStorageMock
+            .Setup(s => s.DeleteAsync($"uploads/{uploadId}"))
+            .Returns(Task.CompletedTask);
+
+        SetupEmptyContainerListing();
+
+        await service.RunCleanupAsync();
+
+        // Such a key names no file of an upload. Read as one, the prefix deletion would find no directory
+        // of that name and the file would stay behind on every run.
+        uploadStorageMock.Verify(s => s.DeleteAsync($"uploads/{uploadId}"), Times.Once);
+        uploadStorageMock.Verify(s => s.DeletePrefixAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task RunCleanupAsyncOnlyDeletesStaleNotRecent()
     {
         var staleUploadId = Guid.NewGuid();
