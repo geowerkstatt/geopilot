@@ -31,7 +31,7 @@ Wie die Dateien hereinkommen, hängt davon ab, wo die Installation ihre Uploads 
 | Ablage der Uploads | Route | Form |
 | --- | --- | --- |
 | ausserhalb der API (Objektspeicher) | `POST api/v1/submission` | JSON, verweist auf einen vorher erstellten Upload |
-| durch die API (lokales Verzeichnis) | `POST api/v1/submission/files` | `multipart/form-data`, die Dateien liegen im Request |
+| durch die API (lokales Verzeichnis) | `POST api/v1/submission/multipart` | `multipart/form-data`, die Dateien liegen im Request |
 
 Wer die falsche Route wählt, erhält `400` mit dem Hinweis auf die richtige. Ein Client wird einmal pro Installation eingerichtet und kennt danach seine Form, so wie er auch seinen Mandatsschlüssel kennt.
 
@@ -60,7 +60,7 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 Ein Aufruf genügt. Die Formularfelder heissen wie die JSON-Felder oben, ohne `uploadId`:
 
 ```bash
-curl -X POST https://geopilot.example.ch/api/v1/submission/files \
+curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -H "Authorization: Bearer $TOKEN" \
   -F "mandateKey=av-2026" \
   -F "comment=Nachlieferung Perimeter Nord" \

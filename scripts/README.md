@@ -74,7 +74,7 @@ Welches Skript passt, entscheidet die Installation, nicht das Mandat:
 | Ablage der Uploads | Skript |
 | --- | --- |
 | ausserhalb der API (Objektspeicher) | `submit-delivery-upload.ps1`: Upload anmelden, Dateien an die zurückgegebenen URLs, dann `POST api/v1/submission` |
-| durch die API (lokales Verzeichnis) | `submit-delivery-files.ps1`: ein `multipart/form-data`-Aufruf an `POST api/v1/submission/files`, die Felder vor den Dateien |
+| durch die API (lokales Verzeichnis) | `submit-delivery-files.ps1`: ein `multipart/form-data`-Aufruf an `POST api/v1/submission/multipart`, die Felder vor den Dateien |
 
 Wer das falsche nimmt, bekommt `400` mit dem Hinweis auf die andere Form.
 

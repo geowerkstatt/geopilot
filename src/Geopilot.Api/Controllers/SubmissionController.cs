@@ -105,7 +105,7 @@ public class SubmissionController : ControllerBase
 
         if (uploadOptions.Backend != UploadBackend.Cloud)
         {
-            return BadRequest("This installation takes the files with the request. Send them as multipart/form-data to api/v1/submission/files instead of referencing an upload.");
+            return BadRequest("This installation takes the files with the request. Send them as multipart/form-data to api/v1/submission/multipart instead of referencing an upload.");
         }
 
         var declarer = await context.GetDeclarerAsync(User);
@@ -182,7 +182,7 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     [Authorize(Policy = GeopilotPolicies.Declarer)]
-    [HttpPost("files")]
+    [HttpPost("multipart")]
     [Consumes("multipart/form-data")]
     [SelfManagedBodySize]
     [DisableFormValueModelBinding]

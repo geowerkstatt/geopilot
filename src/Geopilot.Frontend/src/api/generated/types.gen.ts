@@ -1927,14 +1927,14 @@ export type PostApiV1SubmissionResponses = {
 
 export type PostApiV1SubmissionResponse = PostApiV1SubmissionResponses[keyof PostApiV1SubmissionResponses];
 
-export type PostApiV1SubmissionFilesData = {
+export type PostApiV1SubmissionMultipartData = {
   body?: never;
   path?: never;
   query?: never;
-  url: "/api/v1/Submission/files";
+  url: "/api/v1/Submission/multipart";
 };
 
-export type PostApiV1SubmissionFilesErrors = {
+export type PostApiV1SubmissionMultipartErrors = {
   /**
    * This installation expects the files to be uploaded beforehand, or the delivery details violate the rules of the mandate.
    */
@@ -1961,17 +1961,18 @@ export type PostApiV1SubmissionFilesErrors = {
   503: unknown;
 };
 
-export type PostApiV1SubmissionFilesError = PostApiV1SubmissionFilesErrors[keyof PostApiV1SubmissionFilesErrors];
+export type PostApiV1SubmissionMultipartError =
+  PostApiV1SubmissionMultipartErrors[keyof PostApiV1SubmissionMultipartErrors];
 
-export type PostApiV1SubmissionFilesResponses = {
+export type PostApiV1SubmissionMultipartResponses = {
   /**
    * The attempt was accepted and is being processed.
    */
   202: SubmissionResponse;
 };
 
-export type PostApiV1SubmissionFilesResponse =
-  PostApiV1SubmissionFilesResponses[keyof PostApiV1SubmissionFilesResponses];
+export type PostApiV1SubmissionMultipartResponse =
+  PostApiV1SubmissionMultipartResponses[keyof PostApiV1SubmissionMultipartResponses];
 
 export type GetSubmissionStatusData = {
   body?: never;

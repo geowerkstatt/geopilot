@@ -7,7 +7,7 @@
     Runs the machine delivery end to end, the way a client of such an installation has to:
 
       1. POST {TokenUrl}                          client credentials, answers the access token
-      2. POST {ApiUrl}/api/v1/submission/files    one multipart/form-data request: the fields, then the files
+      2. POST {ApiUrl}/api/v1/submission/multipart    one multipart/form-data request: the fields, then the files
       3. GET  {Location of step 2}                polls the attempt until it is delivered, rejected or failed
 
     The fields have to precede the files: the server checks the mandate and the delivery details before
@@ -130,7 +130,7 @@ function Invoke-Submission([System.Collections.IDictionary]$Form) {
     for ($attempt = 1; ; $attempt++) {
         try {
             $headers = $null
-            $response = Invoke-RestMethod -Method Post -Uri "$ApiUrl/api/v1/submission/files" -Headers (Get-AuthorizationHeader) -Form $Form -ResponseHeadersVariable headers
+            $response = Invoke-RestMethod -Method Post -Uri "$ApiUrl/api/v1/submission/multipart" -Headers (Get-AuthorizationHeader) -Form $Form -ResponseHeadersVariable headers
             $statusUrl = if ($headers.Location) { $headers.Location[0] } else { "$ApiUrl/api/v1/submission/$($response.id)" }
             return [pscustomobject]@{ Response = $response; StatusUrl = $statusUrl }
         }

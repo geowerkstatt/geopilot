@@ -109,7 +109,7 @@ public class KeycloakOpaqueTokenTest
         using var content = new MultipartFormDataContent();
         content.Add(mandateKeyPart, "mandateKey");
         content.Add(filePart, "file", "data.xtf");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/submission/files") { Content = content };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/submission/multipart") { Content = content };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);

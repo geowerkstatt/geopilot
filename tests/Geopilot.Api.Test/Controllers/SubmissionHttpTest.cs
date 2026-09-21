@@ -69,7 +69,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation);
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(
             HttpStatusCode.Accepted,
@@ -84,7 +84,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateValidClientToken());
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(
             HttpStatusCode.Accepted,
@@ -99,7 +99,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateClientToken(JwtTestTokenBuilder.InactiveClientSub));
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode, "Deactivating a client is how an administrator revokes it without touching the identity provider.");
     }
@@ -111,7 +111,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation, JwtTestTokenBuilder.CreateClientToken(Guid.NewGuid().ToString()));
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(
             HttpStatusCode.Forbidden,
@@ -130,7 +130,7 @@ public class SubmissionHttpTest
         var full = BuildMultipart(MandateKey, "data.xtf", Payload(16));
         using var content = AsMultipart(full, full.Length - 10);
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -143,7 +143,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation);
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(2 * 1024 * 1024));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
         Assert.IsEmpty(
@@ -215,7 +215,7 @@ public class SubmissionHttpTest
         using var client = CreateAuthenticatedClient(installation);
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
 
         Assert.AreEqual(
             HttpStatusCode.BadRequest,
@@ -231,7 +231,7 @@ public class SubmissionHttpTest
         using var content = MultipartBody(MandateKey, "data.xtf", Payload(16));
         using var probe = new ByteArrayContent([]);
 
-        var response = await client.PostAsync("/api/v1/submission/files", content);
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
         var neverExisted = await client.PostAsync("/api/v1/aroutethatneverexisted", probe);
 
         // Compared against a route that was never defined rather than against a fixed code, because what an
