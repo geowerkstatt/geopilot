@@ -5,18 +5,19 @@
 
 Neu unterstützt geopilot mit seiner flexiblen Pipeline-Architektur beliebige Verarbeitungsabläufe von einer oder mehreren hochgeladenen Dateien. Über eine intuitive Oberfläche führt geopilot Datenlieferanten in drei einfachen Schritten zum Ziel:
 
-1. **Hochladen** – Beliebig viele Dateien in freien Formaten hochladen
-2. **Prüfen & Verarbeiten** – Die Daten werden automatisch darauf geprüft, ob sie die geforderten Kriterien erfüllen, und bei Bedarf weiterverarbeitet.
-3. **Lieferung (Optional)** – Nur Daten, die die Prüfung bestehen, können freigegeben und im STAC-Katalog abgelegt werden.
+1. **Hochladen:** Beliebig viele Dateien in freien Formaten hochladen
+2. **Prüfen & Verarbeiten:** Die Daten werden automatisch darauf geprüft, ob sie die geforderten Kriterien erfüllen, und bei Bedarf weiterverarbeitet.
+3. **Lieferung (Optional):** Nur Daten, die die Prüfung bestehen, können freigegeben und im STAC-Katalog abgelegt werden.
 
-![Übersicht Funktionalität gepilot 2.0](images/geopilot-v2-0/overview_geopilot_2_0.png)
+![Übersicht Funktionalität geopilot 2.0](images/geopilot-v2-0/overview_geopilot_2_0.png)
 
 ## Neuigkeiten
 
 ### UI / UX 
 #### Redesign
 geopilot kommt mit einer neuen grafischen Oberfläche und einer neuen Benutzerführung daher. Das neue UI ermöglicht die Darstellung aller neuen Features und führt den Benutzer auch ohne Vorkenntnisse klar durch den Prozess.
-![Neues UI gepilot 2.0](images/geopilot-v2-0/new_UI_UX_geopilot_2_0.png)
+
+![Neues UI geopilot 2.0](images/geopilot-v2-0/new_UI_UX_geopilot_2_0.png)
 
 Das neue UI ist auch für mobile Geräte geeignet und passt sich der Bildschirmgrösse an. Die Benutzerführung ist in mehreren Sprachen (DE/EN/FR/IT) verfügbar und kann bei Bedarf auf weitere Sprachen übersetzt werden.
 
@@ -30,24 +31,28 @@ Titel und Name können mehrsprachig erfasst werden.
 
 #### STAC Browser
 Auch der STAC-Browser erhält ein neues Gesicht. Mit dem Update auf die Version 5.0 kommt das UI moderner daher.
-![Neuer STAC Browser gepilot 2.0](images/geopilot-v2-0/STAC_Browser_geopilot_2_0.png)
+
+![Neuer STAC Browser geopilot 2.0](images/geopilot-v2-0/STAC_Browser_geopilot_2_0.png)
 
 ### Authentifizierung
 
 #### Selbstregistrierung
-Neue Benutzer können sich nun selbst registrieren und einen eigenen User in der geopilot-Admin anlegen.
+Neu werden Benutzer in geopilot beim ersten Anmelden automatisch angelegt (noch ohen spezifische Zuordnung / Berechtigung). Dies ermöglicht eine Selbstregistrierung von neuen Benutzern.
 
 #### Konfiguration öffentlicher Mandate
 Prüfungen und Prozessierungen können neu auch ohne Login ausgeführt werden. Als 'öffentlich' gekennzeichnete Mandate stehen allen Benutzer:innen offen. Zudem können die Informationen zu einem Mandat (Titel / Beschreibung) neu mehrsprachig erfasst werden.
-![Mandatkonfiguration gepilot 2.0](images/geopilot-v2-0/mandate_config_geopilot_2_0.png)
+
+![Mandatkonfiguration geopilot 2.0](images/geopilot-v2-0/mandate_config_geopilot_2_0.png)
 
 #### Ansicht eigener Lieferungen
 Neu steht jedem eingeloggten Benutzer eine Übersicht über seine getätigten Lieferungen zur Verfügung.
-![Eigene Lieferungen gepilot 2.0](images/geopilot-v2-0/my_deliveries_geopilot_2_0.png)
+
+![Eigene Lieferungen geopilot 2.0](images/geopilot-v2-0/my_deliveries_geopilot_2_0.png)
+
 In den Applikationssettings kann eingestellt werden, ob der Benutzer ungewünschte Lieferungen bis zu einem bestimmten Moment wieder löschen kann.
 
 ### Datenupload
-Mit geopilot 2.0 können nun Dateien bis zu 10 GB hochgeladen werden. Die bisherige Grössenbeschränkung von 100 MB wurde aufgehoben. Neu kann nicht nur eine Datei, sondern es können beliebig viele Dateien hochgeladen werden. geopilot evaluiert aus den hochgeladenen Dateien anschliessend die passenden Mandate.
+Mit geopilot 2.0 können neu auch grössere Datenmengen verarbeitet werden. Die bisherige Grössenbeschränkung von 100 MB wurde aufgehoben. Neu kann nicht nur eine Datei, sondern es können beliebig viele Dateien hochgeladen werden. geopilot evaluiert aus den hochgeladenen Dateien anschliessend die passenden Mandate.
 
 ### Prozessierung
 Neben der bewährten INTERLIS-Validierung können mit geopilot neu ganze Abläufe definiert werden. Mit Prozessoren, Bedingungen und Parametern können mehrere Schritte miteinander verkettet werden. Die Ausführung und Weiterleitung von Dateien im Prozess kann über Bedingungen zusätzlich gesteuert werden. Die Konfigurationsmöglichkeiten erlauben nun auch die Definition der Lieferobjekte (welche hochgeladenen Objekte und Resultate werden im STAC abgelegt). So können neu z. B. auch Dokumentationen hochgeladen und abgegeben werden.
@@ -61,7 +66,8 @@ geopilot unterstützt neu neben der Validierung von INTERLIS-Transferdateien auc
 * XtfValidatorProcess (basierend auf ilivalidator)
 * ZipPackageProcess
 * UnzipProcess
-Eine detaillierte Beschreibung der Prozessoren befindet sich unter [Dokumentation geopilot Prozessoren](../pipeline/Prozessoren).
+
+Eine detaillierte Beschreibung der Prozessoren befindet sich unter [Dokumentation geopilot Prozessoren](../pipeline/Pipelines.md#prozesse).
 
 So können Dateitypen und Modellnamen automatisch erkannt, INTERLIS-Dateien validiert und die Fehler anschliessend visualisiert werden. Mit dem Zip/Unzip können Resultate vor der Verarbeitung oder für den Download schöner aufbereitet werden.
 
@@ -89,13 +95,13 @@ Karte und Baum interagieren miteinander und kommen mit einer Vielzahl von Funkti
   * Karte und/oder Baum
   * Hintergrundkarte
   * Copyright der Hintergrundkarte
-  * Gruppierung (z. B. Modell – Topic – Klasse)
+  * Gruppierung (z. B. Modell, Topic, Klasse)
   * Filter (z. B. Klasse, Error-Typ)
 
 ## Bugfixes
 | Issue | Beschreibung |
 | --- | --- |
-| #683 | Eigene Modelle können nicht mehr mitgeliefert werden |
+| #683 | Eigene Modelle können wieder mitgeliefert werden |
 
 ## Technische Abhängigkeiten
 
@@ -106,7 +112,6 @@ Karte und Baum interagieren miteinander und kommen mit einer Vielzahl von Funkti
 | ASP.NET Core Authentication JwtBearer | 10.0.1 |
 | ASP.NET Core MVC NewtonsoftJson | 10.0.1 |
 | ASP.NET Core OpenAPI | 10.0.1 |
-| ASP.NET Core MVC Testing | 10.0.1 |
 | Asp.Versioning.Mvc | 8.1.1 |
 | Asp.Versioning.Mvc.ApiExplorer | 8.1.1 |
 | Azure Storage Blobs | 12.27.0 |
@@ -147,12 +152,3 @@ Karte und Baum interagieren miteinander und kommen mit einer Vielzahl von Funkti
 | React OIDC Context | 3.1.0 |
 | Vite | 8.2.1 |
 | TypeScript | 5.5.3 |
-| Cypress | 15.15.0 |
-| Hey API OpenAPI TS | 0.99.0 |
-
-
-
-
-
-
-
