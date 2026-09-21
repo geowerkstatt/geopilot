@@ -45,7 +45,7 @@ public class DirectUploadEndpointTest
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         }
 
-        var storedFiles = Directory.GetFiles(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString()));
+        var storedFiles = Directory.GetFiles(Path.Combine(app.RootDirectory, session.UploadId.ToString()));
         Assert.HasCount(2, storedFiles);
         Assert.AreEqual("xtfxtfxtf", File.ReadAllText(storedFiles.Single(f => f.EndsWith("data.xtf", StringComparison.Ordinal))));
     }
@@ -58,7 +58,7 @@ public class DirectUploadEndpointTest
         var response = await PutContentAsync(session.Files[0].UploadUrl, "way too short");
 
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "data.xtf")));
+        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "data.xtf")));
     }
 
     [TestMethod]
@@ -69,7 +69,7 @@ public class DirectUploadEndpointTest
         var response = await PutContentAsync(session.Files[0].UploadUrl, "definitely more than two bytes");
 
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
-        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "data.xtf")));
+        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "data.xtf")));
     }
 
     [TestMethod]
@@ -81,7 +81,7 @@ public class DirectUploadEndpointTest
         var response = await client.PutAsync(session.Files[0].UploadUrl, content);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var stored = new FileInfo(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "big.xtf"));
+        var stored = new FileInfo(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "big.xtf"));
         Assert.AreEqual(OverGlobalLimitBytes, stored.Length);
     }
 
