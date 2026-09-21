@@ -208,6 +208,7 @@ export {
   type SubmissionDownload,
   type SubmissionMessage,
   SubmissionMessageSeverity,
+  type SubmissionMultipartRequest,
   type SubmissionRequest,
   type SubmissionResponse,
   SubmissionState,

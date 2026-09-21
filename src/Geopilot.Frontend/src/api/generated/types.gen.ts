@@ -885,6 +885,38 @@ export const SubmissionMessageSeverity = {
 export type SubmissionMessageSeverity = (typeof SubmissionMessageSeverity)[keyof typeof SubmissionMessageSeverity];
 
 /**
+ * The form of a machine delivery whose files come with the request, as the published API describes it. The
+ * action reads the parts from the stream itself and never binds this type; it exists so the API document names
+ * the fields and the files, which a generated client cannot learn from the code that reads them.
+ */
+export type SubmissionMultipartRequest = {
+  /**
+   * The key of the mandate to deliver to. Compared exactly, including case. Sent before the files.
+   */
+  mandateKey: string;
+  /**
+   * Whether the delivery covers only part of the mandate. Required, optional or rejected, depending on the
+   * mandate. Sent before the files.
+   */
+  partialDelivery?: boolean | null;
+  /**
+   * The delivery this one supersedes. Required, optional or rejected, depending on the mandate. Sent before
+   * the files.
+   */
+  precursorDeliveryId?: number | null;
+  /**
+   * The comment accompanying the delivery. Required, optional or rejected, depending on the mandate. Sent
+   * before the files.
+   */
+  comment?: string | null;
+  /**
+   * The delivered files, after every field. The name of the part does not matter; a part counts as a file
+   * when it carries a file name.
+   */
+  file: Array<Blob | File>;
+};
+
+/**
  * Starts a machine delivery for files that were already uploaded. This is the shape an installation that
  * stores uploads in the cloud expects, where the caller obtains the upload and its URLs beforehand.
  */
@@ -1928,7 +1960,10 @@ export type PostApiV1SubmissionResponses = {
 export type PostApiV1SubmissionResponse = PostApiV1SubmissionResponses[keyof PostApiV1SubmissionResponses];
 
 export type PostApiV1SubmissionMultipartData = {
-  body?: never;
+  /**
+   * The form fields first, then the files. A field that arrives after a file is refused.
+   */
+  body: SubmissionMultipartRequest;
   path?: never;
   query?: never;
   url: "/api/v1/Submission/multipart";

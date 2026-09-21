@@ -67,7 +67,7 @@ curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -F "file=@lieferung.xtf"
 ```
 
-**Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt.
+**Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt. Die OpenAPI-Beschreibung der Installation (`/swagger/all/swagger.json`) führt diese Form als `multipart/form-data`-Body der Route, mit denselben Feldern und den Dateien.
 
 Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment`; ein längeres Feld wird mit `400` abgewiesen.
 

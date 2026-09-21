@@ -186,6 +186,7 @@ public class SubmissionController : ControllerBase
     [Consumes("multipart/form-data")]
     [SelfManagedBodySize]
     [DisableFormValueModelBinding]
+    [MultipartRequestBody(typeof(SubmissionMultipartRequest))]
     [SwaggerResponse(StatusCodes.Status202Accepted, "The attempt was accepted and is being processed.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation expects the files to be uploaded beforehand, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]

@@ -92,6 +92,10 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
 
     options.EnableAnnotations();
+
+    // An action that reads its multipart form from the stream binds nothing, so its body is described from the
+    // type the action names instead.
+    options.OperationFilter<MultipartRequestBodyOperationFilter>();
     options.SupportNonNullableReferenceTypes();
     options.NonNullableReferenceTypesAsRequired();
 
