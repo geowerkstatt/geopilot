@@ -109,7 +109,13 @@ internal static class InputBinder
     /// its candidates, spread one level exactly as a list target spreads them, and the result must be a
     /// single candidate: none becomes null, one is that value, and more than one is rejected. A written
     /// sequence is therefore reduced like the sources written on their own, which is what lets several
-    /// sources, of which all but one are empty or absent, still yield the one value.
+    /// sources, of which all but one yield nothing, still yield the one value.
+    /// <para>
+    /// When no candidate is left, an absent source is preferred over an empty or null one for the
+    /// failure message, because naming the step that did not run is the more specific diagnosis. With
+    /// several sources yielding nothing, the message therefore names an absent one even if an empty
+    /// source would have been just as much the cause.
+    /// </para>
     /// </summary>
     private static ResolvedInput ResolveToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
@@ -121,7 +127,7 @@ internal static class InputBinder
         foreach (var item in resolvedItems.Where(item => !item.IsAbsent))
             AppendSingleValueCandidates(target, candidates, item.Value);
 
-        // Nothing left means every source was absent or empty; keep an absent one so a failure can name it.
+        // Nothing left means no source yielded a value; keep an absent one so a failure can name it.
         return candidates.Count == 0
             ? resolvedItems.FirstOrDefault(item => item.IsAbsent)
             : ResolvedInput.Of(UnwrapToSingleValue(target, candidates));
@@ -132,10 +138,20 @@ internal static class InputBinder
     /// same way <see cref="AppendToList"/> does for a list target: a value that already is the target
     /// type counts as one candidate, a collection contributes its items, and anything else counts as
     /// one candidate. Conversion happens afterwards, on the single surviving candidate.
+    /// <para>
+    /// A source that resolved to null contributes nothing, so all three ways of having no value count
+    /// alike: a null, an empty collection and an absent source. A nullable output wired next to another
+    /// source would otherwise occupy the one slot the parameter has, and the more sources a parameter
+    /// gathers from, the likelier one of them is nullable. A collection that <em>contains</em> a null
+    /// still contributes that null, because there the source did yield an element.
+    /// </para>
     /// </summary>
     private static void AppendSingleValueCandidates(BindingTarget target, List<object?> candidates, object? value)
     {
-        if (value is not null && target.Type.IsInstanceOfType(value))
+        if (value is null)
+            return;
+
+        if (target.Type.IsInstanceOfType(value))
         {
             candidates.Add(value);
         }

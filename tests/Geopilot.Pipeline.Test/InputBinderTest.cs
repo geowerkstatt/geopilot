@@ -152,6 +152,86 @@ public class InputBinderTest
     }
 
     [TestMethod]
+    public void NullSourceInSequenceDoesNotCountAsValueForSingleParameter()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("packaging", "ZipPackage"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            value = ((InputValue.StepOutputReference)reference).StepId == "packaging"
+                ? null
+                : new[] { "the.xtf" };
+            return ReferenceResolution.Resolved;
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    // More than two sources is not a special case in the binder, but it is where the mutual exclusion
+    // stops being obvious to whoever writes the definition, and nothing checks it at load time.
+    [TestMethod]
+    public void SequenceOfThreeSourcesYieldsTheOnlyOneWithAValue()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("gpkg_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            switch (((InputValue.StepOutputReference)reference).StepId)
+            {
+                case "unzip":
+                    value = null;
+                    return ReferenceResolution.Absent;
+                case "gpkg_matching":
+                    value = Array.Empty<string>();
+                    return ReferenceResolution.Resolved;
+                default:
+                    value = new[] { "the.xtf" };
+                    return ReferenceResolution.Resolved;
+            }
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    [TestMethod]
+    public void SequenceOfThreeSourcesWithTwoValuesThrows()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("gpkg_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            if (((InputValue.StepOutputReference)reference).StepId == "unzip")
+            {
+                value = null;
+                return ReferenceResolution.Absent;
+            }
+
+            value = new[] { "the.xtf" };
+            return ReferenceResolution.Resolved;
+        };
+
+        var exception = Assert.Throws<PipelineRunException>(
+            () => InputBinder.Bind(Single(typeof(string)), sequence, resolver));
+
+        Assert.Contains("resolved to 2 values", exception.Message);
+    }
+
+    [TestMethod]
     public void SequenceWithTwoValuesForSingleParameterThrows()
     {
         var sequence = new InputValue.Sequence(
