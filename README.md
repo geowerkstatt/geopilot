@@ -101,6 +101,7 @@ volumes:
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:3081  | interlis-models (in docker-compose)           | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
+| http://localhost:4012  | ZITADEL Konsole (nur mit `docker-compose.zitadel.yml`) | -                                                                |
 | http://localhost:5555  | ilitools-wrapper service                      | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
@@ -262,6 +263,104 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
+
+### ZITADEL lokal (optional)
+
+Produktiv läuft ZITADEL, lokal standardmässig Keycloak. Für alltägliche Arbeit ist das unproblematisch. Für Änderungen am Anmeldevorgang nicht, weil sich die beiden Produkte genau dort unterscheiden. Beispiel: ZITADEL stellt einen Refresh Token nur mit dem Scope `offline_access` aus, Keycloak auch ohne. Ein solcher Fehler fällt gegen Keycloak nie auf.
+
+Deshalb lässt sich ZITADEL bei Bedarf zuschalten:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up
+```
+
+Keycloak wird dabei nicht ersetzt und läuft auf Port 4011 weiter. Nur die `Auth__*`-Variablen der API zeigen auf ZITADEL. Die Cypress-Tests sind auf Keycloak verdrahtet und bleiben unverändert.
+
+Der Override startet vier Container:
+
+| Container | Rolle |
+| --- | --- |
+| `zitadel` | die API, nicht direkt veröffentlicht |
+| `zitadel-login` | die Anmeldeoberfläche, seit ZITADEL v4 ein eigener Dienst |
+| `zitadel-proxy` | nginx, veröffentlicht Port 4012 und legt beide unter einen Origin |
+| `zitadel-provision` | spielt die Default-Konfiguration ein und beendet sich |
+
+Der Proxy ist nicht optional. Der OIDC-Issuer lautet `http://localhost:4012`, und die Anmeldeoberfläche muss unter demselben Origin unter `/ui/v2/login` antworten. Im Cluster übernimmt Traefik diese Aufgabe. Fehlt die Anmeldeoberfläche, endet jeder Anmeldeversuch mit einem 404 auf `/ui/v2/login`.
+
+#### Default-Konfiguration
+
+Es ist keine Einrichtung von Hand nötig. `zitadel-provision` wendet beim ersten Start [terraform/local](./terraform/local/) an und legt folgendes an:
+
+- eine Organisation `geopilot-local` mit gelockerter Passwortrichtlinie
+- ein Projekt `geopilot`
+- `geopilot-client` als User-Agent-Applikation mit PKCE, inklusive der Redirect URIs für Frontend und Swagger UI
+- `geopilot-api` als API-Applikation im selben Projekt, die die Audience liefert
+- die Entwicklungsbenutzer
+
+Das ist das Gegenstück zu Keycloaks Realm-Import. Die Konfiguration ist eigenständig und nutzt bewusst **nicht** die Module aus `geopilot-hosting`, damit die Repositories sauber getrennt bleiben.
+
+Beide Applikationen liegen im selben Projekt. ZITADEL schreibt die API-ID dann von sich aus in den `aud` Claim, deshalb braucht es keinen zusätzlichen Scope. Das entspricht der produktiven Konfiguration, die ebenfalls nur `profile email openid` sendet.
+
+Der Terraform-Zugang entsteht ohne Zutun: ZITADEL erzeugt beim ersten Start einen Maschinenbenutzer mit `IAM_OWNER` und legt dessen Token in ein geteiltes Volume. Es wird kein Zugangsdatum von Hand erstellt oder versioniert.
+
+#### Entwicklungsbenutzer
+
+Alle mit Passwort `geopilot_password`, wie im Keycloak-Realm:
+
+| Login | `sub` | Rolle in geopilot |
+| --- | --- | --- |
+| `admin@geopilot.ch` | `1f9f9000-…` | Administrator aus den Seed-Daten |
+| `uploader@geopilot.ch` | `1ed45832-…` | normaler Benutzer aus den Seed-Daten |
+| `newuser@geopilot.ch` | `ceab20b3-…` | absichtlich nicht geseedet, Testfall Erstanmeldung |
+
+Die `sub`-Werte sind identisch mit denen im Keycloak-Realm, und die Seed-Daten verweisen auf die ersten zwei als `AuthIdentifier` (`ContextSeedExtensions.cs:58`, `:67`). Der Administrator funktioniert damit sofort, ohne Eingriff in die Datenbank, gegen beide Identity Provider.
+
+Für die ZITADEL-Konsole gibt es separat `zitadel-admin@geopilot.localhost` mit dem Passwort aus `docker-compose.zitadel.yml`.
+
+#### Erststart
+
+Die `client_id` lässt sich in ZITADEL nicht festlegen, sie wird immer generiert. Anders als bei Keycloak, wo `geopilot-client` ein fester String ist. `zitadel-provision` schreibt die beiden generierten IDs deshalb nach `config/generated/zitadel.env`, und diese Datei wird beim Start als zweite Env-Datei mitgegeben.
+
+Einmalig provisionieren:
+
+```
+docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up -d zitadel-provision
+```
+
+Danach ist das der Startbefehl:
+
+```
+docker compose --env-file .env --env-file config/generated/zitadel.env -f docker-compose.yml -f docker-compose.zitadel.yml up -d
+```
+
+Beide Env-Dateien müssen genannt werden. Sobald `--env-file` gesetzt ist, liest Compose `.env` nicht mehr von selbst, und dort stehen `GITHUB_ACTOR` und `GITHUB_TOKEN`. Die Datei wird direkt gelesen und nicht kopiert, eine erneute Provisionierung wirkt also ohne weiteres Zutun.
+
+Zwischen den beiden Befehlen braucht es **kein** `docker compose down`. Der erste startet `geopilot` nicht mit, und Compose erstellt bei geänderter Konfiguration ohnehin nur die betroffenen Container neu. Ein `down -v` wäre hier sogar schädlich: es verwirft die ZITADEL-Datenbank, und die Client-IDs wären danach neu.
+
+Zeigt die Anmeldung `run-zitadel-provision-first` als Client-ID, fehlt die zweite `--env-file`-Angabe.
+
+Die beiden Variablen werden ausschliesslich in `docker-compose.zitadel.yml` referenziert und stören den Keycloak-Standardstart nicht.
+
+#### Zurücksetzen
+
+Der Zustand liegt an drei Stellen und muss gemeinsam verworfen werden, sonst will Terraform Ressourcen ändern, die es nicht mehr gibt:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.zitadel.yml rm -s -f zitadel zitadel-login zitadel-proxy zitadel-provision
+docker compose -f docker-compose.yml -f docker-compose.zitadel.yml exec db psql -U HAPPYWALK -d postgres -c "DROP DATABASE zitadel;"
+docker volume rm geopilot_zitadel-bootstrap geopilot_zitadel-terraform
+```
+
+`rm -s` statt `down`, aus zwei Gründen: es fasst das Netzwerk nicht an, und der Dienst `db` bleibt stehen. Letzteres ist nötig, denn der zweite Befehl greift darauf zu und die Datenbank `geopilot` soll unberührt bleiben.
+
+Danach die Provisionierung von oben wiederholen. Die Client-IDs sind dann neu, aber weil `config/generated/zitadel.env` direkt gelesen wird, genügt das Überschreiben durch den Provisionierungslauf. In `.env` ist nichts nachzuführen.
+
+#### Hinweise
+
+- **Datenbank:** ZITADEL nutzt die vorhandene Postgres-Instanz und legt dort die Datenbank `zitadel` an. `docker compose down -v` löscht das Volume und damit beide Datenbanken.
+- **`FirstInstance` greift nur einmal:** Die Werte unter `ZITADEL_FIRSTINSTANCE_*` und `ZITADEL_DEFAULTINSTANCE_*` wirken nur gegen eine leere Datenbank. Eine Änderung daran verlangt ein Zurücksetzen, siehe oben. Änderungen an `terraform/local` dagegen wirken bei jedem Lauf, dafür genügt `docker compose ... up zitadel-provision`.
+- **Erststart:** dauert deutlich länger als bei Keycloak, weil ZITADEL das Schema anlegt.
+- **Version:** Das Image ist auf dieselbe Version gepinnt wie im Cluster, damit Abweichungen nicht aus der Version kommen. Versionswechsel migrieren das Schema und sollten nicht unbedacht erfolgen.
 
 ## Cloud Upload
 
