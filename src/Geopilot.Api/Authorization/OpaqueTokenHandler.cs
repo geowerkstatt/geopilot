@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Contracts;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -25,7 +24,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
     public const string HttpClientName = "OpaqueTokenIntrospection";
 
     private readonly IHttpClientFactory httpClientFactory;
-    private readonly IGeopilotUserInfoService userInfoService;
+    private readonly IGeopilotUserResolver userResolver;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpaqueTokenHandler"/> class.
@@ -34,17 +33,17 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
     /// <param name="logger">The logger factory.</param>
     /// <param name="encoder">The URL encoder.</param>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
-    /// <param name="userInfoService">The user info service.</param>
+    /// <param name="userResolver">Prefetches the user info of a person's token.</param>
     public OpaqueTokenHandler(
         IOptionsMonitor<OpaqueTokenOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         IHttpClientFactory httpClientFactory,
-        IGeopilotUserInfoService userInfoService)
+        IGeopilotUserResolver userResolver)
         : base(options, logger, encoder)
     {
         this.httpClientFactory = httpClientFactory;
-        this.userInfoService = userInfoService;
+        this.userResolver = userResolver;
     }
 
     /// <inheritdoc/>
@@ -111,6 +110,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             return AuthenticateResult.Fail(new IdentityProviderUnavailableException("Introspection request failed.", ex));
         }
 
+        string? subject = null;
         using (response)
         {
             if ((int)response.StatusCode >= 500)
@@ -181,13 +181,25 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                         return AuthenticateResult.Fail("Introspection response audience does not match configured audience.");
                     }
                 }
+
+                subject = ReadString(root, "sub") ?? ReadString(root, "client_id");
             }
         }
 
-        UserInfoResponse? userInfo;
+        // The subject is what the authorization handlers look up, for a person as much as for a machine client.
+        // A token issued for client credentials names no person, so for a machine it has to come from the
+        // introspection itself: from sub, or from the client the token was issued to where a provider names no
+        // sub for a machine. RFC 7662 leaves both fields optional, and a person's token whose introspection names
+        // neither is still identified by its user info, as it was before the introspection named machines.
+        //
+        // User info is requested for the same reason as on the JWT path: an identity provider that does not
+        // answer fails the authentication with a typed reason and gets a 503, instead of a 403 from the
+        // authorization handler. The resolver keeps the response for the authorization handlers and asks
+        // nothing for a registered machine client.
         try
         {
-            userInfo = await userInfoService.GetUserInfoAsync(token, Context.RequestAborted);
+            var userInfo = await userResolver.PrefetchUserInfoAsync(subject, token, Context.RequestAborted);
+            subject ??= userInfo?.Sub;
         }
         catch (IdentityProviderUnavailableException ex)
         {
@@ -195,14 +207,14 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             return AuthenticateResult.Fail(ex);
         }
 
-        if (userInfo is null)
+        if (string.IsNullOrWhiteSpace(subject))
         {
-            Logger.LogWarning("Failed to retrieve user info for opaque token.");
-            return AuthenticateResult.Fail("Failed to retrieve user info.");
+            Logger.LogWarning("Introspection response names neither sub nor client_id, and user info describes no person.");
+            return AuthenticateResult.Fail("Introspection response contains no subject.");
         }
 
         var identity = new ClaimsIdentity(
-            [new Claim(JwtRegisteredClaimNames.Sub, userInfo.Sub)],
+            [new Claim(JwtRegisteredClaimNames.Sub, subject)],
             JwtBearerDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
@@ -224,5 +236,18 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
 
         Response.StatusCode = StatusCodes.Status401Unauthorized;
         Response.Headers.Append(HeaderNames.WWWAuthenticate, "Bearer");
+    }
+
+    /// <summary>
+    /// Reads a string member of the introspection response, treating a blank one as absent so the next
+    /// fallback applies.
+    /// </summary>
+    private static string? ReadString(JsonElement root, string propertyName)
+    {
+        if (!root.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+            return null;
+
+        var value = property.GetString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 }

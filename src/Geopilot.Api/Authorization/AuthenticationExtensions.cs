@@ -101,13 +101,14 @@ public static class AuthenticationExtensions
 
                         // Fetch user info during authentication, so an unreachable identity provider
                         // fails with a typed reason here instead of a 403 in the authorization handler.
-                        // The result is discarded on purpose: GeopilotUserInfoService is scoped and caches
-                        // it, so GeopilotUserHandler reads the same response without a second request.
+                        // The result is discarded on purpose: the resolver keeps it for the authorization
+                        // handlers, and asks nothing for a registered machine client.
                         var token = ((JsonWebToken)context.SecurityToken).EncodedToken;
-                        var userInfoService = context.HttpContext.RequestServices.GetRequiredService<IGeopilotUserInfoService>();
+                        var subject = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                        var userResolver = context.HttpContext.RequestServices.GetRequiredService<IGeopilotUserResolver>();
                         try
                         {
-                            await userInfoService.GetUserInfoAsync(token, context.HttpContext.RequestAborted);
+                            _ = await userResolver.PrefetchUserInfoAsync(subject, token, context.HttpContext.RequestAborted);
                         }
                         catch (IdentityProviderUnavailableException ex)
                         {

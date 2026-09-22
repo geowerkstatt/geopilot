@@ -14,4 +14,10 @@ public static class GeopilotPolicies
     /// Allow access for all users that are stored in the database.
     /// </summary>
     public const string User = "User";
+
+    /// <summary>
+    /// Allow access for whoever may declare a delivery: a stored user or a registered machine client. The
+    /// only policy a machine client satisfies, and therefore the boundary of the machine delivery surface.
+    /// </summary>
+    public const string Declarer = "Declarer";
 }
