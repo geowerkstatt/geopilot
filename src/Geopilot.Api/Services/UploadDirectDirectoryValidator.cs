@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Microsoft.Extensions.Options;
+using System.Reflection;
 
 namespace Geopilot.Api.Services;
 
@@ -26,15 +27,14 @@ internal sealed class UploadDirectDirectoryValidator : IValidateOptions<UploadDi
         if (string.IsNullOrWhiteSpace(options.Directory))
             return ValidateOptionsResult.Success;
 
+        // Read the directories off the type instead of listing them here. A listing is complete only
+        // until someone adds a sixth directory, and what it costs to miss one is deleted data. The
+        // static SectionName is not an instance property and stays out by itself.
         var storage = fileAccessOptions.Value;
-        var storageDirectories = new (string Key, string? Directory)[]
-        {
-            (nameof(FileAccessOptions.DownloadDirectory), storage.DownloadDirectory),
-            (nameof(FileAccessOptions.VisualizationDirectory), storage.VisualizationDirectory),
-            (nameof(FileAccessOptions.AssetsDirectory), storage.AssetsDirectory),
-            (nameof(FileAccessOptions.PipelineDirectory), storage.PipelineDirectory),
-            (nameof(FileAccessOptions.ResourcesDirectory), storage.ResourcesDirectory),
-        };
+        var storageDirectories = typeof(FileAccessOptions)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(property => property.PropertyType == typeof(string) && property.CanRead)
+            .Select(property => (Key: property.Name, Directory: property.GetValue(storage) as string));
 
         foreach (var (key, directory) in storageDirectories)
         {

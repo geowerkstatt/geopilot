@@ -71,6 +71,30 @@ public class UploadDirectDirectoryValidatorTest
         Assert.IsTrue(result.Succeeded);
     }
 
+    [TestMethod]
+    public void RejectsOverlapWithAnyStorageDirectory()
+    {
+        // The other tests all collide with the pipeline directory. This one pins that the check covers
+        // every directory of the section, not the one that happens to be parameterized.
+        var shared = Path.Combine(root, "assets");
+        var storage = new FileAccessOptions
+        {
+            DownloadDirectory = Path.Combine(root, "downloads"),
+            VisualizationDirectory = Path.Combine(root, "visualizations"),
+            AssetsDirectory = shared,
+            PipelineDirectory = Path.Combine(root, "pipeline"),
+            ResourcesDirectory = Path.Combine(root, "resources"),
+        };
+
+        var result = new UploadDirectDirectoryValidator(Options.Create(storage))
+            .Validate(null, new UploadDirectOptions { Directory = shared });
+
+        Assert.IsTrue(result.Failed);
+        var message = result.FailureMessage;
+        Assert.IsNotNull(message);
+        StringAssert.Contains(message, "Storage:AssetsDirectory");
+    }
+
     private ValidateOptionsResult Validate(string uploadDirectory, string pipelineDirectory)
     {
         var storage = new FileAccessOptions
