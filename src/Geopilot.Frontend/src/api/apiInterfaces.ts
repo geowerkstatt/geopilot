@@ -1,4 +1,4 @@
-import { Mandate, ProcessingJobResponse, StepState, User } from "./generated";
+import { MachineClient, Mandate, ProcessingJobResponse, StepState, User } from "./generated";
 
 export enum ContentType {
   Json = "application/json",
@@ -130,3 +130,5 @@ type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 export type MandateFormValues = Optional<Mandate, "evaluatePrecursorDelivery" | "evaluatePartial" | "evaluateComment">;
 
 export type UserFormValues = Optional<User, "deliveries"> & { isActive: boolean };
+
+export type MachineClientFormValues = Optional<MachineClient, "deliveries"> & { isActive: boolean };

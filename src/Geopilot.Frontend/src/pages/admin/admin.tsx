@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
+import { useCapabilities } from "../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledLinkClick } from "../../components/controlledNavigate";
 import { PageContent } from "../../components/styledComponents.ts";
 import { useApplicationName } from "../../hooks/useApplicationName.ts";
@@ -17,7 +18,16 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const linkClick = useControlledLinkClick();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
+  const { machineDeliveryEnabled } = useCapabilities();
   const applicationName = useApplicationName();
+
+  // The machine clients only exist where the installation offers machine delivery.
+  const adminPages = [
+    { path: "users", label: "users" },
+    { path: "mandates", label: "mandates" },
+    { path: "organisations", label: "organisations" },
+    ...(machineDeliveryEnabled ? [{ path: "machine-clients", label: "machineClients" }] : []),
+  ];
 
   const handleDrawerClose = () => {
     setIsSubMenuOpen(false);
@@ -55,15 +65,15 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
         </List>
         <Divider />
         <List>
-          {["users", "mandates", "organisations"].map(link => (
-            <ListItem key={link} disablePadding>
+          {adminPages.map(({ path, label }) => (
+            <ListItem key={path} disablePadding>
               <ListItemButton
                 component={RouterLink}
-                to={"/admin/" + link}
-                selected={isActive(link)}
-                onClick={handleNavClick("/admin/" + link)}
-                data-cy={isPermanent ? `admin-${link}-nav` : undefined}>
-                <ListItemText primary={t(link)} />
+                to={"/admin/" + path}
+                selected={isActive(path)}
+                onClick={handleNavClick("/admin/" + path)}
+                data-cy={isPermanent ? `admin-${path}-nav` : undefined}>
+                <ListItemText primary={t(label)} />
               </ListItemButton>
             </ListItem>
           ))}

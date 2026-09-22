@@ -72,21 +72,21 @@ public class ProcessingServiceTest
         var jobId = Guid.NewGuid();
         var pipelineId = "pipeline1";
         var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized(nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight)), FileTypes = [".xtf"], PipelineId = pipelineId };
-        var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
+        var declarer = Declarer.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var job = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.Now);
         var pipeline = new Mock<IPipeline>().Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
         processingJobStoreMock.Setup(x => x.CreateJob(uploadId)).Returns(job);
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, jobId)).Returns(pipeline);
         processingJobStoreMock.Setup(x => x.AttachPipeline(jobId, pipeline, mandate.Id)).Returns(job);
         processingJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
 
         // Act
-        var result = await processingService.StartJobAsync(uploadId, mandate.Id, user);
+        var result = await processingService.StartJobAsync(uploadId, mandate.Id, declarer);
 
         // Assert
         Assert.AreEqual(job, result);
@@ -97,7 +97,7 @@ public class ProcessingServiceTest
         Assert.IsTrue(preflightQueue.Reader.TryRead(out var request));
         Assert.AreEqual(jobId, request.JobId);
         Assert.AreEqual(uploadId, request.UploadId);
-        runRecorderMock.Verify(r => r.RecordJobStartedAsync(job, mandate, user, upload), Times.Once);
+        runRecorderMock.Verify(r => r.RecordJobStartedAsync(job, mandate, declarer, upload), Times.Once);
     }
 
     [TestMethod]
@@ -108,25 +108,25 @@ public class ProcessingServiceTest
         var jobId = Guid.NewGuid();
         var pipelineId = "pipeline1";
         var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized(nameof(StartJobRemovesJobWhenProtocolRecordCannotBeWritten)), FileTypes = [".xtf"], PipelineId = pipelineId };
-        var user = new User { Id = 2, FullName = nameof(StartJobRemovesJobWhenProtocolRecordCannotBeWritten), AuthIdentifier = "auth-456" };
+        var declarer = Declarer.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var job = new ProcessingJob(jobId, uploadId, null, DateTime.Now);
         var pipeline = new Mock<IPipeline>().Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
         processingJobStoreMock.Setup(x => x.CreateJob(uploadId)).Returns(job);
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, jobId)).Returns(pipeline);
         processingJobStoreMock.Setup(x => x.AttachPipeline(jobId, pipeline, mandate.Id)).Returns(job);
         processingJobStoreMock.Setup(x => x.RemoveJob(jobId)).Returns(true);
         runRecorderMock
-            .Setup(r => r.RecordJobStartedAsync(job, mandate, user, upload))
+            .Setup(r => r.RecordJobStartedAsync(job, mandate, declarer, upload))
             .ThrowsAsync(new InvalidOperationException("protocol database down"));
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandate.Id, user);
+            await processingService.StartJobAsync(uploadId, mandate.Id, declarer);
         });
 
         processingJobStoreMock.Verify(x => x.RemoveJob(jobId), Times.Once, "a job without protocol record must not stay in the store.");
@@ -139,17 +139,17 @@ public class ProcessingServiceTest
         // Arrange
         var uploadId = Guid.NewGuid();
         var mandateId = 1;
-        var user = new User { Id = 2, FullName = nameof(StartJobThrowsForInvalidMandate) };
+        var declarer = Declarer.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync((Mandate?)null);
+        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandateId, declarer)).ReturnsAsync((Mandate?)null);
 
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, user);
+            await processingService.StartJobAsync(uploadId, mandateId, declarer);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);
@@ -164,18 +164,18 @@ public class ProcessingServiceTest
         // Arrange
         var uploadId = Guid.NewGuid();
         var mandateId = 1;
-        var user = new User { Id = 2, FullName = nameof(StartJobThrowsForMandateWithoutPipeline) };
+        var declarer = Declarer.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = TestHelpers.Localized(nameof(StartJobThrowsForMandateWithoutPipeline)), FileTypes = [".xtf"], PipelineId = null };
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandateId, declarer)).ReturnsAsync(mandate);
 
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, user);
+            await processingService.StartJobAsync(uploadId, mandateId, declarer);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);
