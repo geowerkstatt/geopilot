@@ -23,6 +23,7 @@ public class ProcessingRunnerTest
 
     private PhysicalDownloadFileStore downloadStore;
     private PhysicalAssetFileStore assetStore;
+    private PhysicalAssetStagingFileStore stagingStore;
     private PhysicalVisualizationFileStore visualizationStore;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<IPipelineRunRecorder> runRecorderMock;
@@ -33,6 +34,7 @@ public class ProcessingRunnerTest
     {
         downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
+        stagingStore = new PhysicalAssetStagingFileStore(AssemblyInitialize.TestDirectoryProvider);
         visualizationStore = new PhysicalVisualizationFileStore(AssemblyInitialize.TestDirectoryProvider);
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
@@ -42,6 +44,7 @@ public class ProcessingRunnerTest
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
+        serviceProvider.Setup(p => p.GetService(typeof(IAssetStagingFileStore))).Returns(stagingStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
         serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
         serviceProvider.Setup(p => p.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
@@ -61,6 +64,7 @@ public class ProcessingRunnerTest
         {
             downloadStore.DeleteJob(jobId);
             assetStore.DeleteJob(jobId);
+            stagingStore.DeleteJob(jobId);
             visualizationStore.DeleteJob(jobId);
         }
 
@@ -303,7 +307,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task ExtractDeliveryFilesWritesDeliveryFileToAssetStoreOnly()
+    public async Task ExtractDeliveryFilesStagesDeliveryFileWithoutTouchingTheAssetStore()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -318,7 +322,8 @@ public class ProcessingRunnerTest
         var persisted = step.DeliveryFiles[0];
         Assert.AreEqual("data.xtf", persisted.OriginalFileName);
         Assert.AreEqual("step_1_data.xtf", persisted.PersistedFileName);
-        Assert.IsTrue(assetStore.Exists(jobId, persisted.PersistedFileName));
+        Assert.IsTrue(stagingStore.Exists(jobId, persisted.PersistedFileName));
+        Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds declared deliveries only; until the declaration the file is staged.");
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Delivery files must not be written to the download store.");
         Assert.IsEmpty(step.Downloads);
     }
@@ -410,7 +415,7 @@ public class ProcessingRunnerTest
             step.DeliveryFiles[0].PersistedFileName,
             "A file tagged for both actions should be persisted under the same name in both stores.");
         Assert.IsTrue(downloadStore.Exists(jobId, step.Downloads[0].PersistedFileName));
-        Assert.IsTrue(assetStore.Exists(jobId, step.DeliveryFiles[0].PersistedFileName));
+        Assert.IsTrue(stagingStore.Exists(jobId, step.DeliveryFiles[0].PersistedFileName));
     }
 
     [TestMethod]
@@ -657,7 +662,8 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
-        Assert.IsTrue(assetStore.Exists(jobId, "step_1_data.xtf"));
+        Assert.IsTrue(stagingStore.Exists(jobId, "step_1_data.xtf"));
+        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "The payload stays staged until the delivery is declared.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
@@ -676,7 +682,8 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Warning, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
-        Assert.IsTrue(assetStore.Exists(jobId, "step_1_data.xtf"));
+        Assert.IsTrue(stagingStore.Exists(jobId, "step_1_data.xtf"));
+        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "The payload stays staged until the delivery is declared.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Warning), Times.Once);
     }
 
@@ -696,7 +703,7 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Failed, pipeline.State);
         Assert.IsEmpty(step1.DeliveryFiles, "No delivery files may be staged when the pipeline does not complete successfully.");
-        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "No partial delivery may be written to the asset store on failure.");
+        Assert.IsFalse(stagingStore.Exists(jobId, "step_1_data.xtf"), "No partial delivery may be staged on failure.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Failed), Times.Once);
     }
 
@@ -715,7 +722,7 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
         Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
-        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "No delivery may be written to the asset store when delivery is restricted.");
+        Assert.IsFalse(stagingStore.Exists(jobId, "step_1_data.xtf"), "No delivery may be staged when delivery is restricted.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
     }
 

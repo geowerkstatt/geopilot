@@ -103,12 +103,15 @@ public class ProcessingJobCleanupService : BackgroundService
             }
 
             // The in-memory job entry and the uploaded blobs age out on JobRetention. The asset directory
-            // is the long-term archive; for a job whose run was never submitted as a delivery
-            // we wipe its asset directory too so dead data doesn't accumulate. Submitted
-            // deliveries survive cleanup and are only removed via DeliveryController.Delete.
-            // Pipeline working directories are normally removed by Pipeline.Dispose, but survive
-            // a hard restart (nothing gets disposed), so they count as retirement candidates too.
+            // is the long-term archive of declared deliveries, which survive cleanup and are only removed
+            // via DeliveryController.Delete; a job directory there without a delivery is a declaration that
+            // failed after the promotion, and goes. A staged payload (the staging root below the asset
+            // directory) belongs to a deliverable run that was never declared: once the in-memory job is
+            // gone nobody can declare it any more, so it retires with the job. Pipeline working directories
+            // are normally removed by Pipeline.Dispose, but survive a hard restart (nothing gets disposed),
+            // so they count as retirement candidates too.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
+            retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetStagingDirectory));
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
             retiredCandidates.UnionWith(jobStore.GetJobIds());
             foreach (var jobId in retiredCandidates)
@@ -197,6 +200,7 @@ public class ProcessingJobCleanupService : BackgroundService
             DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetPipelineDirectoryPath(jobId));
+            DeleteIfExists(directoryProvider.GetAssetStagingDirectoryPath(jobId));
             if (!hasSubmittedDelivery)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             jobStore.RemoveJob(jobId);

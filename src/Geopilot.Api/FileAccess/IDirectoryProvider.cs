@@ -17,10 +17,18 @@ public interface IDirectoryProvider
     string VisualizationDirectory { get; }
 
     /// <summary>
-    /// Gets the root directory for persisted assets: pipeline outputs marked as part of the delivery
-    /// payload land here directly, and the uploaded originals are fetched here on submission.
+    /// Gets the root directory for persisted assets: the delivery payload of a declared delivery. Until
+    /// the declaration the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
+    /// belongs to a delivery, or to a declaration that failed after promoting it and retires with the job.
     /// </summary>
     string AssetDirectory { get; }
+
+    /// <summary>
+    /// Gets the root directory for staged delivery payloads: the files a finished, deliverable job tagged
+    /// for delivery wait here until the delivery is declared and they move into <see cref="AssetDirectory"/>.
+    /// Lies below the asset directory on purpose, so that move is a rename on one volume.
+    /// </summary>
+    string AssetStagingDirectory { get; }
 
     /// <summary>
     /// Gets the root directory for pipeline working files.
@@ -47,6 +55,11 @@ public interface IDirectoryProvider
     /// Gets the per-job asset directory for the specified <paramref name="jobId"/>.
     /// </summary>
     string GetAssetDirectoryPath(Guid jobId);
+
+    /// <summary>
+    /// Gets the per-job staging directory for the specified <paramref name="jobId"/>.
+    /// </summary>
+    string GetAssetStagingDirectoryPath(Guid jobId);
 
     /// <summary>
     /// Gets the per-job pipeline working directory for the specified <paramref name="jobId"/>.
