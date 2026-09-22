@@ -47,6 +47,14 @@ Die PipelineCore-Bibliothek beinhaltet die folgenden Definitionen:
     - `WithExtensions(HashSet<string> extensions)`: Filtert nach Dateiendungen (ohne Punkt, z.B. `xtf`). Vergleich ist case-insensitive.
     - `WithMatchingName(string namePattern)`: Filtert nach einem Regex-Muster gegen den originalen Dateinamen.
 
+## Lizenz
+
+Ein Plugin bindet `GeoWerkstatt.Geopilot.PipelineCore` ein und läuft im selben Prozess wie geopilot. Wir betrachten es damit als abgeleitetes Werk: es steht unter derselben Lizenz wie geopilot, [AGPL-3.0-or-later](../../LICENSE). Das gilt auch für Prozessoren, die für einen einzelnen Kunden entstehen.
+
+Nicht öffentlich und proprietär sind dabei zweierlei. Das Repository darf privat bleiben, die AGPL verlangt keine Veröffentlichung. Sie verlangt, dass den Quellcode erhält, wer die Software bekommt oder über das Netz mit ihr arbeitet (Abschnitt 13). Bei einer Instanz mit öffentlichen Mandaten ist dieser Kreis die Allgemeinheit.
+
+Wer ein Plugin unter anderen Bedingungen braucht, klärt das vorgängig mit der geowerkstatt ab.
+
 ## Anforderungen an Pipeline-Prozessoren
 
 - **Instanzierung**: Es muss ein Konstruktor vorhanden sein, welcher die Initialisierung des Prozessors ermöglicht. Dieser Konstruktor kann 0-n Parameter besitzen, welche in der Pipeline-Definition angegeben werden können. Es muss jedoch sichergestellt werden, dass die Pflichtparameter durch die Konfiguration eindeutig identifizierbar sind, damit sie korrekt zugeordnet werden können. Optionale und Parameter nichtidentifizierbare Parameter werden mit `null` initialisiert. Die Parameter sind variabel und können die folgenden Typen aufnehmen:
