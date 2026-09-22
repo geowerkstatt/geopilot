@@ -12,7 +12,13 @@ public class InputBinderTest
     private static readonly ReferenceResolver EmptyResolver = (InputValue reference, out object? value) =>
     {
         value = null;
-        return false;
+        return ReferenceResolution.Unresolvable;
+    };
+
+    private static readonly ReferenceResolver AbsentResolver = (InputValue reference, out object? value) =>
+    {
+        value = null;
+        return ReferenceResolution.Absent;
     };
 
     [TestMethod]
@@ -54,6 +60,190 @@ public class InputBinderTest
             () => InputBinder.Bind(Single(typeof(string)), new InputValue.StepOutputReference("ghost", "out"), EmptyResolver));
 
         Assert.Contains("ghost.out", exception.Message);
+    }
+
+    [TestMethod]
+    public void AbsentStepOutputContributesNoElementInSequence()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.Literal("from-upload"),
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+        ]);
+
+        var result = InputBinder.Bind(ArrayTarget(typeof(string[])), sequence, AbsentResolver);
+
+        CollectionAssert.AreEqual(new[] { "from-upload" }, (string[])result!);
+    }
+
+    [TestMethod]
+    public void AbsentStepOutputBindsEmptyArrayForArrayParameter()
+    {
+        var result = InputBinder.Bind(
+            ArrayTarget(typeof(string[])), new InputValue.StepOutputReference("unzip", "ExtractedFiles"), AbsentResolver);
+
+        Assert.HasCount(0, (string[])result!);
+    }
+
+    [TestMethod]
+    public void AbsentStepOutputBindsNullForNullableSingleValue()
+    {
+        var result = InputBinder.Bind(
+            Single(typeof(string), nullable: true), new InputValue.StepOutputReference("unzip", "ExtractedFiles"), AbsentResolver);
+
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public void AbsentStepOutputThrowsForNonNullableSingleValueNamingTheSkippedStep()
+    {
+        var exception = Assert.Throws<PipelineRunException>(
+            () => InputBinder.Bind(
+                Single(typeof(string)), new InputValue.StepOutputReference("unzip", "ExtractedFiles"), AbsentResolver));
+
+        Assert.Contains("unzip.ExtractedFiles", exception.Message);
+        Assert.Contains("was skipped", exception.Message);
+    }
+
+    [TestMethod]
+    public void EmptySourceInSequenceDoesNotCountAsValueForSingleParameter()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("zip_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            value = ((InputValue.StepOutputReference)reference).StepId == "upload_matching"
+                ? new[] { "the.xtf" }
+                : Array.Empty<string>();
+            return ReferenceResolution.Resolved;
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    [TestMethod]
+    public void AbsentSourceInSequenceLeavesTheOneValueForSingleParameter()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            if (((InputValue.StepOutputReference)reference).StepId == "unzip")
+            {
+                value = null;
+                return ReferenceResolution.Absent;
+            }
+
+            value = new[] { "the.xtf" };
+            return ReferenceResolution.Resolved;
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    [TestMethod]
+    public void NullSourceInSequenceDoesNotCountAsValueForSingleParameter()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("packaging", "ZipPackage"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            value = ((InputValue.StepOutputReference)reference).StepId == "packaging"
+                ? null
+                : new[] { "the.xtf" };
+            return ReferenceResolution.Resolved;
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    // More than two sources is not a special case in the binder, but it is where the mutual exclusion
+    // stops being obvious to whoever writes the definition, and nothing checks it at load time.
+    [TestMethod]
+    public void SequenceOfThreeSourcesYieldsTheOnlyOneWithAValue()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("gpkg_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            switch (((InputValue.StepOutputReference)reference).StepId)
+            {
+                case "unzip":
+                    value = null;
+                    return ReferenceResolution.Absent;
+                case "gpkg_matching":
+                    value = Array.Empty<string>();
+                    return ReferenceResolution.Resolved;
+                default:
+                    value = new[] { "the.xtf" };
+                    return ReferenceResolution.Resolved;
+            }
+        };
+
+        var result = InputBinder.Bind(Single(typeof(string)), sequence, resolver);
+
+        Assert.AreEqual("the.xtf", result);
+    }
+
+    [TestMethod]
+    public void SequenceOfThreeSourcesWithTwoValuesThrows()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("gpkg_matching", "XtfFiles"),
+        ]);
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            if (((InputValue.StepOutputReference)reference).StepId == "unzip")
+            {
+                value = null;
+                return ReferenceResolution.Absent;
+            }
+
+            value = new[] { "the.xtf" };
+            return ReferenceResolution.Resolved;
+        };
+
+        var exception = Assert.Throws<PipelineRunException>(
+            () => InputBinder.Bind(Single(typeof(string)), sequence, resolver));
+
+        Assert.Contains("resolved to 2 values", exception.Message);
+    }
+
+    [TestMethod]
+    public void SequenceWithTwoValuesForSingleParameterThrows()
+    {
+        var sequence = new InputValue.Sequence(
+        [
+            new InputValue.StepOutputReference("upload_matching", "XtfFiles"),
+            new InputValue.StepOutputReference("zip_matching", "XtfFiles"),
+        ]);
+
+        var exception = Assert.Throws<PipelineRunException>(
+            () => InputBinder.Bind(Single(typeof(string)), sequence, ResolverReturning(new[] { "the.xtf" })));
+
+        Assert.Contains("resolved to 2 values", exception.Message);
     }
 
     [TestMethod]
@@ -232,7 +422,7 @@ public class InputBinderTest
             value = outputName == "codes"
                 ? new[] { "a", "b" }
                 : new[] { new[] { "x" }, new[] { "y", "z" } };
-            return true;
+            return ReferenceResolution.Resolved;
         };
         var sequence = new InputValue.Sequence(
         [
@@ -401,7 +591,7 @@ public class InputBinderTest
         ReferenceResolver resolver = (InputValue reference, out object? value) =>
         {
             value = files[index++];
-            return true;
+            return ReferenceResolution.Resolved;
         };
         var sequence = new InputValue.Sequence([new InputValue.FileReference("a.xtf"), new InputValue.FileReference("b.xtf")]);
 
@@ -462,7 +652,7 @@ public class InputBinderTest
         (InputValue reference, out object? resolved) =>
         {
             resolved = value;
-            return true;
+            return ReferenceResolution.Resolved;
         };
 
     private static void SampleParameters(int nonNullableInt, int? nullableInt, string?[] nullableStrings, string[] nonNullableStrings)

@@ -41,14 +41,12 @@ pipelines:
           - property: XtfLog
             actions:
               - Download
+      # Deliberately without a skip condition of its own: it packages whatever it gets, and the outputs
+      # of the skipped validation simply contribute nothing.
       - id: zip_package
         display_name:
           en: Zip Package
         process_id: zip_package_process
-        conditions:
-          pre:
-            skip_conditions:
-              - expression: "Length([matcher.XtfFiles]) != 1"
         input:
           input:
             - "${step_output(validation.ErrorLog)}"
