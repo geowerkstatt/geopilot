@@ -10,6 +10,7 @@ import { defaults as defaultInteractions, DragPan, MouseWheelZoom } from "ol/int
 import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
+import MapBrowserEvent from "ol/MapBrowserEvent";
 import { unByKey } from "ol/Observable";
 import Overlay from "ol/Overlay";
 import { get as getProjection } from "ol/proj";
@@ -52,14 +53,13 @@ getProjection(SWISS_PROJECTION)?.setExtent(SWISS_EXTENT);
 
 /**
  * Creates the overlay that anchors the selection popup to a marker. It only owns the positioning and the
- * host element, its content is rendered into that element with React (see MapSelectionPopup).
+ * host element, its content is rendered into that element with React (see MapSelectionPopup). Wheel gestures
+ * on it are handled where the map is built, which is what has to act on them.
  */
 const createSelectionOverlay = (): [Overlay, HTMLDivElement] => {
   const element = document.createElement("div");
   // The popup itself decides whether it takes clicks, so the host stays out of the way.
   element.style.pointerEvents = "none";
-  // Scrolling a long list must not reach the viewport, which would answer with the zoom gesture hint.
-  element.addEventListener("wheel", event => event.stopPropagation());
   const overlay = new Overlay({
     element,
     positioning: "bottom-center",
@@ -231,6 +231,9 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     // Inline the map shares the page with the surrounding scroll, so panning takes two fingers and zooming
     // the platform modifier key. Fullscreen there is nothing behind the map, so both gestures are handed to
     // the map unrestricted (issue #848).
+    const mouseWheelZoom = new MouseWheelZoom({
+      condition: e => fullscreenRef.current || platformModifierKeyOnly(e),
+    });
     const interactions = defaultInteractions({
       dragPan: false,
       mouseWheelZoom: false,
@@ -239,7 +242,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       new DragPan({
         condition: e => fullscreenRef.current || !isTouch(e) || e.activePointers?.length === 2,
       }),
-      new MouseWheelZoom({ condition: e => fullscreenRef.current || platformModifierKeyOnly(e) }),
+      mouseWheelZoom,
     ]);
 
     const map = new Map({
@@ -248,6 +251,13 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       interactions,
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
+
+    // The map skips wheel on a stopEvent overlay, so the popup offers the event to the zoom
+    // interaction, whose zoom cancels the browser page zoom.
+    const onSelectionWheel = (event: WheelEvent) => {
+      if (mouseWheelZoom.handleEvent(new MapBrowserEvent("wheel", map, event))) event.stopPropagation();
+    };
+    selectionOverlayElement.addEventListener("wheel", onSelectionWheel);
 
     // Defer until the map is mounted in the DOM
     map.once("change:size", () => {
@@ -315,12 +325,13 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
 
     return () => {
       cancelled = true;
+      selectionOverlayElement.removeEventListener("wheel", onSelectionWheel);
       map.getViewport().removeEventListener("wheel", onWheel);
       unByKey(dragHintKey);
       interactionHint.hide();
       map.setTarget(undefined);
     };
-  }, [config, selectionOverlay, t, theme]);
+  }, [config, selectionOverlay, selectionOverlayElement, t, theme]);
 
   // The interaction conditions and the gesture hints read the fullscreen state from a ref, so toggling
   // fullscreen does not rebuild the map (which would re-fetch the base map and reset the view). The viewport

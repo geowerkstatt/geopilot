@@ -59,32 +59,7 @@ builder.Services
 
 builder.Services.Configure<BrowserAuthOptions>(builder.Configuration.GetSection("Auth"));
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
-        options.Authority = builder.Configuration["Auth:Authority"];
-        options.Audience = builder.Configuration["Auth:ApiAudience"];
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.MapInboundClaims = false;
-
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                // Allow token to be in a cookie in addition to the default Authorization header.
-                // Only override when a cookie is actually present — otherwise a stale/empty cookie
-                // would shadow a valid Authorization header and break Swagger/API clients.
-                var cookieToken = context.Request.Cookies[AuthDefaults.AuthCookieName];
-                if (!string.IsNullOrEmpty(cookieToken))
-                {
-                    context.Token = cookieToken;
-                }
-
-                return Task.CompletedTask;
-            },
-        };
-    });
+var accessTokenFormat = builder.AddGeopilotAuthentication();
 
 builder.Services
     .AddApiVersioning(config =>
@@ -101,22 +76,21 @@ builder.Services
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("all", new OpenApiInfo
     {
-        Version = "1.0",
-        Title = $"geopilot API Documentation",
+        Version = VersionController.GetShortVersion(),
+        Title = "geopilot API Documentation",
     });
-    options.SwaggerDoc("v2", new OpenApiInfo
-    {
-        Version = "2.0",
-        Title = $"geopilot API Documentation",
-    });
+
+    // Include all endpoints in the Swagger document, regardless of their API version.
+    options.DocInclusionPredicate((_, _) => true);
 
     // Include existing documentation in Swagger UI.
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
 
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
+    options.NonNullableReferenceTypesAsRequired();
 
     // Describe LocalizedText in OpenAPI as a string-to-string object (language code -> text),
     // matching its JSON serialization, instead of as a separate schema component.
@@ -131,10 +105,10 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    var apiScope = builder.Configuration["Auth:ApiServerScope"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(apiScope))
+    var swaggerAdditionalScopes = builder.Configuration["Auth:SwaggerAdditionalScopes"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(swaggerAdditionalScopes))
     {
-        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, swaggerAdditionalScopes);
     }
     else
     {
@@ -208,7 +182,12 @@ builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
-builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddHttpClient(GeopilotUserInfoService.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+// Scoped is required: GeopilotUserInfoService caches the user info per request in a single slot.
 builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddHttpContextAccessor();
 
@@ -283,12 +262,20 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
 
+if (accessTokenFormat == AccessTokenFormat.Opaque)
+{
+    var audienceValidation = string.IsNullOrWhiteSpace(builder.Configuration["Auth:Audience"])
+        ? "is delegated to the identity provider"
+        : "requires aud in the introspection response";
+    app.Logger.LogInformation("Authentication configured in Opaque mode. Audience validation {AudienceValidation}.", audienceValidation);
+}
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
+    options.SwaggerEndpoint("/swagger/all/swagger.json", "geopilot API (all versions)");
 
-    options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
+    options.OAuthClientId(builder.Configuration["Auth:PublicClientId"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
     options.OAuthUsePkce();
 });
@@ -318,6 +305,8 @@ else
     // Disallow CORS for all origins in production
     app.UseCors();
 }
+
+app.UseAuthentication();
 
 app.Use(async (context, next) =>
 {

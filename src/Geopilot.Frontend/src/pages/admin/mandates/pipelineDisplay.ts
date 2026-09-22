@@ -1,4 +1,4 @@
-import { PipelineSummary } from "../../../api/apiInterfaces";
+import { PipelineSummary } from "../../../api/generated";
 
 /**
  * Finds a pipeline by its id. Returns undefined when the id is unset or no longer part of the available

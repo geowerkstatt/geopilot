@@ -24,8 +24,8 @@ public class UserControllerTest
         browserAuthOptions = new BrowserAuthOptions
         {
             Authority = "https://localhost/some-authority",
-            ClientAudience = Guid.NewGuid().ToString(),
-            FullScope = "profile email openid geopilot.api",
+            PublicClientId = Guid.NewGuid().ToString(),
+            Scope = "profile email openid geopilot.api",
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
@@ -119,7 +119,8 @@ public class UserControllerTest
 
         Assert.IsNotNull(authOptions);
         Assert.AreEqual(browserAuthOptions.Authority, authOptions.Authority);
-        Assert.AreEqual(browserAuthOptions.ClientAudience, authOptions.ClientAudience);
+        Assert.AreEqual(browserAuthOptions.PublicClientId, authOptions.PublicClientId);
+        Assert.AreEqual(browserAuthOptions.Scope, authOptions.Scope);
     }
 
     [TestMethod]

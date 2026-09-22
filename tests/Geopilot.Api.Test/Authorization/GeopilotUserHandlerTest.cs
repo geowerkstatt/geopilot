@@ -1,11 +1,9 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Moq;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace Geopilot.Api.Test.Authorization;
 
@@ -53,16 +51,11 @@ public class GeopilotUserHandlerTest
         };
 
         SetupHttpContextWithToken("mock-token");
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
 
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
-
         // Act - Create user
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
@@ -79,11 +72,11 @@ public class GeopilotUserHandlerTest
             Name = "PERFECTSTONE",
         };
 
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedUserInfo);
 
         // Act - Update user
-        user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
@@ -94,7 +87,7 @@ public class GeopilotUserHandlerTest
     }
 
     [TestMethod]
-    public async Task UpdateOrCreateUserElevatesFirstUserToAdmin()
+    public async Task FirstUserRemainsNonAdmin()
     {
         // Arrange
         var authIdentifier = Guid.NewGuid().ToString();
@@ -106,13 +99,8 @@ public class GeopilotUserHandlerTest
         };
 
         SetupHttpContextWithToken("mock-token");
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
-
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
 
         // Clear users with all relations in database
         context.Assets.RemoveRange(context.Assets);
@@ -121,28 +109,35 @@ public class GeopilotUserHandlerTest
         context.SaveChanges();
 
         // Act
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("STORMSLAW", user.FullName);
         Assert.AreEqual("MAIN@example.com", user.Email);
-        Assert.IsTrue(user.IsAdmin);
+        Assert.IsFalse(user.IsAdmin);
     }
 
     [TestMethod]
-    public async Task UpdateOrCreateUserWithMissingClaimsDoesNothing()
+    public async Task UpdateOrCreateUserWithoutHttpContextDoesNothing()
     {
-        var principalWithMissingClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
-        }));
-
-        var authHandlerContext = new AuthorizationHandlerContext(Enumerable.Empty<IAuthorizationRequirement>(), principalWithMissingClaims, null);
-
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
         Assert.IsNull(user);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithoutUserInfoReturnsNull()
+    {
+        var userCountBefore = context.Users.Count();
+        SetupHttpContextWithToken("mock-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserInfoResponse?)null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNull(user);
+        Assert.AreEqual(userCountBefore, context.Users.Count());
     }
 
     [TestMethod]
@@ -151,22 +146,77 @@ public class GeopilotUserHandlerTest
         // Arrange
         SetupHttpContextWithoutToken();
 
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
-
         // Act
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNull(user);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithCookieTokenUsesCookie()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookie("cookie-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserCookieWinsOverHeader()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookieAndHeader("cookie-token", "header-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()), Times.Once);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("header-token", It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private void SetupHttpContextWithToken(string token)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["Authorization"] = $"Bearer {token}";
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookie(string token)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={token}");
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookieAndHeader(string cookieToken, string headerToken)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={cookieToken}");
+        httpContext.Request.Headers.Append(HeaderNames.Authorization, $"Bearer {headerToken}");
         httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
     }
 

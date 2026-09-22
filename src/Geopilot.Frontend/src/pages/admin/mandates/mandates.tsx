@@ -4,13 +4,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import { Stack, Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
-import {
-  AvailablePipelinesResponse,
-  LocalizedText,
-  Mandate,
-  Organisation,
-  PipelineSummary,
-} from "../../../api/apiInterfaces";
+import { LocalizedText } from "../../../api/apiInterfaces";
+import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";

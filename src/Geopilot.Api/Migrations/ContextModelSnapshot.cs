@@ -442,6 +442,9 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AuthIdentifier")
+                        .IsUnique();
+
                     b.ToTable("Users");
                 });
 

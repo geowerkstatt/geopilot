@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "predev": "node aspnetcore-https.js",
     "test": "cypress run",
-    "cy": "cypress open"
+    "cy": "cypress open",
+    "openapi": "openapi-ts"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@hey-api/openapi-ts": "^0.99.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.2.0",

@@ -14,10 +14,12 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Skeleton,
   Stack,
   Toolbar,
   Typography,
 } from "@mui/material";
+import { px2rem } from "../../appTheme.ts";
 import { useGeopilotAuth } from "../../auth";
 import { useApplicationName } from "../../hooks/useApplicationName";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
@@ -143,19 +145,18 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           </Stack>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <LanguagePopup />
-            {authLoaded &&
-              (user ? (
-                <Avatar
-                  onClick={toggleUserMenu(true)}
-                  data-cy="loggedInUser-button"
-                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
-                  {user?.fullName[0].toUpperCase()}
-                </Avatar>
-              ) : (
-                <>
-                  <Button variant="text" onClick={login} label="logIn" />
-                </>
-              ))}
+            {authLoaded && user && (
+              <Avatar
+                onClick={toggleUserMenu(true)}
+                data-cy="loggedInUser-button"
+                sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
+                {user.fullName[0].toUpperCase()}
+              </Avatar>
+            )}
+            {authLoaded && user === null && <Button variant="text" onClick={login} label="logIn" />}
+            {authLoaded && user === undefined && (
+              <Skeleton variant="circular" sx={{ width: px2rem(40), height: px2rem(40) }} />
+            )}
           </Stack>
         </Toolbar>
       </AppBar>

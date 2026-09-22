@@ -68,6 +68,7 @@ export { FormInput } from "./formInput";
 export { FormSelect } from "./formSelect";
 export { FormCheckbox } from "./formCheckbox";
 export { FormAutocomplete } from "./formAutocomplete";
+export { FormChipInput } from "./formChipInput";
 export { FormExtent } from "./formExtent";
 export { FormLanguageTabs } from "./formLanguageTabs";
 export { FormLocalizedInput } from "./formLocalizedInput";
