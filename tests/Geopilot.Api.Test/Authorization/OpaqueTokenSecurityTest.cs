@@ -13,6 +13,8 @@ public class OpaqueTokenSecurityTest
     private static OpaqueTestApp app = null!;
     private static HttpClient client = null!;
 
+    public static IEnumerable<object[]> DeclarerEndpoints => EndpointDiscovery.GetDeclarerEndpoints();
+
     [ClassInitialize]
     public static void ClassInitialize(TestContext context)
     {
@@ -21,6 +23,9 @@ public class OpaqueTokenSecurityTest
         {
             AllowAutoRedirect = false,
         });
+
+        using var scope = app.Services.CreateScope();
+        TestMachineClients.EnsureRegistered(scope.ServiceProvider.GetRequiredService<Context>());
     }
 
     [ClassCleanup]
@@ -81,6 +86,38 @@ public class OpaqueTokenSecurityTest
     }
 
     [TestMethod]
+    public async Task ActiveClientTokenOnUserSelfEndpointReturns403()
+    {
+        using var request = CreateRequest(HttpMethod.Get, "/api/v1/user/self", OpaqueTestApp.OpaqueClientToken);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            "A registered machine client authenticates on its introspected subject alone, and is then kept out of everything meant for a person. A 401 here would mean the missing user info stopped it from authenticating at all.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(DeclarerEndpoints))]
+    public async Task DeclarerEndpointActiveClientTokenReturnsNon401(string method, string url, string policy, string description)
+    {
+        // The counterpart of the sweep in JwtSecurityTest: a client credentials token has to reach the machine
+        // delivery in this format too, where the subject comes from the introspection answer instead of a claim.
+        using var request = CreateRequest(new HttpMethod(method), url, OpaqueTestApp.OpaqueClientToken);
+        var response = await client.SendAsync(request);
+
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, $"{description}: Valid client token should not return 401");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, $"{description}: A registered machine client should not return 403 on the machine delivery");
+    }
+
+    [TestMethod]
+    public async Task ActiveClientTokenOnAdminEndpointReturns403()
+    {
+        using var request = CreateRequest(HttpMethod.Get, "/api/v1/user", OpaqueTestApp.OpaqueClientToken);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [TestMethod]
     public async Task ActiveAdminTokenOnMandateSummaryEndpointReturnsNon500()
     {
         var uploadStore = app.Services.GetRequiredService<IUploadStore>();
@@ -97,6 +134,25 @@ public class OpaqueTokenSecurityTest
         {
             uploadStore.RemoveUpload(uploadId);
         }
+    }
+
+    [TestMethod]
+    public async Task RequestWithClientTokenProducesNoUserInfoHttpCall()
+    {
+        using var testApp = new OpaqueTestApp();
+        using var testClient = testApp.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+        });
+
+        using var request = CreateRequest(HttpMethod.Get, "/api/v1/user/self", OpaqueTestApp.OpaqueClientToken);
+        var response = await testClient.SendAsync(request);
+
+        Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.AreEqual(
+            0,
+            testApp.UserInfoHttpCallCount,
+            "A registered machine client names no person. Asking the identity provider anyway logs a failed user info request for every call of the machine, and an operator reading that looks for a problem that is not there.");
     }
 
     [TestMethod]

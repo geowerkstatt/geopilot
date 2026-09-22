@@ -1,38 +1,27 @@
-﻿using Geopilot.Api.Contracts;
-using Geopilot.Api.Models;
+﻿using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
 namespace Geopilot.Api.Authorization;
 
 /// <summary>
-/// Authorization handler for <see cref="GeopilotUserRequirement"/>.
+/// Authorization handler for <see cref="GeopilotUserRequirement"/>: the caller has to be an active user, and
+/// an administrator where the requirement says so. Who the user is comes from <see cref="IGeopilotUserResolver"/>.
 /// </summary>
 public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 {
-    private readonly Context dbContext;
     private readonly ILogger<GeopilotUserHandler> logger;
-    private readonly IGeopilotUserInfoService userInfoService;
-    private readonly IHttpContextAccessor httpContextAccessor;
+    private readonly IGeopilotUserResolver userResolver;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GeopilotUserHandler"/> class.
     /// </summary>
     /// <param name="logger">The logger used for authorization related logging.</param>
-    /// <param name="dbContext">The database context.</param>
-    /// <param name="userInfoService">Service for retrieving user information from the identity provider.</param>
-    /// <param name="httpContextAccessor">HTTP context accessor.</param>
-    public GeopilotUserHandler(
-        ILogger<GeopilotUserHandler> logger,
-        Context dbContext,
-        IGeopilotUserInfoService userInfoService,
-        IHttpContextAccessor httpContextAccessor)
+    /// <param name="userResolver">Resolves the current request to its user.</param>
+    public GeopilotUserHandler(ILogger<GeopilotUserHandler> logger, IGeopilotUserResolver userResolver)
     {
-        this.dbContext = dbContext;
         this.logger = logger;
-        this.userInfoService = userInfoService;
-        this.httpContextAccessor = httpContextAccessor;
+        this.userResolver = userResolver;
     }
 
     /// <inheritdoc/>
@@ -44,7 +33,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (context.User.Identity?.IsAuthenticated != true)
             return;
 
-        var user = await UpdateOrCreateUser();
+        var user = await userResolver.ResolveAsync();
         if (user is null)
             return;
 
@@ -62,74 +51,5 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         }
 
         context.Succeed(requirement);
-    }
-
-    internal async Task<User?> UpdateOrCreateUser()
-    {
-        var accessToken = ExtractAccessToken();
-        if (string.IsNullOrEmpty(accessToken))
-        {
-            logger.LogError("No access token found in request.");
-            return null;
-        }
-
-        UserInfoResponse? userInfo;
-        try
-        {
-            var cancellationToken = httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
-            userInfo = await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
-        }
-        catch (IdentityProviderUnavailableException ex)
-        {
-            logger.LogError(ex, "User info request failed.");
-            return null;
-        }
-
-        if (userInfo == null)
-            return null;
-
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userInfo.Sub);
-        if (user == null)
-        {
-            user = new User
-            {
-                AuthIdentifier = userInfo.Sub,
-                Email = userInfo.Email,
-                FullName = userInfo.Name,
-            };
-
-            dbContext.Users.Add(user);
-            await dbContext.SaveChangesAsync();
-            logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", userInfo.Sub);
-        }
-        else if (user.Email != userInfo.Email || user.FullName != userInfo.Name)
-        {
-            // Update user information in database from userinfo response
-            user.Email = userInfo.Email;
-            user.FullName = userInfo.Name;
-            await dbContext.SaveChangesAsync();
-        }
-
-        return user;
-    }
-
-    private string? ExtractAccessToken()
-    {
-        var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext is null) return null;
-
-        var cookieToken = httpContext.Request.Cookies[AuthDefaults.AuthCookieName];
-        if (!string.IsNullOrEmpty(cookieToken))
-        {
-            return cookieToken;
-        }
-
-        var authHeader = httpContext.Request.Headers.Authorization.ToString();
-        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            return authHeader["Bearer ".Length..].Trim();
-        }
-
-        return null;
     }
 }

@@ -13,6 +13,7 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
 {
     public const string OpaqueAdminToken = "valid-admin-opaque-token";
     public const string OpaqueUserToken = "valid-user-opaque-token";
+    public const string OpaqueClientToken = "valid-client-opaque-token";
     public const string OpaqueInactiveToken = "inactive-opaque-token";
     public const string OpaqueIdpUnavailableToken = "idp-unavailable-opaque-token";
     public const string Audience = "geopilot-api";
@@ -34,6 +35,11 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
         builder.UseSetting("Auth:ConfidentialClientSecret", ClientSecret);
         builder.UseSetting("Auth:Audience", Audience);
         builder.UseSetting("Auth:UserInfoUrl", UserInfoUrl);
+
+        // Read in the builder phase, so it has to come through UseSetting. Pinned like in JwtTestApp, because
+        // without it MachineDeliveryConvention removes the delivery routes and the Declarer sweep below would
+        // meet a 404 instead of the authorization it is meant to cover.
+        builder.UseSetting("MachineDelivery:Enabled", "true");
 
         base.ConfigureWebHost(builder);
 
@@ -121,6 +127,17 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
                     active = true,
                     aud = Audience,
                     sub = JwtTestTokenBuilder.UserSub,
+                });
+            }
+            else if (token == OpaqueClientToken)
+            {
+                // Issued for client credentials: the introspection names the subject, and the user info
+                // endpoint below knows no person for it.
+                responseJson = JsonSerializer.Serialize(new
+                {
+                    active = true,
+                    aud = Audience,
+                    sub = JwtTestTokenBuilder.ClientSub,
                 });
             }
             else

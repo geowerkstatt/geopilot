@@ -43,7 +43,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
           response.map((d: Delivery) => ({
             id: d.id,
             date: d.date,
-            userName: d.declaringUser.fullName,
+            userName: d.declarerName,
             mandateName: d.mandate.name,
             comment: d.comment,
             canDelete: d.canDelete ?? undefined,

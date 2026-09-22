@@ -21,6 +21,8 @@ public class JwtSecurityTest
 
     public static IEnumerable<object[]> UserEndpoints => EndpointDiscovery.GetUserEndpoints();
 
+    public static IEnumerable<object[]> DeclarerEndpoints => EndpointDiscovery.GetDeclarerEndpoints();
+
     public static IEnumerable<object[]> AnonymousEndpoints => EndpointDiscovery.GetAnonymousEndpoints();
 
     [ClassInitialize]
@@ -31,6 +33,9 @@ public class JwtSecurityTest
         {
             AllowAutoRedirect = false,
         });
+
+        using var scope = app.Services.CreateScope();
+        TestMachineClients.EnsureRegistered(scope.ServiceProvider.GetRequiredService<Context>());
     }
 
     [ClassCleanup]
@@ -97,6 +102,66 @@ public class JwtSecurityTest
             HttpStatusCode.Forbidden,
             response.StatusCode,
             $"{description}: Valid user token should not return 403");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(UserEndpoints))]
+    public async Task UserEndpointValidClientTokenReturns403(string method, string url, string policy, string description)
+    {
+        var token = JwtTestTokenBuilder.CreateValidClientToken();
+        using var request = CreateRequest(method, url, token);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"{description}: A machine client is not a user, so its credentials must not reach anything a person uses, but got {(int)response.StatusCode}");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AdminEndpoints))]
+    public async Task AdminEndpointValidClientTokenReturns403(string method, string url, string policy, string description)
+    {
+        var token = JwtTestTokenBuilder.CreateValidClientToken();
+        using var request = CreateRequest(method, url, token);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"{description}: A machine client must not reach an admin endpoint but got {(int)response.StatusCode}");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(DeclarerEndpoints))]
+    public async Task DeclarerEndpointValidUserTokenReturnsNon401(string method, string url, string policy, string description)
+    {
+        var token = JwtTestTokenBuilder.CreateValidUserToken();
+        using var request = CreateRequest(method, url, token);
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode,
+            $"{description}: Valid user token should not return 401");
+        Assert.AreNotEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"{description}: Valid user token should not return 403");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(DeclarerEndpoints))]
+    public async Task DeclarerEndpointValidClientTokenReturnsNon401(string method, string url, string policy, string description)
+    {
+        var token = JwtTestTokenBuilder.CreateValidClientToken();
+        using var request = CreateRequest(method, url, token);
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode,
+            $"{description}: Valid client token should not return 401");
+        Assert.AreNotEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"{description}: A registered machine client should not return 403 on the machine delivery");
     }
 
     [TestMethod]

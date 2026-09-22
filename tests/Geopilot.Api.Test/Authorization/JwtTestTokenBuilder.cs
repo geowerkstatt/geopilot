@@ -13,6 +13,8 @@ internal static class JwtTestTokenBuilder
     public const string AdminSub = "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15";
     public const string UserSub = "1ed45832-2880-4fd4-a274-bbcc101c3307";
     public const string IdpUnavailableSub = "8c1d1c3e-5e0f-4d0a-9c0e-2b0f1d7a4f21";
+    public const string ClientSub = "7b3c6d2e-5a41-4f8e-9c0d-1e2f3a4b5c6d";
+    public const string InactiveClientSub = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 
     private static readonly RSA RsaKey = RSA.Create(2048);
     public static readonly RsaSecurityKey SigningKey = new(RsaKey);
@@ -28,7 +30,6 @@ internal static class JwtTestTokenBuilder
         DateTime? expires = null,
         DateTime? notBefore = null)
     {
-        var now = DateTime.UtcNow;
         var (email, name) = GetUserClaims(sub);
 
         var claims = new[]
@@ -38,16 +39,14 @@ internal static class JwtTestTokenBuilder
             new Claim(JwtRegisteredClaimNames.Name, name),
         };
 
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            notBefore: notBefore ?? now,
-            expires: expires ?? now.AddHours(1),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return WriteToken(claims, issuer, audience, creds, expires, notBefore);
     }
+
+    /// <summary>
+    /// A token as an identity provider issues it for client credentials: a subject and nothing about a person.
+    /// </summary>
+    public static string CreateClientToken(string sub) =>
+        WriteToken([new Claim(JwtRegisteredClaimNames.Sub, sub)], Issuer, Audience, Credentials);
 
     public static string CreateValidAdminToken() =>
         CreateToken(AdminSub, Issuer, Audience, Credentials);
@@ -57,6 +56,9 @@ internal static class JwtTestTokenBuilder
 
     public static string CreateIdpUnavailableToken() =>
         CreateToken(IdpUnavailableSub, Issuer, Audience, Credentials);
+
+    public static string CreateValidClientToken() =>
+        CreateClientToken(ClientSub);
 
     public static string CreateExpiredToken() =>
         CreateToken(AdminSub, Issuer, Audience, Credentials, expires: DateTime.UtcNow.AddHours(-1), notBefore: DateTime.UtcNow.AddHours(-2));
@@ -105,6 +107,26 @@ internal static class JwtTestTokenBuilder
         var signature = hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput));
 
         return $"{signingInput}.{Base64UrlEncode(signature)}";
+    }
+
+    private static string WriteToken(
+        IEnumerable<Claim> claims,
+        string issuer,
+        string audience,
+        SigningCredentials creds,
+        DateTime? expires = null,
+        DateTime? notBefore = null)
+    {
+        var now = DateTime.UtcNow;
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            notBefore: notBefore ?? now,
+            expires: expires ?? now.AddHours(1),
+            signingCredentials: creds);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private static (string Email, string Name) GetUserClaims(string sub) => sub switch
