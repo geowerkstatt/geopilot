@@ -106,18 +106,11 @@ public class DirectUploadStorage : IUploadStorage
 
         logger.LogInformation("Deleting uploaded files with prefix {Prefix}.", prefix);
 
-        // Strip before trimming: the bare key prefix addresses the whole store and leaves no segment
-        // behind. The root has to survive it, the constructor created it and StorageLocation points at it.
-        var relativePrefix = StripKeyPrefix(prefix).TrimEnd('/');
-        if (relativePrefix.Length == 0)
-        {
-            ClearRootDirectory();
-            return Task.CompletedTask;
-        }
-
-        // Every other caller passes a directory-shaped prefix (uploads/{uploadId}/), so deleting the
-        // subtree is equivalent to deleting every matching key and removes the directory with it.
-        var prefixPath = ResolvePath(KeyPrefix + relativePrefix);
+        // Every caller passes a directory-shaped prefix (uploads/{uploadId}/), so deleting the subtree
+        // is equivalent to deleting every matching key and removes the directory with it. The backends
+        // are deliberately not equivalent for an arbitrary prefix: one that names no directory deletes
+        // nothing here, and the bare key prefix is no caller's shape and fails loudly.
+        var prefixPath = ResolvePath(prefix.TrimEnd('/'));
         if (Directory.Exists(prefixPath))
             Directory.Delete(prefixPath, recursive: true);
 
@@ -149,18 +142,6 @@ public class DirectUploadStorage : IUploadStorage
             if (ToKey(path).StartsWith(prefix, StringComparison.Ordinal))
                 yield return new FileInfo(path);
         }
-    }
-
-    private void ClearRootDirectory()
-    {
-        if (!Directory.Exists(rootDirectory))
-            return;
-
-        foreach (var directory in Directory.EnumerateDirectories(rootDirectory))
-            Directory.Delete(directory, recursive: true);
-
-        foreach (var file in Directory.EnumerateFiles(rootDirectory))
-            File.Delete(file);
     }
 
     /// <summary>

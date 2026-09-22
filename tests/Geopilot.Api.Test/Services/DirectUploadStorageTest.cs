@@ -159,17 +159,5 @@ public class DirectUploadStorageTest
             () => storage.WriteAsync($"{Guid.NewGuid()}/data.xtf", ContentStream("x")));
     }
 
-    [TestMethod]
-    public async Task DeletePrefixWithTheBareKeyPrefixEmptiesTheStoreAndKeepsTheRoot()
-    {
-        await storage.WriteAsync($"uploads/{Guid.NewGuid()}/one.xtf", ContentStream("1"));
-        await storage.WriteAsync($"uploads/{Guid.NewGuid()}/two.xtf", ContentStream("2"));
-
-        await storage.DeletePrefixAsync("uploads/");
-
-        Assert.IsEmpty(await storage.ListFilesAsync("uploads/"));
-        Assert.IsTrue(Directory.Exists(rootDirectory));
-    }
-
     private static MemoryStream ContentStream(string content) => new(Encoding.UTF8.GetBytes(content));
 }
