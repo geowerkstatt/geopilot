@@ -157,7 +157,10 @@ public partial class UploadCleanupService : BackgroundService
     // Matches a key that names a file inside an upload and captures the upload id. The file name is
     // required: a key without one names no upload file, and reading it as one would leave the blob
     // behind, because an upload is deleted by its prefix and not file by file.
-    [GeneratedRegex(@"^uploads/(?<uploadId>[^/]+)/.+$")]
+    // A file name may legally contain a newline and reaches the key unsanitized, so the pattern has to
+    // accept one. Hence Singleline, which lets the dot match it, and the anchors \A and \z instead of ^
+    // and $, which match around a trailing newline and would decide the same case by accident.
+    [GeneratedRegex(@"\Auploads/(?<uploadId>[^/]+)/.+\z", RegexOptions.Singleline)]
     private static partial Regex UploadFileKeyPattern();
 
     private static Guid? ExtractUploadId(string key)
