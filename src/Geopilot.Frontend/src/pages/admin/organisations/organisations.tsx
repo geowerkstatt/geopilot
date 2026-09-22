@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { Mandate, Organisation, User } from "../../../api/generated";
+import { MachineClient, Mandate, Organisation, User } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -14,6 +15,7 @@ const Organisations = () => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
+  const { machineDeliveryEnabled } = useCapabilities();
   const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +67,20 @@ const Organisations = () => {
         return sortedNames.join(", ");
       },
     },
+    ...(machineDeliveryEnabled
+      ? [
+          {
+            field: "machineClients",
+            headerName: t("machineClients"),
+            flex: 1,
+            minWidth: 300,
+            valueGetter: (machineClients: MachineClient[]) => {
+              const sortedNames = [...machineClients].map(c => c.name).sort();
+              return sortedNames.join(", ");
+            },
+          },
+        ]
+      : []),
     {
       field: "actions",
       type: "actions",

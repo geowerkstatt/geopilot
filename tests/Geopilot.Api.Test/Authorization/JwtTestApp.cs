@@ -10,11 +10,15 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace Geopilot.Api.Authorization;
 
-internal sealed class JwtTestApp : GeopilotTestApp
+internal class JwtTestApp : GeopilotTestApp
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Auth:AccessTokenFormat", "Jwt");
+
+        // Read in the builder phase, so it has to come through UseSetting. Pinned here rather than taken from
+        // appsettings.Development.json, so the security suite covers the machine delivery routes on purpose.
+        builder.UseSetting("MachineDelivery:Enabled", "true");
 
         base.ConfigureWebHost(builder);
 

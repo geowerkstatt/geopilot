@@ -40,11 +40,14 @@ builder.Services.AddCors(options =>
         });
 });
 
+var machineDeliveryEnabled = builder.AddMachineDelivery();
+
 builder.Services
     .AddControllers(options =>
     {
         options.Conventions.Add(new StacRoutingConvention(GeopilotPolicies.Admin));
         options.Conventions.Add(new GeopilotJsonConvention());
+        options.Conventions.Add(new MachineDeliveryConvention(machineDeliveryEnabled));
 
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
@@ -89,6 +92,10 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
 
     options.EnableAnnotations();
+
+    // An action that reads its multipart form from the stream binds nothing, so its body is described from the
+    // type the action names instead.
+    options.OperationFilter<MultipartRequestBodyOperationFilter>();
     options.SupportNonNullableReferenceTypes();
     options.NonNullableReferenceTypesAsRequired();
 
@@ -138,11 +145,17 @@ builder.Services.AddAuthorization(options =>
         });
     });
 
+    // The machine delivery surface: a user or a registered machine client. Every other policy stays closed
+    // to clients, which is what keeps client credentials out of the web interface.
+    options.AddPolicy(GeopilotPolicies.Declarer, policy => policy.Requirements.Add(new DeclarerRequirement()));
+
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
     options.DefaultPolicy = adminPolicy;
     options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
+builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
+builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
@@ -178,6 +191,7 @@ builder.Services.AddTransient<IAssetStagingFileStore, PhysicalAssetStagingFileSt
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
+builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
 builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
@@ -214,6 +228,7 @@ var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).G
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
+    // One window for the whole installation, not one per caller: every client draws from the same budget.
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
         limiter.PermitLimit = uploadConfig.RateLimitRequests;
@@ -333,12 +348,12 @@ app.Use(async (context, next) =>
     }
 });
 
-// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing
-// their own body size limit (the direct upload endpoint, sized by Upload:MaxFileSizeMB) are exempt;
-// every other endpoint keeps the global cap.
+// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing their own
+// body size limit are exempt: the direct upload endpoint, sized by Upload:MaxFileSizeMB, and the multipart
+// machine delivery, sized by Upload:MaxJobSizeMB. Every other endpoint keeps the global cap.
 app.Use(async (context, next) =>
 {
-    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeMetadata>() is not null;
+    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeAttribute>() is not null;
     if (!managesOwnLimit && context.Request.ContentLength > MaxRequestBodySize)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;

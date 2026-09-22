@@ -21,6 +21,11 @@ public class Organisation
     public List<User> Users { get; set; } = new List<User>();
 
     /// <summary>
+    /// Machine clients that deliver for the organisation.
+    /// </summary>
+    public List<MachineClient> MachineClients { get; set; } = new List<MachineClient>();
+
+    /// <summary>
     /// Mandates the organisation has for delivering data to the system owner.
     /// </summary>
     public List<Mandate> Mandates { get; set; } = new List<Mandate>();

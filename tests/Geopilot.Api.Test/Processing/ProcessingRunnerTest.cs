@@ -27,6 +27,7 @@ public class ProcessingRunnerTest
     private PhysicalVisualizationFileStore visualizationStore;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<IPipelineRunRecorder> runRecorderMock;
+    private Mock<IJobCompletionHandler> jobCompletionHandlerMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -40,6 +41,7 @@ public class ProcessingRunnerTest
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
         runRecorderMock = new Mock<IPipelineRunRecorder>();
+        jobCompletionHandlerMock = new Mock<IJobCompletionHandler>();
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
@@ -48,6 +50,7 @@ public class ProcessingRunnerTest
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
         serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
         serviceProvider.Setup(p => p.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IJobCompletionHandler))).Returns(jobCompletionHandlerMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -372,6 +375,115 @@ public class ProcessingRunnerTest
         runRecorderMock.Verify(
             r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null),
             Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ExecuteCallsTheCompletionHandlerWhenTheRunFinishes()
+    {
+        var jobId = NewJob();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        jobCompletionHandlerMock.Verify(
+            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "A finished run must offer itself for completion exactly once, so an unattended delivery is declared and only once.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteKeepsTheOutcomeWhenTheCompletionHandlerThrows()
+    {
+        var jobId = NewJob();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+        jobCompletionHandlerMock
+            .Setup(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("completion exploded"));
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State, "A failing completion must not change the outcome of the run.");
+        store.Verify(s => s.TryMarkAsFailed(jobId), Times.Never, "A failing completion must not mark the job as failed.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null),
+            Times.Once,
+            "The execution protocol must still record the run as successful.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteCallsTheCompletionHandlerWhenTheRunOnlyWarns()
+    {
+        var jobId = NewJob();
+        var step = BuildWarningDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, _) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Warning, pipeline.State);
+        jobCompletionHandlerMock.Verify(
+            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "A warning does not block a delivery, so the run must still offer itself for completion.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteCallsTheCompletionHandlerWhenDeliveryIsRestricted()
+    {
+        var jobId = NewJob();
+        var step = BuildRestrictDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, _) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
+        jobCompletionHandlerMock.Verify(
+            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "The handler decides what a restricted run means for the attempt, so it has to see it.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteDoesNotCallTheCompletionHandlerWhenTheJobTimesOut()
+    {
+        var jobId = NewJob();
+        var gate = new TaskCompletionSource();
+        using var pipeline = BuildPipeline(jobId, BuildBlockingStep("step_1", gate.Task));
+
+        var (runner, _) = CreateRunnerWithStore(pipeline, TimeSpan.FromSeconds(2));
+
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        jobCompletionHandlerMock.Verify(
+            h => h.OnJobFinishedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "A run that never reached a terminal state of its own has nothing to deliver.");
     }
 
     [TestMethod]
