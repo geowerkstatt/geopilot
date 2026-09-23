@@ -186,7 +186,15 @@ services:
           exit 1
         fi
         mkdir -p /generated
-        printf 'ZITADEL_CLIENT_ID=%s\nZITADEL_API_ID=%s\n' "$$CLIENT_ID" "$$API_ID" > /generated/zitadel.env
+        printf 'ZITADEL_CLIENT_ID=%s\nZITADEL_API_ID=%s\nZITADEL_API_SECRET=%s\n' \
+          "$$CLIENT_ID" "$$API_ID" "$$API_SECRET" > /generated/zitadel.env
+        # The same values for an API started from the IDE instead of from Compose. The
+        # documented Visual Studio setup sets geopilot to DoNotStart, so that process reads
+        # appsettings.Development.json and would otherwise keep authenticating against
+        # Keycloak while a fully provisioned ZITADEL is running. AddDeveloperOverlays picks
+        # every appsettings.Local*.json up in Development; delete this file to go back.
+        printf '{\n  "Auth": {\n    "Authority": "http://localhost:4012",\n    "PublicClientId": "%s",\n    "Audience": "%s",\n    "AuthorizationUrl": "http://localhost:4012/oauth/v2/authorize",\n    "TokenUrl": "http://localhost:4012/oauth/v2/token",\n    "UserInfoUrl": "http://localhost:4012/oidc/v1/userinfo",\n    "IntrospectionUrl": "http://localhost:4012/oauth/v2/introspect",\n    "ConfidentialClientId": "%s",\n    "ConfidentialClientSecret": "%s",\n    "IntrospectionAuthMethod": "ClientSecretBasic",\n    "Scope": "profile email openid offline_access",\n    "SwaggerAdditionalScopes": ""\n  }\n}\n' \
+          "$$CLIENT_ID" "$$API_ID" "$$API_ID" "$$API_SECRET" > /apisettings/appsettings.Local.Zitadel.json
         echo "provisioned. Start with --env-file .env --env-file config/generated/zitadel.env"
     volumes:
       - ./terraform/local:/terraform:ro

@@ -298,7 +298,9 @@ Die Passwortrichtlinie ist nicht Teil von `terraform/local`. Sie wird über `ZIT
 
 Das ist das Gegenstück zu Keycloaks Realm-Import. Die Konfiguration ist eigenständig und nutzt bewusst **nicht** die Module aus `geopilot-hosting`, damit die Repositories sauber getrennt bleiben.
 
-Beide Applikationen liegen im selben Projekt. ZITADEL schreibt die API-ID dann von sich aus in den `aud` Claim, deshalb braucht es keinen zusätzlichen Scope. Das entspricht der produktiven Konfiguration, die ebenfalls nur `profile email openid` sendet.
+Beide Applikationen liegen im selben Projekt. ZITADEL schreibt die API-ID dann von sich aus in den `aud` Claim, deshalb braucht es keinen Projekt-Scope. Lokal kommt `offline_access` dazu, das ZITADEL für einen Refresh Token verlangt und Keycloak nicht. Entsprechend ist am `geopilot-client` auch der Grant `OIDC_GRANT_TYPE_REFRESH_TOKEN` gesetzt, den die produktiven Module heute nicht setzen. Das ist die einzige bewusste Abweichung von produktiv und besteht genau deshalb, weil dieses Verhalten hier prüfbar sein soll.
+
+`geopilot-api` verwendet `API_AUTH_METHOD_TYPE_BASIC` wie produktiv. Damit gibt es ein Client Secret, und der Introspection-Pfad (`Auth__AccessTokenFormat: Opaque`) lässt sich auch gegen ZITADEL betreiben. Die nötigen `Auth__Confidential*`-Werte setzt der Override bereits.
 
 Der Terraform-Zugang entsteht ohne Zutun: ZITADEL erzeugt beim ersten Start einen Maschinenbenutzer mit `IAM_OWNER` und legt dessen Token in ein geteiltes Volume. Es wird kein Zugangsdatum von Hand erstellt oder versioniert.
 
@@ -345,6 +347,14 @@ Zeigt die Anmeldung `run-zitadel-provision-first` als Client-ID, fehlt die zweit
 Die Variablen aus `zitadel.env` werden ausschliesslich in `docker-compose.zitadel.yml` referenziert und stören den Keycloak-Standardstart nicht.
 
 `zitadel-provision` liegt hinter dem Compose-Profil `provision` und läuft deshalb nur, wenn er wie oben namentlich genannt wird. Der Alltagsstart provisioniert nicht mit und braucht damit auch keinen Zugriff auf `registry.terraform.io`. Nach einer Änderung an `terraform/local` genügt es, den Provisionierungsbefehl erneut auszuführen.
+
+#### API aus der IDE statt aus Compose
+
+Das dokumentierte Visual-Studio-Setup startet den Container `geopilot` nicht (`launchSettings.json`, `"geopilot": "DoNotStart"`). Dieser Prozess liest `appsettings.Development.json` und würde sich weiterhin gegen Keycloak anmelden, obwohl ZITADEL läuft.
+
+Deshalb schreibt `zitadel-provision` die Werte zusätzlich nach `src/Geopilot.Api/appsettings.Local.Zitadel.json`. `AddDeveloperOverlays` lädt jede `appsettings.Local*.json` in der Entwicklungsumgebung automatisch, und dieses Muster war schon vorher git-ignoriert.
+
+Die Datei bleibt liegen. Um mit der IDE wieder gegen Keycloak zu arbeiten, muss sie gelöscht werden.
 
 #### Zurücksetzen
 
