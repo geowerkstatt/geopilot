@@ -268,34 +268,33 @@ Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im S
 
 Produktiv läuft ZITADEL, lokal standardmässig Keycloak. Für alltägliche Arbeit ist das unproblematisch. Für Änderungen am Anmeldevorgang nicht, weil sich die beiden Produkte genau dort unterscheiden. Beispiel: ZITADEL stellt einen Refresh Token nur mit dem Scope `offline_access` aus, Keycloak auch ohne. Ein solcher Fehler fällt gegen Keycloak nie auf.
 
-Deshalb lässt sich ZITADEL bei Bedarf zuschalten:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up
-```
+Deshalb lässt sich ZITADEL bei Bedarf zuschalten. Der Start braucht zwei Schritte, siehe [Erststart](#erststart).
 
 Keycloak wird dabei nicht ersetzt und läuft auf Port 4011 weiter. Nur die `Auth__*`-Variablen der API zeigen auf ZITADEL. Die Cypress-Tests sind auf Keycloak verdrahtet und bleiben unverändert.
 
-Der Override startet vier Container:
+Der Override bringt vier Container mit:
 
 | Container | Rolle |
 | --- | --- |
 | `zitadel` | die API, nicht direkt veröffentlicht |
 | `zitadel-login` | die Anmeldeoberfläche, seit ZITADEL v4 ein eigener Dienst |
 | `zitadel-proxy` | nginx, veröffentlicht Port 4012 und legt beide unter einen Origin |
-| `zitadel-provision` | spielt die Default-Konfiguration ein und beendet sich |
+| `zitadel-provision` | spielt die Default-Konfiguration ein und beendet sich; nur auf Aufruf, siehe [Erststart](#erststart) |
 
 Der Proxy ist nicht optional. Der OIDC-Issuer lautet `http://localhost:4012`, und die Anmeldeoberfläche muss unter demselben Origin unter `/ui/v2/login` antworten. Im Cluster übernimmt Traefik diese Aufgabe. Fehlt die Anmeldeoberfläche, endet jeder Anmeldeversuch mit einem 404 auf `/ui/v2/login`.
 
 #### Default-Konfiguration
 
-Es ist keine Einrichtung von Hand nötig. `zitadel-provision` wendet beim ersten Start [terraform/local](./terraform/local/) an und legt folgendes an:
+Es ist keine Einrichtung von Hand nötig. `zitadel-provision` wendet [terraform/local](./terraform/local/) an und legt folgendes an:
 
-- eine Organisation `geopilot-local` mit gelockerter Passwortrichtlinie
 - ein Projekt `geopilot`
 - `geopilot-client` als User-Agent-Applikation mit PKCE, inklusive der Redirect URIs für Frontend und Swagger UI
 - `geopilot-api` als API-Applikation im selben Projekt, die die Audience liefert
 - die Entwicklungsbenutzer
+
+Alles davon entsteht in der Organisation `geopilot`, die ZITADEL beim ersten Start selbst anlegt (über `ZITADEL_FIRSTINSTANCE_ORG_NAME` in [docker-compose.zitadel.yml](./docker-compose.zitadel.yml)). Terraform legt bewusst keine eigene Organisation an, weil die Konsole nur die Organisation des angemeldeten Admins zeigt. Wird der Name geändert, findet Terraform die Organisation nicht mehr und bricht mit einer entsprechenden Meldung ab.
+
+Die Passwortrichtlinie ist nicht Teil von `terraform/local`. Sie wird über `ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_*` in [docker-compose.zitadel.yml](./docker-compose.zitadel.yml) gelockert, wirkt nur gegen eine leere Datenbank und verlangt für eine Änderung das [Zurücksetzen](#zurücksetzen).
 
 Das ist das Gegenstück zu Keycloaks Realm-Import. Die Konfiguration ist eigenständig und nutzt bewusst **nicht** die Module aus `geopilot-hosting`, damit die Repositories sauber getrennt bleiben.
 
@@ -319,13 +318,17 @@ Für die ZITADEL-Konsole gibt es separat `zitadel-admin@geopilot.localhost` mit 
 
 #### Erststart
 
-Die `client_id` lässt sich in ZITADEL nicht festlegen, sie wird immer generiert. Anders als bei Keycloak, wo `geopilot-client` ein fester String ist. `zitadel-provision` schreibt die beiden generierten IDs deshalb nach `config/generated/zitadel.env`, und diese Datei wird beim Start als zweite Env-Datei mitgegeben.
+Die `client_id` lässt sich in ZITADEL nicht festlegen, sie wird immer generiert. Anders als bei Keycloak, wo `geopilot-client` ein fester String ist. `zitadel-provision` schreibt die generierten Werte deshalb in zwei Dateien: `config/generated/zitadel.env` für den Start über Compose und `src/Geopilot.Api/appsettings.Local.Zitadel.json` für die API aus der IDE (siehe [API aus der IDE statt aus Compose](#api-aus-der-ide-statt-aus-compose)). Beide sind git-ignoriert.
+
+Die Env-Datei wird beim Start als zweite `--env-file` mitgegeben. Deshalb braucht es zwei Schritte: Compose löst Variablen beim Einlesen der Konfiguration auf, also bevor irgendein Container läuft.
 
 Einmalig provisionieren:
 
 ```
-docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up -d zitadel-provision
+docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up --exit-code-from zitadel-provision zitadel-provision
 ```
+
+Ohne `-d`, mit `--exit-code-from`: der Befehl wartet auf das Ende des Provisionierungslaufs, zeigt dessen Log und gibt einen Fehler weiter. Mit `-d` würde er zurückkehren, sobald der Container gestartet ist, und ein gescheiterter `terraform apply` bliebe unbemerkt. `--exit-code-from` fährt die übrigen ZITADEL-Container am Schluss wieder herunter, der nächste Befehl startet sie neu.
 
 Danach ist das der Startbefehl:
 
@@ -335,30 +338,37 @@ docker compose --env-file .env --env-file config/generated/zitadel.env -f docker
 
 Beide Env-Dateien müssen genannt werden. Sobald `--env-file` gesetzt ist, liest Compose `.env` nicht mehr von selbst, und dort stehen `GITHUB_ACTOR` und `GITHUB_TOKEN`. Die Datei wird direkt gelesen und nicht kopiert, eine erneute Provisionierung wirkt also ohne weiteres Zutun.
 
-Zwischen den beiden Befehlen braucht es **kein** `docker compose down`. Der erste startet `geopilot` nicht mit, und Compose erstellt bei geänderter Konfiguration ohnehin nur die betroffenen Container neu. Ein `down -v` wäre hier sogar schädlich: es verwirft die ZITADEL-Datenbank, und die Client-IDs wären danach neu.
+Ein `down -v` zwischen den beiden Befehlen wäre schädlich: es verwirft die ZITADEL-Datenbank, und die Client-IDs wären danach neu.
 
 Zeigt die Anmeldung `run-zitadel-provision-first` als Client-ID, fehlt die zweite `--env-file`-Angabe.
 
-Die beiden Variablen werden ausschliesslich in `docker-compose.zitadel.yml` referenziert und stören den Keycloak-Standardstart nicht.
+Die Variablen aus `zitadel.env` werden ausschliesslich in `docker-compose.zitadel.yml` referenziert und stören den Keycloak-Standardstart nicht.
+
+`zitadel-provision` liegt hinter dem Compose-Profil `provision` und läuft deshalb nur, wenn er wie oben namentlich genannt wird. Der Alltagsstart provisioniert nicht mit und braucht damit auch keinen Zugriff auf `registry.terraform.io`. Nach einer Änderung an `terraform/local` genügt es, den Provisionierungsbefehl erneut auszuführen.
 
 #### Zurücksetzen
 
-Der Zustand liegt an drei Stellen und muss gemeinsam verworfen werden, sonst will Terraform Ressourcen ändern, die es nicht mehr gibt:
+Der Zustand liegt an fünf Stellen und muss gemeinsam verworfen werden, sonst will Terraform Ressourcen ändern, die es nicht mehr gibt: die Datenbank `zitadel`, die beiden Volumes und die zwei Dateien mit den generierten IDs.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.zitadel.yml rm -s -f zitadel zitadel-login zitadel-proxy zitadel-provision
 docker compose -f docker-compose.yml -f docker-compose.zitadel.yml exec db psql -U HAPPYWALK -d postgres -c "DROP DATABASE zitadel;"
 docker volume rm geopilot_zitadel-bootstrap geopilot_zitadel-terraform
+rm -f config/generated/zitadel.env src/Geopilot.Api/appsettings.Local.Zitadel.json
 ```
 
 `rm -s` statt `down`, aus zwei Gründen: es fasst das Netzwerk nicht an, und der Dienst `db` bleibt stehen. Letzteres ist nötig, denn der zweite Befehl greift darauf zu und die Datenbank `geopilot` soll unberührt bleiben.
 
 Danach die Provisionierung von oben wiederholen. Die Client-IDs sind dann neu, aber weil `config/generated/zitadel.env` direkt gelesen wird, genügt das Überschreiben durch den Provisionierungslauf. In `.env` ist nichts nachzuführen.
 
+Der vierte Befehl ist nicht optional. Beide Dateien tragen die Client-IDs der alten Instanz: `config/generated/zitadel.env` für den Start über Compose, `appsettings.Local.Zitadel.json` für die API aus der IDE. Bleiben sie liegen, scheitert die Anmeldung mit einem unbekannten Client statt mit dem Platzhalter `run-zitadel-provision-first`. Beide entstehen erst beim Provisionierungslauf, `-f` hält den Befehl deshalb still, solange es sie noch nicht gibt.
+
+Danach die Provisionierung von oben wiederholen.
+
 #### Hinweise
 
 - **Datenbank:** ZITADEL nutzt die vorhandene Postgres-Instanz und legt dort die Datenbank `zitadel` an. `docker compose down -v` löscht das Volume und damit beide Datenbanken.
-- **`FirstInstance` greift nur einmal:** Die Werte unter `ZITADEL_FIRSTINSTANCE_*` und `ZITADEL_DEFAULTINSTANCE_*` wirken nur gegen eine leere Datenbank. Eine Änderung daran verlangt ein Zurücksetzen, siehe oben. Änderungen an `terraform/local` dagegen wirken bei jedem Lauf, dafür genügt `docker compose ... up zitadel-provision`.
+- **`FirstInstance` greift nur einmal:** Die Werte unter `ZITADEL_FIRSTINSTANCE_*` und `ZITADEL_DEFAULTINSTANCE_*` wirken nur gegen eine leere Datenbank. Eine Änderung daran verlangt ein Zurücksetzen, siehe oben. Änderungen an `terraform/local` dagegen brauchen nur einen erneuten Provisionierungslauf.
 - **Erststart:** dauert deutlich länger als bei Keycloak, weil ZITADEL das Schema anlegt.
 - **Version:** Das Image ist auf dieselbe Version gepinnt wie im Cluster, damit Abweichungen nicht aus der Version kommen. Versionswechsel migrieren das Schema und sollten nicht unbedacht erfolgen.
 
