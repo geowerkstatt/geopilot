@@ -222,9 +222,17 @@ services:
       # live in the same project: ZITADEL then puts the API id into aud on its own.
       Auth__Scope: "profile email openid"
       Auth__SwaggerAdditionalScopes: ""
-      # ZITADEL generates both client ids and they cannot be pinned, so these two come from
-      # the environment. zitadel-provision writes them to config/generated/zitadel.env, which
-      # is passed in with a second --env-file at start, see README.md.
+      # Not read while Auth__AccessTokenFormat is Jwt (the default), but they keep the opaque
+      # token path reachable locally. It is covered against Keycloak by KeycloakOpaqueTokenTest
+      # and needs a confidential client, hence API_AUTH_METHOD_TYPE_BASIC in terraform/local.
+      Auth__IntrospectionUrl: http://localhost:4012/oauth/v2/introspect
+      Auth__IntrospectionAuthMethod: ClientSecretBasic
+      Auth__ConfidentialClientId: ${ZITADEL_API_ID:-run-zitadel-provision-first}
+      Auth__ConfidentialClientSecret: ${ZITADEL_API_SECRET:-run-zitadel-provision-first}
+      # ZITADEL generates the client ids and the secret above, and none of them can be pinned,
+      # so they come from the environment. zitadel-provision writes all three to
+      # config/generated/zitadel.env, which is passed in with a second --env-file at start,
+      # see README.md.
       #
       # Not via the service-level env_file key: the Keycloak values in docker-compose.yml are
       # set under environment and would take precedence over it. Making them overridable there

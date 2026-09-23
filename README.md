@@ -318,7 +318,7 @@ Für die ZITADEL-Konsole gibt es separat `zitadel-admin@geopilot.localhost` mit 
 
 #### Erststart
 
-Die `client_id` lässt sich in ZITADEL nicht festlegen, sie wird immer generiert. Anders als bei Keycloak, wo `geopilot-client` ein fester String ist. `zitadel-provision` schreibt die generierten Werte deshalb in zwei Dateien: `config/generated/zitadel.env` für den Start über Compose und `src/Geopilot.Api/appsettings.Local.Zitadel.json` für die API aus der IDE (siehe [API aus der IDE statt aus Compose](#api-aus-der-ide-statt-aus-compose)). Beide sind git-ignoriert.
+Die `client_id` lässt sich in ZITADEL nicht festlegen, sie wird immer generiert. Anders als bei Keycloak, wo `geopilot-client` ein fester String ist. Dasselbe gilt für das Client Secret von `geopilot-api`. `zitadel-provision` schreibt deshalb alle drei Werte in zwei Dateien: `config/generated/zitadel.env` für den Start über Compose und `src/Geopilot.Api/appsettings.Local.Zitadel.json` für die API aus der IDE (siehe [API aus der IDE statt aus Compose](#api-aus-der-ide-statt-aus-compose)). Beide sind git-ignoriert.
 
 Die Env-Datei wird beim Start als zweite `--env-file` mitgegeben. Deshalb braucht es zwei Schritte: Compose löst Variablen beim Einlesen der Konfiguration auf, also bevor irgendein Container läuft.
 
@@ -338,7 +338,7 @@ docker compose --env-file .env --env-file config/generated/zitadel.env -f docker
 
 Beide Env-Dateien müssen genannt werden. Sobald `--env-file` gesetzt ist, liest Compose `.env` nicht mehr von selbst, und dort stehen `GITHUB_ACTOR` und `GITHUB_TOKEN`. Die Datei wird direkt gelesen und nicht kopiert, eine erneute Provisionierung wirkt also ohne weiteres Zutun.
 
-Ein `down -v` zwischen den beiden Befehlen wäre schädlich: es verwirft die ZITADEL-Datenbank, und die Client-IDs wären danach neu.
+Ein `down -v` zwischen den beiden Befehlen wäre schädlich: es verwirft die ZITADEL-Datenbank, und die IDs und das Secret wären danach neu.
 
 Zeigt die Anmeldung `run-zitadel-provision-first` als Client-ID, fehlt die zweite `--env-file`-Angabe.
 
@@ -348,7 +348,7 @@ Die Variablen aus `zitadel.env` werden ausschliesslich in `docker-compose.zitade
 
 #### Zurücksetzen
 
-Der Zustand liegt an fünf Stellen und muss gemeinsam verworfen werden, sonst will Terraform Ressourcen ändern, die es nicht mehr gibt: die Datenbank `zitadel`, die beiden Volumes und die zwei Dateien mit den generierten IDs.
+Der Zustand liegt an fünf Stellen und muss gemeinsam verworfen werden, sonst will Terraform Ressourcen ändern, die es nicht mehr gibt: die Datenbank `zitadel`, die beiden Volumes und die zwei Dateien mit den generierten Werten.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.zitadel.yml rm -s -f zitadel zitadel-login zitadel-proxy zitadel-provision
@@ -361,7 +361,7 @@ rm -f config/generated/zitadel.env src/Geopilot.Api/appsettings.Local.Zitadel.js
 
 Danach die Provisionierung von oben wiederholen. Die Client-IDs sind dann neu, aber weil `config/generated/zitadel.env` direkt gelesen wird, genügt das Überschreiben durch den Provisionierungslauf. In `.env` ist nichts nachzuführen.
 
-Der vierte Befehl ist nicht optional. Beide Dateien tragen die Client-IDs der alten Instanz: `config/generated/zitadel.env` für den Start über Compose, `appsettings.Local.Zitadel.json` für die API aus der IDE. Bleiben sie liegen, scheitert die Anmeldung mit einem unbekannten Client statt mit dem Platzhalter `run-zitadel-provision-first`. Beide entstehen erst beim Provisionierungslauf, `-f` hält den Befehl deshalb still, solange es sie noch nicht gibt.
+Der vierte Befehl ist nicht optional. Beide Dateien tragen die Client-IDs und das Secret der alten Instanz: `config/generated/zitadel.env` für den Start über Compose, `appsettings.Local.Zitadel.json` für die API aus der IDE. Bleiben sie liegen, scheitert die Anmeldung mit einem unbekannten Client statt mit dem Platzhalter `run-zitadel-provision-first`. Beide entstehen erst beim Provisionierungslauf, `-f` hält den Befehl deshalb still, solange es sie noch nicht gibt.
 
 Danach die Provisionierung von oben wiederholen.
 

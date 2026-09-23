@@ -1,7 +1,6 @@
 # Default configuration for the local ZITADEL instance: project, both applications and the
-# development users. This is the counterpart to
-# config/realms/keycloak-geopilot.json, and it is applied by the zitadel-provision service
-# on first start so nobody has to click it together in the console.
+# development users. This is the counterpart to config/realms/keycloak-geopilot.json, applied
+# by the zitadel-provision service. See "ZITADEL lokal" in README.md for the background.
 #
 # Deliberately self-contained: it does NOT reuse the modules in the geopilot-hosting
 # repository, because those are referenced by relative path and geopilot must stay
@@ -14,23 +13,20 @@ provider "zitadel" {
   port     = "4012"
   insecure = "true" # plain http locally, see docker-compose.zitadel.yml
 
-  # Key of the "terraform" machine user with IAM_OWNER. ZITADEL mints it on first start
-  # (ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH) and shares it through the bootstrap volume, so no
-  # credential is ever created by hand or committed. A path, not the value, so the credential
-  # never enters the terraform state. Production authenticates the same way, via
-  # jwt_profile_json.
+  # Key of the "terraform" machine user with IAM_OWNER, minted by ZITADEL on first start and
+  # shared through the bootstrap volume, so no credential is created by hand or committed.
+  # A path, not the value, so the credential never enters the terraform state. Production
+  # authenticates the same way, via jwt_profile_json.
   jwt_profile_file = "/zitadel/bootstrap/admin-key.json"
 }
 
-# No organization is created here on purpose: everything goes into the one FirstInstance
-# created. A separate organization would work, but the console shows the organization of the
-# signed-in admin, so the provisioned users would appear to be missing until one switches
-# organization. Not worth the confusion locally.
+# No organization is created here on purpose: everything goes into the FirstInstance
+# organization. The console shows the organization of the signed-in admin, so users in a
+# separate organization would appear to be missing until one switches.
 #
-# Its id is resolved rather than omitted. The documentation claims org_id defaults to the
-# organization of the authenticated service account, but zitadel_human_user does not
-# implement that: it sends an empty OrganizationId and ZITADEL rejects the request. Passing
-# the id to every resource also removes any reliance on implicit provider behaviour.
+# Its id is resolved rather than omitted: the documented org_id default (the organization of
+# the authenticated service account) is not implemented by zitadel_human_user, which sends an
+# empty OrganizationId that ZITADEL rejects.
 data "zitadel_orgs" "default" {
   name        = "geopilot" # ZITADEL_FIRSTINSTANCE_ORG_NAME in docker-compose.zitadel.yml
   name_method = "TEXT_QUERY_METHOD_EQUALS"
@@ -38,21 +34,26 @@ data "zitadel_orgs" "default" {
 }
 
 locals {
-  # one() fails loudly unless the search matched exactly one organization, which beats
-  # silently provisioning into the wrong one.
+  # one() returns null for an empty collection, so the count is checked separately in the
+  # precondition below. Applying with a null org_id would fail deep inside ZITADEL instead.
   org_id = one(data.zitadel_orgs.default.ids)
 }
 
-# The password policy is NOT managed here. The development users share one simple password
-# that the default ZITADEL policy would reject, but zitadel_password_complexity_policy is
-# broken in the provider: it creates the policy and then reports "Root object was present, but
-# now absent", which aborts the apply. The policy is therefore relaxed at instance level via
-# ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_* in docker-compose.zitadel.yml, which is
-# where the rest of the instance configuration lives anyway.
+# The password policy is NOT managed here, see the comment on
+# ZITADEL_DEFAULTINSTANCE_PASSWORDCOMPLEXITYPOLICY_* in docker-compose.zitadel.yml.
 
 resource "zitadel_project" "geopilot" {
   org_id = local.org_id
   name   = "geopilot"
+
+  # Checked at plan time, so a failure aborts before anything is applied. Without it a renamed
+  # ZITADEL_FIRSTINSTANCE_ORG_NAME silently yields org_id = null for every resource below.
+  lifecycle {
+    precondition {
+      condition     = length(data.zitadel_orgs.default.ids) == 1
+      error_message = "Expected exactly one organization named \"geopilot\", found ${length(data.zitadel_orgs.default.ids)}. It must match ZITADEL_FIRSTINSTANCE_ORG_NAME in docker-compose.zitadel.yml."
+    }
+  }
 }
 
 # The frontend client. Today a public client, which is exactly what the "no public clients"
@@ -73,7 +74,10 @@ resource "zitadel_application_oidc" "frontend" {
   response_types = ["OIDC_RESPONSE_TYPE_CODE"]
   grant_types = [
     "OIDC_GRANT_TYPE_AUTHORIZATION_CODE",
-    # Without this ZITADEL issues no refresh token even when offline_access is requested.
+    # Deliberately more than production, which keeps the module default (authorization code
+    # only). Without this grant ZITADEL issues no refresh token even when offline_access is
+    # requested, and the refresh behaviour is the very thing this setup exists to exercise.
+    # Align both sides once the confidential-client change lands.
     "OIDC_GRANT_TYPE_REFRESH_TOKEN",
   ]
 
@@ -88,21 +92,26 @@ resource "zitadel_application_oidc" "frontend" {
   dev_mode = true
 }
 
-# Same project as the frontend client on purpose: ZITADEL then puts this application's id
-# into the aud claim without an extra scope, which is how production works as well.
+# Same project as the frontend client on purpose: ZITADEL then puts this application's id into
+# the aud claim without an extra scope, which is how production works as well.
 resource "zitadel_application_api" "api" {
-  org_id           = local.org_id
-  project_id       = zitadel_project.geopilot.id
-  name             = "geopilot-api"
-  auth_method_type = "API_AUTH_METHOD_TYPE_PRIVATE_KEY_JWT"
+  org_id     = local.org_id
+  project_id = zitadel_project.geopilot.id
+  name       = "geopilot-api"
+
+  # BASIC, the same default the geopilot-hosting module applies. It yields a client secret,
+  # which the API needs to authenticate against the introspection endpoint when
+  # Auth__AccessTokenFormat is set to Opaque. PRIVATE_KEY_JWT would leave that path
+  # unreachable locally while it works against Keycloak.
+  auth_method_type = "API_AUTH_METHOD_TYPE_BASIC"
 }
 
 locals {
-  # These ids are the sub values, and they are the same ones the Keycloak realm pins. The
-  # seed data references the first two as AuthIdentifier (ContextSeedExtensions.cs:58, :67),
-  # so a developer gets the seeded administrator on first login without touching the
-  # database, no matter which identity provider is running. newuser is intentionally absent
-  # from the seed data: it is the test case for a user registering for the first time.
+  # These ids are the sub values, and they are the same ones the Keycloak realm pins. The seed
+  # data references the first two as AuthIdentifier (ContextSeedExtensions.cs:58, :67), so a
+  # developer gets the seeded administrator on first login without touching the database, no
+  # matter which identity provider is running. newuser is intentionally absent from the seed
+  # data: it is the test case for a user registering for the first time.
   users = {
     admin = {
       user_id    = "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15"
