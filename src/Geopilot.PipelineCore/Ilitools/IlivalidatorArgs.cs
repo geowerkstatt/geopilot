@@ -25,6 +25,28 @@ public sealed record IlivalidatorArgs
     public string? MetaConfig { get; init; }
 
     /// <summary>
+    /// The mapping that names the reference data the tool loads for the extent of a validation, in the form
+    /// <c>ilidata:&lt;DatasetId&gt;</c>, resolved by the tool through <see cref="ModelDirs"/>. Reference data is loaded
+    /// but not validated itself, and references into it are only checked with <see cref="AllObjectsAccessible"/>.
+    /// Maps to the ilivalidator option <c>--refmapping</c>.
+    /// </summary>
+    /// <remarks>
+    /// Requires ilivalidator 1.15.0 or newer, like <see cref="Scope"/>.
+    /// </remarks>
+    public string? RefMapping { get; init; }
+
+    /// <summary>
+    /// The extent of the validation, for example the BFS number of a municipality. Selects the entries of
+    /// <see cref="RefMapping"/> and is available to constraints as the runtime parameter <c>IliVRuntime_V1_0.Scope</c>.
+    /// Maps to the ilivalidator option <c>--scope</c>.
+    /// </summary>
+    /// <remarks>
+    /// Requires ilivalidator 1.15.0 or newer. The ilitools-wrapper rejects it for an older version before the tool
+    /// runs, whether that version was selected through <see cref="ToolVersion"/> or is the deployment default.
+    /// </remarks>
+    public string? Scope { get; init; }
+
+    /// <summary>
     /// Whether the validator may assume that every object it needs is contained in the validated file. A reference
     /// to an object outside it is then an error instead of a check the validator skips.
     /// Maps to the ilivalidator option <c>--allObjectsAccessible</c>, a switch without a counterpart: setting this
