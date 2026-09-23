@@ -199,6 +199,7 @@ services:
     volumes:
       - ./terraform/local:/terraform:ro
       - ./config/generated:/generated
+      - ./src/Geopilot.Api:/apisettings
       - zitadel-terraform:/work
       - zitadel-bootstrap:/zitadel/bootstrap:ro
     # Shares the proxy's network namespace, so localhost:4012 really is the proxy and the
