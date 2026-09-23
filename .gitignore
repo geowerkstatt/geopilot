@@ -421,6 +421,7 @@ certs/
 config/generated/
 
 # Terraform, in case terraform/local is run by hand instead of through zitadel-provision.
+# .terraform.lock.hcl is NOT ignored on purpose: it pins the provider build.
 # The provisioning container keeps both in a volume, so normally nothing lands here.
 terraform/local/.terraform/
 terraform/local/*.tfstate

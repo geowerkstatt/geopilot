@@ -172,11 +172,12 @@ services:
           [ "$$i" -lt 30 ] || { echo "ZITADEL not reachable on localhost:4012"; exit 1; }
           sleep 2
         done
-        cp /terraform/*.tf /work/
+        # The work directory survives every run, so stale copies of renamed or deleted .tf
+        # files would keep being applied. Clear it before copying the current configuration.
+        rm -f /work/*.tf
+        cp /terraform/*.tf /terraform/.terraform.lock.hcl /work/
         cd /work
-        # -upgrade because the lock file persists in this volume: without it a changed version
-        # constraint in versions.tf aborts init and demands the flag anyway.
-        terraform init -input=false -upgrade
+        terraform init -input=false
         terraform apply -auto-approve -input=false
         # Via variables, not straight into the file: "echo x=$(cmd)" succeeds even when cmd
         # fails, which would write empty ids and only surface later as a confusing login

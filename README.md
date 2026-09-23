@@ -370,6 +370,7 @@ Danach die Provisionierung von oben wiederholen.
 - **Datenbank:** ZITADEL nutzt die vorhandene Postgres-Instanz und legt dort die Datenbank `zitadel` an. `docker compose down -v` löscht das Volume und damit beide Datenbanken.
 - **`FirstInstance` greift nur einmal:** Die Werte unter `ZITADEL_FIRSTINSTANCE_*` und `ZITADEL_DEFAULTINSTANCE_*` wirken nur gegen eine leere Datenbank. Eine Änderung daran verlangt ein Zurücksetzen, siehe oben. Änderungen an `terraform/local` dagegen brauchen nur einen erneuten Provisionierungslauf.
 - **Erststart:** dauert deutlich länger als bei Keycloak, weil ZITADEL das Schema anlegt.
+- **Terraform-Provider:** patchgenau gepinnt, und `terraform/local/.terraform.lock.hcl` ist versioniert (für Linux, Windows und macOS ARM). Damit provisionieren alle mit demselben Provider-Build. Ein Versionswechsel gehört in `versions.tf` und die Lock-Datei, nicht in einen einzelnen Lauf.
 - **Version:** Das Image ist auf dieselbe Version gepinnt wie im Cluster, damit Abweichungen nicht aus der Version kommen. Versionswechsel migrieren das Schema und sollten nicht unbedacht erfolgen.
 
 ## Cloud Upload
