@@ -106,7 +106,11 @@ builder.Services.AddSwaggerGen(options =>
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
     var swaggerAdditionalScopes = builder.Configuration["Auth:SwaggerAdditionalScopes"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(swaggerAdditionalScopes))
+
+    // Additional scopes are optional: identity providers that put the audience into the token
+    // on their own need none, and requiring them here would silently fall back to discovery
+    // and ignore the two endpoints configured right above.
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl))
     {
         options.AddGeopilotOAuth2(authUrl, tokenUrl, swaggerAdditionalScopes);
     }

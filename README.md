@@ -258,7 +258,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
-    "SwaggerAdditionalScopes": "<custom app scope>"
+    "SwaggerAdditionalScopes": "<custom app scope>" // optional, on top of openid/profile/email
 }
 ```
 
