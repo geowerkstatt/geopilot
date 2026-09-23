@@ -1,22 +1,18 @@
 # Opt-in override that runs ZITADEL as the local identity provider instead of Keycloak.
-#
-#   docker compose -f docker-compose.yml -f docker-compose.zitadel.yml up
+# Nothing here is reached unless both -f flags are passed explicitly.
 #
 # Why: production runs ZITADEL, local development runs Keycloak. That asymmetry is harmless
 # for everyday work but not for changes to the login flow, because that is exactly where the
-# two products differ (refresh tokens need the offline_access scope on ZITADEL, not on
-# Keycloak). Those differences never show up against Keycloak.
+# two products differ. Keycloak stays the default on port 4011 and the Cypress tests keep
+# running against it.
 #
-# Keycloak stays the default and keeps running on 4011; the Cypress tests are wired to it and
-# are not affected by this file. Nothing here is reached unless you pass -f explicitly.
+# Four containers: the API, the login UI (a separate service since v4), an nginx that puts
+# both under the one origin the OIDC issuer requires, and a one-shot provisioner that applies
+# terraform/local, so no part of the instance is set up by hand.
 #
-# Three containers, not one: since v4 the login UI is a separate service, and it must answer
-# under the same origin as the API because the OIDC issuer is http://localhost:4012. nginx
-# does the routing that Traefik does in the cluster. This mirrors the official ZITADEL
-# compose reference (zitadel/zitadel, deploy/compose).
-#
-# First start: see "ZITADEL lokal" in README.md. The instance is empty until you create the
-# project and the two applications once in the console, then put their ids into .env.
+# Start-up needs two steps, because ZITADEL generates the client ids and Compose resolves
+# variables before any container runs. See "ZITADEL lokal" in README.md for the commands and
+# the reasoning; that section is the single place where all of this is explained.
 services:
   # The API. Not published directly: the browser always goes through zitadel-proxy, so that
   # the issuer, the console and the login UI share one origin.
