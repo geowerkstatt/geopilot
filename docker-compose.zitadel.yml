@@ -223,9 +223,14 @@ services:
       Auth__AuthorizationUrl: http://localhost:4012/oauth/v2/authorize
       Auth__TokenUrl: http://localhost:4012/oauth/v2/token
       Auth__UserInfoUrl: http://localhost:4012/oidc/v1/userinfo
-      # Mirrors production. No project scope is needed as long as the OIDC app and the API app
-      # live in the same project: ZITADEL then puts the API id into aud on its own.
-      Auth__Scope: "profile email openid"
+      # No project scope is needed as long as the OIDC app and the API app live in the same
+      # project: ZITADEL then puts the API id into aud on its own. offline_access is what
+      # ZITADEL requires for a refresh token and Keycloak does not, which is the difference
+      # this setup exists to make reproducible.
+      Auth__Scope: "profile email openid offline_access"
+      # No extra scope on top of the three Swagger always requests. The explicit
+      # AuthorizationUrl/TokenUrl above stay in use; only their scope list is shorter than
+      # against Keycloak.
       Auth__SwaggerAdditionalScopes: ""
       # Not read while Auth__AccessTokenFormat is Jwt (the default), but they keep the opaque
       # token path reachable locally. It is covered against Keycloak by KeycloakOpaqueTokenTest
