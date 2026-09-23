@@ -153,8 +153,14 @@ services:
   #
   # The configuration is mounted read-only and copied into the state volume before running,
   # so terraform never writes into the repository and leaves no root-owned files behind.
+  #
+  # Behind a profile on purpose: it only runs when named explicitly, which keeps a failing
+  # provisioning run (offline, registry unreachable) from blocking the everyday start of the
+  # whole stack. It also cannot hand its ids to geopilot within the same up, because Compose
+  # resolves variables before any container runs.
   zitadel-provision:
     image: hashicorp/terraform:1.14
+    profiles: ["provision"]
     restart: "no"
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -246,13 +252,14 @@ services:
       #
       # Not via the service-level env_file key: the Keycloak values in docker-compose.yml are
       # set under environment and would take precedence over it. Making them overridable there
-      # would in turn let a ZITADEL id break the default Keycloak start. These two names are
+      # would in turn let a ZITADEL id break the default Keycloak start. These names are
       # referenced only here, so they stay inert in Keycloak mode.
       Auth__PublicClientId: ${ZITADEL_CLIENT_ID:-run-zitadel-provision-first}
       Auth__Audience: ${ZITADEL_API_ID:-run-zitadel-provision-first}
+    # No dependency on zitadel-provision: it cannot supply these values within the same up
+    # anyway, and making it a precondition would stop the whole local stack whenever the
+    # terraform registry is unreachable.
     depends_on:
-      zitadel-provision:
-        condition: service_completed_successfully
       zitadel-proxy:
         condition: service_started
 
