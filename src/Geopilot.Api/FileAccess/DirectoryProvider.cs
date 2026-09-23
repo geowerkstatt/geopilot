@@ -15,6 +15,9 @@ public class DirectoryProvider : IDirectoryProvider
     public string AssetDirectory { get; }
 
     /// <inheritdoc/>
+    public string AssetStagingDirectory { get; }
+
+    /// <inheritdoc/>
     public string PipelineDirectory { get; }
 
     /// <inheritdoc/>
@@ -33,6 +36,7 @@ public class DirectoryProvider : IDirectoryProvider
         DownloadDirectory = fileAccess.DownloadDirectory;
         VisualizationDirectory = fileAccess.VisualizationDirectory;
         AssetDirectory = fileAccess.AssetsDirectory;
+        AssetStagingDirectory = Path.Combine(AssetDirectory, "staging");
         PipelineDirectory = fileAccess.PipelineDirectory;
         ResourcesDirectory = fileAccess.ResourcesDirectory;
     }
@@ -48,6 +52,10 @@ public class DirectoryProvider : IDirectoryProvider
     /// <inheritdoc/>
     public string GetAssetDirectoryPath(Guid jobId)
         => Path.Combine(AssetDirectory, jobId.ToString());
+
+    /// <inheritdoc/>
+    public string GetAssetStagingDirectoryPath(Guid jobId)
+        => Path.Combine(AssetStagingDirectory, jobId.ToString());
 
     /// <inheritdoc/>
     public string GetPipelineDirectoryPath(Guid jobId)

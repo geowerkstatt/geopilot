@@ -25,6 +25,7 @@ public class ProcessingJobCleanupServiceTest
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private Context context;
     private string tempAssetRoot;
+    private string tempAssetStagingRoot;
     private string tempDownloadRoot;
     private string tempVisualizationRoot;
     private string tempPipelineRoot;
@@ -73,20 +74,26 @@ public class ProcessingJobCleanupServiceTest
             optionsMock.Object);
 
         tempAssetRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        tempAssetStagingRoot = Path.Combine(tempAssetRoot, "staging");
         tempDownloadRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         tempVisualizationRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         tempPipelineRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempAssetRoot);
+        Directory.CreateDirectory(tempAssetStagingRoot);
         Directory.CreateDirectory(tempDownloadRoot);
         Directory.CreateDirectory(tempVisualizationRoot);
         Directory.CreateDirectory(tempPipelineRoot);
         directoryProviderMock.Setup(d => d.AssetDirectory).Returns(tempAssetRoot);
+        directoryProviderMock.Setup(d => d.AssetStagingDirectory).Returns(tempAssetStagingRoot);
         directoryProviderMock.Setup(d => d.DownloadDirectory).Returns(tempDownloadRoot);
         directoryProviderMock.Setup(d => d.VisualizationDirectory).Returns(tempVisualizationRoot);
         directoryProviderMock.Setup(d => d.PipelineDirectory).Returns(tempPipelineRoot);
         directoryProviderMock
             .Setup(d => d.GetAssetDirectoryPath(It.IsAny<Guid>()))
             .Returns<Guid>(jobId => Path.Combine(tempAssetRoot, jobId.ToString()));
+        directoryProviderMock
+            .Setup(d => d.GetAssetStagingDirectoryPath(It.IsAny<Guid>()))
+            .Returns<Guid>(jobId => Path.Combine(tempAssetStagingRoot, jobId.ToString()));
         directoryProviderMock
             .Setup(d => d.GetDownloadDirectoryPath(It.IsAny<Guid>()))
             .Returns<Guid>(jobId => Path.Combine(tempDownloadRoot, jobId.ToString()));
@@ -435,6 +442,39 @@ public class ProcessingJobCleanupServiceTest
 
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(orphanJobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupRetiresOrphanedStagedDelivery()
+    {
+        // A staged delivery payload left behind by a hard restart: the in-memory job store no longer
+        // knows the job, so nobody can declare the delivery any more.
+        var orphanJobId = Guid.NewGuid();
+        var stagedDir = Path.Combine(tempAssetStagingRoot, orphanJobId.ToString());
+        Directory.CreateDirectory(stagedDir);
+
+        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ProcessingJob?)null);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsFalse(Directory.Exists(stagedDir));
+        jobStoreMock.Verify(s => s.RemoveJob(orphanJobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupKeepsTheStagedDeliveryOfAJobWithinRetention()
+    {
+        var jobId = Guid.NewGuid();
+        var stagedDir = Path.Combine(tempAssetStagingRoot, jobId.ToString());
+        Directory.CreateDirectory(stagedDir);
+
+        var recentJob = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow) { State = ProcessingState.Success };
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(recentJob);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(stagedDir), "A deliverable job within its retention can still be declared, so its staged payload has to stay.");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]

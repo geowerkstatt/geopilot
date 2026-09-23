@@ -7,10 +7,11 @@ namespace Geopilot.Api.FileAccess;
 
 /// <summary>
 /// Provides functionality to record, delete and download asset files. The delivery consists of exactly
-/// the pipeline outputs the definition tagged for delivery: those files already live in the asset
-/// directory, so this handler only hashes them in place and writes the corresponding <see cref="Asset"/>
-/// rows. Its asset type is derived from the file's origin: a file that entered as an upload becomes
-/// <see cref="AssetType.PrimaryData"/>, one produced by a step becomes <see cref="AssetType.ProcessedData"/>.
+/// the pipeline outputs the definition tagged for delivery: the runner staged those files below the asset
+/// directory, so this handler promotes the job's staged directory into place, hashes the files there and
+/// writes the corresponding <see cref="Asset"/> rows. Its asset type is derived from the file's origin: a
+/// file that entered as an upload becomes <see cref="AssetType.PrimaryData"/>, one produced by a step
+/// becomes <see cref="AssetType.ProcessedData"/>.
 /// </summary>
 public class AssetHandler : IAssetHandler
 {
@@ -82,13 +83,16 @@ public class AssetHandler : IAssetHandler
         if (job.Pipeline == null)
             return assets;
 
+        // The declaration is what turns the staged payload into assets: one rename of the job directory,
+        // before anything is read from the asset store.
+        assetFileStore.PromoteStagedFiles(job.Id);
+
         foreach (var step in job.Pipeline.Steps)
         {
             foreach (var persisted in step.DeliveryFiles)
             {
-                // Step delivery files were written directly into the asset store by the
-                // pipeline runner, so we just hash them in place and create the row. A file
-                // that entered as an upload is primary data; one produced by a step is processed data.
+                // The promoted files are hashed in place, nothing is copied. A file that entered as an
+                // upload is primary data; one produced by a step is processed data.
                 using var stream = assetFileStore.OpenFile(job.Id, persisted.PersistedFileName);
                 assets.Add(new Asset()
                 {
