@@ -87,8 +87,8 @@ public class ProcessingRunner : BackgroundService
 
                 // Stage the delivery payload only when the job is actually deliverable, the same gate the
                 // submission endpoint enforces (DeliveryController.Create). It goes to the staging store, not
-                // the asset store: the asset directory holds declared deliveries only, and declaring one
-                // promotes the staged files (AssetHandler.RecordJobAssetsAsync).
+                // the asset store: the asset directory holds deliveries only, and declaring one promotes
+                // the staged files (AssetHandler.RecordJobAssetsAsync).
                 if (pipeline.State.IsDeliverable())
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 

@@ -17,7 +17,7 @@ public interface IDirectoryProvider
     string VisualizationDirectory { get; }
 
     /// <summary>
-    /// Gets the root directory for persisted assets: the delivery payload of a declared delivery. Until
+    /// Gets the root directory for persisted assets of deliveries. Until
     /// the declaration the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
     /// belongs to a delivery, or to a declaration that failed after promoting it and retires with the job.
     /// </summary>

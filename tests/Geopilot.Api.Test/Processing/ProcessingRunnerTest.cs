@@ -326,7 +326,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual("data.xtf", persisted.OriginalFileName);
         Assert.AreEqual("step_1_data.xtf", persisted.PersistedFileName);
         Assert.IsTrue(stagingStore.Exists(jobId, persisted.PersistedFileName));
-        Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds declared deliveries only; until the declaration the file is staged.");
+        Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds deliveries only; until the declaration the file is staged.");
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Delivery files must not be written to the download store.");
         Assert.IsEmpty(step.Downloads);
     }
