@@ -364,14 +364,25 @@ Der Zustand liegt an fünf Stellen und muss gemeinsam verworfen werden, sonst wi
 docker compose -f docker-compose.yml -f docker-compose.zitadel.yml rm -s -f zitadel zitadel-login zitadel-proxy zitadel-provision
 docker compose -f docker-compose.yml -f docker-compose.zitadel.yml exec db psql -U HAPPYWALK -d postgres -c "DROP DATABASE zitadel;"
 docker volume rm geopilot_zitadel-bootstrap geopilot_zitadel-terraform
+```
+
+Dazu die beiden generierten Dateien löschen. In PowerShell:
+
+```powershell
+Remove-Item config/generated/zitadel.env, src/Geopilot.Api/appsettings.Local.Zitadel.json -ErrorAction SilentlyContinue
+```
+
+In einer POSIX-Shell:
+
+```bash
 rm -f config/generated/zitadel.env src/Geopilot.Api/appsettings.Local.Zitadel.json
 ```
 
 `rm -s` statt `down`, aus zwei Gründen: es fasst das Netzwerk nicht an, und der Dienst `db` bleibt stehen. Letzteres ist nötig, denn der zweite Befehl greift darauf zu und die Datenbank `geopilot` soll unberührt bleiben.
 
-Danach die Provisionierung von oben wiederholen. Die Client-IDs sind dann neu, aber weil `config/generated/zitadel.env` direkt gelesen wird, genügt das Überschreiben durch den Provisionierungslauf. In `.env` ist nichts nachzuführen.
+Das Präfix `geopilot_` im dritten Befehl ist der Compose-Projektname, und der kommt aus dem Verzeichnisnamen des Checkouts. Aus einem `git worktree` heraus lautet er anders, und der Befehl würde die Volumes des Haupt-Checkouts löschen. `docker compose -f docker-compose.yml -f docker-compose.zitadel.yml config --format json` nennt den geltenden Namen unter `name`.
 
-Der vierte Befehl ist nicht optional. Beide Dateien tragen die Client-IDs und das Secret der alten Instanz: `config/generated/zitadel.env` für den Start über Compose, `appsettings.Local.Zitadel.json` für die API aus der IDE. Bleiben sie liegen, scheitert die Anmeldung mit einem unbekannten Client statt mit dem Platzhalter `run-zitadel-provision-first`. Beide entstehen erst beim Provisionierungslauf, `-f` hält den Befehl deshalb still, solange es sie noch nicht gibt.
+Das Löschen der beiden Dateien ist nicht optional. Sie tragen die Client-IDs und das Secret der alten Instanz: `config/generated/zitadel.env` für den Start über Compose, `appsettings.Local.Zitadel.json` für die API aus der IDE. Bleiben sie liegen, scheitert die Anmeldung mit einem unbekannten Client statt mit dem Platzhalter `run-zitadel-provision-first`. Beide entstehen erst beim Provisionierungslauf, deshalb unterdrücken beide Varianten die Meldung, solange es sie noch nicht gibt.
 
 Danach die Provisionierung von oben wiederholen.
 
