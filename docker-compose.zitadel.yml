@@ -66,9 +66,9 @@ services:
       # the applications and the development users. Its key lands in the same bootstrap
       # volume, so provisioning needs no manually created credential.
       #
-      # A key, not a personal access token: the terraform provider pinned to ~>2.2.0 offers
-      # only jwt_file, jwt_profile_file and jwt_profile_json. Token support arrived later
-      # under the name access_token. Production authenticates the same way.
+      # A key, not a personal access token: the pinned terraform provider offers only
+      # jwt_file, jwt_profile_file and jwt_profile_json. Token support arrived later under the
+      # name access_token. Production authenticates the same way.
       ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: /zitadel/bootstrap/admin-key.json
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: terraform
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Local provisioning
@@ -147,9 +147,8 @@ services:
       zitadel-login:
         condition: service_healthy
 
-  # Applies terraform/local once and exits, which creates the organization, the project, both
-  # applications and the development users. This is the counterpart to Keycloak's
-  # --import-realm, so nobody has to set the instance up by hand.
+  # Applies terraform/local once and exits, which creates the project, both applications and
+  # the development users. This is the counterpart to Keycloak's --import-realm.
   #
   # The configuration is mounted read-only and copied into the state volume before running,
   # so terraform never writes into the repository and leaves no root-owned files behind.
@@ -187,8 +186,9 @@ services:
         # an output that succeeds but returns nothing.
         CLIENT_ID=$$(terraform output -raw oidc_client_id)
         API_ID=$$(terraform output -raw api_client_id)
-        if [ -z "$$CLIENT_ID" ] || [ -z "$$API_ID" ]; then
-          echo "terraform returned an empty client id, aborting"
+        API_SECRET=$$(terraform output -raw api_client_secret)
+        if [ -z "$$CLIENT_ID" ] || [ -z "$$API_ID" ] || [ -z "$$API_SECRET" ]; then
+          echo "terraform returned an empty value, aborting"
           exit 1
         fi
         mkdir -p /generated
