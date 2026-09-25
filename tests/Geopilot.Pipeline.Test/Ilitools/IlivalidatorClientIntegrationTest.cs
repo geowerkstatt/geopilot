@@ -249,6 +249,46 @@ public class IlivalidatorClientIntegrationTest
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
     }
 
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithRefMappingFilePath()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_invalid_refmapping.log");
+        var xtfLogFile = GetTestPipelineFile("validation_invalid_refmapping.xtf");
+
+        // Like the meta config, the mapping is only accepted in the form ilidata:<DatasetId>. As with the plugin id,
+        // the rejection is also what proves that the field reaches the wrapper at all.
+        var args = new IlivalidatorArgs { RefMapping = "refmapping.xtf" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithScopeForAnOlderToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_scope_older_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_scope_older_version.xtf");
+
+        // The scope needs ilivalidator 1.15.0, so the wrapper rejects it for the predecessor the compose image
+        // offers. As with the plugin id, the rejection is also what proves that the field reaches the wrapper at all.
+        var args = new IlivalidatorArgs { Scope = "449", ToolVersion = "1.14.4" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
     private async Task DeleteIfExistsAsync(PipelineFile file)
     {
         var path = await file.GetLocalPathAsync();

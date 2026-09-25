@@ -302,7 +302,17 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, string? refMapping, string? modelDirs, bool? allObjectsAccessible, string? pluginIds, string? toolVersion, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(
+    string? validationProfile,
+    string? refMapping,
+    string? modelDirs,
+    bool? allObjectsAccessible,
+    string? pluginIds,
+    string? toolVersion,
+    IPipelineFile? modelRepository,
+    IIlivalidatorClient ilivalidatorClient,
+    IPipelineFileManager pipelineFileManager,
+    ILogger logger)
 {
 }
 ```

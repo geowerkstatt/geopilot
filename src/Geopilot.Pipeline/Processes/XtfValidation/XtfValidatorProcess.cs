@@ -64,7 +64,17 @@ internal class XtfValidatorProcess
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string? validationProfile, string? refMapping, string? modelDirs, bool? allObjectsAccessible, string? pluginIds, string? toolVersion, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public XtfValidatorProcess(
+        string? validationProfile,
+        string? refMapping,
+        string? modelDirs,
+        bool? allObjectsAccessible,
+        string? pluginIds,
+        string? toolVersion,
+        IPipelineFile? modelRepository,
+        IIlivalidatorClient ilivalidatorClient,
+        IPipelineFileManager pipelineFileManager,
+        ILogger logger)
     {
         this.modelRepository = modelRepository;
         this.validatorArgs = new IlivalidatorArgs
