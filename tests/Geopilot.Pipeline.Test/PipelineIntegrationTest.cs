@@ -258,6 +258,63 @@ public class PipelineIntegrationTest
         Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
     }
 
+    [TestMethod(DisplayName = "The scope read from the delivery reaches the validation")]
+    public async Task ScopeReadFromTheDeliveryReachesTheValidation()
+    {
+        var factory = CreatePipelineFactory("xtfMetadataScopePipeline");
+        var validation = factory.ValidateDefinition();
+        Assert.IsTrue(validation.IsValid, validation.ErrorMessage);
+
+        using var pipeline = factory.CreatePipeline("dmav_validation", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        var upload = new List<IPipelineFile> { new PipelineFile("TestData/XtfMetadata/dmav_municipality.xtf", "dmav_municipality.xtf") };
+        var context = await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.AreEqual("7901", context.StepResults["metadata"].ExtractProperty("Scope"));
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(
+                It.Is<IlivalidatorArgs>(args => args.Scope == "7901" && args.RefMapping == "ilidata:DMAV_RefData_Mapping"),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile?>(),
+                It.IsAny<IReadOnlyList<IPipelineFile>?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod(DisplayName = "A delivery without a valid municipality stops before the validation")]
+    public async Task DeliveryWithoutAValidMunicipalityStopsBeforeTheValidation()
+    {
+        var factory = CreatePipelineFactory("xtfMetadataScopePipeline");
+        var validation = factory.ValidateDefinition();
+        Assert.IsTrue(validation.IsValid, validation.ErrorMessage);
+
+        using var pipeline = factory.CreatePipeline("dmav_validation", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        var upload = new List<IPipelineFile> { new PipelineFile("TestData/XtfMetadata/dmav_missing_nachfuehrung.xtf", "dmav_missing_nachfuehrung.xtf") };
+        await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, pipeline.Steps[1].State, "The scope-required condition should fail the metadata step.");
+        Assert.AreEqual("scope-required", pipeline.Steps[1].ConditionEvaluations.Single(evaluation => evaluation.Matched).ConditionId);
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(
+                It.IsAny<IlivalidatorArgs>(),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile>(),
+                It.IsAny<IPipelineFile?>(),
+                It.IsAny<IReadOnlyList<IPipelineFile>?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // The validation logs are the input of the zip step, so the client double has to produce them the way the
     // real one does: written into the files the process handed it.
     private void SetUpIlivalidatorClient(bool validationSuccessful)

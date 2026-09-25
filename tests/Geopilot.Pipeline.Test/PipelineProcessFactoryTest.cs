@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
+using Geopilot.Pipeline.Processes.XtfMetadata;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.Pipeline.Test.Processes;
 using Geopilot.PipelineCore.Ilitools;
@@ -41,6 +42,7 @@ public class PipelineProcessFactoryTest
         var baseConfig = new Parameterization()
         {
             { "modelDirs", "https://base.test/" }, // defines a parameter only in base config
+            { "refMapping", "DMAV_RefData_Mapping" }, // a deployment setting like modelDirs
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig
@@ -111,7 +113,112 @@ public class PipelineProcessFactoryTest
         Assert.IsNotNull(configuredArgs, "Validator arguments not built from the merged configuration");
         Assert.AreEqual("ilidata:PROFILE-A", configuredArgs.MetaConfig, "Overwritten validation profile not as expected");
         Assert.AreEqual("https://base.test/", configuredArgs.ModelDirs?.Single(), "Model directory from the base config not as expected");
+        Assert.AreEqual("ilidata:DMAV_RefData_Mapping", configuredArgs.RefMapping, "Reference data mapping from the base config not as expected");
     }
+
+    [TestMethod(DisplayName = "Create Process Binds A Nested Metadata Query")]
+    public void CreateProcessBindsANestedMetadataQuery()
+    {
+        // A YAML mapping arrives as Dictionary<object, object>, and an enum member in any casing.
+        var defaultConfig = new Parameterization
+        {
+            { "scope", new Dictionary<object, object> { { "path", "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer" }, { "fetch", "currentlyValid" } } },
+        };
+        using var pipelineProcessFactory = CreateFactoryWithoutBaseConfig();
+
+        var process = pipelineProcessFactory
+            .Builder()
+            .StepConfig(MetadataStep())
+            .Processes(new List<ProcessConfig> { MetadataProcess(defaultConfig) })
+            .PipelineDirectory(Path.GetTempPath())
+            .JobId(Guid.NewGuid())
+            .Build();
+
+        var query = typeof(XtfMetadataExtractorProcess)
+            .GetField("scope", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(process) as XtfMetadataQuery;
+        Assert.IsNotNull(query, "The scope query was not bound from the nested configuration.");
+        Assert.AreEqual("DMAV_HoheitsgrenzenAV_V1_0:Gemeinde/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer", query.Path);
+        Assert.AreEqual(XtfMetadataFetch.CurrentlyValid, query.Fetch);
+    }
+
+    [TestMethod(DisplayName = "Validate Rejects A Metadata Query Without Path")]
+    public void ValidateRejectsAMetadataQueryWithoutPath()
+    {
+        var defaultConfig = new Parameterization
+        {
+            { "scope", new Dictionary<object, object> { { "fetch", "Single" } } },
+        };
+        using var pipelineProcessFactory = CreateFactoryWithoutBaseConfig();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory
+            .Builder()
+            .StepConfig(MetadataStep())
+            .Processes(new List<ProcessConfig> { MetadataProcess(defaultConfig) })
+            .Validate());
+
+        Assert.Contains("scope", exception.Message);
+    }
+
+    [TestMethod(DisplayName = "Validate Rejects An Unknown Key In The Metadata Query")]
+    public void ValidateRejectsAnUnknownKeyInTheMetadataQuery()
+    {
+        // A misspelled fetch would otherwise bind silently as Single.
+        var defaultConfig = new Parameterization
+        {
+            { "scope", new Dictionary<object, object> { { "path", "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer" }, { "fetsch", "CurrentlyValid" } } },
+        };
+        using var pipelineProcessFactory = CreateFactoryWithoutBaseConfig();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory
+            .Builder()
+            .StepConfig(MetadataStep())
+            .Processes(new List<ProcessConfig> { MetadataProcess(defaultConfig) })
+            .Validate());
+
+        Assert.Contains("scope", exception.Message);
+    }
+
+    [TestMethod(DisplayName = "Validate Rejects A Metadata Extractor Without Scope")]
+    public void ValidateRejectsAMetadataExtractorWithoutScope()
+    {
+        using var pipelineProcessFactory = CreateFactoryWithoutBaseConfig();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory
+            .Builder()
+            .StepConfig(MetadataStep())
+            .Processes(new List<ProcessConfig> { MetadataProcess(new Parameterization()) })
+            .Validate());
+
+        Assert.Contains("<scope>", exception.Message);
+        Assert.Contains("not nullable", exception.Message);
+    }
+
+    private PipelineProcessFactory CreateFactoryWithoutBaseConfig()
+    {
+        var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
+        pipelineOptionsMock.SetupGet(o => o.Value).Returns(new PipelineOptions
+        {
+            Definition = "",
+            Plugins = [],
+            ProcessConfigs = new Dictionary<string, Parameterization>(),
+        });
+        return new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
+    }
+
+    private static StepConfig MetadataStep() => new()
+    {
+        Id = "metadata",
+        DisplayName = new Dictionary<string, string> { { "en", "Metadata" } },
+        ProcessId = "xtf_metadata",
+    };
+
+    private static ProcessConfig MetadataProcess(Parameterization defaultConfig) => new()
+    {
+        Id = "xtf_metadata",
+        Implementation = "Geopilot.Pipeline.Processes.XtfMetadata.XtfMetadataExtractorProcess",
+        DefaultConfig = defaultConfig,
+    };
 
     public abstract class InitialzationDataSourceAttribute : Attribute
     {

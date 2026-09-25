@@ -10,7 +10,7 @@ namespace Geopilot.Pipeline.Processes.XtfValidation;
 /// </summary>
 internal class XtfValidatorProcess
 {
-    private const string MetaConfigPrefix = "ilidata:";
+    private const string IlidataPrefix = "ilidata:";
 
     /// <summary>
     /// What the tool writes into its log when it cannot resolve the configured meta configuration. It then exits with
@@ -55,6 +55,7 @@ internal class XtfValidatorProcess
     /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
     /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
+    /// <param name="refMapping">Optional mapping that names the reference data the tool loads for the extent of the validation, given like <paramref name="validationProfile"/> as a dataset id in one of the <paramref name="modelDirs"/>. Which entries apply is selected by the <c>scope</c> input of the run.</param>
     /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
     /// <param name="pluginIds">Optional ilitools-wrapper plugins as a semicolon separated list of ids, which provide the user defined functions a model may call in its constraints. Which ids exist is a property of the wrapper deployment.</param>
@@ -63,13 +64,24 @@ internal class XtfValidatorProcess
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, string? pluginIds, string? toolVersion, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public XtfValidatorProcess(
+        string? validationProfile,
+        string? refMapping,
+        string? modelDirs,
+        bool? allObjectsAccessible,
+        string? pluginIds,
+        string? toolVersion,
+        IPipelineFile? modelRepository,
+        IIlivalidatorClient ilivalidatorClient,
+        IPipelineFileManager pipelineFileManager,
+        ILogger logger)
     {
         this.modelRepository = modelRepository;
         this.validatorArgs = new IlivalidatorArgs
         {
             ModelDirs = SplitConfiguredList(modelDirs),
-            MetaConfig = BuildMetaConfig(validationProfile),
+            MetaConfig = ToIlidataReference(validationProfile),
+            RefMapping = ToIlidataReference(refMapping),
             AllObjectsAccessible = allObjectsAccessible ?? true,
             PluginIds = SplitConfiguredList(pluginIds),
             ToolVersion = string.IsNullOrWhiteSpace(toolVersion) ? null : toolVersion.Trim(),
@@ -90,13 +102,20 @@ internal class XtfValidatorProcess
     /// upload. They only take part in the validation when <c>modelDirs</c> contains the entry <c>%ITF_DIR/models</c>,
     /// whose position ranks them against the other model sources. Unwired, no models are sent.
     /// </param>
+    /// <param name="scope">
+    /// The extent of this validation, for example the BFS number of the delivered municipality, passed to the tool as
+    /// <c>--scope</c>. An input rather than configuration, because it belongs to the delivery: a literal in the step,
+    /// or the <c>Scope</c> the XTF metadata extractor reads from the transfer file. Unwired or blank, no scope is passed.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
-    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, string? scope, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transferFile);
         ArgumentNullException.ThrowIfNull(modelFiles);
+
+        var runArgs = validatorArgs with { Scope = string.IsNullOrWhiteSpace(scope) ? null : scope.Trim() };
 
         logger.LogInformation($"Validating transfer file <{transferFile.OriginalFileName}>...");
 
@@ -108,7 +127,7 @@ internal class XtfValidatorProcess
             logger.LogInformation($"Forwarding {modelFiles.Length} delivered model file(s) to the validation.");
         }
 
-        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, cancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
@@ -188,14 +207,14 @@ internal class XtfValidatorProcess
         return entries.Length > 0 ? entries : null;
     }
 
-    private static string? BuildMetaConfig(string? validationProfile)
+    private static string? ToIlidataReference(string? datasetId)
     {
-        if (string.IsNullOrWhiteSpace(validationProfile))
+        if (string.IsNullOrWhiteSpace(datasetId))
             return null;
 
-        // The tool resolves the profile through the repository index, so the configured value is a dataset id.
-        return validationProfile.StartsWith(MetaConfigPrefix, StringComparison.OrdinalIgnoreCase)
-            ? validationProfile
-            : MetaConfigPrefix + validationProfile;
+        // The tool resolves the profile and the mapping through the repository index, so the configured value is a dataset id.
+        return datasetId.StartsWith(IlidataPrefix, StringComparison.OrdinalIgnoreCase)
+            ? datasetId
+            : IlidataPrefix + datasetId;
     }
 }

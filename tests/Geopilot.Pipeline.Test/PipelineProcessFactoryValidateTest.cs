@@ -417,6 +417,40 @@ public class PipelineProcessFactoryValidateTest
     }
 
     [TestMethod]
+    public void RejectsAConfiguredNullForANonNullableParameter()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        // An empty YAML value arrives as null, which a parameter declared non-nullable refuses like a missing value.
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(TestProcessStep())
+                .Processes(TestProcesses("Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess", new Parameterization
+                {
+                    ["mandatoryString"] = null,
+                    ["mandatoryInt"] = "123",
+                    ["mandatoryDouble"] = "123.456",
+                    ["mandatoryBoolean"] = "true",
+                }))
+                .Validate());
+
+        Assert.Contains("<mandatoryString>", exception.Message);
+        Assert.Contains("not nullable", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsAConfiguredNullWithoutNullableAnnotations()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        // A plugin built without nullable annotations declares nothing about null, so it keeps taking a configured null.
+        factory.Builder()
+            .StepConfig(TestProcessStep())
+            .Processes(TestProcesses("Geopilot.Pipeline.Test.Processes.NoNullableAnnotationsTestProcess", new Parameterization { ["value"] = null }))
+            .Validate();
+    }
+
+    [TestMethod]
     public void RejectsUnknownTreeFieldInGroupBy()
     {
         using var factory = CreateFactory();
@@ -613,6 +647,18 @@ public class PipelineProcessFactoryValidateTest
         DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Zip" }),
         ProcessId = "zip_package_process",
         Input = input,
+    };
+
+    private static StepConfig TestProcessStep() => new()
+    {
+        Id = "test_step",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Test" }),
+        ProcessId = "test_process",
+    };
+
+    private static List<ProcessConfig> TestProcesses(string implementation, Parameterization defaultConfig) => new()
+    {
+        new ProcessConfig { Id = "test_process", Implementation = implementation, DefaultConfig = defaultConfig },
     };
 
     private static List<ProcessConfig> ZipProcesses() => new()
