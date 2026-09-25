@@ -571,12 +571,17 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// parameter is not configured. A configured value that cannot be converted to the
         /// parameter type is a configuration error and throws, even for a nullable parameter:
         /// silently falling back to null would hide typos in the pipeline definition. A
-        /// configured null counts as convertible only for nullable parameter types.
+        /// configured null, such as an empty YAML value, counts as not configured for a
+        /// parameter declared non-nullable, so the caller refuses it like a missing one.
         /// </summary>
         private static bool TryGetConfiguredValue(ParameterInfo parameterInfo, Parameterization processConfig, out object? convertedValue)
         {
             convertedValue = null;
             if (string.IsNullOrEmpty(parameterInfo.Name) || !processConfig.TryGetValue(parameterInfo.Name, out var rawValue))
+                return false;
+
+            // Code without nullable annotations declares nothing, so its reference-type parameters keep taking null.
+            if (rawValue is null && new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.NotNull)
                 return false;
 
             if (RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out convertedValue))
