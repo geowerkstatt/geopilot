@@ -115,6 +115,20 @@ public class PipelineDefinitionValidationTest
             "process errors must not be reported alongside definition errors");
     }
 
+    // With path and fetch not indented under it, scope is empty and they are keys no parameter takes. That slip in a
+    // customer maintained definition has to stop the start instead of failing the first delivery.
+    [TestMethod]
+    public void ValidateDefinitionRejectsAMisindentedMetadataScope()
+    {
+        var result = CreatePipelineFactory("xtfMetadataMisindentedScope").ValidateDefinition();
+
+        Assert.IsFalse(result.IsValid);
+        var message = result.ErrorMessage;
+        Assert.IsNotNull(message);
+        StringAssert.Contains(message, "<scope>");
+        StringAssert.Contains(message, "not nullable");
+    }
+
     private PipelineFactory CreatePipelineFactory(string filename) =>
         CreatePipelineFactoryForPath(Path.Combine(AppContext.BaseDirectory, "TestData", "Pipeline", filename + ".yaml"));
 

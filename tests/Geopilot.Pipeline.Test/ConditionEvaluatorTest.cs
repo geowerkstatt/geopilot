@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Geopilot.Pipeline.Processes.XtfMetadata;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Geopilot.Pipeline.Test;
@@ -243,5 +244,18 @@ public class ConditionEvaluatorTest
         Assert.IsFalse(result.Matched);
         Assert.HasCount(1, result.ReferencedParameters);
         Assert.AreEqual(5, result.ReferencedParameters["step1.result1"]);
+    }
+
+    [TestMethod(DisplayName = "Compare an enum output with text")]
+    [DataRow("[metadata.FileState] == 'Unreadable'", true)]
+    [DataRow("[metadata.FileState] != 'Readable'", true)]
+    [DataRow("[metadata.FileState] == 'Readable'", false)]
+    public async Task EnumOutputComparesWithText(string expression, bool expected)
+    {
+        var expressionParameters = new Dictionary<string, object?> { { "metadata.FileState", XtfFileState.Unreadable } };
+
+        var conditionResult = await conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters);
+
+        Assert.AreEqual(expected, conditionResult.Matched);
     }
 }

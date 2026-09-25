@@ -104,8 +104,8 @@ internal class XtfValidatorProcess
     /// </param>
     /// <param name="scope">
     /// The extent of this validation, for example the BFS number of the delivered municipality, passed to the tool as
-    /// <c>--scope</c>. An input rather than configuration, because it belongs to the delivery: a literal in the step
-    /// today, a value a preceding step reads from the transfer file later. Unwired or blank, no scope is passed.
+    /// <c>--scope</c>. An input rather than configuration, because it belongs to the delivery: a literal in the step,
+    /// or the <c>Scope</c> the XTF metadata extractor reads from the transfer file. Unwired or blank, no scope is passed.
     /// </param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>

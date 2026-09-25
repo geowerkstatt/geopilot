@@ -1,0 +1,55 @@
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+  - id: xtf_metadata
+    implementation: Geopilot.Pipeline.Processes.XtfMetadata.XtfMetadataExtractorProcess
+    default_config:
+      scope:
+        path: "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer"
+        fetch: CurrentlyValid
+  - id: xtf_validator
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      refMapping: DMAV_RefData_Mapping
+pipelines:
+  - id: dmav_validation
+    display_name:
+      en: DMAV validation
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+        process_id: xtf_matcher
+        input:
+          files: "${upload()}"
+      - id: metadata
+        display_name:
+          en: Metadata
+        process_id: xtf_metadata
+        conditions:
+          pre:
+            fail_conditions:
+              - id: exactly-one-xtf-required
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
+          post:
+            fail_conditions:
+              - id: xtf-not-readable
+                expression: "[metadata.FileState] != 'Readable'"
+              - id: scope-required
+                expression: "[metadata.FileState] == 'Readable' && [metadata.Scope] == null"
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+          scope: "${step_output(metadata.Scope)}"
