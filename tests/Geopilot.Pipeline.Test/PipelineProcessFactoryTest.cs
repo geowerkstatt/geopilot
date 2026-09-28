@@ -41,6 +41,7 @@ public class PipelineProcessFactoryTest
         var baseConfig = new Parameterization()
         {
             { "modelDirs", "https://base.test/" }, // defines a parameter only in base config
+            { "refMapping", "DMAV_RefData_Mapping" }, // a deployment setting like modelDirs
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig
@@ -111,6 +112,7 @@ public class PipelineProcessFactoryTest
         Assert.IsNotNull(configuredArgs, "Validator arguments not built from the merged configuration");
         Assert.AreEqual("ilidata:PROFILE-A", configuredArgs.MetaConfig, "Overwritten validation profile not as expected");
         Assert.AreEqual("https://base.test/", configuredArgs.ModelDirs?.Single(), "Model directory from the base config not as expected");
+        Assert.AreEqual("ilidata:DMAV_RefData_Mapping", configuredArgs.RefMapping, "Reference data mapping from the base config not as expected");
     }
 
     public abstract class InitialzationDataSourceAttribute : Attribute

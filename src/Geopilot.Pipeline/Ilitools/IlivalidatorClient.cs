@@ -75,6 +75,8 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         var info = new ValidateRequestInfo
         {
             MetaConfig = args.MetaConfig ?? string.Empty,
+            RefMapping = args.RefMapping ?? string.Empty,
+            Scope = args.Scope ?? string.Empty,
             AllObjectsAccessible = args.AllObjectsAccessible,
             ToolVersion = args.ToolVersion ?? string.Empty,
         };
