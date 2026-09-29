@@ -588,7 +588,7 @@ pipelines:
           validationProfile: dmav_v1_1_with_additional_rules
           refMapping: dmav_refdata_mapping
           pluginIds: ilivalid-gwr@1.0.0-20260217.141026-7
-          toolVersion: 1.15.0
+          toolVersion: 1.15.1-INTERNAL-GEOWERKSTATT-SNAPSHOT
         conditions:
           post:
             restrict_delivery_conditions:
