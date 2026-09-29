@@ -2,6 +2,7 @@
 using Geopilot.Api.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -31,14 +32,25 @@ public class GeopilotUserInfoServiceTest
 
     private GeopilotUserInfoService CreateUserInfoService(params string[] userNameClaims)
     {
-        var settings = new Dictionary<string, string?> { ["Auth:UserInfoUrl"] = "https://example.com/userinfo" };
-        for (var i = 0; i < userNameClaims.Length; i++)
-        {
-            settings[$"Auth:UserNameClaims:{i}"] = userNameClaims[i];
-        }
+        var options = new UserInfoOptions { UserInfoUrl = "https://example.com/userinfo", UserNameClaims = userNameClaims };
+        return new GeopilotUserInfoService(httpClient, Options.Create(options), loggerMock.Object);
+    }
 
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        return new GeopilotUserInfoService(httpClient, configuration, loggerMock.Object);
+    [TestMethod]
+    public void UserInfoOptionsBindingReplacesDefaultUserNameClaims()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:UserNameClaims:0"] = "givenname",
+                ["Auth:UserNameClaims:1"] = "surname",
+            })
+            .Build();
+
+        var options = configuration.GetSection(UserInfoOptions.SectionName).Get<UserInfoOptions>();
+
+        Assert.IsNotNull(options?.UserNameClaims);
+        CollectionAssert.AreEqual(new[] { "givenname", "surname" }, options.UserNameClaims.ToArray());
     }
 
     private void SetupUserInfoResponse(string json)

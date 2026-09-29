@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Contracts;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace Geopilot.Api.Authorization;
@@ -13,10 +14,8 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// </summary>
     public const string HttpClientName = "GeopilotUserInfo";
 
-    private static readonly string[] DefaultUserNameClaims = ["name"];
-
     private readonly HttpClient httpClient;
-    private readonly IConfiguration configuration;
+    private readonly string? userInfoUrl;
     private readonly ILogger<GeopilotUserInfoService> logger;
     private readonly IReadOnlyList<string> userNameClaims;
 
@@ -33,10 +32,10 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
     /// </summary>
     /// <param name="httpClientFactory">The HTTP client factory.</param>
-    /// <param name="configuration">The application configuration.</param>
+    /// <param name="options">The user info options.</param>
     /// <param name="logger">The logger for user info service related logging.</param>
-    public GeopilotUserInfoService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
-        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), configuration ?? throw new ArgumentNullException(nameof(configuration)), logger)
+    public GeopilotUserInfoService(IHttpClientFactory httpClientFactory, IOptions<UserInfoOptions> options, ILogger<GeopilotUserInfoService> logger)
+        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), options ?? throw new ArgumentNullException(nameof(options)), logger)
     {
     }
 
@@ -44,16 +43,15 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
     /// </summary>
     /// <param name="httpClient">The HTTP client for making requests to the identity provider.</param>
-    /// <param name="configuration">The application configuration.</param>
+    /// <param name="options">The user info options.</param>
     /// <param name="logger">The logger for user info service related logging.</param>
-    internal GeopilotUserInfoService(HttpClient httpClient, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
+    internal GeopilotUserInfoService(HttpClient httpClient, IOptions<UserInfoOptions> options, ILogger<GeopilotUserInfoService> logger)
     {
         this.httpClient = httpClient;
-        this.configuration = configuration;
         this.logger = logger;
 
-        var configuredUserNameClaims = configuration.GetSection("Auth:UserNameClaims").Get<string[]>();
-        userNameClaims = configuredUserNameClaims is { Length: > 0 } ? configuredUserNameClaims : DefaultUserNameClaims;
+        userInfoUrl = options.Value.UserInfoUrl;
+        userNameClaims = options.Value.UserNameClaims is { Count: > 0 } configured ? configured : UserInfoOptions.DefaultUserNameClaims;
     }
 
     /// <inheritdoc/>
@@ -66,8 +64,7 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
 
         try
         {
-            var userInfoEndpoint = configuration["Auth:UserInfoUrl"];
-            using var request = new HttpRequestMessage(HttpMethod.Get, userInfoEndpoint);
+            using var request = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
             request.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             var response = await httpClient.SendAsync(request, cancellationToken);
