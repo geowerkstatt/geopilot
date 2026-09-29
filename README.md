@@ -256,6 +256,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "ConfidentialClientId": "geopilot-api",
     "ConfidentialClientSecret": "<secret from environment or vault>",
     "UserInfoUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo",
+    "UserNameClaims": [ "name" ], // Userinfo claims joined with a space to form the displayed name (default: ["name"], e.g. ["givenname", "surname"])
 
     // Swagger UI auth options
     "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
@@ -266,6 +267,8 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
+
+Den Namen einer Person bildet die API aus den Claims in `Auth:UserNameClaims` (Standard: `["name"]`). Mehrere Claims werden mit einem Leerzeichen verbunden, ein fehlender Claim wird übersprungen. Liefert ein Identity Provider kein `name`, etwa einer mit Anbindung an AGOV, setzt `["givenname", "surname"]` den Namen aus Vor- und Nachname zusammen. Liefert keiner der Claims einen Wert, meldet die API die Person nicht an. Die Einstellung gilt für beide Token-Formate.
 
 ## Cloud Upload
 

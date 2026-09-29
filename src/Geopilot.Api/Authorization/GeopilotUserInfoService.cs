@@ -13,9 +13,12 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// </summary>
     public const string HttpClientName = "GeopilotUserInfo";
 
+    private static readonly string[] DefaultUserNameClaims = ["name"];
+
     private readonly HttpClient httpClient;
     private readonly IConfiguration configuration;
     private readonly ILogger<GeopilotUserInfoService> logger;
+    private readonly IReadOnlyList<string> userNameClaims;
 
     // Invariant: single-slot cache requires Scoped service lifetime.
     private string? cachedToken;
@@ -33,7 +36,7 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// <param name="configuration">The application configuration.</param>
     /// <param name="logger">The logger for user info service related logging.</param>
     public GeopilotUserInfoService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
-        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), configuration, logger)
+        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), configuration ?? throw new ArgumentNullException(nameof(configuration)), logger)
     {
     }
 
@@ -48,6 +51,9 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
         this.httpClient = httpClient;
         this.configuration = configuration;
         this.logger = logger;
+
+        var configuredUserNameClaims = configuration.GetSection("Auth:UserNameClaims").Get<string[]>();
+        userNameClaims = configuredUserNameClaims is { Length: > 0 } ? configuredUserNameClaims : DefaultUserNameClaims;
     }
 
     /// <inheritdoc/>
@@ -78,11 +84,19 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            var userInfo = JsonSerializer.Deserialize<UserInfoResponse>(content, JsonOptions);
+            using var document = JsonDocument.Parse(content);
+            var userInfo = document.RootElement.Deserialize<UserInfoResponse>(JsonOptions);
+            if (userInfo is not null)
+            {
+                userInfo.Name = ComposeUserName(document.RootElement);
+            }
+
             if (string.IsNullOrEmpty(userInfo?.Sub) || string.IsNullOrEmpty(userInfo?.Email) ||
                 string.IsNullOrEmpty(userInfo?.Name))
             {
-                logger.LogError("UserInfo response missing required fields.");
+                logger.LogError(
+                    "UserInfo response missing required fields: sub, email and a name from the claims <{UserNameClaims}> (Auth:UserNameClaims).",
+                    string.Join(", ", userNameClaims));
                 return null;
             }
 
@@ -103,5 +117,18 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
             logger.LogError(ex, "Error retrieving user info.");
             return null;
         }
+    }
+
+    // Joins the configured claims that carry a value, so a person without a surname still gets a name.
+    // Claim names match case-insensitively, like the rest of the user info response.
+    private string ComposeUserName(JsonElement userInfo)
+    {
+        var claims = userInfo.EnumerateObject().ToList();
+        var parts = userNameClaims
+            .Select(claimName => claims.FirstOrDefault(claim => string.Equals(claim.Name, claimName, StringComparison.OrdinalIgnoreCase)).Value)
+            .Where(value => value.ValueKind == JsonValueKind.String)
+            .Select(value => value.GetString()?.Trim())
+            .Where(part => !string.IsNullOrEmpty(part));
+        return string.Join(' ', parts);
     }
 }
