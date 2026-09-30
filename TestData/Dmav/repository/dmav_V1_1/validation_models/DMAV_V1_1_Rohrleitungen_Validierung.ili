@@ -1,0 +1,63 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Rohrleitungen_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+    VIEW TOPIC Rohrleitungen_Validierung = 
+    DEPENDS ON DMAV_Rohrleitungen_V1_1.Rohrleitungen;
+ 
+        VIEW v_Leitungsobjekt
+            PROJECTION OF DMAV_Rohrleitungen_V1_1.Rohrleitungen.Leitungsobjekt;
+        =
+            ALL OF Leitungsobjekt;
+
+            !!@ name = CH092551
+            !!@ message="(CH092551) Hoehengeometrie darf nicht 0.0 sein";
+            !!@ message_de="(CH092551) Hoehengeometrie darf nicht 0.0 sein";
+            !!@ message_fr="(CH092551) GeometrieAltitude ne peut pas être égale à 0.0";
+            !!@ message_it="(CH092551) La geometria dell'altezza non deve essere uguale a 0.0";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH092551: (
+                Punktelement->Hoehengeometrie <> 0.0
+            );
+
+        END v_Leitungsobjekt;
+
+        VIEW v_Messpunkt
+            PROJECTION OF DMAV_Rohrleitungen_V1_1.Rohrleitungen.Messpunkt;
+        =
+            ALL OF Messpunkt;
+
+            !!@ name = CH101503
+            !!@ message="(CH101503) Hoehengeometrie darf nicht 0.0 sein";
+            !!@ message_de="(CH101503) Hoehengeometrie darf nicht 0.0 sein";
+            !!@ message_fr="(CH101503) GeometrieAltitude ne peut pas être égale à 0.0";
+            !!@ message_it="(CH101503) La geometria dell'altezza non deve essere uguale a 0.0";
+            MANDATORY CONSTRAINT CH101503: (
+                Messpunkt->Hoehengeometrie <> 0.0
+            );
+
+        END v_Messpunkt; 
+
+    END Rohrleitungen_Validierung;
+
+END DMAV_V1_1_Rohrleitungen_Validierung.

@@ -13,6 +13,11 @@ processes:
       fileNamePatterns:
   - id: xtf_validator
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile:
+      refMapping:
+      pluginIds:
+      toolVersion:
   - id: xtf_error_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
     default_config:
@@ -33,6 +38,13 @@ processes:
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
   - id: unzipper
     implementation: Geopilot.Pipeline.Processes.Unzip.UnzipProcess
+  - id: xtf_metadata
+    implementation: Geopilot.Pipeline.Processes.XtfMetadata.XtfMetadataExtractorProcess
+    default_config:
+      # Für DMAV die Gemeinde ohne Untergang; die Regel des Modells (VIEW Gemeinde_Gueltig) wäre fetch: CurrentlyValid ohne Filter.
+      scope:
+        path: "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde[not(DMAV_HoheitsgrenzenAV_V1_0:Untergang)]/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer"
+        fetch: Single
 pipelines:
   - id: ili_validation
     display_name:
@@ -493,6 +505,138 @@ pipelines:
             actions:
               - Download
               - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+  # DMAV mit Zusatzanforderungen: liest die BFS-Nummer aus der Lieferung und prüft gegen die Referenzdaten dieser
+  # Gemeinde, samt GWR-Plugin. Braucht die DMAV-Testwelt (TestData/Dmav/README.md): das Repository unter
+  # http://interlis-models/dmav/ und das Plugin aus dem Compose-Profil dmav; ohne Plugin scheitert der Schritt.
+  - id: dmav_validation
+    display_name:
+      en: DMAV Validation with Additional Requirements
+      de: DMAV-Validierung mit Zusatzanforderungen
+      it: Validazione DMAV con requisiti supplementari
+      fr: Validation DMAV avec exigences supplémentaires
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: Analyzing uploaded files
+          de: Hochgeladene Dateien werden analysiert
+          it: Analisi dei file caricati
+          fr: Analyse des fichiers téléversés
+        process_id: xtf_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: exactly-one-xtf-required
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: UnmatchedFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: metadata
+        display_name:
+          en: Determining the municipality
+          de: Gemeinde wird bestimmt
+          it: Determinazione del comune
+          fr: Détermination de la commune
+        process_id: xtf_metadata
+        conditions:
+          post:
+            fail_conditions:
+              - id: xtf-not-readable
+                expression: "[metadata.FileState] != 'Readable'"
+                message:
+                  de: "Die Transferdatei ist kein lesbarer INTERLIS-2.4-Transfer."
+                  en: "The transfer file is not a readable INTERLIS 2.4 transfer."
+                  fr: "Le fichier de transfert n'est pas un transfert INTERLIS 2.4 lisible."
+                  it: "Il file di trasferimento non è un trasferimento INTERLIS 2.4 leggibile."
+              - id: scope-required
+                expression: "[metadata.FileState] == 'Readable' && [metadata.Scope] == null"
+                message:
+                  de: "Die BFS-Nummer der Gemeinde liess sich nicht aus der Lieferung lesen."
+                  en: "The BFS number of the municipality could not be read from the delivery."
+                  fr: "Le numéro OFS de la commune n'a pas pu être lu dans la livraison."
+                  it: "Non è stato possibile leggere il numero UST del comune dalla fornitura."
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: validation
+        display_name:
+          en: Validating XTF file
+          de: XTF Datei wird validiert
+          it: Validazione del file XTF
+          fr: Validation du fichier XTF
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: dmav_v1_1_with_additional_rules
+          refMapping: ilidata:dmav_refdata_mapping
+          pluginIds: ilivalid-gwr@1.0.0-20260217.141026-7
+          toolVersion: 1.15.1-INTERNAL-GEOWERKSTATT-SNAPSHOT
+        conditions:
+          post:
+            restrict_delivery_conditions:
+              - id: validation-failed
+                expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung war nicht erfolgreich."
+                  en: "Validation was not successful."
+                  fr: "La validation n'a pas réussi."
+                  it: "La validazione non è riuscita."
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+          scope: "${step_output(metadata.Scope)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
+              - Download
+              - Delivery
+          - property: XtfLog
+            actions:
+              - Download
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: error_visualization
+        display_name:
+          en: Error Visualization
+          de: Fehlervisualisierung
+          it: Visualizzazione degli errori
+          fr: Visualisation des erreurs
+        process_id: xtf_error_visualizer
+        conditions:
+          pre:
+            skip_conditions:
+              - id: validation-successful
+                expression: "[validation.ValidationSuccessful]"
+                message:
+                  de: "Validierung erfolgreich. Fehlervisualisierung wird übersprungen."
+                  en: "Validation successful. Error visualization will be skipped."
+                  fr: "Validation réussie. La visualisation des erreurs sera ignorée."
+                  it: "Validazione riuscita. La visualizzazione degli errori sarà ignorata."
+        input:
+          xtfLog: "${step_output(validation.XtfLog)}"
+        output_actions:
+          - property: Visualization
+            actions:
+              - Visualization
           - property: StatusMessage
             actions:
               - StatusMessage
