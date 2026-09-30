@@ -100,6 +100,56 @@ jobs:
             --title "${VERSION}" \
             --prerelease
 
+  # shortcut: published as edge and v<VERSION> only, release.yml does not retag it; hostings pin the version.
+  build-refdata-update-image:
+    runs-on: ubuntu-latest
+    name: Build and push the refdata-update Docker image
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set environment variables
+        run: |
+          echo VERSION=$(grep -oP "(?<=<VersionPrefix>)[^<]+" Directory.Build.props).$GITHUB_RUN_NUMBER >> $GITHUB_ENV
+          echo IMAGE_NAME=$REGISTRY/$(echo ${GITHUB_REPOSITORY,,})-refdata-update >> $GITHUB_ENV
+          echo COMMITED_AT=$(git show -s --format=%cI `git rev-parse HEAD`) >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Collect Docker image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.created=${{ env.COMMITED_AT }}
+            org.opencontainers.image.version=v${{ env.VERSION }}
+            org.opencontainers.image.maintainer=GeoWerkstatt GmbH <support@geowerkstatt.ch>
+          tags: |
+            type=edge
+            type=semver,pattern=v{{version}},value=${{ env.VERSION }}
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/refdata-update
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   publish-pipelinecore-nuget:
     name: Publish Geopilot.PipelineCore NuGet package
     uses: ./.github/workflows/publish-pipelinecore-nuget.yml
