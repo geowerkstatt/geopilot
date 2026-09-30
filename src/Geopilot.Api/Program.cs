@@ -197,6 +197,7 @@ builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
+builder.Services.Configure<UserInfoOptions>(builder.Configuration.GetSection(UserInfoOptions.SectionName));
 builder.Services.AddHttpClient(GeopilotUserInfoService.HttpClientName, client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
