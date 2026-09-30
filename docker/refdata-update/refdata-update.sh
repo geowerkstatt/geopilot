@@ -10,6 +10,8 @@ set -u
 # Overridable so test.sh can run against its own directories.
 sources=${REFDATA_SOURCES:-/config/sources.yaml}
 root=${REFDATA_ROOT:-/refdata}
+# Touched after a run without failures; the HEALTHCHECK of the image reports its age.
+stamp=${REFDATA_STAMP:-/var/lib/refdata-update/last-success}
 failed=0
 
 log() {
@@ -160,4 +162,5 @@ if [ "$failed" -gt 0 ]; then
   log "finished, $failed destination(s) kept their last state"
   exit 1
 fi
+mkdir -p "$(dirname "$stamp")" && touch "$stamp"
 log "finished"

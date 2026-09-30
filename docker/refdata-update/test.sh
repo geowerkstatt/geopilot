@@ -67,7 +67,8 @@ printf '#!/bin/sh\necho "$@" >> %s\nexec busybox wget "$@"\n' "$work/wget.log" >
 chmod +x "$work/bin/wget"
 
 status=0
-PATH="$work/bin:$PATH" REFDATA_SOURCES="$work/sources.yaml" REFDATA_ROOT="$root" refdata-update || status=$?
+PATH="$work/bin:$PATH" REFDATA_SOURCES="$work/sources.yaml" REFDATA_ROOT="$root" REFDATA_STAMP="$work/stamp" \
+  refdata-update || status=$?
 
 failures=0
 fail() {
@@ -93,6 +94,12 @@ downloads=$(grep -c 'archive.zip' "$work/wget.log" || true)
 [ "$downloads" -eq 1 ] || fail "archive.zip: expected one download, got $downloads"
 leftovers=$(find "$root" -name '.*.part')
 [ -z "$leftovers" ] || fail "leftovers: $leftovers"
+[ ! -e "$work/stamp" ] || fail "a run with failures touched the success stamp"
+
+printf -- '- source: %s/good.xtf\n  destination: a/replaced.xtf\n' "$base" > "$work/good.yaml"
+REFDATA_SOURCES="$work/good.yaml" REFDATA_ROOT="$root" REFDATA_STAMP="$work/stamp" refdata-update > /dev/null ||
+  fail "a run without failures exited with an error"
+[ -e "$work/stamp" ] || fail "a run without failures did not touch the success stamp"
 
 if [ "$failures" -gt 0 ]; then
   echo "refdata-update test: $failures failure(s)"

@@ -12,6 +12,7 @@ Das erledigt das Image `ghcr.io/geowerkstatt/geopilot-refdata-update`. Es bezieh
 | Datei `/config/sources.yaml` | Die Quellen, siehe unten. Nur lesend. |
 | `REFDATA_UPDATE_SCHEDULE` | Zeitplan in Cron-Syntax mit fünf Feldern, Standard `0 1 * * *` (täglich um 1 Uhr). |
 | `TZ` | Zeitzone des Zeitplans, etwa `Europe/Zurich`. Ohne Angabe gilt UTC. |
+| `REFDATA_UPDATE_MAX_AGE_HOURS` | Nach wie vielen Stunden ohne fehlerfreien Lauf der Container als `unhealthy` gilt, Standard `36`. Bei einem selteneren Zeitplan entsprechend höher setzen. |
 
 `ilidata.xml`, das Mapping und alle Dateien, die nicht in den Quellen stehen, fasst der Job nicht an. Sie legt der Betreiber in `/refdata` ab und pflegt sie selbst.
 
@@ -40,6 +41,8 @@ Eine YAML-Liste, ein Eintrag pro Quelle. Jede Quelle wird pro Lauf einmal herunt
 ## Verhalten bei Fehlern
 
 Jede Datei wird neben ihrem Ziel heruntergeladen oder entpackt und erst dann über das Ziel umbenannt, wenn sie vollständig ist und nach einem INTERLIS-Transfer aussieht. Scheitert der Bezug, liefert die Quelle etwa eine Fehlerseite oder fehlt ein Eintrag im Archiv, bleibt der letzte Stand liegen, und das Log nennt Ziel und Quelle. Die übrigen Dateien werden trotzdem bezogen. Ein Lauf, der noch nicht fertig ist, wenn der nächste fällig wird, lässt diesen aus.
+
+Damit veraltete Daten nicht unbemerkt bleiben, etwa weil eine Quelle umgezogen ist, meldet der Healthcheck des Images den Container als `unhealthy`, sobald der letzte Lauf ohne Fehler länger als `REFDATA_UPDATE_MAX_AGE_HOURS` zurückliegt. Beim Standard von 36 Stunden und einem nächtlichen Lauf ist das rund zwölf Stunden nach dem ersten gescheiterten Lauf der Fall. Sichtbar ist das in `docker compose ps` und in Portainer; das Log nennt die Quelle, die gescheitert ist. Nach dem Start bleibt der Container 30 Minuten im Zustand `starting`, damit der erste Lauf auch grosse Dateien beziehen kann.
 
 Die Aktualisierung ist pro Datei atomar, nicht über alle Dateien zusammen: Eine Prüfung, die während eines Laufs startet, kann alte und neue Dateien mischen.
 
