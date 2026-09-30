@@ -13,7 +13,7 @@ processes:
   - id: xtf_validator
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
-      refMapping: DMAV_RefData_Mapping
+      refMapping: ilidata:DMAV_RefData_Mapping
 pipelines:
   - id: dmav_validation
     display_name:
