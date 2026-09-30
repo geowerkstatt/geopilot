@@ -2,6 +2,7 @@
 using Geopilot.Api.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -14,7 +15,6 @@ namespace Geopilot.Api.Test.Authorization;
 public class GeopilotUserInfoServiceTest
 {
     private Mock<HttpMessageHandler> httpMessageHandlerMock;
-    private Mock<IConfiguration> configurationMock;
     private Mock<ILogger<GeopilotUserInfoService>> loggerMock;
     private HttpClient httpClient;
     private GeopilotUserInfoService userInfoService;
@@ -23,16 +23,82 @@ public class GeopilotUserInfoServiceTest
     public void Initialize()
     {
         httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-        configurationMock = new Mock<IConfiguration>();
         loggerMock = new Mock<ILogger<GeopilotUserInfoService>>();
 
         httpClient = new HttpClient(httpMessageHandlerMock.Object);
 
-        // Setup configuration
-        configurationMock.Setup(x => x["Auth:UserInfoUrl"])
-            .Returns("https://example.com/userinfo");
+        userInfoService = CreateUserInfoService();
+    }
 
-        userInfoService = new GeopilotUserInfoService(httpClient, configurationMock.Object, loggerMock.Object);
+    private GeopilotUserInfoService CreateUserInfoService(params string[] userNameClaims)
+    {
+        var options = new UserInfoOptions { UserInfoUrl = "https://example.com/userinfo", UserNameClaims = userNameClaims };
+        return new GeopilotUserInfoService(httpClient, Options.Create(options), loggerMock.Object);
+    }
+
+    [TestMethod]
+    public void UserInfoOptionsBindingReplacesDefaultUserNameClaims()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:UserNameClaims:0"] = "givenname",
+                ["Auth:UserNameClaims:1"] = "surname",
+            })
+            .Build();
+
+        var options = configuration.GetSection(UserInfoOptions.SectionName).Get<UserInfoOptions>();
+
+        Assert.IsNotNull(options?.UserNameClaims);
+        CollectionAssert.AreEqual(new[] { "givenname", "surname" }, options.UserNameClaims.ToArray());
+    }
+
+    private void SetupUserInfoResponse(string json)
+    {
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+            });
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithUserNameClaimsJoinsTheirValues()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "givenname": "Erika", "surname": "Muster" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Erika Muster", result.Name);
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithUserNameClaimsSkipsMissingClaim()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "name": "Ignored", "givenname": "Erika" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Erika", result.Name);
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithoutAnyUserNameClaimReturnsNull()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "name": "Erika Muster" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNull(result);
     }
 
     [TestCleanup]
