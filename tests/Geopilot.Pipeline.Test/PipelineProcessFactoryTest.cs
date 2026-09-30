@@ -42,7 +42,7 @@ public class PipelineProcessFactoryTest
         var baseConfig = new Parameterization()
         {
             { "modelDirs", "https://base.test/" }, // defines a parameter only in base config
-            { "refMapping", "DMAV_RefData_Mapping" }, // a deployment setting like modelDirs
+            { "refMapping", "ilidata:DMAV_RefData_Mapping" }, // a deployment setting like modelDirs
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig

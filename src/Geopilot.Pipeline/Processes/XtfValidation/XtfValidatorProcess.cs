@@ -55,7 +55,7 @@ internal class XtfValidatorProcess
     /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
     /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
-    /// <param name="refMapping">Optional mapping that names the reference data the tool loads for the extent of the validation, given like <paramref name="validationProfile"/> as a dataset id in one of the <paramref name="modelDirs"/>. Which entries apply is selected by the <c>scope</c> input of the run.</param>
+    /// <param name="refMapping">Optional mapping that names the reference data the tool loads for the extent of the validation, given as <c>ilidata:</c> and the dataset id that indexes it in one of the <paramref name="modelDirs"/>. Passed to <c>--refmapping</c> as written, without the prefix the profile gets. Which entries apply is selected by the <c>scope</c> input of the run.</param>
     /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
     /// <param name="pluginIds">Optional ilitools-wrapper plugins as a semicolon separated list of ids, which provide the user defined functions a model may call in its constraints. Which ids exist is a property of the wrapper deployment.</param>
@@ -81,7 +81,7 @@ internal class XtfValidatorProcess
         {
             ModelDirs = SplitConfiguredList(modelDirs),
             MetaConfig = ToIlidataReference(validationProfile),
-            RefMapping = ToIlidataReference(refMapping),
+            RefMapping = string.IsNullOrWhiteSpace(refMapping) ? null : refMapping.Trim(),
             AllObjectsAccessible = allObjectsAccessible ?? true,
             PluginIds = SplitConfiguredList(pluginIds),
             ToolVersion = string.IsNullOrWhiteSpace(toolVersion) ? null : toolVersion.Trim(),
@@ -212,7 +212,7 @@ internal class XtfValidatorProcess
         if (string.IsNullOrWhiteSpace(datasetId))
             return null;
 
-        // The tool resolves the profile and the mapping through the repository index, so the configured value is a dataset id.
+        // The tool resolves the profile through the repository index, so the configured value is a dataset id.
         return datasetId.StartsWith(IlidataPrefix, StringComparison.OrdinalIgnoreCase)
             ? datasetId
             : IlidataPrefix + datasetId;

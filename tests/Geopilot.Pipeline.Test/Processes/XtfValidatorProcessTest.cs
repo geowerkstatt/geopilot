@@ -198,12 +198,18 @@ public class XtfValidatorProcessTest
     [TestMethod]
     public async Task PassesTheConfiguredRefMapping()
     {
-        var process = CreateProcess(null, null, success: true, refMapping: "DMAV_RefData_Mapping");
+        var process = CreateProcess(null, null, success: true, refMapping: " ilidata:DMAV_RefData_Mapping ");
 
         await process.RunAsync(CreateTransferFile(), [], scope: null, CancellationToken.None);
 
-        // Resolved through the repository index like the profile, so the configured value is a dataset id.
         Assert.AreEqual("ilidata:DMAV_RefData_Mapping", capturedArgs?.RefMapping);
+
+        var bareProcess = CreateProcess(null, null, success: true, refMapping: "DMAV_RefData_Mapping");
+
+        await bareProcess.RunAsync(CreateTransferFile(), [], scope: null, CancellationToken.None);
+
+        // Unlike the profile, the mapping mirrors --refmapping and reaches the tool as written, so the wrapper rejects a bare id.
+        Assert.AreEqual("DMAV_RefData_Mapping", capturedArgs?.RefMapping);
 
         var blankProcess = CreateProcess(null, null, success: true, refMapping: "   ");
 
