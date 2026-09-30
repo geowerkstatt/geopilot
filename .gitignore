@@ -408,9 +408,6 @@ src/Geopilot.Frontend/cypress/screenshots
 
 # Local dev-certs output
 certs/
-
-# Reference data fetched by the refdata-update service (docker-compose.yml, profile refdata)
-refdata-cache/
 /.claude/settings.local.json
 
 # Local environment variables

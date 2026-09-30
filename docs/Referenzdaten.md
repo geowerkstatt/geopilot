@@ -49,10 +49,10 @@ ili2c hält Dateien aus einem Repository im Cache des Wrappers (Index 24 Stunden
 
 ## Lokal
 
-Das lokale `docker-compose.yml` enthält den Dienst `refdata-update` im Profil `refdata`. Er bezieht die Quellen aus [`config/refdata-sources.yaml`](../config/refdata-sources.yaml) in das Verzeichnis `refdata-cache/` im Wurzelverzeichnis des Repositorys (von git ignoriert), und `interlis-models` liefert eine Datei daraus anstelle der zugeschnittenen Datei der [DMAV-Testwelt](../TestData/Dmav/README.md):
+Das lokale `docker-compose.yml` enthält den Dienst `refdata-update` im Profil `dmav`, zusammen mit der [DMAV-Testwelt](../TestData/Dmav/README.md). Er bezieht die Quellen aus [`config/refdata-sources.yaml`](../config/refdata-sources.yaml) direkt in `TestData/Dmav/repository/` und ersetzt dort die zugeschnittenen Dateien:
 
 ```bash
-docker compose --profile dmav --profile refdata up -d
+docker compose --profile dmav up -d
 ```
 
-`docker compose logs refdata-update` zeigt, welche Dateien ersetzt wurden. Ohne das Profil wird nichts bezogen, was schon in `refdata-cache/` liegt, liefert `interlis-models` aber weiter aus. Wer das Verzeichnis löscht, ist wieder beim zugeschnittenen Stand.
+`docker compose logs refdata-update` zeigt, welche Dateien ersetzt wurden, `git status` dasselbe als Änderung im Arbeitsbaum. Das volle Ortschaftenverzeichnis ist 383 MB gross und gehört nicht ins Repository; `git restore TestData/Dmav/repository` stellt den eingecheckten Stand wieder her.

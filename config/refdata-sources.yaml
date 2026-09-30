@@ -1,5 +1,5 @@
-# Reference data refreshed by the refdata-update service (profile refdata), format in
-# docker/refdata-update/sources.example.yaml. Replaces the cut federal files of the DMAV test world with full ones.
+# Reference data refreshed by the refdata-update service (profile dmav), format in
+# docker/refdata-update/sources.example.yaml. Replaces cut files of the DMAV test world with the current full ones.
 
 - source: https://data.geo.admin.ch/ch.swisstopo.fixpunkte-lfp1/fixpunkte-lfp1/fixpunkte-lfp1_2056_5728.xtf.zip
   extract:
