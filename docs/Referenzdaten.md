@@ -35,7 +35,7 @@ Eine YAML-Liste, ein Eintrag pro Quelle. Jede Quelle wird pro Lauf einmal herunt
 
 - `destination` ist relativ zu `/refdata` und entspricht dem `<path>` in `ilidata.xml`. Ein Pfad mit führendem `/` oder mit `..` wird abgewiesen.
 - Nur `http` und `https` werden bezogen. Eine Quelle nennt entweder `destination` oder `extract`, nicht beides.
-- Eine Vorlage mit den Referenzdaten des DMAV-Repositorys, die vier Bundesdatensätze mit ihren Quellen, liegt in [`docker/refdata-update/sources.example.yaml`](../docker/refdata-update/sources.example.yaml).
+- Eine Vorlage mit den Referenzdaten des DMAV-Repositorys, die Bundesdatensätze mit ihren Quellen, liegt in [`docker/refdata-update/sources.example.yaml`](../docker/refdata-update/sources.example.yaml). HFP1 fehlt darin bewusst: swisstopo liefert LFP1 und HFP1 mit derselben Basket-Id, und ilivalidator lädt dann nicht beide ("BID ... already exists"). Bis das mit der Quelle geklärt ist, bleibt die HFP1-Datei des DMAV-Repositorys stehen.
 
 ## Verhalten bei Fehlern
 

@@ -39,4 +39,4 @@ Abgenommen am 2026-09-28: Mit vollen und zugeschnittenen Referenzdaten ergeben `
 
 Ohne Profil `dmav` fehlt das Plugin, und der Wrapper lehnt den Validierungsschritt mit `Plugin "ilivalid-gwr@1.0.0-20260217.141026-7" is not available` ab.
 
-Mit zusätzlich `--profile refdata` bezieht der Dienst `refdata-update` die vier Bundesdatensätze (LFP1, HFP1, Hoheitsgrenzen, Ortschaftenverzeichnis) vollständig, und `interlis-models` liefert sie anstelle der zugeschnittenen, siehe [Referenzdaten aktualisieren](../../docs/Referenzdaten.md).
+Mit zusätzlich `--profile refdata` bezieht der Dienst `refdata-update` drei Bundesdatensätze (LFP1, Hoheitsgrenzen, Ortschaftenverzeichnis) vollständig, und `interlis-models` liefert sie anstelle der zugeschnittenen, siehe [Referenzdaten aktualisieren](../../docs/Referenzdaten.md).
