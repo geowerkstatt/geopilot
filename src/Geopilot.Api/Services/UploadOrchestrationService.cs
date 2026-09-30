@@ -153,7 +153,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
 
         foreach (var file in upload.Files)
         {
-            var localName = UploadFileNaming.MakeUnique(file.FileName, usedNames);
+            var localName = OriginalFileNaming.MakeUnique(file.FileName, usedNames);
             pipelineFiles.Add(new UploadPipelineFile(uploadStorage, file.StorageKey, file.FileName, materializationDirectory, localName));
         }
 

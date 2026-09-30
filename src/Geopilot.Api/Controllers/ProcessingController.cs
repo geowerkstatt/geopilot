@@ -170,7 +170,7 @@ public class ProcessingController : ControllerBase
             return null;
 
         return job.Pipeline.Steps
-            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
+            .SelectMany(s => s.Downloads)
             .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
     }
