@@ -23,6 +23,7 @@ public class DeliveryControllerTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
+    private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -31,13 +32,18 @@ public class DeliveryControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
+        declarationLoggerMock = new Mock<ILogger<DeliveryDeclarationService>>();
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+
+        // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
+        // moved into it, and mocking it here would leave those rules untested.
+        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
     }
 
     [TestCleanup]
@@ -59,6 +65,7 @@ public class DeliveryControllerTest
     {
         var mandateId = context.Mandates.First().Id;
         var guid = SetupProcessingJob(mandateId, pipelineState);
+        deliveryController.SetupTestUser(context.Users.First());
         var deliveriesCount = context.Deliveries.Count();
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
@@ -77,6 +84,7 @@ public class DeliveryControllerTest
         processingServiceMock
             .Setup(s => s.GetJob(guid))
             .Returns(default(ProcessingJob?));
+        deliveryController.SetupTestUser(context.Users.First());
 
         var deliveriesCount = context.Deliveries.Count();
 
@@ -235,6 +243,73 @@ public class DeliveryControllerTest
         Assert.AreEqual(string.Empty, dbDelivery.Comment);
         Assert.IsNull(dbDelivery.Partial);
         Assert.IsNull(dbDelivery.PrecursorDelivery);
+    }
+
+    [TestMethod]
+    public async Task CreateFailsWhenJobWasAlreadyDelivered()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(
+            new Mandate
+            {
+                Name = TestHelpers.Localized(nameof(CreateFailsWhenJobWasAlreadyDelivered)),
+                EvaluateComment = FieldEvaluationType.NotEvaluated,
+                EvaluatePartial = FieldEvaluationType.NotEvaluated,
+                EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+                AllowDelivery = true,
+            });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(mandate.Id);
+        SetupJobPersistence(jobId);
+        var request = new DeliveryRequest { JobId = jobId };
+
+        var first = (await deliveryController.Create(request)) as ObjectResult;
+        Assert.IsNotNull(first);
+        Assert.AreEqual(StatusCodes.Status201Created, first.StatusCode);
+
+        var deliveriesCount = context.Deliveries.Count();
+        var second = (await deliveryController.Create(request)) as ObjectResult;
+        context.ChangeTracker.Clear();
+
+        Assert.IsNotNull(second);
+        Assert.AreEqual(StatusCodes.Status409Conflict, second.StatusCode, "A job that was already delivered must not be delivered a second time.");
+        Assert.AreEqual(deliveriesCount, context.Deliveries.Count(), "The rejected declaration must not have created a delivery.");
+    }
+
+    [TestMethod]
+    public async Task TheDatabaseRefusesASecondDeliveryForTheSameJob()
+    {
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = TestHelpers.Localized(nameof(TheDatabaseRefusesASecondDeliveryForTheSameJob)), AllowDelivery = true });
+        var jobId = Guid.NewGuid();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        await context.SaveChangesAsync();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(),
+            "The guard in the service reads and writes in two statements, so only the database keeps two callers that pass it at the same time from recording the assets of one job twice.");
+        context.ChangeTracker.Clear();
+    }
+
+    [TestMethod]
+    public async Task ADeletedDeliveryDoesNotKeepItsJobFromBeingDeliveredAgain()
+    {
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = TestHelpers.Localized(nameof(ADeletedDeliveryDoesNotKeepItsJobFromBeingDeliveredAgain)), AllowDelivery = true });
+        var jobId = Guid.NewGuid();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user, Deleted = true });
+        await context.SaveChangesAsync();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        await context.SaveChangesAsync();
+
+        Assert.HasCount(
+            1,
+            context.Deliveries.Where(d => d.JobId == jobId).ToList(),
+            "A deleted delivery is invisible to the guard in the service, so the index must not see it either.");
     }
 
     [TestMethod]
@@ -719,7 +794,7 @@ public class DeliveryControllerTest
 
         var deliveries = Assert.IsInstanceOfType<List<Delivery>>(response?.Value);
         CollectionAssert.AllItemsAreUnique(deliveries);
-        Assert.IsTrue(deliveries.All(d => d.DeclaringUser.Id == user.Id), "All deliveries should belong to the user.");
+        Assert.IsTrue(deliveries.All(d => d.DeclaringUserId == user.Id), "All deliveries should belong to the user.");
         Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
     }
 
@@ -750,7 +825,7 @@ public class DeliveryControllerTest
             : context.Mandates.AsNoTracking().First(m => m.Id == mandateId);
 
         mandateServiceMock
-            .Setup(s => s.GetMandateForUser(mandateId, user))
+            .Setup(s => s.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id)))
             .ReturnsAsync(detachedMandate);
     }
 }

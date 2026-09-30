@@ -80,7 +80,6 @@ export default defineConfig([
       "src/components/visualizations/tree/treeVisualization.tsx",
       "src/components/visualizations/visualizationLoader.tsx",
       "src/pages/admin/mandates/mandateDetail.tsx",
-      "src/pages/admin/organisations/organisationDetail.tsx",
       "src/pages/admin/users/userDetail.tsx",
       "src/pages/delivery/deliveryContentCarousel.tsx",
       "src/pages/delivery/deliveryProcessing.tsx",

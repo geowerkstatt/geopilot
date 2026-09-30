@@ -45,7 +45,7 @@ public class DirectUploadEndpointTest
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
         }
 
-        var storedFiles = Directory.GetFiles(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString()));
+        var storedFiles = Directory.GetFiles(Path.Combine(app.RootDirectory, session.UploadId.ToString()));
         Assert.HasCount(2, storedFiles);
         Assert.AreEqual("xtfxtfxtf", File.ReadAllText(storedFiles.Single(f => f.EndsWith("data.xtf", StringComparison.Ordinal))));
     }
@@ -58,7 +58,7 @@ public class DirectUploadEndpointTest
         var response = await PutContentAsync(session.Files[0].UploadUrl, "way too short");
 
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "data.xtf")));
+        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "data.xtf")));
     }
 
     [TestMethod]
@@ -69,7 +69,7 @@ public class DirectUploadEndpointTest
         var response = await PutContentAsync(session.Files[0].UploadUrl, "definitely more than two bytes");
 
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
-        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "data.xtf")));
+        Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "data.xtf")));
     }
 
     [TestMethod]
@@ -81,7 +81,7 @@ public class DirectUploadEndpointTest
         var response = await client.PutAsync(session.Files[0].UploadUrl, content);
 
         Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-        var stored = new FileInfo(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "big.xtf"));
+        var stored = new FileInfo(Path.Combine(app.RootDirectory, session.UploadId.ToString(), "big.xtf"));
         Assert.AreEqual(OverGlobalLimitBytes, stored.Length);
     }
 
@@ -128,7 +128,7 @@ public class DirectUploadEndpointTest
     [TestMethod]
     public async Task RouteDoesNotExistInCloudMode()
     {
-        using var cloudApp = new JwtTestApp();
+        using var cloudApp = new CloudModeTestApp();
         using var cloudClient = cloudApp.CreateClient();
 
         var response = await PutContentAsync(cloudClient, $"/api/v2/upload/{Guid.NewGuid()}/data.xtf", "x");
@@ -204,6 +204,23 @@ public class DirectUploadEndpointTest
                     ["Upload:UploadUrlExpiryMinutes"] = urlExpiryMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 });
             });
+        }
+    }
+
+    /// <summary>
+    /// An installation that keeps its uploads outside the API. Names the backend rather than relying on the
+    /// default, because the default is what a developer overlay or an entry in appsettings.Development.json
+    /// overrides: without the setting here, this host silently becomes a direct one and the test asserting the
+    /// absence of the route fails for a reason that has nothing to do with the code.
+    /// </summary>
+    private sealed class CloudModeTestApp : JwtTestApp
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+
+            // Read while the host is built, so it has to come through UseSetting.
+            builder.UseSetting("Upload:Backend", "Cloud");
         }
     }
 }

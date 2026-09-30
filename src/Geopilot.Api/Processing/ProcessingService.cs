@@ -31,12 +31,12 @@ public class ProcessingService : IProcessingService
     }
 
     /// <inheritdoc/>
-    public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, User? user)
+    public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer)
     {
         var upload = uploadStore.GetUpload(uploadId)
             ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
-        var mandate = await mandateService.GetMandateForUser(mandateId, user);
+        var mandate = await mandateService.GetMandateForDeclarerAsync(mandateId, declarer);
         if (mandate?.PipelineId == null)
             throw new InvalidOperationException($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.");
 
@@ -51,7 +51,7 @@ public class ProcessingService : IProcessingService
         {
             // Deliberately hard: accepting a job is a promise, and we make none we cannot account for.
             // The record must exist before anything can crash the job (see IPipelineRunRecorder).
-            await runRecorder.RecordJobStartedAsync(jobWithPipeline, mandate, user, upload);
+            await runRecorder.RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload);
         }
         catch
         {

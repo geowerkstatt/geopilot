@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 
@@ -17,16 +18,21 @@ public class OrganisationController : ControllerBase
 {
     private readonly ILogger<OrganisationController> logger;
     private readonly Context context;
+    private readonly MachineDeliveryOptions machineDeliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OrganisationController"/> class.
     /// </summary>
     /// <param name="logger">Logger for the instance.</param>
     /// <param name="context">Database context for getting organisations.</param>
-    public OrganisationController(ILogger<OrganisationController> logger, Context context)
+    /// <param name="machineDeliveryOptions">The machine delivery settings, which decide whether an organisation has machine clients to assign.</param>
+    public OrganisationController(ILogger<OrganisationController> logger, Context context, IOptions<MachineDeliveryOptions> machineDeliveryOptions)
     {
+        ArgumentNullException.ThrowIfNull(machineDeliveryOptions);
+
         this.logger = logger;
         this.context = context;
+        this.machineDeliveryOptions = machineDeliveryOptions.Value;
     }
 
     /// <summary>
@@ -94,6 +100,10 @@ public class OrganisationController : ControllerBase
             organisation.Users = await context.Users
                 .Where(u => userIds.Contains(u.Id))
                 .ToListAsync();
+
+            var machineClientIds = organisation.MachineClients.Select(c => c.Id).ToList();
+            organisation.MachineClients = new List<MachineClient>();
+            await ApplyMachineClientsAsync(machineClientIds, organisation);
 
             var entityEntry = await context.AddAsync(organisation).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
@@ -163,6 +173,8 @@ public class OrganisationController : ControllerBase
                     existingOrganisation.Users.Add(user);
             }
 
+            await ApplyMachineClientsAsync(organisation.MachineClients.Select(c => c.Id).ToList(), existingOrganisation);
+
             await context.SaveChangesAsync().ConfigureAwait(false);
 
             var result = await context.OrganisationsWithIncludes
@@ -179,5 +191,28 @@ public class OrganisationController : ControllerBase
             logger.LogError(e, $"An error occurred while updating the organisation.");
             return Problem(e.Message);
         }
+    }
+
+    /// <summary>
+    /// Replaces the machine clients of <paramref name="organisation"/> with the ones identified. While machine
+    /// delivery is off the administration does not render them, so its payload carries none: taking that
+    /// literally would detach every client of the organisation on its next save, which is why the stored ones
+    /// are kept then. Mirrors how <see cref="MandateController"/> treats the mandate key.
+    /// </summary>
+    private async Task ApplyMachineClientsAsync(List<int> machineClientIds, Organisation organisation)
+    {
+        if (!machineDeliveryOptions.Enabled)
+        {
+            if (machineClientIds.Count > 0)
+                logger.LogInformation("Ignored the machine clients sent for an organisation because machine delivery is not enabled.");
+
+            return;
+        }
+
+        var machineClients = await context.MachineClients
+            .Where(c => machineClientIds.Contains(c.Id))
+            .ToListAsync();
+        organisation.MachineClients.Clear();
+        organisation.MachineClients.AddRange(machineClients);
     }
 }

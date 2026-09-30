@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 
 namespace Geopilot.Api.Processing;
@@ -20,9 +21,9 @@ public interface IPipelineRunRecorder
     /// </summary>
     /// <param name="job">The created job with its pipeline attached.</param>
     /// <param name="mandate">The mandate the job was started for.</param>
-    /// <param name="user">The user that started the job, or <see langword="null"/> when it was started anonymously on a public mandate.</param>
+    /// <param name="declarer">The user or machine client that started the job, or <see langword="null"/> when it was started anonymously on a public mandate.</param>
     /// <param name="upload">The upload whose files the job processes.</param>
-    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, User? user, UploadInfo upload);
+    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Declarer? declarer, UploadInfo upload);
 
     /// <summary>
     /// Records the outcome of the malware scan and the per-file hashes it computed. Soft.

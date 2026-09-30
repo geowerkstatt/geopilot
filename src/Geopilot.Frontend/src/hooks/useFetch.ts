@@ -26,7 +26,11 @@ const useFetch = () => {
           const clonedResponse = response.clone();
           try {
             const errorObject = await clonedResponse.json();
-            if (errorObject.detail) {
+            if (typeof errorObject === "string") {
+              // A controller answering with a bare string (BadRequest("..."), and friends) serializes it
+              // as a JSON string literal, which carries the message but has neither detail nor title.
+              errorResponse = errorObject;
+            } else if (errorObject.detail) {
               errorResponse = errorObject.detail;
             } else {
               errorResponse = errorObject.title;

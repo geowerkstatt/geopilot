@@ -29,7 +29,7 @@ public sealed class OpenApiLocalizedTextSchemaTest
     public void PipelineSummaryDisplayNameStaysAStringMap()
     {
         var swaggerProvider = app.Services.GetRequiredService<ISwaggerProvider>();
-        var document = swaggerProvider.GetSwagger("v1");
+        var document = swaggerProvider.GetSwagger("all");
 
         var schemas = document.Components?.Schemas;
         Assert.IsNotNull(schemas, "OpenAPI document must have component schemas.");

@@ -16,9 +16,10 @@ namespace Geopilot.Api.Processing;
 /// download store, and its visualization configs (<see cref="OutputAction.Visualization"/>) are serialized to
 /// JSON in the dedicated visualization store, as soon as that step finishes via <see cref="IPipeline.OnStepCompleted"/>,
 /// so they are available while later steps still run and regardless of whether the run ultimately succeeds. Delivery
-/// payload files (<see cref="OutputAction.Delivery"/>) are extracted once, only when the run finished successfully and
-/// delivery is allowed. They populate <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/>
-/// and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
+/// payload files (<see cref="OutputAction.Delivery"/>) are staged once, only when the run finished successfully and
+/// delivery is allowed; declaring the delivery promotes them into the asset store. They populate
+/// <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/> and
+/// <see cref="IPipelineStep.DeliveryFiles"/> respectively.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -84,15 +85,21 @@ public class ProcessingRunner : BackgroundService
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
-                // Stage the delivery payload only when the job is actually deliverable — the same gate the
-                // submission endpoint enforces (DeliveryController.Create). This keeps incomplete or
-                // non-deliverable payloads (a failed/aborted pipeline, or a step that restricts delivery)
-                // out of the asset store.
+                // Stage the delivery payload only when the job is actually deliverable, the same gate the
+                // submission endpoint enforces (DeliveryController.Create). It goes to the staging store, not
+                // the asset store: the asset directory holds deliveries only, and declaring one promotes
+                // the staged files (AssetHandler.RecordJobAssetsAsync).
                 if (pipeline.State.IsDeliverable())
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
                 terminalState = pipeline.State;
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
+
+                // Declare the delivery for an unattended caller that asked for it. Guarded inside, because an
+                // exception escaping here would be caught below and would record this finished run as failed.
+                // On the host token, not the linked one: the job timeout bounds the run, and the declaration
+                // starts once the run is over, so a nearly exhausted timeout must not cut it short.
+                await CompleteJobAsync(pipeline.JobId, cancellationToken);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
@@ -229,8 +236,9 @@ public class ProcessingRunner : BackgroundService
     }
 
     /// <summary>
-    /// Persists the delivery payload files (<see cref="OutputAction.Delivery"/>) of every completed step to the
-    /// asset store and records them on <see cref="IPipelineStep.DeliveryFiles"/>. Only called for a successfully
+    /// Stages the delivery payload files (<see cref="OutputAction.Delivery"/>) of every completed step in the
+    /// staging store, from where declaring the delivery promotes them into the asset store, and records them on
+    /// <see cref="IPipelineStep.DeliveryFiles"/>. Only called for a successfully
     /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). Download and delivery names are assigned
     /// independently; for a file tagged with both actions they coincide except in the rare case of two outputs
     /// sharing an original file name within one step, which is harmless because the download endpoint serves only
@@ -240,7 +248,7 @@ public class ProcessingRunner : BackgroundService
     internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, CancellationToken cancellationToken = default)
     {
         using var scope = serviceScopeFactory.CreateScope();
-        var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
+        var stagingFileStore = scope.ServiceProvider.GetRequiredService<IAssetStagingFileStore>();
 
         foreach (var step in pipeline.Steps)
         {
@@ -260,7 +268,7 @@ public class ProcessingRunner : BackgroundService
                 foreach (var deliveryFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, deliveryFile.OriginalFileName, usedNames);
-                    await CopyToAsync(assetFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
+                    await CopyToAsync(stagingFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
                     var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
                     step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
                 }
@@ -284,6 +292,28 @@ public class ProcessingRunner : BackgroundService
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
+        }
+    }
+
+    /// <summary>
+    /// Runs the job completion handler against a fresh scope, if one is registered. It only is while machine
+    /// delivery is enabled, so the nullable resolve is the switch. Guarded like the protocol write: a problem
+    /// here must not change the outcome of the run, which the catch in the loop would record as a failure.
+    /// </summary>
+    private async Task CompleteJobAsync(Guid jobId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetService<IJobCompletionHandler>();
+            if (handler is null)
+                return;
+
+            await handler.OnJobFinishedAsync(jobId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Completing job <{JobId}> failed; the run itself is unaffected.", jobId);
         }
     }
 

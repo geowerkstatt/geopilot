@@ -5,12 +5,15 @@ namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Filesystem implementation of <see cref="IUploadStorage"/> for deployments without an object storage.
-/// Files live under <see cref="UploadDirectOptions.Directory"/> with the same key structure the cloud
-/// backend uses (uploads/{uploadId}/...), so listing, cleanup and preflight work unchanged. Instead of a
+/// Keys keep the cloud backend's structure (uploads/{uploadId}/...), so listing, cleanup and preflight
+/// work unchanged, but the leading segment stays out of the path: it namespaces uploads inside a shared
+/// container, while <see cref="UploadDirectOptions.Directory"/> belongs to this backend alone. Instead of a
 /// presigned URL, clients upload to the API's own upload endpoint, which writes through <see cref="WriteAsync"/>.
 /// </summary>
 public class DirectUploadStorage : IUploadStorage
 {
+    private const string KeyPrefix = "uploads/";
+
     private readonly string rootDirectory;
     private readonly ILogger<DirectUploadStorage> logger;
 
@@ -103,8 +106,10 @@ public class DirectUploadStorage : IUploadStorage
 
         logger.LogInformation("Deleting uploaded files with prefix {Prefix}.", prefix);
 
-        // Every caller passes a directory-shaped prefix (uploads/{uploadId}/), so deleting the
-        // subtree is equivalent to deleting every matching key and removes the directory with it.
+        // Every caller passes a directory-shaped prefix (uploads/{uploadId}/), so deleting the subtree
+        // is equivalent to deleting every matching key and removes the directory with it. The backends
+        // are deliberately not equivalent for an arbitrary prefix: one that names no directory deletes
+        // nothing here, and the bare key prefix is no caller's shape and fails loudly.
         var prefixPath = ResolvePath(prefix.TrimEnd('/'));
         if (Directory.Exists(prefixPath))
             Directory.Delete(prefixPath, recursive: true);
@@ -139,8 +144,21 @@ public class DirectUploadStorage : IUploadStorage
         }
     }
 
+    /// <summary>
+    /// Removes the key prefix, which namespaces uploads inside a cloud container that may hold other data
+    /// and has no counterpart in a directory this backend owns alone. A key without it is refused so keys
+    /// and paths stay one to one; otherwise "a.xtf" and "uploads/a.xtf" would address the same file.
+    /// </summary>
+    private static string StripKeyPrefix(string key)
+    {
+        if (!key.StartsWith(KeyPrefix, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Key <{key}> does not start with the expected prefix {KeyPrefix}.");
+
+        return key[KeyPrefix.Length..];
+    }
+
     private string ToKey(string fullPath)
-        => Path.GetRelativePath(rootDirectory, fullPath).Replace('\\', '/');
+        => KeyPrefix + Path.GetRelativePath(rootDirectory, fullPath).Replace('\\', '/');
 
     /// <summary>
     /// Resolves a storage key to a full path and confines it to the upload directory. Keys are
@@ -150,7 +168,7 @@ public class DirectUploadStorage : IUploadStorage
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
 
-        var fullPath = Path.GetFullPath(Path.Combine(rootDirectory, key));
+        var fullPath = Path.GetFullPath(Path.Combine(rootDirectory, StripKeyPrefix(key)));
         if (!fullPath.StartsWith(rootDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException($"Key <{key}> resolves outside the upload directory.");
 

@@ -141,6 +141,7 @@ internal static class DtoMapperExtensions
     {
         return mandates.Select(m => new MandateSummary(
             m.Id,
+            m.Key,
             m.Name,
             m.Description,
             m.AllowDelivery,
@@ -169,6 +170,7 @@ internal static class DtoMapperExtensions
             run.AppVersion,
             run.MandateId,
             run.UserId,
+            run.MachineClientId,
             run.ClientKind,
             run.UploadId,
             run.UploadStorageLocation,

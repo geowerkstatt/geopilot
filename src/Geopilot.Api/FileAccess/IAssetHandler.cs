@@ -8,7 +8,7 @@ namespace Geopilot.Api.FileAccess
     public interface IAssetHandler
     {
         /// <summary>
-        /// Records the job assets to be persisted.
+        /// Promotes the job's staged delivery files into the asset store and records them as assets.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
         /// <param name="cancellationToken">A token to cancel the operation.</param>

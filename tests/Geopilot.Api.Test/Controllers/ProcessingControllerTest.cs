@@ -164,7 +164,7 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(jobId, Guid.NewGuid(), mandate.Id, DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, user)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -181,7 +181,7 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual(mandate.Id, jobResponse.MandateId);
         Assert.AreEqual(ProcessingState.Pending, jobResponse.State);
 
-        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Id, user), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id)), Times.Once);
     }
 
     [TestMethod]
@@ -211,7 +211,7 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(jobId, Guid.NewGuid(), publicMandate.Entity.Id, DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<Declarer?>())).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -219,6 +219,64 @@ public sealed class ProcessingControllerTest
         // Assert
         Assert.IsInstanceOfType<AcceptedAtActionResult>(response);
         Assert.AreEqual(StatusCodes.Status202Accepted, response!.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithATokenNobodyKnowsStartsAnonymously()
+    {
+        // A valid token whose subject is neither a user nor a registered machine client: a person before the
+        // first sign-in through the web created a user, or a machine nobody registered. This endpoint is open
+        // to everyone, so such a caller processes like one without a token, and the run records nobody.
+        var uploadId = Guid.NewGuid();
+        var publicMandate = context.Add(new Mandate
+        {
+            Name = TestHelpers.Localized(nameof(StartJobAsyncWithATokenNobodyKnowsStartsAnonymously)),
+            IsPublic = true,
+        });
+        context.SaveChanges();
+        controller.SetupTestUser(new User { AuthIdentifier = Guid.NewGuid().ToString(), Email = "nobody@example.com", FullName = "Nobody Known" });
+
+        var startJobRequest = new StartJobRequest { UploadId = uploadId, MandateId = publicMandate.Entity.Id };
+        var processingJob = new ProcessingJob(Guid.NewGuid(), Guid.NewGuid(), publicMandate.Entity.Id, DateTime.Now);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, null)).ReturnsAsync(processingJob);
+
+        var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
+
+        Assert.IsInstanceOfType<AcceptedAtActionResult>(response, "An unknown subject is no error of the request; the caller is treated as anonymous.");
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, null), Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow(MachineClientState.Active, DisplayName = "StartJobAsyncWithAnActiveClientStartsAsThatClient")]
+    [DataRow(MachineClientState.Inactive, DisplayName = "StartJobAsyncWithADeactivatedClientStartsAnonymously")]
+    public async Task StartJobAsyncResolvesAMachineClientByItsState(MachineClientState state)
+    {
+        // Deactivating a client is how an administrator revokes it, and this endpoint is open to everyone,
+        // so the revocation has to hold here as well: a deactivated client processes like a caller without a
+        // token and therefore no longer reaches the mandates of its organisations.
+        var uploadId = Guid.NewGuid();
+        var mandate = context.Add(new Mandate
+        {
+            Name = TestHelpers.Localized(nameof(StartJobAsyncResolvesAMachineClientByItsState)),
+            IsPublic = true,
+        });
+        var client = context.MachineClients.Add(new MachineClient
+        {
+            AuthIdentifier = Guid.NewGuid().ToString(),
+            Name = "SILENTHARBOR",
+            State = state,
+        });
+        context.SaveChanges();
+        controller.SetupTestUser(new User { AuthIdentifier = client.Entity.AuthIdentifier });
+
+        var expectedDeclarer = state == MachineClientState.Active ? Declarer.ForClient(client.Entity.Id) : null;
+        var processingJob = new ProcessingJob(Guid.NewGuid(), Guid.NewGuid(), mandate.Entity.Id, DateTime.Now);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer)).ReturnsAsync(processingJob);
+
+        var response = await controller.StartJobAsync(new StartJobRequest { UploadId = uploadId, MandateId = mandate.Entity.Id });
+
+        Assert.IsInstanceOfType<AcceptedAtActionResult>(response);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer), Times.Once);
     }
 
     [TestMethod]
@@ -252,7 +310,7 @@ public sealed class ProcessingControllerTest
 
         controller.SetupTestUser(user);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Declarer>()))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
         // Act
@@ -320,7 +378,7 @@ public sealed class ProcessingControllerTest
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = mandate.Id };
 
         controller.SetupTestUser(user);
-        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Declarer>()))
             .ThrowsAsync(new InvalidOperationException("The user is not authorized to start the job with the specified mandate."));
 
         // Act

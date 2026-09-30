@@ -1,4 +1,4 @@
-import { SyntheticEvent, useMemo, useState } from "react";
+import { SyntheticEvent, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -11,8 +11,6 @@ export interface FormAutocompleteProps<T> {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
   label: string;
-  placeholder?: string;
-  freeSolo?: boolean;
   required?: boolean;
   disabled?: boolean;
   /** Selected values: the default value in form-context mode, the controlled value when `onChange` is provided. */
@@ -33,21 +31,10 @@ export interface FormAutocompleteProps<T> {
   sx?: SxProps;
 
   /**
-   * When using freeSolo, validate the typed string.
-   * Return true to accept, false to reject it as a chip.
-   */
-  validator?: (value: string) => boolean;
-
-  /**
-   * Error message key/text when the validation fails.
-   */
-  errorMessage?: string;
-
-  /**
    * Controlled mode: providing this callback switches the field to standalone operation (no react-hook-form
    * context required). It receives the full selection on every change.
    */
-  onChange?: (value: (T | string)[]) => void;
+  onChange?: (value: T[]) => void;
 
   /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
   error?: boolean;
@@ -76,16 +63,12 @@ export interface FormAutocompleteValue {
 export const FormAutocomplete = <T,>({
   fieldName,
   label,
-  placeholder,
-  freeSolo,
   required,
   disabled,
   selected,
   values,
   valueFormatter,
   sx,
-  validator,
-  errorMessage,
   onChange,
   error,
   dataCy,
@@ -93,8 +76,6 @@ export const FormAutocomplete = <T,>({
 }: FormAutocompleteProps<T>) => {
   const { t } = useTranslation();
   const formContext = useFormContext();
-
-  const [inputValue, setInputValue] = useState("");
 
   const safeValueFormatter = useMemo(
     () =>
@@ -113,18 +94,14 @@ export const FormAutocomplete = <T,>({
     [fieldName, valueFormatter],
   );
 
-  const toChipLabel = (option: T | string): string =>
-    typeof option === "string" ? option : safeValueFormatter(option as T).primaryText;
+  const toChipLabel = (option: T): string =>
+    typeof option === "string" ? option : safeValueFormatter(option).primaryText;
 
   const renderAutocomplete = (
-    value: (T | string)[],
-    handleChange: (event: SyntheticEvent, value: (T | string)[]) => void,
+    value: T[],
+    handleChange: (event: SyntheticEvent, value: T[]) => void,
     showError: boolean,
     helperText?: string,
-    inputControl?: {
-      inputValue: string;
-      onInputChange: (event: SyntheticEvent, value: string) => void;
-    },
   ) => (
     <Autocomplete
       sx={{
@@ -140,10 +117,8 @@ export const FormAutocomplete = <T,>({
       disableCloseOnSelect={disableCloseOnSelect ?? true}
       popupIcon={<ExpandMoreIcon />}
       multiple
-      freeSolo={freeSolo ?? false}
       disabled={disabled ?? false}
       value={value}
-      {...inputControl}
       onChange={handleChange}
       renderValue={(tagValue, getItemProps) => (
         <OverflowChips value={tagValue.map(toChipLabel)} getItemProps={getItemProps} />
@@ -152,25 +127,24 @@ export const FormAutocomplete = <T,>({
         <TextField
           {...params}
           label={t(label)}
-          placeholder={placeholder ? t(placeholder) : undefined}
           required={required ?? false}
           error={showError}
           helperText={helperText}
         />
       )}
       options={values || []}
-      getOptionKey={(option: T | string) =>
+      getOptionKey={(option: T) =>
         typeof option === "string" ? `${fieldName}-${option}` : `${fieldName}-${(values as T[]).indexOf(option)}`
       }
-      getOptionLabel={(option: T | string) =>
+      getOptionLabel={(option: T) =>
         typeof option === "string"
           ? option
-          : safeValueFormatter(option as T).detailText || safeValueFormatter(option as T).primaryText
+          : safeValueFormatter(option).detailText || safeValueFormatter(option).primaryText
       }
       isOptionEqualToValue={(option, value) =>
         typeof option === "string"
           ? (option as string) === (value as string)
-          : safeValueFormatter(option as T).id === safeValueFormatter(value as T).id
+          : safeValueFormatter(option).id === safeValueFormatter(value).id
       }
       data-cy={dataCy ?? (fieldName ? `${fieldName}-formAutocomplete` : undefined)}
     />
@@ -180,39 +154,9 @@ export const FormAutocomplete = <T,>({
     return renderAutocomplete(selected ?? [], (_, newValue) => onChange(newValue), error ?? false);
   }
 
-  const { control, setValue, setError, clearErrors } = formContext;
+  const { control, setValue } = formContext;
 
-  const handleFormChange = (event: SyntheticEvent, newValue: (T | string)[]) => {
-    const last = newValue[newValue.length - 1];
-
-    if (freeSolo && typeof last === "string" && validator) {
-      const isValid = validator(last);
-
-      if (!isValid) {
-        // Reject this one: remove from chips, keep it in the text field, set error
-        const filtered = newValue.filter(v => v !== last);
-
-        setInputValue(last);
-
-        setValue(fieldName!, filtered, {
-          shouldValidate: false,
-          shouldDirty: true,
-          shouldTouch: true,
-        });
-
-        setError(fieldName!, {
-          type: "validate",
-          message: errorMessage || "",
-        });
-
-        return;
-      }
-
-      // Accepted: clear error and clear input
-      clearErrors(fieldName!);
-      setInputValue("");
-    }
-
+  const handleFormChange = (_: SyntheticEvent, newValue: T[]) => {
     setValue(fieldName!, newValue, {
       shouldValidate: true,
       shouldDirty: true,
@@ -234,15 +178,6 @@ export const FormAutocomplete = <T,>({
           handleFormChange,
           getFormFieldError(fieldName, formState.errors),
           formState.errors[fieldName!]?.message ? t(formState.errors[fieldName!]?.message as string) : undefined,
-          {
-            inputValue,
-            onInputChange: (_, newInputValue) => {
-              setInputValue(newInputValue);
-              if (!newInputValue) {
-                clearErrors(fieldName!);
-              }
-            },
-          },
         )
       }
     />

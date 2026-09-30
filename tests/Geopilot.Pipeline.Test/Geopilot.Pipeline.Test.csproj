@@ -25,6 +25,12 @@
     <Content Include="..\..\src\Geopilot.Api\Resources\model-repository.zip" Link="TestData\ModelRepository\model-repository.zip">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+
+    <!-- The definitions shipped with the application. Linked instead of copied so the test checks the files
+         that actually ship, and so a new definition is covered without touching the test project. -->
+    <Content Include="..\..\src\Geopilot.Api\PipelineDefinitions\*.yaml" Link="TestData\PipelineDefinitions\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 	<ItemGroup>

@@ -84,6 +84,23 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
+    public async Task RecordJobAssetsPromotesTheStagedFilesBeforeReadingThem()
+    {
+        // Until promoted, the files exist only in the staging store: reading the asset store first would fail the declaration.
+        var promoted = false;
+        assetFileStoreMock.Setup(x => x.PromoteStagedFiles(job.Id)).Callback(() => promoted = true);
+        assetFileStoreMock
+            .Setup(x => x.OpenFile(job.Id, "report.pdf"))
+            .Returns(() => promoted ? new MemoryStream(Encoding.UTF8.GetBytes(FileContent)) : throw new FileNotFoundException("not promoted yet"));
+        SetJobPipeline(new PersistedFile("report.pdf", "report.pdf", FromUpload: false));
+
+        var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
+
+        Assert.HasCount(1, assets);
+        assetFileStoreMock.Verify(x => x.PromoteStagedFiles(job.Id), Times.Once);
+    }
+
+    [TestMethod]
     public async Task RecordJobAssetsJobNotFoundThrows()
     {
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await assetHandler.RecordJobAssetsAsync(Guid.NewGuid(), CancellationToken.None));

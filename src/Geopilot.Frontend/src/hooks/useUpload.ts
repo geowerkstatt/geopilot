@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { ApiError, InitiateUploadResponse } from "../api/apiInterfaces.ts";
+import { ApiError } from "../api/apiInterfaces.ts";
+import { InitiateUploadResponse } from "../api/generated";
 import useFetch from "../hooks/useFetch";
 
 const useUpload = () => {

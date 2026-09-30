@@ -257,14 +257,15 @@ internal sealed class PipelineStep : IPipelineStep
         List<ConditionConfig>? conditions,
         ConditionPhase phase,
         ConditionKind kind,
-        Dictionary<string, object?> parameters)
+        Dictionary<string, object?> parameters,
+        IReadOnlySet<string> stepsWithoutResult)
     {
         var matched = new List<ConditionConfig>();
         if (conditions != null)
         {
             foreach (var condition in conditions)
             {
-                var result = await this.conditionEvaluator.EvaluateConditionAsync(condition.Expression, parameters);
+                var result = await this.conditionEvaluator.EvaluateConditionAsync(condition.Expression, parameters, stepsWithoutResult);
 
                 var evaluation = new ConditionEvaluation(
                     condition.Id,
@@ -315,15 +316,16 @@ internal sealed class PipelineStep : IPipelineStep
     {
         var pre = this.StepConditions?.Pre;
         var parameters = context.ToExpressionParameters();
+        var stepsWithoutResult = context.StepsWithoutResult();
 
-        var failConditions = await this.FindMatchingConditions(pre?.FailConditions, ConditionPhase.Pre, ConditionKind.Fail, parameters);
+        var failConditions = await this.FindMatchingConditions(pre?.FailConditions, ConditionPhase.Pre, ConditionKind.Fail, parameters, stepsWithoutResult);
         if (failConditions.Count > 0)
         {
             logger.LogInformation($"step failed due to pre-condition.");
             return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        var skipConditions = await this.FindMatchingConditions(pre?.SkipConditions, ConditionPhase.Pre, ConditionKind.Skip, parameters);
+        var skipConditions = await this.FindMatchingConditions(pre?.SkipConditions, ConditionPhase.Pre, ConditionKind.Skip, parameters, stepsWithoutResult);
         if (skipConditions.Count > 0)
         {
             logger.LogInformation($"step skipped due to pre-condition.");
@@ -340,22 +342,23 @@ internal sealed class PipelineStep : IPipelineStep
     {
         var post = this.StepConditions?.Post;
         var parameters = context.ToExpressionParameters(this.Id, stepResult);
+        var stepsWithoutResult = context.StepsWithoutResult();
 
-        var failConditions = await this.FindMatchingConditions(post?.FailConditions, ConditionPhase.Post, ConditionKind.Fail, parameters);
+        var failConditions = await this.FindMatchingConditions(post?.FailConditions, ConditionPhase.Post, ConditionKind.Fail, parameters, stepsWithoutResult);
         if (failConditions.Count > 0)
         {
             logger.LogInformation($"failed due to post-condition.");
             return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        var restrictDeliveryConditions = await this.FindMatchingConditions(post?.RestrictDeliveryConditions, ConditionPhase.Post, ConditionKind.RestrictDelivery, parameters);
+        var restrictDeliveryConditions = await this.FindMatchingConditions(post?.RestrictDeliveryConditions, ConditionPhase.Post, ConditionKind.RestrictDelivery, parameters, stepsWithoutResult);
         if (restrictDeliveryConditions.Count > 0)
         {
             logger.LogInformation($"delivery restricted due to post-condition.");
             return (StepState.DeliveryRestriction, MergeConditionMessages(restrictDeliveryConditions));
         }
 
-        var warnConditions = await this.FindMatchingConditions(post?.WarnConditions, ConditionPhase.Post, ConditionKind.Warn, parameters);
+        var warnConditions = await this.FindMatchingConditions(post?.WarnConditions, ConditionPhase.Post, ConditionKind.Warn, parameters, stepsWithoutResult);
         if (warnConditions.Count > 0)
         {
             logger.LogInformation($"completed with warnings due to post-condition.");
@@ -455,43 +458,49 @@ internal sealed class PipelineStep : IPipelineStep
     /// <c>${file(...)}</c> resource. Input files are isolated per step via <see cref="CopyOnWriteFile"/>
     /// in the underlying resolvers.
     /// </summary>
-    private bool TryResolveReference(PipelineContext context, InputValue reference, out object? value)
+    private ReferenceResolution TryResolveReference(PipelineContext context, InputValue reference, out object? value)
     {
         switch (reference)
         {
             case InputValue.StepOutputReference stepOutput:
                 return TryResolveStepOutput(context, stepOutput.StepId, stepOutput.OutputName, out value);
             case InputValue.FileReference file:
-                return TryResolveFileReference(file.RelativePath, out value);
+                return TryResolveFileReference(file.RelativePath, out value)
+                    ? ReferenceResolution.Resolved
+                    : ReferenceResolution.Unresolvable;
             case InputValue.UploadReference:
                 value = this.WrapInput(context.Upload);
-                return true;
+                return ReferenceResolution.Resolved;
             default:
                 value = null;
-                return false;
+                return ReferenceResolution.Unresolvable;
         }
     }
 
     /// <summary>
     /// Resolves the value an earlier step published under <paramref name="outputName"/>, isolating
-    /// any input files per step via <see cref="CopyOnWriteFile"/>. Returns <see langword="false"/>
-    /// when no such output exists.
+    /// any input files per step via <see cref="CopyOnWriteFile"/>. A step that ran no process, which
+    /// is what a skipped step is, published nothing and therefore resolves as
+    /// <see cref="ReferenceResolution.Absent"/> rather than as an error.
     /// </summary>
-    private bool TryResolveStepOutput(PipelineContext context, string stepId, string outputName, out object? value)
+    private ReferenceResolution TryResolveStepOutput(PipelineContext context, string stepId, string outputName, out object? value)
     {
-        if (context.StepResults.TryGetValue(stepId, out var stepResult))
-        {
-            var prop = stepResult.Result?.GetType().GetProperty(outputName);
-            if (prop?.CanRead == true)
-            {
-                var data = prop.GetValue(stepResult.Result);
-                value = this.WrapInput(data);
-                return true;
-            }
-        }
-
         value = null;
-        return false;
+
+        if (!context.StepResults.TryGetValue(stepId, out var stepResult))
+            return ReferenceResolution.Unresolvable;
+
+        // A skipped step is recorded like any other, only without a process result. Its outputs are
+        // absent, not unknown, so a later step binds them as "no value" instead of failing.
+        if (stepResult.Result is null)
+            return ReferenceResolution.Absent;
+
+        var prop = stepResult.Result.GetType().GetProperty(outputName);
+        if (prop?.CanRead != true)
+            return ReferenceResolution.Unresolvable;
+
+        value = this.WrapInput(prop.GetValue(stepResult.Result));
+        return ReferenceResolution.Resolved;
     }
 
     /// <summary>

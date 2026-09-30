@@ -115,6 +115,19 @@ internal static class PipelineExtensions
         return pipelineContext.ToExpressionParameters(null, null);
     }
 
+    /// <summary>
+    /// The ids of the steps that are recorded but ran no process, which is what a skipped step is.
+    /// Their outputs contribute no expression parameters at all, so a condition referencing one would
+    /// otherwise fail on an undefined parameter instead of reading the absence as a null value.
+    /// </summary>
+    internal static IReadOnlySet<string> StepsWithoutResult(this PipelineContext pipelineContext)
+    {
+        return pipelineContext.StepResults
+            .Where(entry => entry.Value?.Result is null)
+            .Select(entry => entry.Key)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     internal static Dictionary<string, object?> ToExpressionParameters(
         this PipelineContext pipelineContext,
         string? stepId,

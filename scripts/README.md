@@ -64,3 +64,45 @@ Remove-Item src/Geopilot.Api/appsettings.Local.<Name>.json
 ```
 
 Das Löschen des Symlinks fasst die Plugin-Datei nicht an.
+
+# Maschinelle Anlieferung ausprobieren
+
+Zwei Skripte fahren eine [maschinelle Anlieferung](../docs/MaschinelleAnlieferung.md) von Anfang bis Ende: Token per Client Credentials holen, die Dateien übergeben, den Versuch starten und den Status abfragen, bis er geliefert, abgewiesen oder gescheitert ist. Sie sind zugleich der Startpunkt für einen eigenen Client: jeder Schritt steht mit dem HTTP-Aufruf, den er absetzt, im Skript.
+
+Welches Skript passt, entscheidet die Installation, nicht das Mandat:
+
+| Ablage der Uploads | Skript |
+| --- | --- |
+| ausserhalb der API (Objektspeicher) | `submit-delivery-upload.ps1`: Upload anmelden, Dateien an die zurückgegebenen URLs, dann `POST api/v1/submission` |
+| durch die API (lokales Verzeichnis) | `submit-delivery-files.ps1`: ein `multipart/form-data`-Aufruf an `POST api/v1/submission/multipart`, die Felder vor den Dateien |
+
+Wer das falsche nimmt, bekommt `400` mit dem Hinweis auf die andere Form.
+
+## Voraussetzungen
+
+- PowerShell 7 (`pwsh`), auf Windows wie auf Linux. Auf Windows zum Beispiel mit `winget install Microsoft.PowerShell`.
+- Ein Client mit Client Credentials beim Identity Provider der Installation, in geopilot als Maschinen-Client registriert (Verwaltung, *Maschinen-Clients*), und ein Mandat mit Schlüssel, das er erreicht: öffentlich oder über eine seiner Organisationen.
+- Im Dev-Stack ist das der Keycloak-Client `geopilot-api`. Sein Service-Account ist als Maschinen-Client geseedet, das Secret steht in `config/realms/keycloak-geopilot.json`. Die Voreinstellungen der Skripte zeigen auf den Dev-Stack.
+
+## Verwendung
+
+```powershell
+$env:GEOPILOT_CLIENT_SECRET = '<Secret des Clients>'
+./scripts/submit-delivery-upload.ps1 -MandateKey <Schluessel> -File .\lieferung.xtf -SkipCertificateCheck
+```
+
+Der Dev-Stack legt seine Uploads in den Objektspeicher, es läuft dort also `submit-delivery-upload.ps1`. `submit-delivery-files.ps1` braucht eine Installation, die ihre Uploads selbst schreibt (`Upload:Backend=Direct` mit `Upload:Direct:Directory`), und antwortet sonst mit dem `400` auf die falsche Form.
+
+Gegen eine andere Installation `-ApiUrl`, `-TokenUrl`, `-ClientId` und `-ClientSecret` setzen, bei Bedarf `-Scope`; `-Comment`, `-PartialDelivery` und `-PrecursorDeliveryId` je nachdem, was das Mandat verlangt. Mehrere Dateien werden kommagetrennt an `-File` übergeben. `Get-Help ./scripts/submit-delivery-upload.ps1 -Detailed` beschreibt alle Parameter.
+
+Weist die Installation einen Aufruf ab, weil sie gerade nicht mehr annimmt, wartet das Skript und wiederholt ihn bis zu fünfmal: `submit-delivery-upload.ps1` beim Anmelden des Uploads, wo eine zu dichte Folge von Anfragen `429` ergibt, und `submit-delivery-files.ps1` beim Versuch selbst, den eine ausgelastete Installation mit `503` und `Retry-After` abweist. Bricht die Statusabfrage vorübergehend weg, wird auch sie wiederholt, statt den Lauf abzubrechen: die Daten sind zu dem Zeitpunkt längst angenommen. Das Token wird kurz vor Ablauf erneuert, damit auch ein langer Lauf bis zum Ende verfolgt wird.
+
+## Exit-Codes
+
+| Code | Bedeutung |
+| --- | --- |
+| 0 | geliefert |
+| 1 | ein Request wurde abgewiesen; die Meldung des Servers steht in der Ausgabe |
+| 2 | die Pipeline hat die Daten abgewiesen, keine Lieferung |
+| 3 | der Versuch ist gescheitert, bevor die Daten beurteilt waren |
+| 4 | nach der Wartezeit noch in Verarbeitung; der Versuch läuft weiter, die Status-URL steht in der Ausgabe |

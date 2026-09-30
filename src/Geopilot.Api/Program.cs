@@ -40,11 +40,14 @@ builder.Services.AddCors(options =>
         });
 });
 
+var machineDeliveryEnabled = builder.AddMachineDelivery();
+
 builder.Services
     .AddControllers(options =>
     {
         options.Conventions.Add(new StacRoutingConvention(GeopilotPolicies.Admin));
         options.Conventions.Add(new GeopilotJsonConvention());
+        options.Conventions.Add(new MachineDeliveryConvention(machineDeliveryEnabled));
 
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
@@ -59,32 +62,7 @@ builder.Services
 
 builder.Services.Configure<BrowserAuthOptions>(builder.Configuration.GetSection("Auth"));
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
-        options.Authority = builder.Configuration["Auth:Authority"];
-        options.Audience = builder.Configuration["Auth:ApiAudience"];
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
-        options.MapInboundClaims = false;
-
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                // Allow token to be in a cookie in addition to the default Authorization header.
-                // Only override when a cookie is actually present — otherwise a stale/empty cookie
-                // would shadow a valid Authorization header and break Swagger/API clients.
-                var cookieToken = context.Request.Cookies[AuthDefaults.AuthCookieName];
-                if (!string.IsNullOrEmpty(cookieToken))
-                {
-                    context.Token = cookieToken;
-                }
-
-                return Task.CompletedTask;
-            },
-        };
-    });
+var accessTokenFormat = builder.AddGeopilotAuthentication();
 
 builder.Services
     .AddApiVersioning(config =>
@@ -101,22 +79,25 @@ builder.Services
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("all", new OpenApiInfo
     {
-        Version = "1.0",
-        Title = $"geopilot API Documentation",
+        Version = VersionController.GetShortVersion(),
+        Title = "geopilot API Documentation",
     });
-    options.SwaggerDoc("v2", new OpenApiInfo
-    {
-        Version = "2.0",
-        Title = $"geopilot API Documentation",
-    });
+
+    // Include all endpoints in the Swagger document, regardless of their API version.
+    options.DocInclusionPredicate((_, _) => true);
 
     // Include existing documentation in Swagger UI.
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
 
     options.EnableAnnotations();
+
+    // An action that reads its multipart form from the stream binds nothing, so its body is described from the
+    // type the action names instead.
+    options.OperationFilter<MultipartRequestBodyOperationFilter>();
     options.SupportNonNullableReferenceTypes();
+    options.NonNullableReferenceTypesAsRequired();
 
     // Describe LocalizedText in OpenAPI as a string-to-string object (language code -> text),
     // matching its JSON serialization, instead of as a separate schema component.
@@ -131,10 +112,10 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    var apiScope = builder.Configuration["Auth:ApiServerScope"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(apiScope))
+    var swaggerAdditionalScopes = builder.Configuration["Auth:SwaggerAdditionalScopes"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(swaggerAdditionalScopes))
     {
-        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, swaggerAdditionalScopes);
     }
     else
     {
@@ -164,11 +145,17 @@ builder.Services.AddAuthorization(options =>
         });
     });
 
+    // The machine delivery surface: a user or a registered machine client. Every other policy stays closed
+    // to clients, which is what keeps client credentials out of the web interface.
+    options.AddPolicy(GeopilotPolicies.Declarer, policy => policy.Requirements.Add(new DeclarerRequirement()));
+
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
     options.DefaultPolicy = adminPolicy;
     options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
+builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
+builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
@@ -200,15 +187,23 @@ builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
+builder.Services.AddTransient<IAssetStagingFileStore, PhysicalAssetStagingFileStore>();
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
+builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
 builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
-builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.Configure<UserInfoOptions>(builder.Configuration.GetSection(UserInfoOptions.SectionName));
+builder.Services.AddHttpClient(GeopilotUserInfoService.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+// Scoped is required: GeopilotUserInfoService caches the user info per request in a single slot.
 builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddHttpContextAccessor();
 
@@ -234,6 +229,7 @@ var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).G
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
+    // One window for the whole installation, not one per caller: every client draws from the same budget.
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
         limiter.PermitLimit = uploadConfig.RateLimitRequests;
@@ -283,12 +279,20 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
 
+if (accessTokenFormat == AccessTokenFormat.Opaque)
+{
+    var audienceValidation = string.IsNullOrWhiteSpace(builder.Configuration["Auth:Audience"])
+        ? "is delegated to the identity provider"
+        : "requires aud in the introspection response";
+    app.Logger.LogInformation("Authentication configured in Opaque mode. Audience validation {AudienceValidation}.", audienceValidation);
+}
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
+    options.SwaggerEndpoint("/swagger/all/swagger.json", "geopilot API (all versions)");
 
-    options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
+    options.OAuthClientId(builder.Configuration["Auth:PublicClientId"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
     options.OAuthUsePkce();
 });
@@ -319,6 +323,8 @@ else
     app.UseCors();
 }
 
+app.UseAuthentication();
+
 app.Use(async (context, next) =>
 {
     var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
@@ -343,12 +349,12 @@ app.Use(async (context, next) =>
     }
 });
 
-// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing
-// their own body size limit (the direct upload endpoint, sized by Upload:MaxFileSizeMB) are exempt;
-// every other endpoint keeps the global cap.
+// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing their own
+// body size limit are exempt: the direct upload endpoint, sized by Upload:MaxFileSizeMB, and the multipart
+// machine delivery, sized by Upload:MaxJobSizeMB. Every other endpoint keeps the global cap.
 app.Use(async (context, next) =>
 {
-    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeMetadata>() is not null;
+    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeAttribute>() is not null;
     if (!managesOwnLimit && context.Request.ContentLength > MaxRequestBodySize)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;

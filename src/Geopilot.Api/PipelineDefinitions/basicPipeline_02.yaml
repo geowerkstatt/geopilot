@@ -31,6 +31,8 @@ processes:
         - errorType
   - id: zip_packager
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
+  - id: unzipper
+    implementation: Geopilot.Pipeline.Processes.Unzip.UnzipProcess
 pipelines:
   - id: ili_validation
     display_name:
@@ -347,6 +349,150 @@ pipelines:
           - property: Visualization
             actions:
               - Visualization
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+  # Eine Lieferung darf gepackt oder als blosse Transferdatei ankommen. Das Entpacken entfällt, wenn
+  # kein Archiv dabei ist, und die nachfolgenden Schritte lesen den Upload zusammen mit den Ausgaben
+  # des möglicherweise übersprungenen Schrittes. Ohne diese Fähigkeit müsste die Pipeline ab dem
+  # Entpacken zweimal geschrieben werden, je einmal pro Liefervariante.
+  - id: ili_validation_packed_or_plain
+    display_name:
+      en: XTF Validation, packed or plain
+      de: XTF Validierung, gepackt oder einzeln
+      fr: Validation XTF, compressée ou simple
+      it: Validazione XTF, compressa o singola
+    steps:
+      - id: zip_matching
+        display_name:
+          en: Archive Matching
+          de: Archiv Zuordnung
+          fr: Correspondance de l'archive
+          it: Corrispondenza dell'archivio
+        process_id: file_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: at-most-one-archive
+                expression: "Length([zip_matching.MatchedFiles]) > 1"
+                message:
+                  de: "Es darf höchstens ein ZIP-Archiv hochgeladen werden."
+                  en: "At most one ZIP archive may be uploaded."
+                  fr: "Une seule archive ZIP au maximum peut être téléchargée."
+                  it: "È possibile caricare al massimo un archivio ZIP."
+        process_config_overwrites:
+          fileExtensions:
+            - zip
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: unzip
+        display_name:
+          en: Unzip Archive
+          de: Archiv entpacken
+          fr: Décompresser l'archive
+          it: Decomprimere l'archivio
+        process_id: unzipper
+        conditions:
+          pre:
+            skip_conditions:
+              - id: nothing-to-unpack
+                expression: "Length([zip_matching.MatchedFiles]) == 0"
+                message:
+                  de: "Kein ZIP-Archiv geliefert. Das Entpacken wird übersprungen."
+                  en: "No ZIP archive delivered. Unpacking will be skipped."
+                  fr: "Aucune archive ZIP livrée. La décompression sera ignorée."
+                  it: "Nessun archivio ZIP consegnato. La decompressione sarà ignorata."
+        input:
+          zipFile: "${step_output(zip_matching.MatchedFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: xtf_matching_upload
+        display_name:
+          en: Upload XTF Matching
+          de: Upload XTF Zuordnung
+          fr: Upload XTF Correspondance
+          it: Upload XTF Corrispondenza
+        process_id: xtf_matcher
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: xtf_matching_zip
+        display_name:
+          en: ZIP XTF Matching
+          de: ZIP XTF Zuordnung
+          fr: ZIP XTF Correspondance
+          it: ZIP XTF Corrispondenza
+        process_id: xtf_matcher
+        conditions:
+          pre:
+            skip_conditions:
+              - id: nothing-unpacked
+                expression: "Length([unzip.ExtractedFiles]) == 0"
+                message:
+                  de: "Kein Archiv entpackt. Es gibt keine Dateien aus dem Archiv zu prüfen."
+                  en: "No archive unpacked. There are no files from the archive to match."
+                  fr: "Aucune archive décompressée. Aucun fichier de l'archive à vérifier."
+                  it: "Nessun archivio decompresso. Nessun file dall'archivio da verificare."
+        input:
+          files: "${step_output(unzip.ExtractedFiles)}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: validation
+        display_name:
+          en: XTF Validation
+          de: XTF Validierung
+          fr: XTF Validation
+          it: XTF Validazione
+        process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - id: exactly-one-xtf-required
+                expression: "Length([xtf_matching_upload.XtfFiles]) + Length([xtf_matching_zip.XtfFiles]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei geliefert werden, einzeln oder im Archiv."
+                  en: "Exactly one XTF file must be delivered, plain or inside the archive."
+                  fr: "Exactement un fichier XTF doit être livré, seul ou dans l'archive."
+                  it: "Deve essere consegnato esattamente un file XTF, singolo o nell'archivio."
+          post:
+            restrict_delivery_conditions:
+              - id: validation-failed
+                expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung war nicht erfolgreich."
+                  en: "Validation was not successful."
+                  fr: "La validation n'a pas réussi."
+                  it: "La validazione non è riuscita."
+        input:
+          transferFile:
+            - "${step_output(xtf_matching_upload.XtfFiles)}"
+            - "${step_output(xtf_matching_zip.XtfFiles)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
+              - Download
+              - Delivery
+          - property: XtfLog
+            actions:
+              - Download
+              - Delivery
           - property: StatusMessage
             actions:
               - StatusMessage

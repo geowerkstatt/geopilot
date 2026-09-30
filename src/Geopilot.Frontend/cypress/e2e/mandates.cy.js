@@ -1,13 +1,16 @@
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
 import {
   evaluateAutocomplete,
+  evaluateChipInput,
   evaluateInput,
   evaluateSelect,
   hasError,
+  pasteIntoChipInput,
+  removeChipInputValue,
+  setAutocomplete,
+  setChipInput,
   setFormLanguage,
-  setFreeSoloAutocomplete,
   setInput,
-  setNonFreeSoloAutocomplete,
   setSelect,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
@@ -78,7 +81,7 @@ describe("Mandate tests", () => {
     });
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -161,9 +164,23 @@ describe("Mandate tests", () => {
     // Fill out all required fields while checking if errors disappear.
     setSelect("pipelineId", 0, 1);
     hasError("pipelineId", false);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
-    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
+    setChipInput("fileTypes", ".itf", ",");
+    // The period is optional and is added, the casing is normalized, and an entry already present is not repeated.
+    setChipInput("fileTypes", "GML");
+    setChipInput("fileTypes", "xml");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
+
+    // A pasted list is split on its commas, although pasting fires no key event.
+    pasteIntoChipInput("fileTypes", "shp,dxf,");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml", ".shp", ".dxf"]);
+
+    removeChipInputValue("fileTypes", ".gml");
+    removeChipInputValue("fileTypes", ".shp");
+    removeChipInputValue("fileTypes", ".dxf");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
+
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
@@ -172,8 +189,22 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", false);
     cy.dataCy("save-button").should("be.enabled");
 
+    // An entry that is not a file extension is refused and stays in the field, so it can be corrected. Its
+    // message has to survive leaving the field, and the mandate must not be saveable meanwhile.
+    setChipInput("fileTypes", "not an extension");
+    hasError("fileTypes", true);
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
+    cy.dataCy("save-button").should("be.disabled");
+    setInput("name.en", randomMandateName);
+    hasError("fileTypes", true);
+    cy.dataCy("fileTypes-formChipInput").find("input").should("have.value", "not an extension");
+    cy.dataCy("save-button").should("be.disabled");
+    setChipInput("fileTypes", "");
+    hasError("fileTypes", false);
+    cy.dataCy("save-button").should("be.enabled");
+
     // Fill out optional fields.
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
 
     // Resets all fields and validations.
@@ -189,7 +220,7 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", false);
     evaluateInput("name.en", "");
     evaluateAutocomplete("organisations", []);
-    evaluateAutocomplete("fileTypes", []);
+    evaluateChipInput("fileTypes", []);
     evaluateInput("extent-bottom-left-longitude", "");
     evaluateInput("extent-bottom-left-latitude", "");
     evaluateInput("extent-upper-right-longitude", "");
@@ -214,9 +245,9 @@ describe("Mandate tests", () => {
     hasError("name.de", false);
 
     setSelect("pipelineId", 0, 1);
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
+    setAutocomplete("organisations", "Brown and Sons");
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -262,7 +293,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.disabled");
 
     // Check that unsaved changes are not saved when navigating back to the list and choosing "reset" in the prompt.
-    setFreeSoloAutocomplete("fileTypes", ".itf");
+    setChipInput("fileTypes", ".itf");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
@@ -275,14 +306,16 @@ describe("Mandate tests", () => {
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
     cy.intercept({ url: "/api/v1/mandate", method: "GET" }).as("getMandates");
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public"]).as("getUsedKeys");
 
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
     setInput("name.en", randomMandateName);
+    setInput("key", "current");
     setSelect("pipelineId", 0, 1);
-    setNonFreeSoloAutocomplete("organisations", "Schumm, Runte and Macejkovic");
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
+    setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -293,6 +326,8 @@ describe("Mandate tests", () => {
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
+
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public", "current"]).as("getUsedKeys");
 
     // Test editing the mandate
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
@@ -310,7 +345,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.enabled");
 
     // Make change and check if buttons are now enabled after change.
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
@@ -340,6 +375,22 @@ describe("Mandate tests", () => {
     // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
 
+    // Set the mandate key to a value that is already in use to test uniqueness validation.
+    setInput("key", "public");
+    hasError("key", true);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
+
+    // Resetting the mandate key to empty should clear the uniqueness error.
+    setInput("key", "");
+    hasError("key", false);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Setting the mandate key to the previous value should also be allowed.
+    setInput("key", "current");
+    hasError("key", false);
+
     // Save; after saving we are redirected to the list, where the changes are visible.
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate");
@@ -349,6 +400,39 @@ describe("Mandate tests", () => {
     cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
+  });
+
+  it("surfaces the real conflict reason when a duplicate key is only caught by the server", () => {
+    // Skeleton rows carry no row id, so a click on one is silently lost: wait for a real row, and click
+    // a cell rather than the row itself.
+    cy.dataCy("mandates-grid")
+      .find(".MuiDataGrid-row:not(.MuiDataGrid-rowSkeleton)")
+      .first()
+      .find(".MuiDataGrid-cell")
+      .first()
+      .click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
+    });
+
+    setInput("name.en", getRandomManadateName());
+
+    // A key taken by another admin between page load and save is caught only by the database's unique
+    // index. The bare JSON string is what a controller answering with a plain string sends, which has
+    // neither detail nor title, so this pins that such a body still reaches the user.
+    cy.intercept(
+      { url: "/api/v1/mandate", method: "PUT" },
+      {
+        statusCode: 409,
+        headers: { "content-type": "application/json" },
+        body: '"Mandate key <public> is already in use."',
+      },
+    ).as("updateConflict");
+
+    cy.dataCy("save-button").click();
+    cy.wait("@updateConflict");
+
+    cy.get(".MuiAlert-message").should("contain.text", "already in use");
   });
 
   it("prevents multiple save requests while waiting for the API response", () => {
@@ -371,7 +455,7 @@ describe("Mandate tests", () => {
     // Fill in required fields.
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -459,5 +543,52 @@ describe("Mandate with a removed pipeline", () => {
 
     // The broken mandate is flagged with the id of the pipeline that no longer exists.
     getGridRowThatContains("mandates-grid", "Ghost Pipeline Mandate").should("contain", ghostPipelineId);
+  });
+});
+
+describe("Mandate with a file type in upper case", () => {
+  // A stored format keeps the casing it was saved with. Entering the same format again must not add a second
+  // entry for it, since a delivery is matched against both alike.
+  const mandateWithUpperCaseFileType = {
+    id: 9998,
+    name: { de: "Upper Case Mandate" },
+    isPublic: false,
+    allowDelivery: true,
+    fileTypes: [".XTF"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [],
+    deliveries: [],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: "valid-pipeline",
+  };
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", {
+      statusCode: 200,
+      body: { pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }] },
+    }).as("getPipelines");
+    cy.intercept("GET", "/api/v1/mandate/9998", { statusCode: 200, body: mandateWithUpperCaseFileType }).as(
+      "getMandate",
+    );
+  });
+
+  it("keeps a stored format as one entry when it is entered again", () => {
+    cy.visit("/admin/mandates/9998");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    evaluateChipInput("fileTypes", [".XTF"]);
+
+    setChipInput("fileTypes", "xtf");
+    evaluateChipInput("fileTypes", [".XTF"]);
+
+    // Nothing was added, so the form must not count as changed either.
+    cy.dataCy("reset-button").should("be.disabled");
   });
 });

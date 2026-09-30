@@ -30,6 +30,11 @@ internal static class EndpointDiscovery
         return GetProtectedEndpoints().Where(e => (string)e[2] == GeopilotPolicies.User);
     }
 
+    public static IEnumerable<object[]> GetDeclarerEndpoints()
+    {
+        return GetProtectedEndpoints().Where(e => (string)e[2] == GeopilotPolicies.Declarer);
+    }
+
     public static IEnumerable<object[]> GetAnonymousEndpoints()
     {
         foreach (var (httpMethod, url, _, description) in DiscoverEndpoints(anonymous: true))

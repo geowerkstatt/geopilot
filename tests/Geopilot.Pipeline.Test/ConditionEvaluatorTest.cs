@@ -65,6 +65,33 @@ public class ConditionEvaluatorTest
         Assert.IsTrue(conditionResult.Matched);
     }
 
+    [TestMethod(DisplayName = "An output of a skipped step reads as null")]
+    [DataRow("[unzip.ExtractedFiles] == null")]
+    [DataRow("Length([unzip.ExtractedFiles]) == 0")]
+    [DataRow("[step1.result1] == 'hello' and Length([unzip.ExtractedFiles]) == 0")]
+    public async Task OutputOfSkippedStepReadsAsNull(string expression)
+    {
+        var expressionParameters = new Dictionary<string, object?>() { { "step1.result1", "hello" } };
+        var stepsWithoutResult = new HashSet<string>(StringComparer.Ordinal) { "unzip" };
+
+        var result = await conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters, stepsWithoutResult).ConfigureAwait(false);
+
+        Assert.IsTrue(result.Matched);
+        Assert.IsNull(result.ReferencedParameters["unzip.ExtractedFiles"], "the absent output must be reported as the null the expression saw.");
+    }
+
+    [TestMethod(DisplayName = "An unknown output of a step that produced a result still throws")]
+    public async Task UnknownOutputOfStepWithResultStillThrows()
+    {
+        var expressionParameters = new Dictionary<string, object?>() { { "validation.ValidationSuccessful", true } };
+        var stepsWithoutResult = new HashSet<string>(StringComparer.Ordinal) { "unzip" };
+
+        var exception = await Assert.ThrowsAsync<Exception>(
+            () => conditionEvaluator.EvaluateConditionAsync("[validation.Typo] == true", expressionParameters, stepsWithoutResult));
+
+        Assert.AreEqual("Parameter validation.Typo not defined.", exception.Message);
+    }
+
     [TestMethod(DisplayName = "Evaluate a boolean condition with invalid parameters references")]
     [DataRow("[step1.Step2Result1] == 'foo'", "Parameter step1.Step2Result1 not defined.")]
     [DataRow("[step1.somerandomresult] == 'foo'", "Parameter step1.somerandomresult not defined.")]

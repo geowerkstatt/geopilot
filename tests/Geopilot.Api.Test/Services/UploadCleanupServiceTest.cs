@@ -185,6 +185,59 @@ public class UploadCleanupServiceTest
     }
 
     [TestMethod]
+    public async Task RunCleanupAsyncDeletesKeyWithoutFileNameSegment()
+    {
+        var uploadId = Guid.NewGuid();
+        var staleTimestamp = DateTime.UtcNow.AddHours(-49);
+
+        uploadStorageMock
+            .Setup(s => s.ListFilesAsync("uploads/"))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
+            {
+                ($"uploads/{uploadId}", 1024, staleTimestamp),
+            });
+
+        uploadStorageMock
+            .Setup(s => s.DeleteAsync($"uploads/{uploadId}"))
+            .Returns(Task.CompletedTask);
+
+        SetupEmptyContainerListing();
+
+        await service.RunCleanupAsync();
+
+        // Such a key names no file of an upload. Read as one, the prefix deletion would find no directory
+        // of that name and the file would stay behind on every run.
+        uploadStorageMock.Verify(s => s.DeleteAsync($"uploads/{uploadId}"), Times.Once);
+        uploadStorageMock.Verify(s => s.DeletePrefixAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupAsyncKeepsRecentFileWhoseNameContainsANewline()
+    {
+        var uploadId = Guid.NewGuid();
+        var recentTimestamp = DateTime.UtcNow.AddHours(-1);
+
+        uploadStorageMock
+            .Setup(s => s.ListFilesAsync("uploads/"))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
+            {
+                ($"uploads/{uploadId}/a\nb.xtf", 1024, recentTimestamp),
+            });
+
+        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(CreateUpload(uploadId));
+
+        SetupEmptyContainerListing();
+
+        await service.RunCleanupAsync();
+
+        // A newline is a legal character in a file name, and the key is built from Path.GetFileName
+        // without further sanitizing. Reading such a key as an invalid blob would delete the file of a
+        // running upload, because that branch deletes without comparing the age.
+        uploadStorageMock.Verify(s => s.DeleteAsync(It.IsAny<string>()), Times.Never);
+        uploadStorageMock.Verify(s => s.DeletePrefixAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task RunCleanupAsyncOnlyDeletesStaleNotRecent()
     {
         var staleUploadId = Guid.NewGuid();

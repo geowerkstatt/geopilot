@@ -7,6 +7,7 @@ using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.IO.Compression;
 using System.Reflection;
 
 namespace Geopilot.Pipeline.Test;
@@ -19,6 +20,7 @@ public class PipelineIntegrationTest
     private PipelineProcessFactory pipelineProcessFactory;
     private Mock<ILogger> loggerMock;
     private Mock<ILoggerFactory> loggerFactoryMock;
+    private string? uploadDirectory;
 
     [TestInitialize]
     public void SetUp()
@@ -46,6 +48,9 @@ public class PipelineIntegrationTest
     public void Cleanup()
     {
         pipelineProcessFactory?.Dispose();
+
+        if (uploadDirectory is not null && Directory.Exists(uploadDirectory))
+            Directory.Delete(uploadDirectory, true);
     }
 
     [TestMethod]
@@ -138,7 +143,7 @@ public class PipelineIntegrationTest
     }
 
     [TestMethod]
-    public async Task RunTwoStepPipelineSkipsValidationWhenMultipleMatches()
+    public async Task RunTwoStepPipelineContinuesAfterSkippedValidation()
     {
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
 
@@ -160,15 +165,47 @@ public class PipelineIntegrationTest
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Skipped, pipeline.Steps[1].State);
-        Assert.AreEqual(StepState.Skipped, pipeline.Steps[2].State);
 
-        // Assert matcher step produced 2 matched files
+        // The packaging step reads two outputs of the skipped validation and the matched files. The
+        // skipped outputs contribute nothing, so the step runs on what is left instead of failing.
+        Assert.AreEqual(StepState.Success, pipeline.Steps[2].State);
+
         var stepResults = context.StepResults;
-        var matcherStepResult = stepResults["matcher"];
-        var xtfFileData = matcherStepResult.ExtractProperty("XtfFiles");
-        Assert.IsNotNull(xtfFileData);
-        var xtfFiles = xtfFileData as IPipelineFile[];
+        var xtfFiles = stepResults["matcher"].ExtractProperty("XtfFiles") as IPipelineFile[];
         Assert.HasCount(2, xtfFiles);
+
+        Assert.IsNull(stepResults["validation"].Result, "a skipped step produces no process result.");
+        Assert.IsNotNull(stepResults["zip_package"].ExtractProperty("ZipPackage"), "the archive was not created.");
+    }
+
+    [TestMethod(DisplayName = "One pipeline serves a packed and a plain delivery")]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task RunPipelineWithOptionalUnzip(bool packed)
+    {
+        PipelineFactory factory = CreatePipelineFactory("optionalUnzipPipeline");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        const string transferFile = "TestData/UploadFiles/RoadsExdm2ien.xtf";
+        var upload = new List<IPipelineFile>
+        {
+            packed ? PackIntoZip(transferFile) : new PipelineFile(transferFile, "RoadsExdm2ien.xtf"),
+        };
+
+        using var pipeline = factory.CreatePipeline("packed_or_plain", Guid.NewGuid());
+        var context = await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.AreEqual(
+            packed ? StepState.Success : StepState.Skipped,
+            pipeline.Steps[1].State,
+            "the unzip step runs for a packed delivery and is skipped for a plain one.");
+        Assert.AreEqual(StepState.Success, pipeline.Steps[2].State);
+
+        var xtfFiles = context.StepResults["xtf_matching"].ExtractProperty("XtfFiles") as IPipelineFile[];
+        Assert.HasCount(1, xtfFiles, "the matcher must find the transfer file in both delivery variants.");
     }
 
     [TestMethod]
@@ -251,6 +288,23 @@ public class PipelineIntegrationTest
         using var source = File.OpenRead(sourcePath);
         using var destination = target.OpenWriteFileStream();
         source.CopyTo(destination);
+    }
+
+    /// <summary>
+    /// Packs a single file into a ZIP archive under a directory the cleanup removes again.
+    /// </summary>
+    private PipelineFile PackIntoZip(string sourcePath)
+    {
+        uploadDirectory = Directory.CreateTempSubdirectory("PipelineUpload_").FullName;
+        var archivePath = Path.Combine(uploadDirectory, "delivery.zip");
+
+        using (var stream = File.Create(archivePath))
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
+        {
+            archive.CreateEntryFromFile(sourcePath, Path.GetFileName(sourcePath));
+        }
+
+        return new PipelineFile(archivePath, "delivery.zip");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename, string? resourcesDirectory = null)

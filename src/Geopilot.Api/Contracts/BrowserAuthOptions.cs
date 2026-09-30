@@ -11,12 +11,12 @@ public class BrowserAuthOptions
     public string Authority { get; set; } = string.Empty;
 
     /// <summary>
-    /// The client id of the client application registered at the authority.
+    /// The client id of the public client application registered at the authority.
     /// </summary>
-    public string ClientAudience { get; set; } = string.Empty;
+    public string PublicClientId { get; set; } = string.Empty;
 
     /// <summary>
-    /// The scope required for a client to authenticate with the IDP.
+    /// The scopes requested during the authorization flow.
     /// </summary>
-    public string FullScope { get; set; } = string.Empty;
+    public string Scope { get; set; } = string.Empty;
 }

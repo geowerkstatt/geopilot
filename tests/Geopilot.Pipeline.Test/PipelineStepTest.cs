@@ -341,6 +341,39 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public async Task StepRunsWithReducedInputWhenReferencedStepWasSkipped()
+    {
+        var inputs = new Dictionary<string, InputValue>
+        {
+            ["data"] = new InputValue.Sequence(
+            [
+                new InputValue.Literal("from_upload"),
+                new InputValue.StepOutputReference("unzip", "ExtractedFiles"),
+            ]),
+        };
+
+        // A skipped step is recorded without a process result, so its output contributes nothing.
+        var pipelineContext = ContextWith(("unzip", (object?)null));
+
+        var processMock = new MockPipelineProcessArrayInput(new MockPipelineProcessArrayInputResult { OutputData = "done" }, 1);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+    }
+
+    [TestMethod]
     public async Task SuccessfullStepRunWithNullableSingleParameterFromEmptyArrayOutput()
     {
         var inputs = new Dictionary<string, InputValue>
@@ -1349,7 +1382,7 @@ public class PipelineStepTest
     private static Dictionary<string, InputValue> SingleUploadInput() =>
         new() { ["data"] = new InputValue.StepOutputReference("upload", "OutputData") };
 
-    private static PipelineContext ContextWith(params (string StepId, object Result)[] steps)
+    private static PipelineContext ContextWith(params (string StepId, object? Result)[] steps)
     {
         var stepResults = new Dictionary<string, StepResult>();
         foreach (var (stepId, result) in steps)

@@ -116,7 +116,7 @@ public class DirectUploadStorageTest
         await storage.DeletePrefixAsync($"uploads/{uploadId}/");
 
         Assert.IsEmpty(await storage.ListFilesAsync($"uploads/{uploadId}/"));
-        Assert.IsFalse(Directory.Exists(Path.Combine(rootDirectory, "uploads", uploadId.ToString())));
+        Assert.IsFalse(Directory.Exists(Path.Combine(rootDirectory, uploadId.ToString())));
     }
 
     [TestMethod]
@@ -129,9 +129,34 @@ public class DirectUploadStorageTest
     public async Task KeyEscapingTheRootDirectoryThrows()
     {
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(
-            () => storage.WriteAsync("uploads/../../evil.xtf", ContentStream("x")));
+            () => storage.WriteAsync("uploads/../evil.xtf", ContentStream("x")));
 
         Assert.IsFalse(File.Exists(Path.Combine(Path.GetDirectoryName(rootDirectory)!, "evil.xtf")));
+    }
+
+    [TestMethod]
+    public async Task WriteStoresFileWithoutTheKeyPrefixSegmentInThePath()
+    {
+        var uploadId = Guid.NewGuid();
+        var key = $"uploads/{uploadId}/data.xtf";
+
+        await storage.WriteAsync(key, ContentStream("payload"));
+
+        // The prefix namespaces the key, not the path: the configured directory holds the uploads already.
+        Assert.IsTrue(File.Exists(Path.Combine(rootDirectory, uploadId.ToString(), "data.xtf")));
+        Assert.IsFalse(Directory.Exists(Path.Combine(rootDirectory, "uploads")));
+
+        // The key reported back is still the one the orchestration handed in, which is what preflight compares.
+        var listed = await storage.ListFilesAsync($"uploads/{uploadId}/");
+        Assert.AreEqual(key, listed.Single().Key);
+    }
+
+    [TestMethod]
+    public async Task WriteThrowsForKeyWithoutThePrefix()
+    {
+        // Keys and paths stay one to one, otherwise this key would address the same file as the prefixed one.
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+            () => storage.WriteAsync($"{Guid.NewGuid()}/data.xtf", ContentStream("x")));
     }
 
     private static MemoryStream ContentStream(string content) => new(Encoding.UTF8.GetBytes(content));

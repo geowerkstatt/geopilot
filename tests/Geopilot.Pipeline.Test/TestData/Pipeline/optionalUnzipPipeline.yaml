@@ -1,0 +1,50 @@
+# One pipeline for a delivery that arrives either packed in a ZIP or as a plain transfer file.
+# The unzip step is skipped when no ZIP was delivered, and the following matcher reads the upload
+# together with the outputs of that possibly skipped step.
+processes:
+  - id: zip_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess
+    default_config:
+      fileExtensions:
+        - zip
+  - id: unzipper
+    implementation: Geopilot.Pipeline.Processes.Unzip.UnzipProcess
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      iliModels:
+pipelines:
+  - id: packed_or_plain
+    display_name:
+      en: Delivery packed or plain
+    steps:
+      - id: zip_matching
+        display_name:
+          en: ZIP Matching
+        process_id: zip_matcher
+        input:
+          files: "${upload()}"
+      - id: unzip
+        display_name:
+          en: Unzip
+        process_id: unzipper
+        conditions:
+          pre:
+            skip_conditions:
+              - id: nothing-to-unpack
+                expression: "Length([zip_matching.MatchedFiles]) == 0"
+        input:
+          zipFile: "${step_output(zip_matching.MatchedFiles)}"
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+        process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
+        input:
+          files:
+            - "${upload()}"
+            - "${step_output(unzip.ExtractedFiles)}"

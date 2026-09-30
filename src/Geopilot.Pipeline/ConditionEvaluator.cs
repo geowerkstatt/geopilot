@@ -26,22 +26,56 @@ internal class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc />
-    public async Task<ConditionEvaluatorResult> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
+    public async Task<ConditionEvaluatorResult> EvaluateConditionAsync(
+        string expression,
+        Dictionary<string, object?> expressionParameters,
+        IReadOnlySet<string>? stepsWithoutResult = null)
     {
         var runner = CreateRunner(expression, logger);
 
-        // Parsed once: parameter registration and the captured values share the same name list.
-        var parameterNames = runner.GetParameterNames();
-        runner.RegisterParameters(parameterNames, expressionParameters);
-
-        // Captured before evaluating, so a consumer sees exactly the values the expression saw.
-        var referencedParameters = parameterNames
-            .Distinct()
-            .Where(expressionParameters.ContainsKey)
-            .ToDictionary(name => name, name => expressionParameters[name]);
+        // Parsed once, and registered and reported from the same set, so a consumer sees exactly the
+        // values the expression saw.
+        var referencedParameters = ResolveParameters(runner.GetParameterNames(), expressionParameters, stepsWithoutResult);
+        runner.RegisterParameters(referencedParameters);
 
         var matched = await runner.EvaluateConditionAsync();
         return new ConditionEvaluatorResult(matched, referencedParameters);
+    }
+
+    /// <summary>
+    /// Picks the values for the parameter names the expression references. A name without a value is
+    /// kept as null when it belongs to a step that ran no process, which is what a skipped step is.
+    /// A name belonging to a step that did produce a result is left out, so a reference that names no
+    /// real output still fails loudly instead of quietly reading as null.
+    /// </summary>
+    private static Dictionary<string, object?> ResolveParameters(
+        List<string> parameterNames,
+        Dictionary<string, object?> expressionParameters,
+        IReadOnlySet<string>? stepsWithoutResult)
+    {
+        var referenced = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var name in parameterNames.Distinct())
+        {
+            if (expressionParameters.TryGetValue(name, out var value))
+            {
+                referenced[name] = value;
+            }
+            else if (stepsWithoutResult?.Contains(StepIdOf(name)) == true)
+            {
+                referenced[name] = null;
+            }
+        }
+
+        return referenced;
+    }
+
+    /// <summary>
+    /// The step id part of a parameter name in the format <c>stepId.resultId</c>.
+    /// </summary>
+    private static string StepIdOf(string parameterName)
+    {
+        var separator = parameterName.IndexOf('.', StringComparison.Ordinal);
+        return separator < 0 ? parameterName : parameterName[..separator];
     }
 
     /// <summary>
@@ -81,21 +115,16 @@ internal class ConditionEvaluator : IConditionEvaluator
         }
 
         /// <summary>
-        /// Registers parameter values for the current expression using the specified dictionary.
+        /// Registers parameter values for the current expression.
         /// </summary>
-        /// <remarks>Parameters in the expression that do not have a corresponding entry in the dictionary
-        /// are not modified.</remarks>
-        /// <param name="parameterNames">The parameter names the expression references, from <see cref="GetParameterNames"/>. Passed in so the expression is parsed only once per evaluation.</param>
-        /// <param name="expressionParameters">A dictionary containing parameter names and their corresponding values to assign to the expression. Only
-        /// parameters present in both the expression and the dictionary are registered. Parameter values may be null.</param>
-        internal void RegisterParameters(List<string> parameterNames, Dictionary<string, object?> expressionParameters)
+        /// <remarks>Parameters the expression references but that are absent from <paramref name="parameters"/>
+        /// stay unregistered, which makes the evaluation throw.</remarks>
+        /// <param name="parameters">The values to assign, already reduced to the names the expression references.
+        /// Values may be null.</param>
+        internal void RegisterParameters(Dictionary<string, object?> parameters)
         {
-            parameterNames
-                .ForEach(paramName =>
-                {
-                    if (expressionParameters.TryGetValue(paramName, out var parameterValue))
-                        expression.Parameters[paramName] = parameterValue;
-                });
+            foreach (var parameter in parameters)
+                expression.Parameters[parameter.Key] = parameter.Value;
         }
 
         /// <summary>

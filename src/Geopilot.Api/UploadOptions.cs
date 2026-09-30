@@ -60,7 +60,8 @@ public class UploadOptions
     public int CleanupIntervalMinutes { get; set; }
 
     /// <summary>
-    /// Maximum number of upload initiation requests per IP within the rate limit window.
+    /// Maximum number of upload initiation requests within the rate limit window. The window is shared by the
+    /// whole installation, not kept per caller: the limit is reached by all clients together.
     /// </summary>
     public int RateLimitRequests { get; set; }
 

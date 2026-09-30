@@ -40,7 +40,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, User? user, UploadInfo upload)
+    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Declarer? declarer, UploadInfo upload)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(mandate);
@@ -56,7 +56,8 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             Definition = pipelineFactory.GetDefinitionSnapshotJson(pipelineId),
             AppVersion = AppVersion,
             MandateId = mandate.Id,
-            UserId = user?.Id,
+            UserId = declarer?.UserId,
+            MachineClientId = declarer?.MachineClientId,
             ClientKind = ClassifyClient(),
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,

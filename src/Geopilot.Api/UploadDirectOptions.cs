@@ -14,8 +14,9 @@ public class UploadDirectOptions
     public static string SectionName => "Upload:Direct";
 
     /// <summary>
-    /// The root directory uploaded files are stored in. Owned exclusively by the direct upload backend;
-    /// the files keep the same key structure as the cloud container (uploads/{uploadId}/...).
+    /// The root directory uploaded files are stored in, one folder per upload id. It must belong to the
+    /// direct upload backend alone: the upload cleanup treats every file below it as its own and deletes
+    /// what it cannot account for, so a directory shared with anything else loses data.
     /// </summary>
     [Required(AllowEmptyStrings = false)]
     public required string Directory { get; set; }

@@ -37,8 +37,21 @@ export const selectMandate = id => {
 
 export const startProcessing = () => {
   cy.intercept("POST", "/api/v2/processing").as("startProcessing");
+  cy.intercept("GET", "/api/v2/processing/*").as("jobStatus");
   cy.dataCy("startProcessing-button").click();
   cy.wait("@startProcessing");
+};
+
+/**
+ * Waits until the status polling started by `startProcessing` reports the job as finished. A real pipeline
+ * run takes longer than the default command timeout, so every poll gets its own generous limit.
+ */
+export const waitForProcessingToFinish = () => {
+  cy.wait("@jobStatus", { timeout: 120000 }).then(({ response }) => {
+    if (["pending", "running"].includes(response.body.state)) {
+      waitForProcessingToFinish();
+    }
+  });
 };
 
 export const stepIsActive = (stepName, isActive = true) => {

@@ -42,7 +42,7 @@ namespace Geopilot.Api.Controllers
 
             pipelineServiceMock = new Mock<IPipelineService>();
 
-            mandateController = new MandateController(loggerMock.Object, context, mandateServiceMock.Object, pipelineServiceMock.Object);
+            mandateController = CreateController(machineDeliveryEnabled: true);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(unrestrictedMandate)), AllowDelivery = true };
             noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noDeliveryMandate)), AllowDelivery = false };
@@ -146,13 +146,65 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task GetSummaryWithDefaultUploadIdReturnsBadRequest()
+        public async Task GetSummaryAsMachineClientPassesNullUser()
         {
-            var uploadId = default(Guid);
+            // An active client gets the anonymous view although its organisation holds mandates: its surface
+            // is the submission, where it names its mandate by key. Whoever resolves the declarer here instead
+            // of the user changes that behaviour, and this test is where it shows.
+            var uploadId = Guid.NewGuid();
+            var client = new MachineClient
+            {
+                AuthIdentifier = Guid.NewGuid().ToString(),
+                Name = "SILENTHARBOR",
+                State = MachineClientState.Active,
+            };
+            organisation.MachineClients.Add(client);
+            context.SaveChanges();
+            mandateController.SetupTestUser(new User { AuthIdentifier = client.AuthIdentifier });
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
 
-            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId));
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
 
-            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.IsAny<User>(), It.IsAny<Guid>()), Times.Never);
+            Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetSummaryWithoutUploadIdSkipsTheUploadFilter()
+        {
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, null))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
+
+            var result = (await mandateController.GetSummary(null)) as OkObjectResult;
+            var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
+
+            Assert.HasCount(1, mandates);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, null), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetSummaryWithUnknownUploadIdReturnsNotFound()
+        {
+            var uploadId = Guid.NewGuid();
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ThrowsAsync(new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId)));
+
+            Assert.IsInstanceOfType<NotFoundObjectResult>(await mandateController.GetSummary(uploadId));
+        }
+
+        [TestMethod]
+        public async Task GetSummaryWithUploadWithoutFileExtensionsReturnsBadRequest()
+        {
+            var uploadId = Guid.NewGuid();
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ThrowsAsync(new InvalidOperationException($"Upload with id <{uploadId}> has no file with a file extension."));
+
+            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId), "Files without an extension cannot be matched against a mandate; that is a fault of the request, not of the installation.");
         }
 
         [TestMethod]
@@ -224,6 +276,7 @@ namespace Geopilot.Api.Controllers
             {
                 FileTypes = new string[] { ".*" },
                 Name = TestHelpers.Localized("ACCORDIANWALK"),
+                Key = "",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = pipelineId,
@@ -235,6 +288,7 @@ namespace Geopilot.Api.Controllers
             var resultValue = (result as CreatedResult)?.Value as Mandate;
             Assert.IsNotNull(resultValue);
             CompareMandates(mandate, resultValue);
+            Assert.IsNull(resultValue.Key, "Empty key should normalize to null");
         }
 
         [TestMethod]
@@ -278,6 +332,204 @@ namespace Geopilot.Api.Controllers
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsBadRequest(result);
         }
+
+        [TestMethod]
+        public async Task CreateMultipleMandatesWithEmptyKey()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+
+            var pipelineStub = new PipelineConfig()
+            {
+                Id = pipelineId,
+                DisplayName = new Dictionary<string, string>()
+                {
+                    { "en", "pipeline 1" },
+                    { "de", "Pipeline 1" },
+                },
+                Steps = new List<StepConfig>(),
+            };
+            pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
+
+            async Task CreateMandate()
+            {
+                var mandate = new Mandate()
+                {
+                    FileTypes = new string[] { ".*" },
+                    Name = TestHelpers.Localized("ACCORDIANWALK"),
+                    Key = "",
+                    PipelineId = pipelineId,
+                    Organisations = new List<Organisation> { new() { Id = 1 } },
+                    Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                    AllowDelivery = true,
+                };
+
+                var result = await mandateController.Create(mandate);
+                ActionResultAssert.IsCreated(result);
+                var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+                Assert.IsNull(resultValue.Key, "Empty key should normalize to null");
+            }
+
+            await CreateMandate();
+            await CreateMandate();
+        }
+
+        [TestMethod]
+        public async Task CreateMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+
+            ActionResultAssert.IsConflict(result, "GRUMPYFALCON");
+        }
+
+        [TestMethod]
+        public async Task CreateMandateTrimsKey()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "  GRUMPYFALCON  "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.AreEqual("GRUMPYFALCON", resultValue.Key);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateWithWhitespaceOnlyKeyStoresNull()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "   "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.IsNull(resultValue.Key, "A key of only whitespace should normalize to null");
+        }
+
+        [TestMethod]
+        public async Task EditMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+            var created = await mandateController.Create(NewMandateWithKey(pipelineId, "SOMBERSPORK"));
+            var toEdit = Assert.IsInstanceOfType<Mandate>((created as CreatedResult)?.Value);
+
+            toEdit.Key = "GRUMPYFALCON";
+            toEdit.SetCoordinateListFromPolygon();
+            var result = await mandateController.Edit(toEdit);
+
+            ActionResultAssert.IsConflict(result);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateIgnoresKeyWhenMachineDeliveryDisabled()
+        {
+            const string pipelineId = "Pipeline1";
+            SetupPipelineStub(pipelineId);
+            var controller = CreateController(machineDeliveryEnabled: false);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.IsNull(resultValue.Key, "No key may be stored while machine delivery is disabled");
+        }
+
+        [TestMethod]
+        public async Task EditMandateKeepsStoredKeyWhenMachineDeliveryDisabled()
+        {
+            const string pipelineId = "Pipeline1";
+            SetupPipelineStub(pipelineId);
+            mandateController.SetupTestUser(adminUser);
+
+            var created = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+            var toEdit = Assert.IsInstanceOfType<Mandate>((created as CreatedResult)?.Value);
+            toEdit.SetCoordinateListFromPolygon();
+
+            // With the capability off the administration does not render the field, so its payload has no key.
+            toEdit.Key = null;
+            var disabledController = CreateController(machineDeliveryEnabled: false);
+            disabledController.SetupTestUser(adminUser);
+            var result = await disabledController.Edit(toEdit);
+
+            ActionResultAssert.IsOk(result);
+            var updated = Assert.IsInstanceOfType<Mandate>((result as OkObjectResult)?.Value);
+            Assert.AreEqual("GRUMPYFALCON", updated.Key, "The stored key must survive a save while machine delivery is disabled");
+        }
+
+        [TestMethod]
+        public async Task GetKeysReturnsTheKeysInUse()
+        {
+            mandateServiceMock.Setup(s => s.GetMandateKeysAsync()).ReturnsAsync(new List<string> { "GRUMPYFALCON", "SOMBERSPORK" });
+            var controller = CreateController(machineDeliveryEnabled: true);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.GetKeys();
+
+            var keys = ActionResultAssert.IsOkObjectResult<List<string>>(result);
+            CollectionAssert.AreEquivalent(new[] { "GRUMPYFALCON", "SOMBERSPORK" }, keys);
+        }
+
+        [TestMethod]
+        public async Task GetKeysReturnsEmptyListWhenMachineDeliveryDisabled()
+        {
+            var controller = CreateController(machineDeliveryEnabled: false);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.GetKeys();
+
+            var keys = ActionResultAssert.IsOkObjectResult<string[]>(result);
+            Assert.IsEmpty(keys, "No key may be reported while machine delivery is disabled");
+            mandateServiceMock.Verify(s => s.GetMandateKeysAsync(), Times.Never);
+        }
+
+        private MandateController CreateController(bool machineDeliveryEnabled)
+            => new(
+                loggerMock.Object,
+                context,
+                mandateServiceMock.Object,
+                pipelineServiceMock.Object,
+                Options.Create(new MachineDeliveryOptions { Enabled = machineDeliveryEnabled }));
+
+        private void SetupPipelineStub(string pipelineId)
+        {
+            var pipelineStub = new PipelineConfig()
+            {
+                Id = pipelineId,
+                DisplayName = new Dictionary<string, string>()
+                {
+                    { "en", "pipeline 1" },
+                    { "de", "Pipeline 1" },
+                },
+                Steps = new List<StepConfig>(),
+            };
+            pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
+        }
+
+        private Mandate NewMandateWithKey(string pipelineId, string? key) => new()
+        {
+            FileTypes = new string[] { ".*" },
+            Name = TestHelpers.Localized("ACCORDIANWALK"),
+            Key = key,
+            PipelineId = pipelineId,
+            Organisations = new List<Organisation> { new() { Id = 1 } },
+            Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+            AllowDelivery = true,
+        };
 
         [TestMethod]
         [DataRow(null, "Pipeline1", DisplayName = "edit mandate with pipeline")]
@@ -334,9 +586,10 @@ namespace Geopilot.Api.Controllers
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+            var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
             deliveryController.SetupTestUser(editUser);
-            mandateServiceMock.Setup(s => s.GetMandateForUser(mandateToUpdate.Id, editUser)).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
+            mandateServiceMock.Setup(s => s.GetMandateForDeclarerAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 
             var request = new DeliveryRequest
             {
@@ -348,6 +601,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(delivery);
 
             mandateToUpdate.Name = TestHelpers.Localized("ARKMUTANT");
+            mandateToUpdate.Key = "";
             mandateToUpdate.PipelineId = pipelineId;
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
@@ -362,6 +616,7 @@ namespace Geopilot.Api.Controllers
             Assert.HasCount(1, updatedMandate.Deliveries);
             Assert.AreEqual(delivery.Id, updatedMandate.Deliveries[0].Id);
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
+            Assert.IsNull(updatedMandate.Key, "Empty key should normalize to null");
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
@@ -429,6 +684,7 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.Key, actual.Key);
             Assert.AreEqual(expected.IsPublic, actual.IsPublic);
             Assert.AreEqual(expected.AllowDelivery, actual.AllowDelivery);
             Assert.AreEqual(expected.PipelineId, actual.PipelineId);
@@ -447,6 +703,7 @@ namespace Geopilot.Api.Controllers
         {
             return new MandateSummary(
                 mandate.Id,
+                mandate.Key,
                 mandate.Name,
                 mandate.Description,
                 mandate.AllowDelivery,

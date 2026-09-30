@@ -154,6 +154,23 @@ npm run lint    # muss ohne Warnungen durchlaufen (--max-warnings 0)
 npm run knip    # muss ohne Findings durchlaufen
 ```
 
+### OpenAPI Codegen
+
+Die TypeScript-Typen für das geopilot API werden automatisch aus der OpenAPI-Spezifikation generiert.
+`types.gen.ts` wird durch das Tool überschrieben und im Workflow gegen die aktuelle API geprüft.
+
+**Konfiguration:** [`src/Geopilot.Frontend/openapi-ts.config.ts`](./src/Geopilot.Frontend/openapi-ts.config.ts)
+
+**Workflow bei API-Änderungen:**
+
+1. .NET API und Frontend oder den geopilot Docker Container lokal starten
+2. OpenAPI-Spec aktualisieren und Typen neu generieren:
+   ```bash
+   cd src/Geopilot.Frontend
+   npm run openapi # lädt swagger.json vom laufenden Server und generiert types.gen.ts
+   ```
+3. Generiertes File [`src/Geopilot.Frontend/src/api/generated/types.gen.ts`](./src/Geopilot.Frontend/src/api/generated/types.gen.ts) via Git committen.
+
 ## Cypress Tests
 
 Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Das Projekt ist mit [Cypress Cloud](https://cloud.cypress.io/) konfiguriert, wodurch unter anderem die parallele Ausführung der End-to-End (E2E) Tests ermöglicht wird. Testergebnisse und Aufzeichnungen sind ebenfalls direkt in [Cypress Cloud](https://cloud.cypress.io/) einsehbar, was die Identifikation und Behebung möglicher Fehler und Probleme erleichtert. Um die detaillierten Testergebnisse einzusehen und die E2E-Tests des Projekts zu debuggen, kann die [Cypress Dashboard-Seite](https://cloud.cypress.io/projects/bqtbpp/runs) besucht werden.
@@ -188,6 +205,10 @@ Dabei wird geprüft, dass das Token von der angegebenen Authority ausgestellt wu
 Zusätzlich werden folgende Claims im Token vorausgesetzt: `sub`, `email` und `name`.
 Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) `openid`, `profile` und `email` mitgeliefert.
 
+### Maschinen-Clients
+
+Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
@@ -196,10 +217,25 @@ _([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://local
 ### Swagger UI
 
 Abhängig vom Identity Provider wird die Audience (`aud` Claim) im Access-Token automatisch gesetzt, sofern ein passender Scope verwendet wird.
-Der benötigte Scope kann in den Appsettings unter `ApiServerScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Swagger UI verwendet dieselbe Client-Registrierung (`PublicClientId`) wie das Frontend.
+Die benötigten Scopes können in den Appsettings unter `SwaggerAdditionalScopes` gesetzt werden, um diese im Swagger UI zur Auswahl anzuzeigen.
 Ohne diesen Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
 
 In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
+
+### Opaque Access Tokens (RFC 7662)
+
+`Auth:AccessTokenFormat` steuert die Token-Validierung (`Jwt` oder `Opaque`, Standard: `Jwt`).
+
+Im Modus `Opaque` validiert die API Tokens über Introspection (RFC 7662) und benötigt:
+
+- `Auth:IntrospectionUrl`: URL des `introspection_endpoint`.
+- `Auth:IntrospectionAuthMethod`: `ClientSecretBasic` wenn Basic Auth oder `ClientSecretPost` wenn via Form-Data authentifiziert.
+- `Auth:ConfidentialClientId`: Client-ID des Confidential Clients.
+- `Auth:ConfidentialClientSecret`: Client-Secret des Confidential Clients.
+- `Auth:UserInfoUrl`: URL des `userinfo_endpoint` (liefert `email` und `name` einer Person; für einen registrierten Maschinen-Client wird er nicht abgefragt).
+
+Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Ist `Auth:Audience` konfiguriert, muss die Antwort das Feld `aud` mit diesem Wert enthalten. Fehlt `aud` oder weicht der Wert ab, lehnt die API das Token ab. Ist `Auth:Audience` leer, prüft die API keine Audience und akzeptiert jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden. Die Kennung des Tokens nimmt die API aus der Introspection-Antwort: aus `sub`, ersatzweise aus `client_id`. Fehlen beide, gilt für eine Person die Kennung aus der Userinfo-Antwort; erst wenn auch die keine Person beschreibt, lehnt die API das Token ab.
 
 ### Appsettings
 
@@ -208,20 +244,31 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```json5
 "Auth": {
     // General auth options
+    "AccessTokenFormat": "Jwt", // Token format: "Jwt" (default) or "Opaque"
     "Authority": "http://localhost:4011/realms/geopilot", // Token issuer (required)
-    "ClientAudience": "geopilot-client", // ID_Token audience (required)
-    "ApiAudience": "geopilot-api", // Access_Token audience (required)
-    "FullScope": "openid profile email geopilot.api" // Full scope a client application needs to send as to configure access and id tokens correctly
+    "PublicClientId": "geopilot-client", // Frontend client id (required)
+    "Audience": "geopilot-api", // Access_Token audience (required for Jwt, optional for Opaque: when set, the introspection response must contain a matching aud)
+    "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
+
+    // Opaque token options (required when AccessTokenFormat is Opaque)
+    "IntrospectionUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token/introspect",
+    "IntrospectionAuthMethod": "ClientSecretBasic", // ClientSecretBasic or ClientSecretPost
+    "ConfidentialClientId": "geopilot-api",
+    "ConfidentialClientSecret": "<secret from environment or vault>",
+    "UserInfoUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo",
+    "UserNameClaims": [ "name" ], // Userinfo claims joined with a space to form the displayed name (default: ["name"], e.g. ["givenname", "surname"])
 
     // Swagger UI auth options
     "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
-    "ApiServerScope": "<custom app scope>"
+    "SwaggerAdditionalScopes": "<custom app scope>"
 }
 ```
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
+
+Den Namen einer Person bildet die API aus den Claims in `Auth:UserNameClaims` (Standard: `["name"]`). Mehrere Claims werden mit einem Leerzeichen verbunden, ein fehlender Claim wird übersprungen. Liefert ein Identity Provider kein `name`, etwa einer mit Anbindung an AGOV, setzt `["givenname", "surname"]` den Namen aus Vor- und Nachname zusammen. Liefert keiner der Claims einen Wert, meldet die API die Person nicht an. Die Einstellung gilt für beide Token-Formate.
 
 ## Cloud Upload
 

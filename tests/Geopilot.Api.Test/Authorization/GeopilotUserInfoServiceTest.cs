@@ -2,6 +2,7 @@
 using Geopilot.Api.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -14,7 +15,6 @@ namespace Geopilot.Api.Test.Authorization;
 public class GeopilotUserInfoServiceTest
 {
     private Mock<HttpMessageHandler> httpMessageHandlerMock;
-    private Mock<IConfiguration> configurationMock;
     private Mock<ILogger<GeopilotUserInfoService>> loggerMock;
     private HttpClient httpClient;
     private GeopilotUserInfoService userInfoService;
@@ -23,16 +23,82 @@ public class GeopilotUserInfoServiceTest
     public void Initialize()
     {
         httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-        configurationMock = new Mock<IConfiguration>();
         loggerMock = new Mock<ILogger<GeopilotUserInfoService>>();
 
         httpClient = new HttpClient(httpMessageHandlerMock.Object);
 
-        // Setup configuration
-        configurationMock.Setup(x => x["Auth:UserInfoUrl"])
-            .Returns("https://example.com/userinfo");
+        userInfoService = CreateUserInfoService();
+    }
 
-        userInfoService = new GeopilotUserInfoService(httpClient, configurationMock.Object, loggerMock.Object);
+    private GeopilotUserInfoService CreateUserInfoService(params string[] userNameClaims)
+    {
+        var options = new UserInfoOptions { UserInfoUrl = "https://example.com/userinfo", UserNameClaims = userNameClaims };
+        return new GeopilotUserInfoService(httpClient, Options.Create(options), loggerMock.Object);
+    }
+
+    [TestMethod]
+    public void UserInfoOptionsBindingReplacesDefaultUserNameClaims()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:UserNameClaims:0"] = "givenname",
+                ["Auth:UserNameClaims:1"] = "surname",
+            })
+            .Build();
+
+        var options = configuration.GetSection(UserInfoOptions.SectionName).Get<UserInfoOptions>();
+
+        Assert.IsNotNull(options?.UserNameClaims);
+        CollectionAssert.AreEqual(new[] { "givenname", "surname" }, options.UserNameClaims.ToArray());
+    }
+
+    private void SetupUserInfoResponse(string json)
+    {
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+            });
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithUserNameClaimsJoinsTheirValues()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "givenname": "Erika", "surname": "Muster" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Erika Muster", result.Name);
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithUserNameClaimsSkipsMissingClaim()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "name": "Ignored", "givenname": "Erika" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Erika", result.Name);
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithoutAnyUserNameClaimReturnsNull()
+    {
+        userInfoService = CreateUserInfoService("givenname", "surname");
+        SetupUserInfoResponse("""{ "sub": "user123", "email": "test@example.com", "name": "Erika Muster" }""");
+
+        var result = await userInfoService.GetUserInfoAsync("valid-access-token");
+
+        Assert.IsNull(result);
     }
 
     [TestCleanup]
@@ -261,33 +327,62 @@ public class GeopilotUserInfoServiceTest
     }
 
     [TestMethod]
-    public async Task GetUserInfoAsyncWithHttpExceptionReturnsNull()
+    public async Task GetUserInfoAsyncWithHttpExceptionThrowsIdentityProviderUnavailable()
     {
         // Arrange
         var accessToken = "valid-access-token";
+        var networkError = new HttpRequestException("Network error");
 
         httpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network error"));
+            .ThrowsAsync(networkError);
 
         // Act
-        var result = await userInfoService.GetUserInfoAsync(accessToken);
+        var ex = await Assert.ThrowsExactlyAsync<IdentityProviderUnavailableException>(() => userInfoService.GetUserInfoAsync(accessToken));
 
         // Assert
-        Assert.IsNull(result);
+        Assert.AreSame(networkError, ex.InnerException);
+    }
 
-        // Verify error logging
-        loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving user info")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithCancelledTokenThrowsOperationCanceled()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>((_, ct) => Task.FromCanceled<HttpResponseMessage>(ct));
+        await cts.CancelAsync();
+
+        // Act & Assert
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => userInfoService.GetUserInfoAsync("valid-access-token", cts.Token));
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithServerErrorThrowsIdentityProviderUnavailable()
+    {
+        // Arrange
+        var accessToken = "valid-access-token";
+        using var httpResponse = new HttpResponseMessage(HttpStatusCode.BadGateway);
+
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(httpResponse);
+
+        // Act
+        var ex = await Assert.ThrowsExactlyAsync<IdentityProviderUnavailableException>(() => userInfoService.GetUserInfoAsync(accessToken));
+
+        // Assert
+        Assert.AreEqual("User info request failed with status code BadGateway.", ex.Message);
     }
 
     [TestMethod]
@@ -330,5 +425,92 @@ public class GeopilotUserInfoServiceTest
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithSameTokenHitsHttpEndpointOnce()
+    {
+        // Arrange
+        var accessToken = "same-access-token";
+        var userInfoResponse = new UserInfoResponse
+        {
+            Sub = "user123",
+            Email = "test@example.com",
+            Name = "Test User",
+        };
+
+        var jsonResponse = JsonSerializer.Serialize(userInfoResponse);
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json"),
+            });
+
+        // Act
+        var firstResult = await userInfoService.GetUserInfoAsync(accessToken);
+        var secondResult = await userInfoService.GetUserInfoAsync(accessToken);
+
+        // Assert
+        Assert.IsNotNull(firstResult);
+        Assert.IsNotNull(secondResult);
+        Assert.AreSame(firstResult, secondResult);
+        httpMessageHandlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithDifferentTokensHitsHttpEndpointTwice()
+    {
+        // Arrange
+        var token1 = "token-1";
+        var token2 = "token-2";
+        var userInfoResponse1 = new UserInfoResponse
+        {
+            Sub = "user1",
+            Email = "user1@example.com",
+            Name = "User One",
+        };
+        var userInfoResponse2 = new UserInfoResponse
+        {
+            Sub = "user2",
+            Email = "user2@example.com",
+            Name = "User Two",
+        };
+
+        httpMessageHandlerMock.Protected()
+            .SetupSequence<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(userInfoResponse1), Encoding.UTF8, "application/json"),
+            })
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(userInfoResponse2), Encoding.UTF8, "application/json"),
+            });
+
+        // Act
+        var firstResult = await userInfoService.GetUserInfoAsync(token1);
+        var secondResult = await userInfoService.GetUserInfoAsync(token2);
+
+        // Assert
+        Assert.IsNotNull(firstResult);
+        Assert.IsNotNull(secondResult);
+        Assert.AreEqual("user1", firstResult.Sub);
+        Assert.AreEqual("user2", secondResult.Sub);
+        httpMessageHandlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Exactly(2),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
     }
 }

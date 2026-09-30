@@ -62,6 +62,17 @@ public class PipelineRun
     public User? User { get; set; }
 
     /// <summary>
+    /// The machine client that started the run, or <see langword="null"/> when a user or an anonymous caller
+    /// did. Never set together with <see cref="UserId"/>, which the database enforces.
+    /// </summary>
+    public int? MachineClientId { get; set; }
+
+    /// <summary>
+    /// Navigation to the machine client, when one is attached.
+    /// </summary>
+    public MachineClient? MachineClient { get; set; }
+
+    /// <summary>
     /// The kind of client that started the run, classified from the request (never the raw header).
     /// Makes unattended machine deliveries countable (re-evaluation trigger of ADR 0010).
     /// </summary>

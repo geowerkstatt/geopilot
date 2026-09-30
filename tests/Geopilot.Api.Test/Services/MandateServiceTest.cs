@@ -23,6 +23,7 @@ public class MandateServiceTest
     private Mandate noOrganisationsMandate;
     private Mandate noPermissionMandate;
     private Mandate missingPipelineMandate;
+    private Organisation organisation;
     private Mock<IPipelineService> pipelineServiceMock;
 
     [TestInitialize]
@@ -67,7 +68,7 @@ public class MandateServiceTest
         adminUser = CreateUser("ms-1234", "Admin User", "admin.example@example.org", isAdmin: true);
         context.Users.Add(adminUser);
 
-        var organisation = new Organisation { Name = "GAMMAHUNT" };
+        organisation = new Organisation { Name = "GAMMAHUNT" };
         organisation.Mandates.Add(unrestrictedMandate);
         organisation.Mandates.Add(noDeliveryMandate);
         organisation.Mandates.Add(xtfMandate);
@@ -91,6 +92,33 @@ public class MandateServiceTest
         context.Dispose();
     }
 
+    private MachineClient AddMachineClient(bool memberOfOrganisation)
+    {
+        var client = new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" };
+        if (memberOfOrganisation)
+            organisation.MachineClients.Add(client);
+        else
+            context.MachineClients.Add(client);
+
+        context.SaveChanges();
+        return client;
+    }
+
+    [TestMethod]
+    public async Task GetMandateKeysReturnsOnlyMandatesThatCarryAKey()
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        publicCsvMandate.Key = "SOMBERSPORK";
+        context.SaveChanges();
+
+        var keys = await mandateService.GetMandateKeysAsync();
+
+        // The seeded mandates carry keys of their own, so this counts instead of comparing a fixed set.
+        CollectionAssert.Contains(keys, "GRUMPYFALCON");
+        CollectionAssert.Contains(keys, "SOMBERSPORK");
+        Assert.HasCount(context.Mandates.Count(m => m.Key != null), keys, "Only mandates with a key belong in the result.");
+    }
+
     [TestMethod]
     public async Task GetMandateAsUserReturnsPublicMandateForAuthenticatedUser()
     {
@@ -98,7 +126,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForUser(publicMandate.Id, user);
+        var result = await mandateService.GetMandateForDeclarerAsync(publicMandate.Id, Declarer.ForUser(user.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -110,7 +138,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForUser(publicMandate.Id, null);
+        var result = await mandateService.GetMandateForDeclarerAsync(publicMandate.Id, null);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -122,7 +150,7 @@ public class MandateServiceTest
         var privateMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Private Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForUser(privateMandate.Id, null);
+        var result = await mandateService.GetMandateForDeclarerAsync(privateMandate.Id, null);
 
         Assert.IsNull(result);
     }
@@ -132,7 +160,7 @@ public class MandateServiceTest
     {
         var (user, mandate) = context.AddMandateWithUserOrganisation();
 
-        var result = await mandateService.GetMandateForUser(mandate.Id, user);
+        var result = await mandateService.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(mandate.Id, result.Id);
@@ -145,7 +173,7 @@ public class MandateServiceTest
         var mandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Restricted Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForUser(mandate.Id, user);
+        var result = await mandateService.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id));
 
         Assert.IsNull(result);
     }
@@ -156,9 +184,40 @@ public class MandateServiceTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForUser(int.MaxValue, user);
+        var result = await mandateService.GetMandateForDeclarerAsync(int.MaxValue, Declarer.ForUser(user.Id));
 
         Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetMandateAsClientReturnsMandateOfTheClientsOrganisation()
+    {
+        var client = AddMachineClient(memberOfOrganisation: true);
+
+        var result = await mandateService.GetMandateForDeclarerAsync(xtfMandate.Id, Declarer.ForClient(client.Id));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(xtfMandate.Id, result.Id);
+    }
+
+    [TestMethod]
+    public async Task GetMandateAsClientReturnsNullForMandateOfAnotherOrganisation()
+    {
+        var client = AddMachineClient(memberOfOrganisation: true);
+
+        var result = await mandateService.GetMandateForDeclarerAsync(noPermissionMandate.Id, Declarer.ForClient(client.Id));
+
+        Assert.IsNull(result, "A client reaches the mandates of its organisations only, like a user.");
+    }
+
+    [TestMethod]
+    public async Task GetMandateAsClientReturnsPublicMandateWithoutAnyOrganisation()
+    {
+        var client = AddMachineClient(memberOfOrganisation: false);
+
+        var result = await mandateService.GetMandateForDeclarerAsync(publicCsvMandate.Id, Declarer.ForClient(client.Id));
+
+        Assert.IsNotNull(result, "A public mandate takes deliveries from anyone, a machine included.");
     }
 
     [TestMethod]
@@ -265,7 +324,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithDefaultUploadIdThrows()
     {
-        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandateSummariesAsync(editUser, default));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandateSummariesAsync(editUser, Guid.Empty));
     }
 
     [TestMethod]
@@ -274,6 +333,138 @@ public class MandateServiceTest
         var uploadId = CreateUpload("noextension");
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateService.GetMandateSummariesAsync(editUser, uploadId));
+    }
+
+    [TestMethod]
+    public async Task GetMandateSummariesWithoutUploadIdSkipsTheFileFilter()
+    {
+        var result = await mandateService.GetMandateSummariesAsync(editUser, null);
+
+        ContainsMandate(result, unrestrictedMandate);
+        ContainsMandate(result, noDeliveryMandate);
+        ContainsMandate(result, xtfMandate);
+        ContainsMandate(result, publicCsvMandate);
+        DoesNotContainMandate(result, noOrganisationsMandate);
+        DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
+    }
+
+    [TestMethod]
+    public async Task GetMandateByKeyReturnsTheAccessibleMandate()
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        context.SaveChanges();
+
+        var result = await mandateService.GetMandateByKeyAsync("GRUMPYFALCON", Declarer.ForUser(editUser.Id));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(xtfMandate.Id, result.Id);
+    }
+
+    [TestMethod]
+    public async Task GetMandateByKeyComparesTheKeyExactly()
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        context.SaveChanges();
+
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("grumpyfalcon", Declarer.ForUser(editUser.Id)), "The key is compared exactly, so a differently cased key must not address the mandate.");
+    }
+
+    [TestMethod]
+    public async Task GetMandateByKeyHidesAMandateTheUserCannotAccess()
+    {
+        noPermissionMandate.Key = "SOMBERSPORK";
+        context.SaveChanges();
+
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Declarer.ForUser(editUser.Id)));
+    }
+
+    [TestMethod]
+    public async Task GetMandateByKeyIgnoresSurroundingWhitespace()
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        context.SaveChanges();
+
+        var result = await mandateService.GetMandateByKeyAsync("  GRUMPYFALCON\n", Declarer.ForUser(editUser.Id));
+
+        Assert.IsNotNull(result, "The key is trimmed when it is stored, so a key read from a config file must not miss its mandate over a trailing newline.");
+        Assert.AreEqual(xtfMandate.Id, result.Id);
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAMandateThatTakesNoDeliveries()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(noDeliveryMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.DeliveryNotAllowed, result);
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAMandateWhosePipelineThisInstallationDoesNotOffer()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(missingPipelineMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.PipelineNotConfigured, result, "A mandate naming an unknown pipeline is a misconfiguration of the installation, not a bad request.");
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncAcceptsAMandateWithoutAnUpload()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(xtfMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.Deliverable, result, "Without an upload there are no file types to check, and the remaining rules hold.");
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAnUploadTheMandateDoesNotAccept()
+    {
+        var uploadId = Guid.NewGuid();
+        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+
+        var result = await mandateService.GetDeliverabilityAsync(xtfMandate, uploadId);
+
+        Assert.AreEqual(MandateDeliverability.FilesNotAccepted, result);
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncChecksTheMandateBeforeTheFiles()
+    {
+        var uploadId = Guid.NewGuid();
+        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+
+        var result = await mandateService.GetDeliverabilityAsync(noDeliveryMandate, uploadId);
+
+        Assert.AreEqual(
+            MandateDeliverability.DeliveryNotAllowed,
+            result,
+            "A mandate that takes no deliveries at all must say so, rather than complain about the file types of an upload it would never take.");
+    }
+
+    [TestMethod]
+    [DataRow(".xtf", true, DisplayName = "The type the mandate names")]
+    [DataRow(".XTF", true, DisplayName = "The same type in upper case")]
+    [DataRow(".csv", false, DisplayName = "A type the mandate does not name")]
+    public async Task AcceptsFileExtensionAsyncChecksOneExtension(string extension, bool expected)
+    {
+        Assert.AreEqual(expected, await mandateService.AcceptsFileExtensionAsync(xtfMandate.Id, extension));
+    }
+
+    [TestMethod]
+    public async Task AcceptsFileExtensionAsyncAcceptsAnythingForAWildcardMandate()
+    {
+        Assert.IsTrue(await mandateService.AcceptsFileExtensionAsync(unrestrictedMandate.Id, ".whatever"));
+    }
+
+    [TestMethod]
+    [DataRow("NOSUCHKEY", DisplayName = "Unknown key")]
+    [DataRow("", DisplayName = "Empty key")]
+    [DataRow("   ", DisplayName = "Blank key")]
+    public async Task GetMandateByKeyReturnsNullWhenNoMandateMatches(string key)
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        context.SaveChanges();
+
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync(key, Declarer.ForUser(editUser.Id)));
     }
 
     private Guid CreateUpload(params string[] fileNames)

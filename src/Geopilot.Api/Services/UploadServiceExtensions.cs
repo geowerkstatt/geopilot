@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Enums;
+using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Services;
 
@@ -25,6 +26,7 @@ public static class UploadServiceExtensions
         var uploadBackend = builder.Configuration.GetValue($"{UploadOptions.SectionName}:{nameof(UploadOptions.Backend)}", UploadBackend.Cloud);
         if (uploadBackend == UploadBackend.Direct)
         {
+            builder.Services.AddSingleton<IValidateOptions<UploadDirectOptions>, UploadDirectDirectoryValidator>();
             builder.Services.AddOptions<UploadDirectOptions>()
                 .BindConfiguration(UploadDirectOptions.SectionName)
                 .ValidateDataAnnotations()

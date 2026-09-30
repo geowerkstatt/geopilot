@@ -202,13 +202,13 @@ export const closeAutocomplete = (fieldName, parent) => {
 };
 
 /**
- * Sets the value for an autocomplete form element, that is not free solo. Meaning the user must select from the provided dropdown.
- * For free solo autocomplete, use setFreeSoloAutocomplete instead.
+ * Sets the value for an autocomplete form element. The user must select from the provided dropdown.
+ * For a field that collects free text as chips, use setChipInput instead.
  * @param {string} fieldName The name of the autocomplete field.
  * @param {string} value The text to type into the input field.
  * @param {string} parent (optional) The parent of the form element.
  */
-export const setNonFreeSoloAutocomplete = (fieldName, value, parent) => {
+export const setAutocomplete = (fieldName, value, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
   cy.get(selector)
     .click()
@@ -222,24 +222,74 @@ export const setNonFreeSoloAutocomplete = (fieldName, value, parent) => {
 };
 
 /**
- * Sets the value for an autocomplete form element, that is free solo. Meaning the user can type any value, not just select from the provided dropdown.
- * @param {string} fieldName The name of the autocomplete field.
+ * Adds a value to a chip input form element, where the user types free text and confirms it.
+ * @param {string} fieldName The name of the chip input field.
  * @param {string} value The text to type into the input field.
+ * @param {string} confirmKey (optional) The key that confirms the entry, "{enter}" by default.
  * @param {string} parent (optional) The parent of the form element.
  */
-export const setFreeSoloAutocomplete = (fieldName, value, parent) => {
-  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+export const setChipInput = (fieldName, value, confirmKey = "{enter}", parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formChipInput"]`;
   cy.get(selector)
     .click()
     .then(() => {
       cy.focused().clear();
       if (value.length > 0) {
-        cy.get(selector).type(value + "{enter}", {
+        cy.get(selector).type(value + confirmKey, {
           delay: 10,
         });
       }
-      closeAutocomplete(fieldName, parent);
     });
+};
+
+/**
+ * Pastes text into a chip input form element: sets the value through the prototype setter and fires one input
+ * event, the way a paste does. React patches the setter on the element to track changes, so a plain assignment
+ * would update that tracking as well and no change would reach the component.
+ * @param {string} fieldName The name of the chip input field.
+ * @param {string} value The text to paste into the input field.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const pasteIntoChipInput = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formChipInput"] input`;
+  cy.get(selector).then($input => {
+    const input = $input[0];
+    const nativeValue = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value");
+    nativeValue.set.call(input, value);
+    input.dispatchEvent(new input.ownerDocument.defaultView.Event("input", { bubbles: true }));
+  });
+};
+
+/**
+ * Removes a value from a chip input form element.
+ * @param {string} fieldName The name of the chip input field.
+ * @param {string} value The value to be deleted.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const removeChipInputValue = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-selectedChips"]`;
+  cy.get(selector).contains(".MuiChip-root", value).find(".MuiChip-deleteIcon").click();
+};
+
+/**
+ * Evaluates the chips of a chip input form element.
+ * @param {string} fieldName The name of the chip input field.
+ * @param {string[]} expectedValues An array of expected values.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const evaluateChipInput = (fieldName, expectedValues, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-selectedChips"]`;
+  if (expectedValues.length === 0) {
+    // No chips are rendered at all while nothing is selected, so the container itself is absent.
+    cy.get(selector).should("not.exist");
+    return;
+  }
+  cy.get(selector).within(() => {
+    cy.get(".MuiChip-root").should("have.length", expectedValues.length);
+    expectedValues.forEach(value => {
+      cy.get(".MuiChip-label").contains(value);
+    });
+  });
 };
 
 /**
