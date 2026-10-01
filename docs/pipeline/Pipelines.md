@@ -162,6 +162,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Innerhalb der `output_actions` eines Schrittes darf dieselbe `property` nicht mehrfach vorkommen.
 - Ein Schritt darf höchstens eine Property mit der Action `StatusMessage` taggen.
 - Eine in den `output_actions` referenzierte Property muss auf dem Ergebnistyp existieren und lesbar sein, und ihr deklarierter Typ muss zur Action passen: `Download` und `Delivery` verlangen ein `IPipelineFile` oder eine Sammlung davon, `StatusMessage` einen `LocalizedText` oder ein `Dictionary<string, string>`, `Visualization` ein `IVisualization`.
+- Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
 
@@ -175,7 +176,7 @@ Eine Konfiguration besteht immer aus einem Key-Value-Paar, wobei der Key der Nam
 
 #### Parameter-Typen
 
-Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, schlägt die Pipeline-Ausführung fehl. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
+Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, startet die Anwendung nicht; ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt dabei als nicht gesetzt. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
 
 Es gibt folgende mögliche Typen von Konfigurationsparametern:
 
@@ -291,9 +292,9 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
-Der vierte, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
+Ein weiterer, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
@@ -302,7 +303,17 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(
+    string? validationProfile,
+    string? refMapping,
+    string? modelDirs,
+    bool? allObjectsAccessible,
+    string? pluginIds,
+    string? toolVersion,
+    IPipelineFile? modelRepository,
+    IIlivalidatorClient ilivalidatorClient,
+    IPipelineFileManager pipelineFileManager,
+    ILogger logger)
 {
 }
 ```
@@ -498,6 +509,7 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 
 - [XTF Matcher](Prozessoren/xtf-matcher.md)
 - [File Matcher](Prozessoren/file-matcher.md)
+- [XTF Metadaten-Extraktor](Prozessoren/xtf-metadaten.md)
 - [XTF Validierung](Prozessoren/xtf-validierung.md)
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)

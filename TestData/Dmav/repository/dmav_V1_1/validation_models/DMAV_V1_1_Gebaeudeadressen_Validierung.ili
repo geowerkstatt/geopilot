@@ -1,0 +1,307 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Gebaeudeadressen_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+    VIEW TOPIC Gebaeudeadressen_Validierung = 
+    DEPENDS ON DMAV_Gebaeudeadressen_V1_1.Gebaeudeadressen;
+  
+        VIEW v_Gebaeudeeingang
+            PROJECTION OF DMAV_Gebaeudeadressen_V1_1.Gebaeudeadressen.Gebaeudeeingang;
+        =
+            ALL OF Gebaeudeeingang;
+
+            !!@ category = warning
+            !!@ name = CH193851
+            !!@ message="(CH193851) Status=real muss mit Status von Lokalisation übereinstimmen";
+            !!@ message_de="(CH193851) Status=real muss mit Status von Lokalisation übereinstimmen";
+            !!@ message_fr="(CH193851) Validite=reel doit correspondre a la validite de la localisation";
+            !!@ message_it="(CH193851) Stato=reale deve corrispondere con lo stato della Localizzazione";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH193851: (
+                (Gebaeudestatus == #real) => (Lokalisation->Lokalisationsstatus == #real)
+            );
+
+            !!@ name = CH194051
+            !!@ message="(CH194051) Bei Status=projektiert muss AttributeProvisorisch=true sein";
+            !!@ message_de="(CH194051) Bei Status=projektiert muss AttributeProvisorisch=true sein";
+            !!@ message_fr="(CH194051) Si Validite=projete, il faut que Attributs_provisoires=true";
+            !!@ message_it="(CH194051) Per la Validità= in progetto, il campo Attributi_provvisori deve essere = true";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH194051: (
+                (Gebaeudestatus == #projektiert) => (AttributeProvisorisch == #true)
+            );
+
+            !!@ name = CH194254
+            !!@ message="(CH194254) Gebäudeeingang muss innerhalb einer Gebäudefläche liegen oder der Attributwert von ImModul ist falsch";
+            !!@ message_de="(CH194254) Gebäudeeingang muss innerhalb einer Gebäudefläche liegen oder der Attributwert von ImModul ist falsch";
+            !!@ message_fr="(CH194254) L'EntreeBatiment doit être située à l'intérieur d'une surface de bâtiment ou la valeur de l'attribut DansModule n'est pas correcte";
+            !!@ message_it="(CH194254) L'ingresso dell'edificio deve trovarsi all'interno di un'area edificabile o il valore dell'attributo NelModulo non è corretto.";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Gebaeudeadressen_Validierung.v_Gebaeudeeingang.CH194254)
+            MANDATORY CONSTRAINT CH194254: (
+                (ImModul == #Bodenbedeckung) => DMAVTYM_Topologie_V1_0.isInside(THIS, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Bodenbedeckung), "Bodenbedeckungsart == #Gebaeude"), >>DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Bodenbedeckung->Geometrie)
+            );  
+
+            !!@ category = warning
+            !!@ name = CH194451
+            !!@ message="(CH194451) In Hausnummer (Polizeinummer oder Gebaeudeversicherungsnummer) darf vor, zwischen oder nach Hausnummer und Buchstabenzusatz kein Leerschlag oder kein Trennzeichen sein";
+            !!@ message_de="(CH194451) In Hausnummer (Polizeinummer oder Gebaeudeversicherungsnummer) darf vor, zwischen oder nach Hausnummer und Buchstabenzusatz kein Leerschlag oder kein Trennzeichen sein";
+            !!@ message_fr="(CH194451) Il n'est pas licite d'insérer un espace ou un signe quelconque avant, entre, ou après le numéro de maison et sa particule (lettre). Concerne aussi le numéro de police ou le numéro d'assurance du bâtiment";
+            !!@ message_it="(CH194451) Non ci devono essere spazi o separatori prima, tra o dopo il numero civico (numero di polizia o numero di assicurazione degli edifici) e il suffisso di lettere.";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH194451: (
+                matches(Hausnummer,"^[^\\s]+$")
+            );
+
+            !!@ name = CH194651
+            !!@ message="(CH194651) EGID und EDID müssen zusammen eindeutig sein";
+            !!@ message_de="(CH194651) EGID und EDID müssen zusammen eindeutig sein";
+            !!@ message_fr="(CH194651) La combinaison des identifiants EGID et EDID doit être univoque";
+            !!@ message_it="(CH194651) REA_EGID e EDID devono, insieme, essere univoci";
+            !! AGI SH: Failcase umgesetzt;
+            UNIQUE CH194651: EGID, EDID;
+
+            !!@ name = CH194751
+            !!@ message="(CH194751) Bei Gebaeudeeingang mit EGID fehlt der zugehörige EDID";
+            !!@ message_de="(CH194751) Bei Gebaeudeeingang mit EGID fehlt der zugehörige EDID";
+            !!@ message_fr="(CH194751) Une EntreeBatiment possédant un identifiant EGID devrait aussi posséder un identifiant EDID";
+            !!@ message_it="(CH194751) Per l'entrata di edificio con EGID, manca il relativo EDID";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH194751: (
+                DEFINED(EGID) => DEFINED(EDID)
+            );
+
+            !!@ name = GWRA09a
+            !!@ message="(GWRA09a) Der gleiche EGID, EDID wird für verschiedene Gebäude verwendet";
+            !!@ message_de="(GWRA09a) Der gleiche EGID, EDID wird für verschiedene Gebäude verwendet";
+            !!@ message_fr="(GWRA09a) Le même EGID, EDID est renseigné pour plusieurs bâtiments différents";
+            !!@ message_it="(GWRA09a) Lo stesso EGID, EDID è assegnato a più edifici differenti";
+            !! Umsetzung Phase 1; -> Kommentar Romedi: Gilt nur innerhalb eines Operats. Vergleich eindeutige EGID in Gebäudenummer und Gebäudeeingang
+            !! AGI SH: Failcase umgesetzt;
+            UNIQUE GWRA09a : WHERE (Gebaeudestatus == #real): EGID, EDID;
+
+            !!@ name = GWRA17
+            !!@ message="(GWRA17) EGID von Gebaeude=gueltig in Topic BB und EGID des entsprechenden Gebaeudeeinganges in Topic GEB (Im_Gebaeude=BB + Status=real) stimmen nicht überein";
+            !!@ message_de="(GWRA17) EGID von Gebaeude=gueltig in Topic BB und EGID des entsprechenden Gebaeudeeinganges in Topic GEB (Im_Gebaeude=BB + Status=real) stimmen nicht überein";
+            !!@ message_fr="(GWRA17) L'EGID de Batiment=valable dans le topic CS et l'EGID de l’entrée correspondante dans le topic BAT (Dans_batiment=CS + Validite=reel) ne correspondent pas";
+            !!@ message_it="(GWRA17) L'EGID dell'edificio=valevole nel topic CS e l'EGID della rispettiva entrata nel topic IE (In_Edificio=CS + Validita=reale) non corrispondono";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            SET CONSTRAINT GWRA17: WHERE (Gebaeudestatus == #real AND ImModul == #Bodenbedeckung): (
+                DMAVTYM_Topologie_V1_0.isInside(THIS, >>Geometrie,(ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Bodenbedeckung), "Objektstatus == #real AND EGID=={EGID} AND Bodenbedeckungsart == #Gebaeude")), >>DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Bodenbedeckung->Geometrie)
+            );
+
+            !!@ name = GWRB01
+            !!@ message="(GWRB01) Die in der AV verwendete Lokalisation wurde im GWR nicht gefunden";
+            !!@ message_de="(GWRB01) Die in der AV verwendete Lokalisation wurde im GWR nicht gefunden";
+            !!@ message_fr="(GWRB01) La localisation utilisée dans la MO n'a pas été trouvée dans le RegBL";
+            !!@ message_it="(GWRB01) La localizzazione presente nella MU non si trova nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRB01: (
+                DMAV_GWR("B01")
+            );
+            */
+
+            !!@ category = warning
+            !!@ name = GWRB02
+            !!@ message="(GWRB02) Im GWR verwendete Strassenbezeichnung wird in der AV nicht geführt";
+            !!@ message_de="(GWRB02) Im GWR verwendete Strassenbezeichnung wird in der AV nicht geführt";
+            !!@ message_fr="(GWRB02) La désignation de la rue utilisée dans le RegBL n'existe pas dans la MO";
+            !!@ message_it="(GWRB02) La designazione della via presente nel REA non si trova nella MU";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            !!MANDATORY CONSTRAINT GWRB02: IliValidGwr_V1_0.strassenbezeichnungExistsInGWR(strname,MunicipalityId);
+
+            !!@ name = GWRB03
+            !!@ message="(GWRB03) Lokalisation fehlt in der AV";
+            !!@ message_de="(GWRB03) Lokalisation fehlt in der AV";
+            !!@ message_fr="(GWRB03) Localisation manquante dans la MO";
+            !!@ message_it="(GWRB03) Manca la localizzazione nella MU";
+            !! AGI SH: Failcase umgesetzt;
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            MANDATORY CONSTRAINT GWRB03: (
+                DEFINED(Lokalisation)
+            );
+
+            !!@ category = warning
+            !!@ name = GWRB04
+            !!@ message="(GWRB04) Hausnummer fehlt in der AV";
+            !!@ message_de="(GWRB04) Hausnummer fehlt in der AV";
+            !!@ message_fr="(GWRB04) Numéro de maison manquant dans la MO";
+            !!@ message_it="(GWRB04) Nella MU manca il numero civico";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            MANDATORY CONSTRAINT GWRB04: (
+                DEFINED(Lokalisation) => DEFINED(Hausnummer)
+            );
+
+            !!@ category = warning
+            !!@ name = GWRB05
+            !!@ message="(GWRB05) Die Gebäudeadresse in der AV ist nicht eindeutig";
+            !!@ message_de="(GWRB05) Die Gebäudeadresse in der AV ist nicht eindeutig";
+            !!@ message_fr="(GWRB05) L'EGID n'existe pas dans le RegBL";
+            !!@ message_it="(GWRB05) L'indirizzo dell'edificio nella MU non è univoco";
+            !! Umsetzung Phase 2;
+            /*
+            MANDATORY CONSTRAINT GWRB05: (
+                (Gebaeudestatus == #real) => DMAV_GWR("B05")
+            );
+            */
+
+            !!@ name = GWRC02
+            !!@ message="(GWRC02) EGID existiert nicht im GWR";
+            !!@ message_de="(GWRC02) EGID existiert nicht im GWR";
+            !!@ message_fr="(GWRC02) Si Validite=projete, il faut que Attributs_provisoires=true";
+            !!@ message_it="(GWRC02) L'EGID non esiste nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC02: (
+                DEFINED(EGID) => DMAV_GWR("C02")
+            );
+            */
+
+            !!@ name = GWRC03
+            !!@ message="(GWRC03) Kombination EGID/EDID existiert nicht im GWR";
+            !!@ message_de="(GWRC03) Kombination EGID/EDID existiert nicht im GWR";
+            !!@ message_fr="(GWRC03) La combinaison EGID/EDID n'existe pas dans le RegBL";
+            !!@ message_it="(GWRC03) La combinazione EGID/EDID non esiste nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC03: (
+                (DEFINED(EGID) AND DEFINED(EDID)) => DMAV_GWR("C03")
+            );
+            */
+
+            !!@ category = warning
+            !!@ name = GWRC04
+            !!@ message="(GWRC04) EGID (bestehend) aus dem GWR ist in der AV nicht vorhanden (auch nicht projektiert)";
+            !!@ message_de="(GWRC04) EGID (bestehend) aus dem GWR ist in der AV nicht vorhanden (auch nicht projektiert)";
+            !!@ message_fr="(GWRC04) EGID (existant) du RegBL n'existe pas dans la MO et n'est pas non plus en projet";
+            !!@ message_it="(GWRC04) L'EGID (esistente) nel REA non è presente nella MU neppure sotto forma di progetto";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC04: (
+                DMAV_GWR("C04")
+            );
+            */
+
+            !!@ category = warning
+            !!@ name = GWRC05
+            !!@ message="(GWRC05) EGID (bestehend) aus dem GWR ist in der AV nicht nachgeführt";
+            !!@ message_de="(GWRC05) EGID (bestehend) aus dem GWR ist in der AV nicht nachgeführt";
+            !!@ message_fr="(GWRC05) EGID (existant) du RegBL n'est pas mis à jour dans la MO";
+            !!@ message_it="(GWRC05) L'EGID (esistente) nel REA non è aggiornato nella MU";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC05: (
+                DMAV_GWR("C05")
+            );
+            */
+
+            !!@ category = warning
+            !!@ name = GWRC07
+            !!@ message="(GWRC07) EGID (projektiert/bewilligt/im Bau/nicht realisiert) aus dem GWR ist in der AV real";
+            !!@ message_de="(GWRC07) EGID (projektiert/bewilligt/im Bau/nicht realisiert) aus dem GWR ist in der AV real";
+            !!@ message_fr="(GWRC07) EGID (en projet / autorisé / en construction / non réalisé) du RegBL est réel dans la MO";
+            !!@ message_it="(GWRC07) L'EGID (progettato / autorizzato / in fase di realizzazione / non realizzato) nel REA è reale nella MU";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC07: (
+                DMAV_GWR("C07")
+            );
+            */
+
+            !!@ name = GWRC08
+            !!@ message="(GWRC08) Identische Gebäudeadresse mit unterschiedlicher EGID/EDID in AV und GWR";
+            !!@ message_de="(GWRC08) Identische Gebäudeadresse mit unterschiedlicher EGID/EDID in AV und GWR";
+            !!@ message_fr="(GWRC08) Adresse du bâtiment identique entre la MO et le RegBL avec un EGID/EDID différent";
+            !!@ message_it="(GWRC08) Indirizzi identici con differenti EGID/EDID nella MU e nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC08: (
+                DMAV_GWR("C08")
+            );
+            */
+
+            !!@ name = GWRC09
+            !!@ message="(GWRC09) Identischer EGID/EDID mit unterschiedlicher Gebäudeadresse in AV und GWR";
+            !!@ message_de="(GWRC09) Identischer EGID/EDID mit unterschiedlicher Gebäudeadresse in AV und GWR";
+            !!@ message_fr="(GWRC09) EGID/EDID identique avec adresse du bâtiment différente entre la MO et le RegBL";
+            !!@ message_it="(GWRC09) EGID/EDID identici con differenti indirizzi dell'edificio nella MU e nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC09: (
+                DMAV_GWR("C09")
+            );
+            */
+
+            !!@ name = GWRC10
+            !!@ message="(GWRC10) EGID/EDID und Gebäudeadresse bis auf PLZ/Ortschaft in AV und GWR identisch";
+            !!@ message_de="(GWRC10) EGID/EDID und Gebäudeadresse bis auf PLZ/Ortschaft in AV und GWR identisch";
+            !!@ message_fr="(GWRC10) EGID/EDID et adresse du bâtiment identiques dans la MO et le RegBL à l'exception de NPA/localité";
+            !!@ message_it="(GWRC10) L'indirizzo dell'edificio e l'EGID/EDID sono identici nella MU e nel REA ma non i CAP/località";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+/*             MANDATORY CONSTRAINT GWRC10: (
+                DMAV_GWR("C10")
+            ); */
+
+            !!@ category = warning
+            !!@ name = GWRC13
+            !!@ message="(GWRC13) Das Gebäude zählt weniger Eingänge in der AV als im GWR";
+            !!@ message_de="(GWRC13) Das Gebäude zählt weniger Eingänge in der AV als im GWR";
+            !!@ message_fr="(GWRC13) Le bâtiment compte moins d'entrées dans la MO que dans le RegBL";
+            !!@ message_it="(GWRC13) L'edificio ha meno entrate nella MU che nel REA";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 3;
+            /*/
+            MANDATORY CONSTRAINT GWRC13: (
+                DMAV_GWR("C13")
+            );
+            */
+
+            !!@ name = GWRA14
+            !!@ message="(GWRA14) Eingang (EDID) ohne EGID in der Tabelle Gebaeudeeingang";
+            !!@ message_de="(GWRA14) Eingang (EDID) ohne EGID in der Tabelle Gebaeudeeingang";
+            !!@ message_fr="(GWRA14) Entrée (EDID) sans EGID dans la table Entree batiment";
+            !!@ message_it="(GWRA14) Entrata (EDID) senza EGID nella tabella Entrata edificio";
+            !! Umsetzung Phase 1;
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT GWRA14 : DEFINED(EDID) => DEFINED(EGID);
+
+        END v_Gebaeudeeingang;
+
+    END Gebaeudeadressen_Validierung;
+
+END DMAV_V1_1_Gebaeudeadressen_Validierung.

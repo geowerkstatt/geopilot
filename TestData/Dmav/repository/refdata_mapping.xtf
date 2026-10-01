@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:IliVRefData_V1_0="http://www.interlis.ch/xtf/2.4/IliVRefData_V1_0">
+    <ili:headersection>
+        <ili:models>
+            <ili:model>IliVRefData_V1_0</ili:model>
+        </ili:models>
+        <ili:sender>fubar</ili:sender>
+    </ili:headersection>
+    <ili:datasection>
+        <!-- BID für Gemeinde Sauge BFSNr 449 -->
+        <IliVRefData_V1_0:Mapping ili:bid="C9F02DF4-FF5A-4B7B-AC3E-FD9C07FB726E">
+           <IliVRefData_V1_0:RefData ili:tid="449_1">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <!-- <IliVRefData_V1_0:topic>Gemeinden95_V1_0:Gemeinden</IliVRefData_V1_0:topic> -->
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_Gemeinden95_V1_0</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+            <IliVRefData_V1_0:RefData ili:tid="449_2">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_v1_10_hoheitsgrenzen_lv</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+           <IliVRefData_V1_0:RefData ili:tid="449_3">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_LFP1_V1_0</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+           <IliVRefData_V1_0:RefData ili:tid="449_4">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_HFP1_V1_0</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+           <IliVRefData_V1_0:RefData ili:tid="449_5">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_OfficialIndesOfLocalities</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+           <IliVRefData_V1_0:RefData ili:tid="449_6">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_LFP2_BE</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+           <IliVRefData_V1_0:RefData ili:tid="449_7">
+                <IliVRefData_V1_0:ignore>false</IliVRefData_V1_0:ignore>
+                <IliVRefData_V1_0:scope>449</IliVRefData_V1_0:scope>
+                <IliVRefData_V1_0:refdata>ilidata:dmav_LFP3_449</IliVRefData_V1_0:refdata>
+            </IliVRefData_V1_0:RefData>
+        </IliVRefData_V1_0:Mapping> 
+    </ili:datasection>
+</ili:transfer>
