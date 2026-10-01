@@ -186,9 +186,10 @@ services:
       - ./config/nginx-interlis-models.conf:/etc/nginx/conf.d/default.conf:ro
 
   # Replaces cut reference data of the DMAV test world with the current full files, right in the checkout, so git
-  # shows what changed. Only with --profile dmav, see TestData/Dmav/README.md.
+  # shows what changed. Only with --profile dmav, see TestData/Dmav/README.md; the image is
+  # https://github.com/geowerkstatt/refdata-update.
   refdata-update:
-    build: docker/refdata-update
+    image: ghcr.io/geowerkstatt/refdata-update:v1.0.1
     profiles: [dmav]
     restart: unless-stopped
     environment:
