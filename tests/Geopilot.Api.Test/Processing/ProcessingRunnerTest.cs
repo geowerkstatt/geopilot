@@ -324,7 +324,7 @@ public class ProcessingRunnerTest
         Assert.HasCount(1, step.DeliveryFiles);
         var persisted = step.DeliveryFiles[0];
         Assert.AreEqual("data.xtf", persisted.OriginalFileName);
-        Assert.AreEqual("step_1_data.xtf", persisted.PersistedFileName);
+        Assert.AreEqual("data.xtf", persisted.PersistedFileName, "A delivery file keeps its original name, without the step prefix.");
         Assert.IsTrue(stagingStore.Exists(jobId, persisted.PersistedFileName));
         Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds deliveries only; until the declaration the file is staged.");
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Delivery files must not be written to the download store.");
@@ -508,7 +508,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task FileTaggedDownloadAndDeliveryIsWrittenToBothStoresUnderTheSameName()
+    public async Task FileTaggedDownloadAndDeliveryKeepsThePrefixOnlyAsDownload()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -520,14 +520,39 @@ public class ProcessingRunnerTest
         await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
         await runner.ExtractDeliveryFilesAsync(pipeline, context);
 
-        Assert.HasCount(1, step.Downloads);
-        Assert.HasCount(1, step.DeliveryFiles);
-        Assert.AreEqual(
-            step.Downloads[0].PersistedFileName,
-            step.DeliveryFiles[0].PersistedFileName,
-            "A file tagged for both actions should be persisted under the same name in both stores.");
-        Assert.IsTrue(downloadStore.Exists(jobId, step.Downloads[0].PersistedFileName));
-        Assert.IsTrue(stagingStore.Exists(jobId, step.DeliveryFiles[0].PersistedFileName));
+        Assert.AreEqual("step_1_report.pdf", step.Downloads.Single().PersistedFileName);
+        Assert.AreEqual("report.pdf", step.DeliveryFiles.Single().PersistedFileName);
+        Assert.IsTrue(downloadStore.Exists(jobId, "step_1_report.pdf"));
+        Assert.IsTrue(stagingStore.Exists(jobId, "report.pdf"));
+    }
+
+    [TestMethod]
+    public async Task DeliveryFilesWithTheSameNameFromTwoStepsGetACounter()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var first = BuildBareStep("first", OutputAction.Delivery);
+        var second = BuildBareStep("second", OutputAction.Delivery);
+        var third = BuildBareStep("third", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, first, second, third);
+        var context = new PipelineContext
+        {
+            Upload = Array.Empty<IPipelineFile>(),
+            StepResults = new Dictionary<string, StepResult>
+            {
+                { first.Id, FileStepResult("myFile.pdf", "first-content") },
+                { second.Id, FileStepResult("myFile.pdf", "second-content") },
+                { third.Id, FileStepResult("MYFILE.pdf", "third-content") },
+            },
+        };
+
+        await runner.ExtractDeliveryFilesAsync(pipeline, context);
+
+        Assert.AreEqual("myFile.pdf", first.DeliveryFiles.Single().PersistedFileName, "The first file keeps its name.");
+        Assert.AreEqual("myFile_2.pdf", second.DeliveryFiles.Single().PersistedFileName);
+        Assert.AreEqual("MYFILE_3.pdf", third.DeliveryFiles.Single().PersistedFileName, "Names differing only in case collide as well.");
+        using var reader = new StreamReader(stagingStore.OpenFile(jobId, "myFile_2.pdf"));
+        Assert.AreEqual("second-content", await reader.ReadToEndAsync());
     }
 
     [TestMethod]
@@ -774,8 +799,8 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
-        Assert.IsTrue(stagingStore.Exists(jobId, "step_1_data.xtf"));
-        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "The payload stays staged until the delivery is declared.");
+        Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
+        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
@@ -794,8 +819,8 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Warning, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
-        Assert.IsTrue(stagingStore.Exists(jobId, "step_1_data.xtf"));
-        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "The payload stays staged until the delivery is declared.");
+        Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
+        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Warning), Times.Once);
     }
 
@@ -815,7 +840,7 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Failed, pipeline.State);
         Assert.IsEmpty(step1.DeliveryFiles, "No delivery files may be staged when the pipeline does not complete successfully.");
-        Assert.IsFalse(stagingStore.Exists(jobId, "step_1_data.xtf"), "No partial delivery may be staged on failure.");
+        Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No partial delivery may be staged on failure.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Failed), Times.Once);
     }
 
@@ -834,7 +859,7 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
         Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
-        Assert.IsFalse(stagingStore.Exists(jobId, "step_1_data.xtf"), "No delivery may be staged when delivery is restricted.");
+        Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No delivery may be staged when delivery is restricted.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
     }
 
