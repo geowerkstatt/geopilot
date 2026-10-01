@@ -47,4 +47,4 @@ timezone:                         $TZ
 "
 
 echo -e "geopilot app is up and running!\n" && \
-  gosu app dotnet Geopilot.Api.dll
+  exec gosu app dotnet Geopilot.Api.dll
