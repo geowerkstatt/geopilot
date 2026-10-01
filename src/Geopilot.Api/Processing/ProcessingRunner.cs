@@ -239,10 +239,11 @@ public class ProcessingRunner : BackgroundService
     /// Stages the delivery payload files (<see cref="OutputAction.Delivery"/>) of every completed step in the
     /// staging store, from where declaring the delivery promotes them into the asset store, and records them on
     /// <see cref="IPipelineStep.DeliveryFiles"/>. Only called for a successfully
-    /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). Download and delivery names are assigned
-    /// independently; for a file tagged with both actions they coincide except in the rare case of two outputs
-    /// sharing an original file name within one step, which is harmless because the download endpoint serves only
-    /// from the download store. Each delivery file's origin is traced back via <see cref="PipelineExtensions.UnwrapOrigin"/>
+    /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). A delivery file keeps its original name,
+    /// without the step prefix downloads carry, because the names of a delivery are often agreed with the data
+    /// supplier. The names are unique across the whole delivery, since all of its files share one directory: in the
+    /// order of the steps and their outputs, the first file keeps its name and every further one gets a counter.
+    /// Each delivery file's origin is traced back via <see cref="PipelineExtensions.UnwrapOrigin"/>
     /// so a file that entered as an upload can be told apart from one produced by a step.
     /// </summary>
     internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, CancellationToken cancellationToken = default)
@@ -250,13 +251,13 @@ public class ProcessingRunner : BackgroundService
         using var scope = serviceScopeFactory.CreateScope();
         var stagingFileStore = scope.ServiceProvider.GetRequiredService<IAssetStagingFileStore>();
 
+        // Case-insensitive, because File.pdf and file.pdf address the same file on Windows and macOS.
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var step in pipeline.Steps)
         {
             if (!context.StepResults.TryGetValue(step.Id, out var stepResult))
                 continue;
-
-            var stepIdPrefix = step.Id.SanitizeFileName();
-            var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var outputAction in step.OutputActions)
             {
@@ -267,7 +268,7 @@ public class ProcessingRunner : BackgroundService
 
                 foreach (var deliveryFile in ResolveFiles(data))
                 {
-                    var fileName = MakeUniqueStepFileName(stepIdPrefix, deliveryFile.OriginalFileName, usedNames);
+                    var fileName = MakeUniqueDeliveryFileName(step.Id, deliveryFile.OriginalFileName, usedNames);
                     await CopyToAsync(stagingFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
                     var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
                     step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
@@ -341,6 +342,21 @@ public class ProcessingRunner : BackgroundService
         IPipelineFile singleFile => [singleFile],
         _ => [],
     };
+
+    private string MakeUniqueDeliveryFileName(string stepId, string originalFileName, HashSet<string> usedNames)
+    {
+        var fileName = OriginalFileNaming.MakeUnique(originalFileName, usedNames);
+        if (fileName != originalFileName.SanitizeFileName())
+        {
+            logger.LogWarning(
+                "Duplicate delivery filename <{Original}> in step <{Step}>. Persisting as <{Final}>.",
+                originalFileName,
+                stepId,
+                fileName);
+        }
+
+        return fileName;
+    }
 
     private string MakeUniqueStepFileName(string stepIdPrefix, string originalFileName, HashSet<string> usedNames)
     {
