@@ -31,10 +31,20 @@ Abgenommen am 2026-09-28: Mit vollen und zugeschnittenen Referenzdaten ergeben `
 
 ## Smoke-Test
 
-1. Dienste samt Plugin starten: `docker compose --profile dmav up -d`. Der Dienst `dmav-plugin` legt das GWR-Plugin ins Volume `ilitools-plugins` und beendet sich; `docker compose logs dmav-plugin` zeigt `fetched` oder `present`.
+1. Dienste samt Plugin starten: `docker compose --profile dmav up -d`. Der Dienst `dmav-plugin` legt das GWR-Plugin ins Volume `ilitools-plugins` und beendet sich; `docker compose logs dmav-plugin` zeigt `fetched` oder `present`. Der Dienst `refdata-update` ersetzt LFP1, Hoheitsgrenzen und Ortschaftenverzeichnis unter `repository/dmav_V1_1/refdata/` durch den aktuellen, vollen Stand, siehe unten.
 2. Die API mit der Entwicklungs-Konfiguration starten. Sie liest `basicPipeline_02.yaml` und findet das Repository über `http://interlis-models/dmav/`.
 3. Im Admin-Portal ein Mandat anlegen: öffentlich, Pipeline "DMAV-Validierung mit Zusatzanforderungen", Dateityp `.xtf`.
 4. `deliveries/DMAVTYM_Alles_V1_1_noError.xtf` liefern: alle Schritte erfolgreich, keine Fehler und Warnungen. Der erste Lauf dauert rund 3.5 Minuten, weil das Plugin die GWR-Datenbank (rund 3 GB) ins Volume `ilitools-cache` lädt, danach knapp 2 Minuten. Der Wrapper übernimmt sie nur aus einem erfolgreichen Lauf in den Cache, darum kommt `noError` zuerst.
 5. `deliveries/DMAVTYM_Alles_V1_1_withGwrError.xtf` liefern: die Validierung beschränkt die Lieferung, im Fehlerprotokoll stehen 2 x `GWRC02a` ("EGID existiert nicht im GWR") und 1 x `GWRA17`.
 
 Ohne Profil `dmav` fehlt das Plugin, und der Wrapper lehnt den Validierungsschritt mit `Plugin "ilivalid-gwr@1.0.0-20260217.141026-7" is not available` ab.
+
+## Aktuelle Referenzdaten
+
+`refdata-update` (Profil `dmav`, Quellen in `config/refdata-sources.yaml`, siehe [Referenzdaten aktualisieren](../../docs/Referenzdaten.md)) schreibt direkt in `repository/`, beim Start und danach jede Nacht. Die zugeschnittenen Dateien sind danach im Arbeitsbaum durch die vollen ersetzt, und `git status` zeigt sie als geändert. HFP1, `Gemeinden95_2_4.xtf` und `fpds2_BE.xtf` bleiben zugeschnitten: HFP1 trägt bei swisstopo dieselbe Basket-Id wie LFP1, für die anderen beiden gibt es noch keine Quelle.
+
+**Nicht blind einchecken:** Das volle Ortschaftenverzeichnis ist 383 MB gross, GitHub lehnt Dateien über 100 MB ab. Zurück zum eingecheckten Stand:
+
+```bash
+git restore TestData/Dmav/repository
+```
