@@ -395,35 +395,6 @@
           </DatasetIdx16.DataFile>
         </files>
       </DatasetIdx16.DataIndex.DatasetMetadata>
-      <DatasetIdx16.DataIndex.DatasetMetadata TID="99">
-        <id>dmav_refdata_mapping</id>
-        <version>2026-06-09</version>
-        <owner>mailto:info@geow.ch</owner>
-        <title>
-          <DatasetIdx16.MultilingualText>
-            <LocalisedText>
-              <DatasetIdx16.LocalisedText>
-                <Text>Refdata Mapping</Text>
-              </DatasetIdx16.LocalisedText>
-            </LocalisedText>
-          </DatasetIdx16.MultilingualText>
-        </title>
-        <categories>
-          <DatasetIdx16.Code_>
-            <value>http://codes.interlis.ch/type/refDataMapping</value>
-          </DatasetIdx16.Code_>
-        </categories>
-        <files>
-          <DatasetIdx16.DataFile>
-            <fileFormat>application/interlis+xml;version=2.4</fileFormat>
-            <file>
-              <DatasetIdx16.File>
-                <path>refdata_mapping.xtf</path>
-              </DatasetIdx16.File>
-            </file>
-          </DatasetIdx16.DataFile>
-        </files>
-      </DatasetIdx16.DataIndex.DatasetMetadata>
     </DatasetIdx16.DataIndex>
   </DATASECTION>
 </TRANSFER>

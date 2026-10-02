@@ -289,6 +289,29 @@ public class IlivalidatorClientIntegrationTest
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
     }
 
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithRefMappingFileForAnOlderToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var refMappingFile = GetTestPipelineFile("refmapping.xtf");
+        var logFile = GetTestPipelineFile("validation_refmapping_file_older_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_refmapping_file_older_version.xtf");
+
+        // Like the scope, the mapping file needs ilivalidator 1.15.0, so the wrapper rejects it for the predecessor the
+        // compose image offers. An image that does not know the file type rejects it as well, so only the message
+        // proves that the file arrived as a mapping.
+        var args = new IlivalidatorArgs { ToolVersion = "1.14.4" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, refMappingFile: refMappingFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+        Assert.Contains("REF_MAPPING_FILE", exception.Status.Detail, "Only the check for the mapping file names its type; an image without it refuses the type as invalid.");
+    }
+
     private async Task DeleteIfExistsAsync(PipelineFile file)
     {
         var path = await file.GetLocalPathAsync();

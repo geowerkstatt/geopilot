@@ -159,7 +159,7 @@ services:
     command: start-dev --import-realm
 
   ilitools-wrapper:
-    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.1.16
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.1.18
     restart: unless-stopped
     ports:
       - 5555:5555
@@ -184,6 +184,20 @@ services:
       - ./TestData/XtfErrorVisualization/ili-repository:/usr/share/nginx/html:ro
       - ./TestData/Dmav/repository:/usr/share/nginx/dmav:ro
       - ./config/nginx-interlis-models.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # Replaces cut reference data of the DMAV test world with the current full files, right in the checkout, so git
+  # shows what changed. Only with --profile dmav, see TestData/Dmav/README.md; the image is
+  # https://github.com/geowerkstatt/refdata-update.
+  refdata-update:
+    image: ghcr.io/geowerkstatt/refdata-update:v1.0.1
+    profiles: [dmav]
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Zurich
+      REFDATA_UPDATE_SCHEDULE: 0 1 * * *
+    volumes:
+      - ./TestData/Dmav/repository:/refdata
+      - ./config/refdata-sources.yaml:/config/sources.yaml:ro
 
   # Fetches the GWR plugin for the DMAV test world into the plugin volume of the wrapper, checked against its
   # SHA-256 and skipped when already there. Only with --profile dmav, see TestData/Dmav/README.md. The files are

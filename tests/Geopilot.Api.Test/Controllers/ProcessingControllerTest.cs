@@ -78,6 +78,32 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
+    public void GetStatusShowsPreparationRunningWhileTheJobWaitsForAProcessingSlot()
+    {
+        var jobId = Guid.NewGuid();
+        var stepMock = new Mock<IPipelineStep>();
+        stepMock.SetupGet(s => s.Id).Returns("validation");
+        stepMock.SetupGet(s => s.State).Returns(StepState.Pending);
+        stepMock.SetupGet(s => s.Downloads).Returns(new List<PersistedFile>());
+        stepMock.SetupGet(s => s.DeliveryFiles).Returns(new List<PersistedFile>());
+        stepMock.SetupGet(s => s.Visualizations).Returns(new List<StepVisualization>());
+        var pipelineMock = new Mock<IPipeline>();
+        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Pending);
+        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
+
+        // Enqueued jobs are running while their pipeline still waits in the queue.
+        validationServiceMock
+            .Setup(x => x.GetJob(jobId))
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), 123, DateTime.Now) { Pipeline = pipelineMock.Object, State = ProcessingState.Running });
+
+        var jobResponse = (controller.GetStatus(jobId) as OkObjectResult)?.Value as ProcessingJobResponse;
+
+        Assert.IsNotNull(jobResponse);
+        Assert.AreEqual(StepState.Running, jobResponse.Steps[0].State, "The preparation must keep running until the first pipeline step starts.");
+        Assert.AreEqual(StepState.Pending, jobResponse.Steps[1].State);
+    }
+
+    [TestMethod]
     public void GetStatusForInvalid()
     {
         var jobId = Guid.Empty;
