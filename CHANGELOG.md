@@ -81,6 +81,7 @@
 
 ### Fixed
 
+- A running processing job always shows a running step. A step is reported as finished only once the next one has started or been skipped, or the job has ended. Previously a job that waited for a free processing slot showed the preparation as done and no step running, and the same gap appeared briefly between two steps and while a finished run staged its delivery files.
 - `GET api/v1/mandate/summary` answers `400` instead of a server error for an upload whose files carry no file extension, since such files cannot be matched against a mandate's file types; the machine delivery refuses such an upload the same way.
 - A processing job can no longer be delivered twice. Declaring a delivery for a job that already has one is refused with a message saying so, instead of silently creating a second delivery for the same files. Until now nothing prevented that, so a client that repeated the declaration after a timeout ended up with duplicate deliveries. The database enforces it as well, so two declarations arriving at the same moment cannot both get through; a deleted delivery does not count, its job can be delivered again. The migration that adds the constraint fails on a database that already holds two deliveries for one job, which has to be sorted out before upgrading.
 - The error map in fullscreen can be moved with a single finger and zoomed by scrolling without holding Ctrl (⌘ on macOS). Inline the map keeps asking for two fingers and the modifier key so that it does not swallow the page scroll.
