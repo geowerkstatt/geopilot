@@ -98,14 +98,25 @@ RUN \
   apt-get install -y curl sudo vim htop gosu && \
   rm -rf /var/lib/apt/lists/*
 
-# Create directories
+# Create directories. The data directories belong to app with group 0, so a container started without root can write
+# to them as the default user or as an arbitrary UID with GID 0 (OpenShift). Must run before VOLUME, which freezes them.
 RUN \
  mkdir -p $Storage__DownloadDirectory && \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $Storage__PipelineDirectory && \
  mkdir -p $Storage__ResourcesDirectory && \
  mkdir -p $Storage__VisualizationDirectory && \
- mkdir -p $PublicAssetsOverride
+ mkdir -p $PublicAssetsOverride && \
+ chown $APP_UID:0 $Storage__DownloadDirectory \
+    $Storage__AssetsDirectory \
+    $Storage__PipelineDirectory \
+    $Storage__ResourcesDirectory \
+    $Storage__VisualizationDirectory && \
+ chmod g+rwXs $Storage__DownloadDirectory \
+    $Storage__AssetsDirectory \
+    $Storage__PipelineDirectory \
+    $Storage__ResourcesDirectory \
+    $Storage__VisualizationDirectory
 
 EXPOSE 8080
 VOLUME $Storage__DownloadDirectory

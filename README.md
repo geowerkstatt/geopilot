@@ -66,6 +66,8 @@ docker compose up -d
 
 Der Service `seed` erzeugt dabei die Testdaten, sobald die API die Migrationen angewendet hat, und beendet sich danach.
 
+Startet der Container ohne root (z.B. `docker run --user 1654` oder in OpenShift), überspringt der Entrypoint das Anpassen der Benutzerkennung und der Berechtigungen. Die Datenverzeichnisse `/downloads`, `/assets`, `/pipeline`, `/resources` und `/visualizations` gehören im Image dem Benutzer `app` (UID 1654) und der Gruppe 0. Ohne Mount sind sie deshalb für diesen Benutzer und für jede UID mit GID 0 beschreibbar. Werden Verzeichnisse oder Volumes darüber gemountet, muss die Plattform sie für die laufende UID oder GID beschreibbar machen (in Kubernetes z.B. mit `fsGroup`).
+
 ### Pipeline-Konfiguration
 
 geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
