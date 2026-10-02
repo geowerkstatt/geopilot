@@ -14,6 +14,7 @@ public class XtfValidatorProcessTest
     private IPipelineFile? capturedTransferFile;
     private IPipelineFile? capturedArchive;
     private IReadOnlyList<IPipelineFile>? capturedModelFiles;
+    private IPipelineFile? capturedRefMappingFile;
 
     [TestInitialize]
     public void SetUp()
@@ -22,6 +23,7 @@ public class XtfValidatorProcessTest
         capturedTransferFile = null;
         capturedArchive = null;
         capturedModelFiles = null;
+        capturedRefMappingFile = null;
         ilivalidatorClientMock = new Mock<IIlivalidatorClient>();
     }
 
@@ -302,6 +304,28 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task PassesTheConfiguredRefMappingFileOn()
+    {
+        var mapping = new PipelineFile(Path.Combine("TestData", "Ilitools", "refmapping.xtf"), "refmapping.xtf");
+        var process = CreateProcess(null, null, success: true, refMappingFile: mapping);
+
+        await process.RunAsync(CreateTransferFile(), [], scope: "449", CancellationToken.None);
+
+        Assert.AreSame(mapping, capturedRefMappingFile, "The configured mapping file has to reach the client unchanged.");
+        Assert.IsNull(capturedArgs?.RefMapping, "A mapping file must not come with a mapping reference.");
+    }
+
+    [TestMethod]
+    public async Task SendsNoRefMappingFileWhenNoneIsConfigured()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), [], scope: null, CancellationToken.None);
+
+        Assert.IsNull(capturedRefMappingFile);
+    }
+
+    [TestMethod]
     public async Task AcceptsTurningOffAllObjectsAccessible()
     {
         var process = CreateProcess(null, modelDirs: null, success: true, allObjectsAccessible: false);
@@ -346,16 +370,17 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null, string? toolVersion = null, string? refMapping = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null, string? toolVersion = null, string? refMapping = null, IPipelineFile? refMappingFile = null)
     {
         ilivalidatorClientMock
-            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
-            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, CancellationToken>((args, transferFile, logFile, _, archive, modelFiles, _) =>
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IPipelineFile?>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, IPipelineFile?, CancellationToken>((args, transferFile, logFile, _, archive, modelFiles, mappingFile, _) =>
             {
                 capturedArgs = args;
                 capturedTransferFile = transferFile;
                 capturedArchive = archive;
                 capturedModelFiles = modelFiles;
+                capturedRefMappingFile = mappingFile;
 
                 if (logContent != null)
                 {
@@ -367,6 +392,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, refMapping, modelDirs, allObjectsAccessible, pluginIds, toolVersion, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, refMapping, modelDirs, allObjectsAccessible, pluginIds, toolVersion, modelRepository, refMappingFile, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }

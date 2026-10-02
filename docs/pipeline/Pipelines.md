@@ -294,7 +294,7 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
-Ein weiterer, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
+Zwei weitere, `modelRepository` und `refMappingFile`, sind vom Typ `IPipelineFile` und nennen je eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
@@ -311,6 +311,7 @@ public XtfValidatorProcess(
     string? pluginIds,
     string? toolVersion,
     IPipelineFile? modelRepository,
+    IPipelineFile? refMappingFile,
     IIlivalidatorClient ilivalidatorClient,
     IPipelineFileManager pipelineFileManager,
     ILogger logger)

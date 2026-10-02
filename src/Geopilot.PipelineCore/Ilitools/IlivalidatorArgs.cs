@@ -28,7 +28,8 @@ public sealed record IlivalidatorArgs
     /// The mapping that names the reference data the tool loads for the extent of a validation, in the form
     /// <c>ilidata:&lt;DatasetId&gt;</c>, resolved by the tool through <see cref="ModelDirs"/>. Reference data is loaded
     /// but not validated itself, and references into it are only checked with <see cref="AllObjectsAccessible"/>.
-    /// Maps to the ilivalidator option <c>--refmapping</c>.
+    /// Maps to the ilivalidator option <c>--refmapping</c>. A mapping that is not published in a repository is sent as a
+    /// file through <see cref="IIlivalidatorClient.ValidateAsync"/> instead.
     /// </summary>
     /// <remarks>
     /// Requires ilivalidator 1.15.0 or newer, like <see cref="Scope"/>.
