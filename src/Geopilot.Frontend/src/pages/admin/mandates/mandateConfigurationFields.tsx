@@ -101,25 +101,23 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
         <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
         {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
       </FormContainer>
-      {!isPublic && (
-        <FormContainer>
-          <FormContainerHalfWidth>
-            <FormAutocomplete<Organisation>
-              fieldName={"organisations"}
-              label={"eligibleOrganisations"}
-              required={false}
-              values={organisations}
-              selected={mandate?.organisations}
-              valueFormatter={org => ({
-                id: org.id,
-                primaryText: org.name,
-                detailText: `${org.name} (ID: ${org.id})`,
-              })}
-            />
-          </FormContainerHalfWidth>
-          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
-        </FormContainer>
-      )}
+      <FormContainer>
+        <FormContainerHalfWidth>
+          <FormAutocomplete<Organisation>
+            fieldName={"organisations"}
+            label={"eligibleOrganisations"}
+            required={false}
+            values={organisations}
+            selected={mandate?.organisations}
+            valueFormatter={org => ({
+              id: org.id,
+              primaryText: org.name,
+              detailText: `${org.name} (ID: ${org.id})`,
+            })}
+          />
+        </FormContainerHalfWidth>
+        <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
+      </FormContainer>
     </>
   );
 };

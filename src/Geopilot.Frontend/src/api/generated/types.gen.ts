@@ -416,7 +416,9 @@ export type MandateSummary = {
     [key: string]: string;
   };
   /**
-   * Indicates whether delivery is allowed for this mandate.
+   * Indicates whether the caller may deliver to this mandate: it allows deliveries and
+   * the caller belongs to one of its organisations. A public mandate is listed for everyone, but delivers for its
+   * members only.
    */
   allowDelivery: boolean;
   evaluatePrecursorDelivery: FieldEvaluationType;

@@ -143,7 +143,7 @@
   "privacyPolicy": "Privacy policy",
   "processing": "Processing",
   "public": "Public",
-  "publicMandateHelperText": "Public mandates cannot be assigned to organisations and do not allow deliveries",
+  "publicMandateHelperText": "Anyone can validate against public mandates. Only signed-in members of the eligible organisations can deliver",
   "removeFile": "Remove file",
   "removeLayer": "Remove layer",
   "reset": "Reset",

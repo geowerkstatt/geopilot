@@ -19,7 +19,7 @@ Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsda
 
 ## Wer darf eine Pipeline ausführen?
 
-Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein solches Mandat kann entweder öffentlich sein oder über die Organisation einem Benutzer zugeordnet werden.
+Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
 
 ## Wie ist der Ablauf einer Pipeline-Ausführung?
 

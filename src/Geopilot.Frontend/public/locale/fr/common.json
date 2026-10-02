@@ -143,7 +143,7 @@
   "privacyPolicy": "Politique de confidentialité",
   "processing": "Traitement",
   "public": "Public",
-  "publicMandateHelperText": "Les mandats publics ne peuvent pas être attribués à des organisations et n'autorisent pas de livraisons",
+  "publicMandateHelperText": "Tout le monde peut valider avec les mandats publics. Seuls les membres connectés des organisations autorisées peuvent livrer",
   "removeFile": "Supprimer le fichier",
   "removeLayer": "Supprimer la couche",
   "reset": "Réinitialiser",
