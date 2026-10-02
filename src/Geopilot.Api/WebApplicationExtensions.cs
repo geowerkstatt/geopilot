@@ -37,12 +37,19 @@ public static class WebApplicationExtensions
         ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
 
         var overrideDirectory = configuration["PublicAssetsOverride"];
-        if (!string.IsNullOrEmpty(overrideDirectory) && Directory.Exists(overrideDirectory))
+        if (!string.IsNullOrEmpty(overrideDirectory))
         {
-            app.Environment.WebRootFileProvider = new CompositeFileProvider(
-                new PhysicalFileProvider(Path.GetFullPath(overrideDirectory)),
-                app.Environment.WebRootFileProvider);
-            app.Logger.LogInformation("Serving public assets from {PublicAssetsOverride} in front of the web root.", overrideDirectory);
+            if (Directory.Exists(overrideDirectory))
+            {
+                app.Environment.WebRootFileProvider = new CompositeFileProvider(
+                    new PhysicalFileProvider(Path.GetFullPath(overrideDirectory)),
+                    app.Environment.WebRootFileProvider);
+                app.Logger.LogInformation("Serving public assets from {PublicAssetsOverride} in front of the web root.", overrideDirectory);
+            }
+            else
+            {
+                app.Logger.LogWarning("PublicAssetsOverride directory {PublicAssetsOverride} does not exist, serving the web root only.", overrideDirectory);
+            }
         }
 
         app.UseStaticFiles(new StaticFileOptions
