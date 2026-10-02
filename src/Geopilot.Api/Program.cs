@@ -298,18 +298,7 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
-        {
-            ctx.Context.Response.StatusCode = StatusCodes.Status404NotFound;
-            ctx.Context.Response.ContentLength = 0;
-            ctx.Context.Response.Body = Stream.Null;
-        }
-    },
-});
+app.UseFrontendStaticFiles(builder.Configuration);
 
 app.UseRouting();
 

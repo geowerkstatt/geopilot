@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
+using Microsoft.Extensions.FileProviders;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -25,6 +26,40 @@ public static class WebApplicationExtensions
     }
 
     /// <summary>
+    /// Serves the frontend files from the web root. Files in the directory configured as <c>PublicAssetsOverride</c>
+    /// take precedence, so an operator can replace single files (imprint, logo, ...) by mounting a directory, without
+    /// writing into the web root. index.html is never served as a static file, <see cref="MapSpaFallback"/> serves it
+    /// with the CSP nonce. Must run before <see cref="MapSpaFallback"/>.
+    /// </summary>
+    public static void UseFrontendStaticFiles(this WebApplication app, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+        ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
+
+        var overrideDirectory = configuration["PublicAssetsOverride"];
+        if (!string.IsNullOrEmpty(overrideDirectory) && Directory.Exists(overrideDirectory))
+        {
+            app.Environment.WebRootFileProvider = new CompositeFileProvider(
+                new PhysicalFileProvider(Path.GetFullPath(overrideDirectory)),
+                app.Environment.WebRootFileProvider);
+            app.Logger.LogInformation("Serving public assets from {PublicAssetsOverride} in front of the web root.", overrideDirectory);
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    ctx.Context.Response.ContentLength = 0;
+                    ctx.Context.Response.Body = Stream.Null;
+                }
+            },
+        });
+    }
+
+    /// <summary>
     /// Maps the SPA fallback route with CSP headers and nonce-based script/style injection.
     /// </summary>
     public static void MapSpaFallback(this WebApplication app, IConfiguration configuration)
@@ -32,13 +67,15 @@ public static class WebApplicationExtensions
         ArgumentNullException.ThrowIfNull(app, nameof(app));
         ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
 
-        var indexHtmlPath = !string.IsNullOrEmpty(app.Environment.WebRootPath) ? Path.Combine(app.Environment.WebRootPath, "index.html") : null;
-        if (string.IsNullOrEmpty(indexHtmlPath) || !File.Exists(indexHtmlPath))
+        // Read through the file provider so an index.html in PublicAssetsOverride takes precedence.
+        var indexHtmlFile = app.Environment.WebRootFileProvider.GetFileInfo("index.html");
+        if (!indexHtmlFile.Exists)
         {
             return;
         }
 
-        var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
+        using var indexHtmlReader = new StreamReader(indexHtmlFile.CreateReadStream());
+        var indexHtmlTemplate = indexHtmlReader.ReadToEnd();
         var authorityOrigin = new Uri(configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
         var blobEndpoint = configuration["Upload:Cloud:BlobEndpoint"];
         if (!string.IsNullOrWhiteSpace(blobEndpoint))

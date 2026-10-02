@@ -17,7 +17,6 @@ if [ "$(id -u)" -eq 0 ]; then
     chown -R app:app $Storage__PipelineDirectory && \
     chown -R app:app $Storage__ResourcesDirectory && \
     chown -R app:app $Storage__VisualizationDirectory && \
-    chown -R app:app $PublicAssetsOverride && \
 
     # Sets group permission and sticky bit at the end, which makes all children inherit group ownership
     chmod -R g+rwXs $Storage__DownloadDirectory && \
@@ -25,7 +24,6 @@ if [ "$(id -u)" -eq 0 ]; then
     chmod -R g+rwXs $Storage__PipelineDirectory && \
     chmod -R g+rwXs $Storage__ResourcesDirectory && \
     chmod -R g+rwXs $Storage__VisualizationDirectory && \
-    chmod -R g+rwXs $PublicAssetsOverride && \
     echo "done!"
 
   # Trust additional CA certificates if present (for Azurite HTTPS in development).
@@ -46,9 +44,6 @@ else
   app_uid=$(id -u)
   app_gid=$(id -g)
 fi
-
-# Override public assets in app's public directory.
-(cp -R $PublicAssetsOverride/* $HOME/wwwroot/ || true)
 
 echo "
 --------------------------------------------------------------------------
