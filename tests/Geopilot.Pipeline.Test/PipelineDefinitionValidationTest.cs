@@ -52,20 +52,21 @@ public class PipelineDefinitionValidationTest
     // The definitions shipped with the application are read only when it starts, so a mistake in one of them
     // would otherwise surface as a failed start instead of a failed build. Enumerated rather than listed, so a
     // new definition is covered on its own; the count guard keeps a broken link from passing vacuously.
-    // Note the limit: without the Pipeline:ProcessConfigs base layer and without a resources directory this
-    // catches structure, references, conditions and process signatures, but no base config collision and no
-    // missing ${file(...)} target.
+    // Note the limit: without the Pipeline:ProcessConfigs base layer this catches structure, references,
+    // conditions, process signatures and the files they name in the shipped resources directory, but no base
+    // config collision.
     [TestMethod]
     public void ValidateDefinitionAcceptsShippedDefinitions()
     {
         var directory = Path.Combine(AppContext.BaseDirectory, "TestData", "PipelineDefinitions");
+        var resourcesDirectory = Path.Combine(AppContext.BaseDirectory, "TestData", "Resources");
         var definitions = Directory.GetFiles(directory, "*.yaml");
 
         Assert.IsNotEmpty(definitions, $"no shipped pipeline definition was copied to {directory}.");
 
         foreach (var definition in definitions)
         {
-            var result = CreatePipelineFactoryForPath(definition).ValidateDefinition();
+            var result = CreatePipelineFactoryForPath(definition, resourcesDirectory).ValidateDefinition();
 
             Assert.IsTrue(result.IsValid, $"{Path.GetFileName(definition)}: {result.ErrorMessage}");
         }
@@ -132,7 +133,7 @@ public class PipelineDefinitionValidationTest
     private PipelineFactory CreatePipelineFactory(string filename) =>
         CreatePipelineFactoryForPath(Path.Combine(AppContext.BaseDirectory, "TestData", "Pipeline", filename + ".yaml"));
 
-    private PipelineFactory CreatePipelineFactoryForPath(string definitionPath)
+    private PipelineFactory CreatePipelineFactoryForPath(string definitionPath, string? resourcesDirectory = null)
     {
         var pipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline");
 
@@ -142,6 +143,7 @@ public class PipelineDefinitionValidationTest
             .PipelineProcessFactory(pipelineProcessFactory)
             .LoggerFactory(loggerFactoryMock.Object)
             .PipelineTempDirectory(pipelineDirectory)
+            .ResourcesDirectory(resourcesDirectory)
             .Build();
     }
 }

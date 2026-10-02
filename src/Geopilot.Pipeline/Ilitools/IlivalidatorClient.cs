@@ -33,6 +33,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
+        IPipelineFile? refMappingFile = null,
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting ilivalidator validation of {FileName}.", transferFile.OriginalFileName);
@@ -40,6 +41,15 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         using var call = client.Validate(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateValidateRequest(args), cancellationToken);
+
+        // Sent before the transfer file, because the service refuses an unusable mapping at its start, and the call
+        // then fails before the transfer file is streamed.
+        if (refMappingFile != null)
+        {
+            logger.LogInformation("Sending reference data mapping {FileName}.", refMappingFile.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.RefMappingFile, refMappingFile, cancellationToken);
+        }
+
         await SendFileAsync(call.RequestStream, TransferFileType(transferFile), transferFile, cancellationToken);
 
         foreach (var modelFile in modelFiles ?? [])
