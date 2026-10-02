@@ -15,7 +15,7 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile:
-      refMapping:
+      refMappingFile:
       pluginIds:
       toolVersion:
   - id: xtf_error_visualizer
@@ -510,7 +510,8 @@ pipelines:
               - StatusMessage
   # DMAV mit Zusatzanforderungen: liest die BFS-Nummer aus der Lieferung und prüft gegen die Referenzdaten dieser
   # Gemeinde, samt GWR-Plugin. Braucht die DMAV-Testwelt (TestData/Dmav/README.md): das Repository unter
-  # http://interlis-models/dmav/ und das Plugin aus dem Compose-Profil dmav; ohne Plugin scheitert der Schritt.
+  # http://interlis-models/dmav/ für Profil und Referenzdaten, das Mapping unter Resources/dmav/ und das Plugin aus
+  # dem Compose-Profil dmav; ohne Plugin scheitert der Schritt.
   - id: dmav_validation
     display_name:
       en: DMAV Validation with Additional Requirements
@@ -586,7 +587,7 @@ pipelines:
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: dmav_v1_1_with_additional_rules
-          refMapping: ilidata:dmav_refdata_mapping
+          refMappingFile: dmav/refdata_mapping.xtf
           pluginIds: ilivalid-gwr@1.0.0-20260217.141026-7
           toolVersion: 1.15.1-INTERNAL-GEOWERKSTATT-SNAPSHOT
         conditions:
