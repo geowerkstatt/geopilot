@@ -76,7 +76,7 @@ public class ProcessingController : ControllerBase
             var job = await processingService.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, declarer);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
-            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl));
+            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
         }
         catch (ArgumentException ex)
         {
@@ -113,7 +113,7 @@ public class ProcessingController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl));
+        return Ok(job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
     }
 
     /// <summary>

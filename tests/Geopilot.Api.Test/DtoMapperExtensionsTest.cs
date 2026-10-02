@@ -62,6 +62,32 @@ public class DtoMapperExtensionsTest
     }
 
     [TestMethod]
+    [DataRow(ProcessingState.Pending, ProcessingState.Pending, "Pending", "Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Pending, "Pending,Pending", "Running,Pending,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Running,Pending", "Success,Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Pending", "Success,Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Skipped,Pending", "Success,Success,Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Skipped,Running", "Success,Success,Skipped,Running")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Skipped,Pending", "Success,Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Success, "Success,Success", "Success,Success,Running")]
+    [DataRow(ProcessingState.Running, ProcessingState.Success, "Success,Skipped", "Success,Success,Running")]
+    [DataRow(ProcessingState.Success, ProcessingState.Success, "Success,Success", "Success,Success,Success")]
+    [DataRow(ProcessingState.Success, ProcessingState.Success, "Success,Skipped", "Success,Success,Skipped")]
+    [DataRow(ProcessingState.Failed, ProcessingState.Failed, "Error,Pending", "Success,Error,Pending")]
+    public void FinishedStepIsReportedRunningUntilItsSuccessorStarts(ProcessingState jobState, ProcessingState pipelineState, string stepStates, string expectedStates)
+    {
+        var states = stepStates.Split(',').Select(Enum.Parse<StepState>).ToArray();
+        var stepIds = states.Select((_, index) => $"step_{index}").ToArray();
+        var job = BuildJob(jobState, BuildPipeline(pipelineState, stepIds, states));
+
+        var response = job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl);
+        var reported = response.WithRunningStepWhileJobRuns().Steps.Select(step => step.State.ToString());
+
+        Assert.AreEqual(expectedStates, string.Join(',', reported));
+        Assert.AreEqual(stepStates, string.Join(',', response.Steps.Skip(1).Select(step => step.State.ToString())), "The plain mapping reports the actual step states, which the machine delivery derives its message severity from.");
+    }
+
+    [TestMethod]
     public void PreflightStepIsReportedEvenWithoutAPipeline()
     {
         var pending = BuildJob(ProcessingState.Pending, pipeline: null);
@@ -110,9 +136,12 @@ public class DtoMapperExtensionsTest
     private static ProcessingJob BuildJob(ProcessingState state, IPipeline? pipeline) =>
         new(Guid.NewGuid(), Guid.NewGuid(), 1, DateTime.Now) { Pipeline = pipeline, State = state };
 
-    private static IPipeline BuildPipeline(ProcessingState state, params string[] stepIds)
+    private static IPipeline BuildPipeline(ProcessingState state, params string[] stepIds) =>
+        BuildPipeline(state, stepIds, stepIds.Select(_ => StepState.Pending).ToArray());
+
+    private static IPipeline BuildPipeline(ProcessingState state, string[] stepIds, StepState[] stepStates)
     {
-        var steps = stepIds.Select(BuildStep).ToList();
+        var steps = stepIds.Zip(stepStates, BuildStep).ToList();
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
         pipelineMock.SetupGet(p => p.State).Returns(state);
@@ -120,12 +149,12 @@ public class DtoMapperExtensionsTest
         return pipelineMock.Object;
     }
 
-    private static IPipelineStep BuildStep(string id)
+    private static IPipelineStep BuildStep(string id, StepState state)
     {
         var stepMock = new Mock<IPipelineStep>();
         stepMock.SetupGet(s => s.Id).Returns(id);
         stepMock.SetupGet(s => s.DisplayName).Returns(LocalizedText.Empty);
-        stepMock.SetupGet(s => s.State).Returns(StepState.Pending);
+        stepMock.SetupGet(s => s.State).Returns(state);
         stepMock.SetupGet(s => s.StatusMessage).Returns((LocalizedText?)null);
         stepMock.SetupGet(s => s.Downloads).Returns(new List<PersistedFile>());
         stepMock.SetupGet(s => s.DeliveryFiles).Returns(new List<PersistedFile>());
