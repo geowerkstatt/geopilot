@@ -61,6 +61,31 @@ internal static class DtoMapperExtensions
     }
 
     /// <summary>
+    /// Prepares a <see cref="ProcessingJobResponse"/> for showing progress: while the job runs, a finished step is
+    /// reported as running until its successor has started or been skipped, and the last one until the job has
+    /// ended. A running job thus always shows a running step, also while it waits for a free processing slot,
+    /// between two steps and while it stages the delivery files. Only for display, the step states of the job
+    /// itself stay untouched.
+    /// </summary>
+    public static ProcessingJobResponse WithRunningStepWhileJobRuns(this ProcessingJobResponse response)
+    {
+        if (response.State is not (ProcessingState.Pending or ProcessingState.Running))
+            return response;
+
+        var steps = response.Steps;
+        return response with
+        {
+            Steps = steps.Select((step, index) =>
+            {
+                var isFinished = step.State is not (StepState.Pending or StepState.Running);
+                var successor = steps.ElementAtOrDefault(index + 1);
+                var hasSuccessorStarted = successor is not null && successor.State != StepState.Pending;
+                return isFinished && !hasSuccessorStarted ? step with { State = StepState.Running } : step;
+            }).ToList(),
+        };
+    }
+
+    /// <summary>
     /// Builds the synthetic preflight step that always leads the reported steps. When preflight failed a
     /// generic status message is attached so the user sees that preparation, not a pipeline step, failed.
     /// </summary>
