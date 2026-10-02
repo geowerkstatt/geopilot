@@ -67,8 +67,12 @@ public class DtoMapperExtensionsTest
     [DataRow(ProcessingState.Running, ProcessingState.Running, "Running,Pending", "Success,Running,Pending")]
     [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Pending", "Success,Running,Pending")]
     [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Skipped,Pending", "Success,Success,Running,Pending")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Success,Skipped,Running", "Success,Success,Skipped,Running")]
+    [DataRow(ProcessingState.Running, ProcessingState.Running, "Skipped,Pending", "Success,Running,Pending")]
     [DataRow(ProcessingState.Running, ProcessingState.Success, "Success,Success", "Success,Success,Running")]
+    [DataRow(ProcessingState.Running, ProcessingState.Success, "Success,Skipped", "Success,Success,Running")]
     [DataRow(ProcessingState.Success, ProcessingState.Success, "Success,Success", "Success,Success,Success")]
+    [DataRow(ProcessingState.Success, ProcessingState.Success, "Success,Skipped", "Success,Success,Skipped")]
     [DataRow(ProcessingState.Failed, ProcessingState.Failed, "Error,Pending", "Success,Error,Pending")]
     public void FinishedStepIsReportedRunningUntilItsSuccessorStarts(ProcessingState jobState, ProcessingState pipelineState, string stepStates, string expectedStates)
     {
