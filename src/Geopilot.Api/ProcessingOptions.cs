@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Geopilot.Api;
 
 /// <summary>
 /// Configuration options for running and managing processing jobs.
@@ -42,4 +44,12 @@ public class ProcessingOptions
     /// The duration after which a job should time out if it has not completed.
     /// </summary>
     public required TimeSpan JobTimeout { get; set; }
+
+    /// <summary>
+    /// The maximum number of pipelines this instance runs at the same time. Further jobs wait in the processing
+    /// queue, whose length <see cref="UploadOptions.MaxActiveJobs"/> bounds. Deliberately a fixed default rather than
+    /// the processor count, which in a container is the core count of the host, not of the container.
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int MaxConcurrentJobs { get; set; } = 2;
 }

@@ -981,6 +981,42 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task RunnerRunsNoMoreJobsAtOnceThanMaxConcurrentJobs()
+    {
+        var store = new ProcessingJobStore();
+        var gates = Enumerable.Range(0, 3).Select(_ => new TaskCompletionSource()).ToList();
+        var pipelines = new List<Geopilot.Pipeline.Pipeline>();
+
+        foreach (var gate in gates)
+        {
+            var job = store.CreateJob(Guid.NewGuid());
+            createdJobIds.Add(job.Id);
+            var pipeline = BuildPipeline(job.Id, BuildBlockingStep("step_1", gate.Task));
+            pipelines.Add(pipeline);
+            store.AttachPipeline(job.Id, pipeline, 1);
+            store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+        }
+
+        using var runner = CreateRunner(store, maxConcurrentJobs: 2);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => pipelines[0].State == ProcessingState.Running && pipelines[1].State == ProcessingState.Running, TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            Assert.AreEqual(ProcessingState.Pending, pipelines[2].State, "The third job must wait while both slots are taken.");
+
+            gates[0].SetResult();
+            await WaitUntilAsync(() => pipelines[2].State == ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            gates.ForEach(gate => gate.TrySetResult());
+            await runner.StopAsync(CancellationToken.None);
+            pipelines.ForEach(pipeline => pipeline.Dispose());
+        }
+    }
+
+    [TestMethod]
     public async Task RunnerSurvivesTimeoutTransitionRejectedByTheStore()
     {
         var jobId = NewJob();
@@ -1060,12 +1096,12 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
-    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null) =>
+    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2) =>
         new ProcessingRunner(
             Mock.Of<ILogger<ProcessingRunner>>(),
             jobStore,
             scopeFactory,
-            Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5) }));
+            Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5), MaxConcurrentJobs = maxConcurrentJobs }));
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state };

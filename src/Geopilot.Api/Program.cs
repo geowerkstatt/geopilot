@@ -157,7 +157,10 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
 builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
-builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
+builder.Services.AddOptions<ProcessingOptions>()
+    .BindConfiguration("Processing")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
