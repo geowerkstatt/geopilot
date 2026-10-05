@@ -342,6 +342,36 @@ describe("Delivery tests", () => {
     stepHasError("mandate", true, "No suitable mandate was found for your delivery");
   });
 
+  it("blocks the upload for an anonymous visitor without a public mandate available", () => {
+    cy.intercept({ method: "GET", pathname: "/api/v1/mandate/summary" }, { statusCode: 200, body: [] }).as("mandates");
+    loadWithoutAuth();
+    cy.wait("@mandates");
+
+    cy.dataCy("no-mandate-available").should("contain", "No mandate available. Please sign in.");
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    cy.dataCy("file-list-item").should("not.exist");
+  });
+
+  it("blocks the upload for signed in user without a mandate available", () => {
+    cy.intercept({ method: "GET", pathname: "/api/v1/mandate/summary" }, { statusCode: 200, body: [] }).as("mandates");
+    loginAsNewUser();
+    cy.wait("@mandates");
+
+    cy.dataCy("no-mandate-available").should("contain", "No mandate is available for your account.");
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    cy.dataCy("file-list-item").should("not.exist");
+  });
+
+  it("keeps the upload open when the mandate check fails", () => {
+    cy.intercept({ method: "GET", pathname: "/api/v1/mandate/summary" }, { statusCode: 500 }).as("mandates");
+    loadWithoutAuth();
+    cy.wait("@mandates");
+
+    cy.dataCy("no-mandate-available").should("not.exist");
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    cy.dataCy("file-list-item").should("have.length", 1);
+  });
+
   it("displays custom error messages when they don't match predefined errors", () => {
     cy.intercept(
       { url: "/api/v2/upload", method: "POST" },
