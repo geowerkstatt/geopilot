@@ -44,8 +44,8 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   }, [formMethods, lastCompletedStep]);
 
   const { user, authLoaded, login } = useGeopilotAuth();
-  // Undefined while the check runs, null when it failed. A failed check leaves the dropzone open,
-  // because the mandate step still reports a missing mandate after the upload.
+  // Undefined while the check runs, null when it failed. Only a known empty list locks the dropzone: everyone else
+  // can drop files right away, and the mandate step still reports a missing mandate after the upload.
   const [availableMandates, setAvailableMandates] = useState<MandateSummary[] | null>();
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 removeFile={removeFile}
                 fileUploadStatus={fileUploadStatus}
                 fileExtensions={processingSettings?.allowedFileExtensions}
-                disabled={completed || isLoading || availableMandates === undefined || hasNoMandate}
+                disabled={completed || isLoading || hasNoMandate}
                 hideDropzone={completed}
                 setFileError={setFileError}
                 maxFileSizeMB={uploadSettings?.maxFileSizeMB}
