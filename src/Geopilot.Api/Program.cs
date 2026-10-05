@@ -262,10 +262,10 @@ if (uploadBackend == UploadBackend.Direct)
 
 DataDirectories.EnsureUsable(dataDirectories);
 
-// Migrate db changes on startup
+// Migrate db changes on startup, unless the deployment migrates in a job of its own before the application starts.
 using var scope = app.Services.CreateScope();
 using var context = scope.ServiceProvider.GetRequiredService<Context>();
-if (context.Database.GetPendingMigrations().Any())
+if (builder.Configuration.GetValue("Database:MigrateOnStartup", true))
 {
     context.MigrateDatabase();
 }

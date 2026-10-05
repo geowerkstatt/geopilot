@@ -284,6 +284,10 @@ Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im S
 
 Den Namen einer Person bildet die API aus den Claims in `Auth:UserNameClaims` (Standard: `["name"]`). Mehrere Claims werden mit einem Leerzeichen verbunden, ein fehlender Claim wird übersprungen. Liefert ein Identity Provider kein `name`, etwa einer mit Anbindung an AGOV, setzt `["givenname", "surname"]` den Namen aus Vor- und Nachname zusammen. Liefert keiner der Claims einen Wert, meldet die API die Person nicht an. Die Einstellung gilt für beide Token-Formate.
 
+### Datenbank-Migration
+
+Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen gleichzeitig, etwa zwei Pods während eines Rollouts, migriert eine nach der anderen, die zweite findet danach nichts mehr zu tun. Mit `Database:MigrateOnStartup=false` (Umgebungsvariable `Database__MigrateOnStartup`, Standard `true`) startet die API ohne Migrationsversuch. Die Migration muss dann vorher anderweitig laufen, etwa in einem eigenen Job; der Container `seed` wartet sonst vergeblich auf sie.
+
 ## Cloud Upload
 
 Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
