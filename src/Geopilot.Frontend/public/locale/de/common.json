@@ -143,7 +143,7 @@
   "privacyPolicy": "Datenschutz",
   "processing": "Verarbeitung",
   "public": "Öffentlich",
-  "publicMandateHelperText": "Öffentliche Mandate können keinen Organisationen zugewiesen werden und erlauben keine Lieferungen",
+  "publicMandateHelperText": "Öffentliche Mandate kann jede Person prüfen. Liefern können nur angemeldete Mitglieder der berechtigten Organisationen",
   "removeFile": "Datei entfernen",
   "removeLayer": "Ebene entfernen",
   "reset": "Zurücksetzen",

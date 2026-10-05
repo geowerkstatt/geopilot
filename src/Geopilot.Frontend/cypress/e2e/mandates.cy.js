@@ -1,6 +1,7 @@
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
 import {
   evaluateAutocomplete,
+  evaluateCheckbox,
   evaluateChipInput,
   evaluateInput,
   evaluateSelect,
@@ -12,6 +13,7 @@ import {
   setFormLanguage,
   setInput,
   setSelect,
+  toggleCheckbox,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
 
@@ -543,6 +545,59 @@ describe("Mandate with a removed pipeline", () => {
 
     // The broken mandate is flagged with the id of the pipeline that no longer exists.
     getGridRowThatContains("mandates-grid", "Ghost Pipeline Mandate").should("contain", ghostPipelineId);
+  });
+});
+
+describe("Public mandate with organisations", () => {
+  // A public mandate is open to anyone for validation and to the members of its organisations for delivery, so
+  // making it public must keep both the organisations and the delivery setting.
+  const organisation = { id: 9997, name: "Public Mandate Organisation" };
+  const mandateWithOrganisation = {
+    id: 9997,
+    name: { de: "Organisation Mandate" },
+    isPublic: false,
+    allowDelivery: true,
+    fileTypes: [".xtf"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [organisation],
+    deliveries: [],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: "valid-pipeline",
+  };
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", {
+      statusCode: 200,
+      body: { pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }] },
+    }).as("getPipelines");
+    cy.intercept("GET", "/api/v1/organisation", { statusCode: 200, body: [organisation] });
+    cy.intercept("GET", "/api/v1/mandate/9997", { statusCode: 200, body: mandateWithOrganisation }).as("getMandate");
+  });
+
+  it("keeps the organisations and the delivery setting when the mandate is made public", () => {
+    cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
+
+    cy.visit("/admin/mandates/9997");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    toggleCheckbox("isPublic");
+    evaluateAutocomplete("organisations", [organisation.name]);
+    evaluateCheckbox("allowDelivery", true);
+
+    cy.dataCy("save-button").click();
+    cy.wait("@updateMandate").then(({ request }) => {
+      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+      expect(body.isPublic).to.equal(true);
+      expect(body.allowDelivery).to.equal(true);
+      expect(body.organisations.map(o => o.id)).to.deep.equal([organisation.id]);
+    });
   });
 });
 
