@@ -49,9 +49,18 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [availableMandates, setAvailableMandates] = useState<MandateSummary[] | null>();
 
   useEffect(() => {
+    // A check started for a previous user must not overwrite the answer for the current one.
+    let isCurrent = true;
     fetchApi<MandateSummary[]>("/api/v1/mandate/summary")
-      .then(setAvailableMandates)
-      .catch(() => setAvailableMandates(null));
+      .then(mandates => {
+        if (isCurrent) setAvailableMandates(mandates);
+      })
+      .catch(() => {
+        if (isCurrent) setAvailableMandates(null);
+      });
+    return () => {
+      isCurrent = false;
+    };
   }, [fetchApi, user]);
 
   const hasNoMandate = availableMandates?.length === 0;
@@ -71,7 +80,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const button = completed ? undefined : (
     <Button
       variant="contained"
-      disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
+      disabled={isLoading || hasNoMandate || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
       label="upload"
     />
