@@ -33,6 +33,8 @@ public static class UploadServiceExtensions
                 .ValidateOnStart();
             builder.Services.AddSingleton<DirectUploadStorage>();
             builder.Services.AddSingleton<IUploadStorage>(sp => sp.GetRequiredService<DirectUploadStorage>());
+            builder.Services.AddHealthChecks()
+                .AddCheck<UploadDirectoryHealthCheck>("UploadDirectory", tags: [HealthEndpoints.ReadyTag]);
         }
         else
         {

@@ -191,6 +191,18 @@ Der Health Check ist auch im Docker Container integriert und kann ebenfalls übe
 docker inspect --format='{{json .State.Health.Status}}' container_name
 ```
 
+Für Kubernetes gibt es zwei weitere Endpunkte, beide ohne Anmeldung:
+
+| Endpunkt | Prüft | Verwendung |
+| --- | --- | --- |
+| `/health/live` | nichts, nur dass der Prozess antwortet | Liveness- und Startup-Probe |
+| `/health/ready` | Datenbank, Datenverzeichnisse, im Direct-Upload-Modus das Upload-Verzeichnis | Readiness-Probe |
+| `/health` | alles, wie bisher | Docker `HEALTHCHECK`, Monitoring |
+
+Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der Pipeline-Definition vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
+
+Beim Start legt geopilot fehlende Datenverzeichnisse an und schreibt in jedes eine Probedatei, in `Storage:ResourcesDirectory` wird nur gelesen. Gelingt das nicht, etwa weil ein Volume dem falschen Benutzer gehört, bricht der Start mit dem Namen des Verzeichnisses ab.
+
 ## Neue Version erstellen
 
 Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geopilot) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geopilot/pkgs/container/geopilot) gepusht. Der definitive Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
