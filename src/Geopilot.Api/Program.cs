@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using System.Reflection;
 using System.Text.Json;
@@ -222,8 +223,8 @@ builder.Services.AddStacData(builder => { });
 
 builder.Services
     .AddHealthChecks()
-    .AddDbContextCheck<Context>("Database")
-    .AddCheck<StorageHealthCheck>("Storage");
+    .AddDbContextCheck<Context>("Database", tags: [HealthEndpoints.ReadyTag])
+    .AddCheck<StorageHealthCheck>("Storage", tags: [HealthEndpoints.ReadyTag]);
 
 var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).Get<UploadOptions>()
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
@@ -250,6 +251,16 @@ builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLi
 builder.Services.Configure<KestrelServerOptions>(options => options.Limits.MaxRequestBodySize = MaxRequestBodySize);
 
 var app = builder.Build();
+
+// Prove once that every data directory can be used, before anything reads from or writes to one. The direct
+// upload directory joins only in its own mode, its options are never bound otherwise.
+var dataDirectories = DataDirectories.Local(app.Services.GetRequiredService<IOptions<FileAccessOptions>>().Value).ToList();
+if (uploadBackend == UploadBackend.Direct)
+{
+    dataDirectories.Add(app.Services.GetRequiredService<IOptions<UploadDirectOptions>>().Value.ToDataDirectory());
+}
+
+DataDirectories.EnsureUsable(dataDirectories);
 
 // Migrate db changes on startup
 using var scope = app.Services.CreateScope();
@@ -365,8 +376,7 @@ if (uploadBackend == UploadBackend.Direct)
     app.MapDirectUpload();
 }
 
-app.MapHealthChecks("/health")
-    .AllowAnonymous();
+app.MapHealthEndpoints();
 
 app.MapReverseProxy();
 
