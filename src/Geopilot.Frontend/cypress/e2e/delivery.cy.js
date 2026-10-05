@@ -348,8 +348,8 @@ describe("Delivery tests", () => {
     cy.wait("@mandates");
 
     cy.dataCy("no-mandate-available").should("contain", "No mandate available. Please sign in.");
-    addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    cy.dataCy("file-list-item").should("not.exist");
+    cy.dataCy("file-dropzone").should("have.attr", "aria-disabled", "true");
+    addFile("deliveryFiles/ilimodels_valid.xtf", false);
   });
 
   it("blocks the upload for signed in user without a mandate available", () => {
@@ -358,8 +358,8 @@ describe("Delivery tests", () => {
     cy.wait("@mandates");
 
     cy.dataCy("no-mandate-available").should("contain", "No mandate is available for your account.");
-    addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    cy.dataCy("file-list-item").should("not.exist");
+    cy.dataCy("file-dropzone").should("have.attr", "aria-disabled", "true");
+    addFile("deliveryFiles/ilimodels_valid.xtf", false);
   });
 
   it("keeps the upload open when the mandate check fails", () => {
@@ -368,6 +368,7 @@ describe("Delivery tests", () => {
     cy.wait("@mandates");
 
     cy.dataCy("no-mandate-available").should("not.exist");
+    cy.dataCy("file-dropzone").should("not.have.attr", "aria-disabled");
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     cy.dataCy("file-list-item").should("have.length", 1);
   });
