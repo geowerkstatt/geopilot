@@ -40,6 +40,7 @@
 - geopilot can run without an object storage: `Upload:Backend` selects between `Cloud` (the default, Azure Blob compatible storage via presigned URLs) and `Direct`, where the browser uploads through the API into a local directory configured as `Upload:Direct:Directory`. The direct upload endpoint accepts only files registered for a known upload session, derives the write target from the session instead of the URL, enforces the session expiry and the declared file size, and raises its own request size limit to that declared size while every other endpoint keeps the global 100 MB cap. The endpoint is anonymous like the presigned URLs it replaces; shielding it (VPN, reverse proxy with authentication, IP restrictions) is the deployment's responsibility. Virus scanning (`ClamAV:Enabled`), preflight verification, the upload limits and the upload cleanup apply in both modes, and the frontend is unaffected by the choice.
 - The XTF Matcher and File Matcher processes expose an `UnmatchedFiles` output containing the input files that did not match the configured filters (the complement of `MatchedFiles`/`XtfFiles`, in input order), so the sorted-out files can be processed further or included in the delivery via `output_actions`.
 - The delivery submit step lists the files that will be delivered and blocks submission with an error if the delivery contains no files.
+- `Database:MigrateOnStartup` (default `true`) lets a deployment start the application without applying database migrations, so they can run in a job of their own before the application starts, for example in Kubernetes. With the setting unset the application migrates on startup as before.
 
 ### Changed
 
@@ -89,6 +90,7 @@
 
 ### Fixed
 
+- Instances starting at the same time against the same database, for example two pods during a rolling update in Kubernetes, no longer run the database migrations concurrently. One instance migrates, the others wait and then find nothing left to apply.
 - The container stops gracefully on `docker stop` and when Kubernetes stops a pod. The application now receives the stop signal itself, so it shuts down in an orderly way instead of being killed once the grace period has passed.
 - A running processing job always shows a running step. A step is reported as finished only once the next one has started or been skipped, or the job has ended. Previously a job that waited for a free processing slot showed the preparation as done and no step running, and the same gap appeared briefly between two steps and while a finished run staged its delivery files.
 - A public mandate can allow deliveries and be assigned to organisations again. Anyone can still validate against it, signed in or not, while only signed-in members of its organisations can deliver. Making a mandate public in the admin portal no longer drops its organisations or switches off its deliveries.
