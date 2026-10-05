@@ -37,7 +37,7 @@ public class ClamAvScanService : IUploadScanService
     }
 
     /// <inheritdoc/>
-    public async Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys)
+    public async Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(keys);
 
@@ -51,7 +51,8 @@ public class ClamAvScanService : IUploadScanService
 
         foreach (var key in keys)
         {
-            var (threat, hash) = await ScanSingleFileAsync(key);
+            cancellationToken.ThrowIfCancellationRequested();
+            var (threat, hash) = await ScanSingleFileAsync(key, cancellationToken);
             if (threat != null)
                 threats.Add(threat);
             hashes[key] = hash;
@@ -62,16 +63,16 @@ public class ClamAvScanService : IUploadScanService
             : new ScanResult(false, string.Join("; ", threats), Hashes: hashes);
     }
 
-    private async Task<(string? Threat, string Hash)> ScanSingleFileAsync(string key)
+    private async Task<(string? Threat, string Hash)> ScanSingleFileAsync(string key, CancellationToken cancellationToken)
     {
-        using var fileStream = await uploadStorage.OpenReadAsync(key);
+        using var fileStream = await uploadStorage.OpenReadAsync(key, cancellationToken);
 
         // The scan streams every byte anyway, so the SHA-256 for the execution protocol rides along
         // instead of costing a second read of a potentially large blob.
         using var hashingStream = new HashingStream(fileStream);
 
         var clam = new ClamClient(options.Host, options.Port) { MaxStreamSize = maxStreamSize };
-        var result = await clam.SendAndScanFileAsync(hashingStream);
+        var result = await clam.SendAndScanFileAsync(hashingStream, cancellationToken);
 
         logger.LogDebug("ClamAV scan for {Key}: {Result} (raw: {RawResult})", key, result.Result, result.RawResult);
 

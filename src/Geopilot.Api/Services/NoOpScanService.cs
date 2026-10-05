@@ -16,7 +16,7 @@ public class NoOpScanService : IUploadScanService
     }
 
     /// <inheritdoc/>
-    public Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys)
+    public Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(keys);
         logger.LogWarning("Virus scanning is disabled. Skipping scan for {FileCount} file(s).", keys.Count);

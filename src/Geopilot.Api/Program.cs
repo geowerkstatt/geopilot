@@ -162,6 +162,7 @@ builder.Services.AddOptions<ProcessingOptions>()
     .BindConfiguration("Processing")
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.EnsureShutdownTimeoutCoversDrainWindow();
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
@@ -176,6 +177,9 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// Hosted services stop in reverse registration order, so registering the runner ahead of the upload services
+// stops the preflight first: nothing is queued any more once the runner stops reading.
+builder.Services.AddHostedService<ProcessingRunner>();
 var uploadBackend = builder.AddUploadServices();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
@@ -196,7 +200,6 @@ builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
-builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
