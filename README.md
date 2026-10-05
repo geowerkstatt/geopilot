@@ -329,7 +329,7 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 ```
 
 > [!WARNING]
-> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Lieferungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
+> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Prüfungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
 
 Für den direkten Modus gilt:
 

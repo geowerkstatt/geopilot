@@ -10,7 +10,7 @@ Maschinell und über die Weboberfläche angelieferte Daten landen in derselben A
 
 - **Die Installation bietet die Fähigkeit an.** Ohne `MachineDelivery:Enabled` existieren die Endpunkte nicht: sie sind weder erreichbar noch in der OpenAPI-Beschreibung sichtbar.
 - **Das Mandat trägt einen Schlüssel.** Der Client spricht ein Mandat über diesen Schlüssel an, nicht über seine Datenbank-Id. Administratorinnen und Administratoren vergeben ihn in der Mandatsverwaltung; er ist installationsweit eindeutig.
-- **Der Aufrufer ist authentifiziert und darf auf das Mandat.** Ein Maschinen-Client ist in geopilot registriert und einer oder mehreren Organisationen zugeteilt (siehe [Authentifizierung](#authentifizierung)). Sichtbar ist ein Mandat, wenn es öffentlich ist oder der Aufrufer einer Organisation angehört, der es zugeteilt ist. Anonyme maschinelle Lieferungen gibt es nicht: eine Lieferung hat immer einen Urheber.
+- **Der Aufrufer ist authentifiziert und darf auf das Mandat.** Ein Maschinen-Client ist in geopilot registriert und einer oder mehreren Organisationen zugeteilt (siehe [Authentifizierung](#authentifizierung)). Liefern darf der Aufrufer auf ein Mandat, wenn er einer Organisation angehört, der es zugeteilt ist. Dass ein Mandat öffentlich ist, genügt nicht: das gibt es allen zum Prüfen frei, nicht zum Liefern. Anonyme maschinelle Lieferungen gibt es nicht: eine Lieferung hat immer einen Urheber.
 
 ## Authentifizierung
 

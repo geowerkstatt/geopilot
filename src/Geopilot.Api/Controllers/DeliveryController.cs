@@ -134,7 +134,7 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var mandate = await mandateService.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id));
+        var mandate = await mandateService.GetMandateForDeliveryAsync(mandateId, Declarer.ForUser(user.Id));
         if (mandate == null)
             return NotFound();
 
