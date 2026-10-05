@@ -1,9 +1,10 @@
 import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { Trans } from "react-i18next";
-import { Link, Stack } from "@mui/material";
+import { Trans, useTranslation } from "react-i18next";
+import { Alert, Link, Stack } from "@mui/material";
 import { DeliveryStepState } from "../../api/apiInterfaces.ts";
-import { ProcessingSettingsResponse } from "../../api/generated";
+import { MandateSummary, ProcessingSettingsResponse } from "../../api/generated";
+import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
@@ -17,6 +18,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettingsResponse>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
+  const { t } = useTranslation();
   const formMethods = useForm({ mode: "all" });
   const {
     setStepStatus,
@@ -40,6 +42,19 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     // Reset the form state when the user restarts the delivery process
     formMethods.reset();
   }, [formMethods, lastCompletedStep]);
+
+  const { user, authLoaded, login } = useGeopilotAuth();
+  // Undefined while the check runs, null when it failed. A failed check leaves the dropzone open,
+  // because the mandate step still reports a missing mandate after the upload.
+  const [availableMandates, setAvailableMandates] = useState<MandateSummary[] | null>();
+
+  useEffect(() => {
+    fetchApi<MandateSummary[]>("/api/v1/mandate/summary")
+      .then(setAvailableMandates)
+      .catch(() => setAvailableMandates(null));
+  }, [fetchApi, user]);
+
+  const hasNoMandate = availableMandates?.length === 0;
 
   const submitForm = () => {
     setStepStatus(DeliveryStepEnum.Files, undefined);
@@ -74,7 +89,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 removeFile={removeFile}
                 fileUploadStatus={fileUploadStatus}
                 fileExtensions={processingSettings?.allowedFileExtensions}
-                disabled={completed || isLoading}
+                disabled={completed || isLoading || availableMandates === undefined || hasNoMandate}
                 hideDropzone={completed}
                 setFileError={setFileError}
                 maxFileSizeMB={uploadSettings?.maxFileSizeMB}
@@ -82,6 +97,20 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
+              {!completed && hasNoMandate && (
+                <Alert severity="info" data-cy="no-mandate-available">
+                  {user ? (
+                    t("noMandateAvailableSignedIn")
+                  ) : (
+                    <Trans
+                      i18nKey="noMandateAvailableAnonymous"
+                      components={{
+                        loginLink: authLoaded ? <Link component="button" type="button" onClick={login} /> : <span />,
+                      }}
+                    />
+                  )}
+                </Alert>
+              )}
               <FormCheckbox
                 fieldName="acceptTermsOfUse"
                 label={
