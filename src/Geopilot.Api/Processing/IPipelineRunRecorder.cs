@@ -65,5 +65,6 @@ public interface IPipelineRunRecorder
     /// <param name="steps">All steps of the pipeline, in pipeline order.</param>
     /// <param name="terminalState">The state the job ended in.</param>
     /// <param name="failureReason">Why the run failed or was cancelled, when known.</param>
-    Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason);
+    /// <param name="cancellationToken">Bounds the write; a cancelled write is logged like any other failed one.</param>
+    Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 }

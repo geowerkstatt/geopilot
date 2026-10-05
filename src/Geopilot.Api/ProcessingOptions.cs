@@ -52,4 +52,13 @@ public class ProcessingOptions
     /// </summary>
     [Range(1, int.MaxValue)]
     public int MaxConcurrentJobs { get; set; } = 2;
+
+    /// <summary>
+    /// How long running jobs may still continue once the host begins to shut down, before they are cancelled.
+    /// No new job starts in that window. It lets a nearly finished run complete, it does not carry a job over
+    /// the restart. Zero, the default, cancels them right away.
+    /// </summary>
+    // The upper bound is what CancellationTokenSource.CancelAfter accepts, which would otherwise only fail at shutdown.
+    [Range(typeof(TimeSpan), "00:00:00", "24.00:00:00")]
+    public TimeSpan ShutdownDrainTimeout { get; set; }
 }

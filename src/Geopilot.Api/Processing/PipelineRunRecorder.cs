@@ -204,13 +204,13 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason)
+    public async Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(steps);
 
         try
         {
-            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId);
+            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
             if (run is null)
             {
                 LogRunMissing(jobId);
@@ -222,7 +222,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             for (var order = 0; order < steps.Count; order++)
             {
                 var step = steps[order];
-                var row = await LoadStepRowAsync(run.Id, step.Id);
+                var row = await LoadStepRowAsync(run.Id, step.Id, cancellationToken);
                 if (row is null)
                     row = CreateMissingStepRow(run.Id, jobId, step, order);
 
@@ -232,7 +232,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             run.TerminalState = terminalState;
             run.TerminalAt = DateTime.UtcNow;
             run.FailureReason = failureReason;
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -316,12 +316,12 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
     }
 
-    private async Task<PipelineRunStep?> LoadStepRowAsync(int runId, string stepId)
+    private async Task<PipelineRunStep?> LoadStepRowAsync(int runId, string stepId, CancellationToken cancellationToken = default)
     {
         return await context.PipelineRunSteps
             .Include(s => s.Conditions)
             .Include(s => s.Artifacts)
-            .SingleOrDefaultAsync(s => s.PipelineRunId == runId && s.StepId == stepId);
+            .SingleOrDefaultAsync(s => s.PipelineRunId == runId && s.StepId == stepId, cancellationToken);
     }
 
     /// <summary>

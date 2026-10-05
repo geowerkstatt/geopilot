@@ -60,7 +60,7 @@ public class PreflightBackgroundService : BackgroundService
 
         try
         {
-            var scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId);
+            var scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId, cancellationToken);
             await RecordProtocolAsync(scope, request.JobId, recorder => recorder.RecordScanOutcomeAsync(request.JobId, scanResult));
 
             // Nothing is transferred here: each file is fetched from the upload storage the first time a step
@@ -70,6 +70,12 @@ public class PreflightBackgroundService : BackgroundService
             jobStore.EnqueueForProcessing(request.JobId, pipelineFiles);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Host shutdown: only the process ends, nothing is wrong with the upload. Job, files and protocol
+            // stay as they are; the run reads as "outcome unknown", like any other restart victim.
+            logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
         }
         catch (Exception ex)
         {

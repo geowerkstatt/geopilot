@@ -56,13 +56,21 @@ public class ProcessingRunner : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // The stopping token only ends the reading of new work. Running jobs get the drain window on top before
+        // they are cancelled; with the default of zero that happens the moment the shutdown begins.
+        using var drainCts = new CancellationTokenSource();
+        using var drainRegistration = stoppingToken.Register(() => drainCts.CancelAfter(processingOptions.ShutdownDrainTimeout));
+        var cancellationToken = drainCts.Token;
+
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = processingOptions.MaxConcurrentJobs,
             CancellationToken = stoppingToken,
         };
 
-        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), parallelOptions, async (workItem, cancellationToken) =>
+        // The body ignores the token Parallel.ForEachAsync hands it: that one is cancelled as soon as reading the
+        // queue stops, while ForEachAsync still awaits the bodies in flight, which is what gives them the window.
+        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), parallelOptions, async (workItem, _) =>
         {
             var pipeline = workItem.Pipeline;
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);
@@ -103,7 +111,7 @@ public class ProcessingRunner : BackgroundService
 
                 // Declare the delivery for an unattended caller that asked for it. Guarded inside, because an
                 // exception escaping here would be caught below and would record this finished run as failed.
-                // On the host token, not the linked one: the job timeout bounds the run, and the declaration
+                // On the shutdown token, not the linked one: the job timeout bounds the run, and the declaration
                 // starts once the run is over, so a nearly exhausted timeout must not cut it short.
                 await CompleteJobAsync(pipeline.JobId, cancellationToken);
             }
@@ -124,12 +132,14 @@ public class ProcessingRunner : BackgroundService
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // Host shutdown — leave the pipeline state as-is and let the cleanup service take over.
-                // The protocol write below is best effort: it distinguishes a graceful stop (Cancelled,
-                // "host shutdown") from a hard kill (no terminal state at all).
+                // Host shutdown. The protocol write below is best effort: it distinguishes a graceful stop
+                // (Cancelled, "host shutdown") from a hard kill (no terminal state at all).
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
                 terminalState = ProcessingState.Cancelled;
                 failureReason = "host shutdown";
+
+                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
+                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
             }
             catch (Exception ex)
             {
@@ -147,7 +157,12 @@ public class ProcessingRunner : BackgroundService
                 // stops the host. Each cleanup step is guarded on its own, so releasing the upload is
                 // independent of the disposal (the protocol write guards itself, see RecordProtocolAsync).
                 if (terminalState is { } state)
-                    await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordRunFinishedAsync(pipeline.JobId, pipeline.Steps, state, failureReason));
+                {
+                    // During a shutdown a slow database must not use up the time the host grants for stopping.
+                    // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
+                    using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
+                    await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordRunFinishedAsync(pipeline.JobId, pipeline.Steps, state, failureReason, protocolCts.Token));
+                }
 
                 try
                 {
@@ -325,16 +340,17 @@ public class ProcessingRunner : BackgroundService
     }
 
     /// <summary>
-    /// Drops the job's uploaded blobs as soon as they can no longer be needed. A run that cannot be
-    /// delivered will never be declared, so its uploads go right away. A deliverable run keeps them until
-    /// the job is retired. A job still in <see cref="ProcessingState.Running"/> was interrupted by a host
-    /// shutdown, so its blobs stay: the in-memory job does not survive the restart, and the age-based sweep
-    /// in UploadCleanupService is what eventually collects them.
+    /// Drops the job's uploaded blobs as soon as they can no longer be needed, decided by why the run ended.
+    /// A run that failed or was restricted by its own logic would end the same way a second time, so its
+    /// uploads go right away. A deliverable run keeps them until the job is retired. A run that was
+    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown) says nothing about the data, so
+    /// its blobs stay for a second attempt until the age-based sweep in UploadCleanupService collects them;
+    /// the same holds for a job still <see cref="ProcessingState.Running"/>, whose transition did not happen.
     /// </summary>
     private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
     {
         var job = jobStore.GetJob(jobId);
-        if (job is null || job.State == ProcessingState.Running || job.State.IsDeliverable())
+        if (job is null || job.State is ProcessingState.Running or ProcessingState.Cancelled || job.State.IsDeliverable())
             return;
 
         using var scope = serviceScopeFactory.CreateScope();

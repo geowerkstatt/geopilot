@@ -373,7 +373,7 @@ public class ProcessingRunnerTest
         runRecorderMock.Verify(r => r.RecordStepStartedAsync(jobId, step, 0), Times.Once);
         runRecorderMock.Verify(r => r.RecordStepCompletedAsync(jobId, step, 0), Times.Once);
         runRecorderMock.Verify(
-            r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null),
+            r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -415,7 +415,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "A failing completion must not change the outcome of the run.");
         store.Verify(s => s.TryMarkAsFailed(jobId), Times.Never, "A failing completion must not mark the job as failed.");
         runRecorderMock.Verify(
-            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null),
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once,
             "The execution protocol must still record the run as successful.");
     }
@@ -745,24 +745,51 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task UploadIsKeptWhenTheRunWasInterruptedByAHostShutdown()
+    public async Task HostShutdownCancelsTheRunningJobAndKeepsItsUpload()
     {
         var jobId = NewJob();
         var uploadId = Guid.NewGuid();
-        var step = BuildThrowingStep("step_1");
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
         using var pipeline = BuildPipeline(jobId, step);
 
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-
-        // A host shutdown leaves the job in Running: nobody has decided yet whether it mattered, so the
-        // originals have to survive. UploadCleanupService's age-based sweep is what collects them.
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Running));
+        var (runner, store) = CreateRunnerAwaitingShutdown(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
 
         await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once, "A run the shutdown cancelled must not stay Running.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, "host shutdown", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // The shutdown says nothing about the data, so the originals stay for a second attempt until
+        // UploadCleanupService's age-based sweep collects them.
         orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task HostShutdownLetsTheRunningJobFinishWithinTheDrainWindow()
+    {
+        var jobId = NewJob();
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerAwaitingShutdown(pipeline, TimeSpan.FromSeconds(30));
+
+        await runner.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
+        var stopping = runner.StopAsync(CancellationToken.None);
+
+        Assert.IsFalse(stopping.IsCompleted, "The runner must wait for the job in flight during the drain window.");
+        gate.SetResult();
+        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -1045,8 +1072,8 @@ public class ProcessingRunnerTest
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
         orchestrationServiceMock.Verify(
             c => c.ReleaseUploadAsync(uploadId),
-            Times.Once,
-            "The cleanup must still release the upload after the rejected transition.");
+            Times.Never,
+            "A timed out run says nothing about its data, so the upload stays for a second attempt.");
     }
 
     /// <summary>
@@ -1096,12 +1123,33 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
-    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2) =>
+    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default) =>
         new ProcessingRunner(
             Mock.Of<ILogger<ProcessingRunner>>(),
             jobStore,
             scopeFactory,
-            Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5), MaxConcurrentJobs = maxConcurrentJobs }));
+            Options.Create(new ProcessingOptions
+            {
+                JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5),
+                MaxConcurrentJobs = maxConcurrentJobs,
+                ShutdownDrainTimeout = shutdownDrainTimeout,
+            }));
+
+    /// <summary>
+    /// Like <see cref="CreateRunnerWithStore"/>, but the queue stays open, so the runner only ends when it is
+    /// stopped, which is how a host shutdown reaches it.
+    /// </summary>
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerAwaitingShutdown(IPipeline pipeline, TimeSpan shutdownDrainTimeout = default)
+    {
+        var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
+
+        var store = new Mock<IProcessingJobStore>();
+        store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
+        store.Setup(s => s.TryPipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>())).Returns(true);
+
+        return (CreateRunner(store.Object, shutdownDrainTimeout: shutdownDrainTimeout), store);
+    }
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state };

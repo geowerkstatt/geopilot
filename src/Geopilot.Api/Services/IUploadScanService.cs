@@ -9,8 +9,9 @@ public interface IUploadScanService
     /// Scans the specified storage keys for threats.
     /// </summary>
     /// <param name="keys">The storage keys of files to scan.</param>
+    /// <param name="cancellationToken">Cancels the scan.</param>
     /// <returns>The scan result indicating whether files are clean.</returns>
-    Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys);
+    Task<ScanResult> CheckFilesAsync(IReadOnlyList<string> keys, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
