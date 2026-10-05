@@ -593,9 +593,10 @@ describe("Public mandate with organisations", () => {
 
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate").then(({ request }) => {
-      expect(request.body.isPublic).to.equal(true);
-      expect(request.body.allowDelivery).to.equal(true);
-      expect(request.body.organisations.map(o => o.id)).to.deep.equal([organisation.id]);
+      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+      expect(body.isPublic).to.equal(true);
+      expect(body.allowDelivery).to.equal(true);
+      expect(body.organisations.map(o => o.id)).to.deep.equal([organisation.id]);
     });
   });
 });
