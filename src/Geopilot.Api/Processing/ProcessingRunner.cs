@@ -56,7 +56,13 @@ public class ProcessingRunner : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), stoppingToken, async (workItem, cancellationToken) =>
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = processingOptions.MaxConcurrentJobs,
+            CancellationToken = stoppingToken,
+        };
+
+        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), parallelOptions, async (workItem, cancellationToken) =>
         {
             var pipeline = workItem.Pipeline;
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);

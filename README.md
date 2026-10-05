@@ -292,6 +292,8 @@ Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt e
 
 Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
+`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Jobs warten, bis ein Platz frei wird. Wie viele Jobs insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jeder wartende Job seinen Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
+
 ### Entwicklung
 
 Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.

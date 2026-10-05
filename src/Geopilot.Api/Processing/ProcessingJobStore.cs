@@ -19,6 +19,9 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobStore : IProcessingJobStore
 {
     private readonly ConcurrentDictionary<Guid, ProcessingJob> jobs = new();
+
+    // Unbounded on purpose: every queued job still holds its upload, so Upload:MaxActiveJobs already caps the queue
+    // at initiation, with a clear answer to the client, and a bounded channel would only make enqueueing block.
     private readonly Channel<ProcessingWorkItem> processingQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
 
     /// <inheritdoc/>
@@ -115,7 +118,10 @@ public class ProcessingJobStore : IProcessingJobStore
                 return job with { State = ProcessingState.Running };
             });
 
-        processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files));
+        // A job left in Running without a work item would never run and never end, so a refused write must surface.
+        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files)))
+            throw new InvalidOperationException($"Job <{jobId}> could not be queued for processing.");
+
         return updatedJob;
     }
 
