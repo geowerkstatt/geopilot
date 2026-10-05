@@ -34,6 +34,19 @@ public class DirectUploadEndpointTest
     }
 
     [TestMethod]
+    [DataRow("my file.xtf")]
+    [DataRow("a + b.xtf")]
+    public async Task UploadsFileWithBlankSpaceInName(string fileName)
+    {
+        var session = await InitiateAsync((fileName, 3));
+
+        var response = await PutContentAsync(session.Files[0].UploadUrl, "xtf");
+
+        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+        Assert.IsTrue(File.Exists(Path.Combine(app.RootDirectory, session.UploadId.ToString(), fileName)));
+    }
+
+    [TestMethod]
     public async Task UploadsAllRegisteredFilesOfASession()
     {
         var session = await InitiateAsync(("data.xtf", 9), ("beilage.pdf", 4));
