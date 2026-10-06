@@ -159,37 +159,27 @@ services:
     command: start-dev --import-realm
 
   ilitools-wrapper:
-    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.1.18
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.1.19
     restart: unless-stopped
     ports:
       - 5555:5555
-    environment:
-      # The model repository below is reachable under a container address, which the wrapper rejects by default.
-      MODELDIR_ALLOW_PRIVATE_NETWORKS: true
     volumes:
       # Named, so the model cache and the GWR database survive a recreated container.
       - ilitools-cache:/var/cache/ilicache
       # Filled by dmav-plugin (profile dmav); empty otherwise, which offers no plugin.
       - ilitools-plugins:/plugins
+      # Offered as %REPOSITORIES/<id> and read in place by the tool. The first gives a checkout models and a
+      # validation profile to work with, and its ilisite.xml chains to models.interlis.ch, so the public models stay
+      # available through it. The second is the DMAV test world (TestData/Dmav/README.md), whose reference data
+      # count from the next run on when refdata-update replaces them.
+      - ./TestData/XtfErrorVisualization/ili-repository:/repositories/xtf-error-visualization:ro
+      - ./TestData/Dmav/repository:/repositories/dmav@0.1.1:ro
 
-  # Serves TestData/XtfErrorVisualization/ili-repository as an INTERLIS model repository, so a checkout has models
-  # and a validation profile to work with. Its ilisite.xml chains to models.interlis.ch, so the public models stay
-  # available through it. The DMAV test world (TestData/Dmav/README.md) is served under /dmav/.
-  interlis-models:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - 3081:80
-    volumes:
-      - ./TestData/XtfErrorVisualization/ili-repository:/usr/share/nginx/html:ro
-      - ./TestData/Dmav/repository:/usr/share/nginx/dmav:ro
-      - ./config/nginx-interlis-models.conf:/etc/nginx/conf.d/default.conf:ro
-
-  # Replaces cut reference data of the DMAV test world with the current full files, right in the checkout, so git
-  # shows what changed. Only with --profile dmav, see TestData/Dmav/README.md; the image is
+  # Fetches the reference data of the DMAV test world that are not checked in (config/refdata-sources.yaml, excluded
+  # in .gitignore) right into the checkout. Only with --profile dmav, see TestData/Dmav/README.md; the image is
   # https://github.com/geowerkstatt/refdata-update.
   refdata-update:
-    image: ghcr.io/geowerkstatt/refdata-update:v1.0.1
+    image: ghcr.io/geowerkstatt/refdata-update:v1.1.2
     profiles: [dmav]
     restart: unless-stopped
     environment:

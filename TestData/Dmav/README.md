@@ -6,10 +6,10 @@ Lokaler Smoke-Test der Pipeline `dmav_validation` aus `src/Geopilot.Api/Pipeline
 
 | Pfad | Inhalt | Herkunft |
 | --- | --- | --- |
-| `repository/` | INTERLIS-Repository mit Profilen, Configs, Modellen und Index | [geowerkstatt/DMAV_ilivalidator](https://github.com/geowerkstatt/DMAV_ilivalidator), Release `v0.1.1` (2026-09-10), Ordner `repositories/`, unverändert bis auf das Mapping (Zeile unten) |
+| `repository/` | INTERLIS-Repository mit Profilen, Configs, Modellen und Index | [geowerkstatt/DMAV_ilivalidator](https://github.com/geowerkstatt/DMAV_ilivalidator), Release `v0.1.1` (2026-09-10), Ordner `repositories/`, unverändert bis auf das Mapping und die Referenzdaten (Zeilen unten) |
 | `../../src/Geopilot.Api/Resources/dmav/refdata_mapping.xtf` | das Mapping, welche Referenzdaten für welche Gemeinde gelten | `repositories/refdata_mapping.xtf` aus demselben Release, unverändert. Es liegt als Konfiguration der Installation im Ressourcen-Verzeichnis und geht über `refMappingFile` mit jeder Validierung mit; sein Eintrag `dmav_refdata_mapping` ist deshalb aus `repository/ilidata.xml` entfernt |
 | `repository/dmav_V1_1/official_models/OfficialIndexOfLocalities_V1_0.ili` | Modell des Ortschaftenverzeichnisses | https://models.geo.admin.ch/Swisstopo/OfficialIndexOfLocalities_V1_0.ili, im DMAV-Repository per `.gitignore` ausgeschlossen |
-| `repository/dmav_V1_1/refdata/` | die sieben Referenzdatensätze des Mappings, zugeschnitten | DMAV-Repository `v0.1.1`; `OfficialIndexOfLocalities_V1_0.xtf` fehlt dort und stammt von https://data.geo.admin.ch/ch.swisstopo-vd.ortschaftenverzeichnis_plz/ortschaftenverzeichnis_plz/ortschaftenverzeichnis_plz_2056.xtf.zip (Stand 2026-09-01, Quelle: Bundesamt für Landestopografie swisstopo) |
+| `repository/dmav_V1_1/refdata/` | vier der sieben Referenzdatensätze des Mappings, die ohne Quelle für `refdata-update`; LFP1, Hoheitsgrenzen und Ortschaftenverzeichnis holt `refdata-update`, sie sind nicht eingecheckt | DMAV-Repository `v0.1.1` |
 | `deliveries/` | `DMAVTYM_Alles_V1_1_noError.xtf`, `DMAVTYM_Alles_V1_1_withGwrError.xtf` | DMAV-Repository `v0.1.1`, `data/dmav_V1_1/test_data/`, unverändert |
 
 ## Zuschnitt der Referenzdaten
@@ -20,20 +20,17 @@ Fenster in LV95: E 2582500 bis 2594500, N 1221000 bis 1231000, die Ausdehnung be
 | --- | --- | --- | --- |
 | `449_FixpunkteKategorie3.xtf` | 287'556 | 259'531 | 119 von 119 |
 | `FixpunkteLV_V1_0_HFP1.xtf` | 10'194'546 | 51'319 | 44 von 8968 |
-| `FixpunkteLV_V1_0_LFP1.xtf` | 702'859 | 4'636 | 3 von 634 |
 | `Gemeinden95_2_4.xtf` | 572'666 | 572'666 | 2139 von 2139 |
-| `OfficialIndexOfLocalities_V1_0.xtf` | 382'750'705 | 2'266'256 | 57 von 8047 |
 | `fpds2_BE.xtf` | 45'083'931 | 15'140'966 | 32835 von 57772 |
-| `hoheitsgrenze-landesvermessung_2056.xtf` | 24'099'896 | 1'161 | 0 von 50699 |
 
-In `fpds2_BE.xtf` trägt nur `FixpunktVersion` Koordinaten; `Fixpunkt`, `FixpunktAktion` und die übrigen Klassen bleiben deshalb ganz, und die Datei bleibt grösser als die anderen. Im Fenster liegt keine Hoheitsgrenze der Landesvermessung, darum enthält `hoheitsgrenze-landesvermessung_2056.xtf` nur noch Kopf und Basket.
+In `fpds2_BE.xtf` trägt nur `FixpunktVersion` Koordinaten; `Fixpunkt`, `FixpunktAktion` und die übrigen Klassen bleiben deshalb ganz, und die Datei bleibt grösser als die anderen.
 
 Abgenommen am 2026-09-28: Mit vollen und zugeschnittenen Referenzdaten ergeben `noError`, `withGwrError` und `withError` in ilivalidator 1.15.0 dieselben Fehler und Warnungen. Einzig die Zeilennummer einer Meldung, die in die Referenzdaten zeigt, ändert sich, weil der Zuschnitt die Datei mit einem Objekt pro Zeile schreibt.
 
 ## Smoke-Test
 
-1. Dienste samt Plugin starten: `docker compose --profile dmav up -d`. Der Dienst `dmav-plugin` legt das GWR-Plugin ins Volume `ilitools-plugins` und beendet sich; `docker compose logs dmav-plugin` zeigt `fetched` oder `present`. Der Dienst `refdata-update` ersetzt LFP1, Hoheitsgrenzen und Ortschaftenverzeichnis unter `repository/dmav_V1_1/refdata/` durch den aktuellen, vollen Stand, siehe unten.
-2. Die API mit der Entwicklungs-Konfiguration starten. Sie liest `basicPipeline_02.yaml`, findet das Repository über `http://interlis-models/dmav/` und das Mapping im Ressourcen-Verzeichnis (`Resources/dmav/refdata_mapping.xtf`).
+1. Dienste samt Plugin starten: `docker compose --profile dmav up -d`. Der Dienst `dmav-plugin` legt das GWR-Plugin ins Volume `ilitools-plugins` und beendet sich; `docker compose logs dmav-plugin` zeigt `fetched` oder `present`. Der Dienst `refdata-update` holt LFP1, Hoheitsgrenzen und Ortschaftenverzeichnis nach `repository/dmav_V1_1/refdata/`, siehe unten; ohne diesen Lauf fehlen sie, und die Validierung scheitert.
+2. Die API mit der Entwicklungs-Konfiguration starten. Sie liest `basicPipeline_02.yaml`, findet das Repository als `%REPOSITORIES/dmav@0.1.1`, das der Wrapper aus `repository/` anbietet, und das Mapping im Ressourcen-Verzeichnis (`Resources/dmav/refdata_mapping.xtf`).
 3. Im Admin-Portal ein Mandat anlegen: öffentlich, Pipeline "DMAV-Validierung mit Zusatzanforderungen", Dateityp `.xtf`.
 4. `deliveries/DMAVTYM_Alles_V1_1_noError.xtf` liefern: alle Schritte erfolgreich, keine Fehler und Warnungen. Der erste Lauf dauert rund 3.5 Minuten, weil das Plugin die GWR-Datenbank (rund 3 GB) ins Volume `ilitools-cache` lädt, danach knapp 2 Minuten. Der Wrapper übernimmt sie nur aus einem erfolgreichen Lauf in den Cache, darum kommt `noError` zuerst.
 5. `deliveries/DMAVTYM_Alles_V1_1_withGwrError.xtf` liefern: die Validierung beschränkt die Lieferung, im Fehlerprotokoll stehen 2 x `GWRC02a` ("EGID existiert nicht im GWR") und 1 x `GWRA17`.
@@ -42,10 +39,6 @@ Ohne Profil `dmav` fehlt das Plugin, und der Wrapper lehnt den Validierungsschri
 
 ## Aktuelle Referenzdaten
 
-`refdata-update` (Profil `dmav`, Quellen in `config/refdata-sources.yaml`, siehe [Referenzdaten aktualisieren](../../docs/Referenzdaten.md)) schreibt direkt in `repository/`, beim Start und danach jede Nacht. Die zugeschnittenen Dateien sind danach im Arbeitsbaum durch die vollen ersetzt, und `git status` zeigt sie als geändert. HFP1, `Gemeinden95_2_4.xtf` und `fpds2_BE.xtf` bleiben zugeschnitten: HFP1 trägt bei swisstopo dieselbe Basket-Id wie LFP1, für die anderen beiden gibt es noch keine Quelle.
+`refdata-update` (Profil `dmav`, Quellen in `config/refdata-sources.yaml`, siehe [Referenzdaten aktualisieren](../../docs/Referenzdaten.md)) holt LFP1, Hoheitsgrenzen und Ortschaftenverzeichnis in `repository/`, beim Start und danach jede Nacht. Wie im Hosting sind diese Dateien nicht eingecheckt, `.gitignore` schliesst sie aus. Der Wrapper liest das Verzeichnis ohne Cache, der neue Stand gilt also ab dem nächsten Lauf. Die übrigen vier bleiben eingecheckt, HFP1, `Gemeinden95_2_4.xtf` und `fpds2_BE.xtf` zugeschnitten: HFP1 trägt bei swisstopo dieselbe Basket-Id wie LFP1, für die anderen beiden gibt es noch keine Quelle.
 
-**Nicht blind einchecken:** Das volle Ortschaftenverzeichnis ist 383 MB gross, GitHub lehnt Dateien über 100 MB ab. Zurück zum eingecheckten Stand:
-
-```bash
-git restore TestData/Dmav/repository
-```
+Was eine neue Quelle ausser ihrem Eintrag in `config/refdata-sources.yaml` braucht, steht unter [Eine neue Quelle](../../docs/Referenzdaten.md#eine-neue-quelle); hier zusätzlich eine Zeile in `.gitignore`.

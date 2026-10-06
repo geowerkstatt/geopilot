@@ -12,8 +12,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 
-    <!-- The transfer files that belong to the model repository the interlis-models service serves. Linked instead of
-         copied so the fixture stays in one place for the local dev setup and for these tests. -->
+    <!-- The transfer files that belong to the model repository the ilitools-wrapper offers as xtf-error-visualization.
+         Linked instead of copied so the fixture stays in one place for the local dev setup and for these tests. -->
     <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors23-ok.xtf" Link="TestData\ModelRepository\AllErrors23-ok.xtf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
