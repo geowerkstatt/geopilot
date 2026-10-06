@@ -44,26 +44,27 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   }, [formMethods, lastCompletedStep]);
 
   const { user, authLoaded, login } = useGeopilotAuth();
-  // Undefined while the check runs, null when it failed. Only a known empty list locks the dropzone: everyone else
-  // can drop files right away, and the mandate step still reports a missing mandate after the upload.
-  const [availableMandates, setAvailableMandates] = useState<MandateSummary[] | null>();
+  // Undefined while the sign-in is still resolving, null for an anonymous visitor.
+  const userId = user === undefined ? undefined : (user?.id ?? null);
+  const [mandateCheck, setMandateCheck] = useState<{ userId: number | null; isEmpty: boolean }>();
 
   useEffect(() => {
-    // A check started for a previous user must not overwrite the answer for the current one.
+    // The API identifies the caller by the geopilot.auth cookie, so only ask once it is settled who is asking.
+    if (userId === undefined) return;
     let isCurrent = true;
     fetchApi<MandateSummary[]>("/api/v1/mandate/summary")
-      .then(mandates => {
-        if (isCurrent) setAvailableMandates(mandates);
-      })
-      .catch(() => {
-        if (isCurrent) setAvailableMandates(null);
+      .then(mandates => mandates.length === 0)
+      .catch(() => false)
+      .then(isEmpty => {
+        if (isCurrent) setMandateCheck({ userId, isEmpty });
       });
     return () => {
       isCurrent = false;
     };
-  }, [fetchApi, user]);
+  }, [fetchApi, userId]);
 
-  const hasNoMandate = availableMandates?.length === 0;
+  // An answer given for someone else, for example before a sign-in, locks nothing.
+  const hasNoMandate = mandateCheck?.isEmpty === true && mandateCheck.userId === userId;
 
   const submitForm = () => {
     setStepStatus(DeliveryStepEnum.Files, undefined);
@@ -114,7 +115,11 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                     <Trans
                       i18nKey="noMandateAvailableAnonymous"
                       components={{
-                        loginLink: authLoaded ? <Link component="button" type="button" onClick={login} /> : <span />,
+                        loginLink: authLoaded ? (
+                          <Link component="button" type="button" onClick={login} data-cy="no-mandate-login-link" />
+                        ) : (
+                          <span />
+                        ),
                       }}
                     />
                   )}
