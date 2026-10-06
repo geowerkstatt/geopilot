@@ -344,10 +344,11 @@ describe("Delivery tests", () => {
 
   it("blocks the upload for an anonymous visitor without a public mandate available", () => {
     cy.intercept({ method: "GET", pathname: "/api/v1/mandate/summary" }, { statusCode: 200, body: [] }).as("mandates");
-    loadWithoutAuth();
+    cy.visit("/");
     cy.wait("@mandates");
 
-    cy.dataCy("no-mandate-available").should("contain", "No mandate available. Please sign in.");
+    cy.dataCy("no-mandate-available").should("contain", "No mandate available. Please log in.");
+    cy.dataCy("no-mandate-login-link").should("exist");
     cy.dataCy("file-dropzone").should("have.attr", "aria-disabled", "true");
     addFile("deliveryFiles/ilimodels_valid.xtf", false);
   });

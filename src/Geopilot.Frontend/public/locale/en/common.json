@@ -128,7 +128,7 @@
   "menu": "Menu",
   "myDeliveries": "My Deliveries",
   "name": "Name",
-  "noMandateAvailableAnonymous": "No mandate available. Please <loginLink>sign in</loginLink>.",
+  "noMandateAvailableAnonymous": "No mandate available. Please <loginLink>log in</loginLink>.",
   "noMandateAvailableSignedIn": "No mandate is available for your account.",
   "noMandatesFound": "No suitable mandate was found for your delivery.",
   "or": "or",
