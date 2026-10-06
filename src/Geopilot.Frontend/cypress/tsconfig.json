@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
-    "types": ["cypress"]
+    "types": ["cypress"],
+    "paths": {
+      "geopilot/*": ["../src/*"]
+    }
   },
   "exclude": [],
-  "extends": "../tsconfig.json"
+  "extends": "../tsconfig.json",
+  "include": ["**/*", "../cypress.config.ts"]
 }

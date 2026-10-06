@@ -1,3 +1,4 @@
+import type { AvailablePipelinesResponse, Mandate, Organisation } from "geopilot/api/generated";
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
@@ -483,12 +484,13 @@ describe("Mandate with a removed pipeline", () => {
   // A pipeline definition can be changed between restarts: a pipeline a mandate
   // was configured with may no longer exist. The stored pipelineId then dangles.
   const ghostPipelineId = "ghost-pipeline";
-  const availablePipelines = {
+  const availablePipelines: AvailablePipelinesResponse = {
     pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
   };
-  const mandateWithGhostPipeline = {
+  const mandateWithGhostPipeline: Mandate = {
     id: 9999,
     name: { de: "Ghost Pipeline Mandate" },
+    description: { de: "Ghost Pipeline Mandate Description" },
     isPublic: false,
     allowDelivery: true,
     fileTypes: [".xml"],
@@ -528,12 +530,12 @@ describe("Mandate with a removed pipeline", () => {
   });
 
   it("flags a mandate in the overview whose pipeline no longer exists", () => {
-    cy.intercept("GET", "/api/v1/mandate", {
+    cy.intercept<unknown, Mandate[]>("GET", "/api/v1/mandate", {
       statusCode: 200,
       body: [
         { ...mandateWithGhostPipeline, id: 9001, name: { de: "Healthy Mandate" }, pipelineId: "valid-pipeline" },
         { ...mandateWithGhostPipeline, id: 9002, name: { de: "Ghost Pipeline Mandate" } },
-      ],
+      ] satisfies Mandate[],
     }).as("getMandates");
 
     cy.visit("/admin/mandates");
@@ -551,10 +553,11 @@ describe("Mandate with a removed pipeline", () => {
 describe("Public mandate with organisations", () => {
   // A public mandate is open to anyone for validation and to the members of its organisations for delivery, so
   // making it public must keep both the organisations and the delivery setting.
-  const organisation = { id: 9997, name: "Public Mandate Organisation" };
-  const mandateWithOrganisation = {
+  const organisation = { id: 9997, name: "Public Mandate Organisation" } as Organisation;
+  const mandateWithOrganisation: Mandate = {
     id: 9997,
     name: { de: "Organisation Mandate" },
+    description: { de: "Organisation Mandate Description" },
     isPublic: false,
     allowDelivery: true,
     fileTypes: [".xtf"],
@@ -574,7 +577,9 @@ describe("Public mandate with organisations", () => {
     loginAsAdmin();
     cy.intercept("GET", "/api/v1/pipeline", {
       statusCode: 200,
-      body: { pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }] },
+      body: {
+        pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+      } satisfies AvailablePipelinesResponse,
     }).as("getPipelines");
     cy.intercept("GET", "/api/v1/organisation", { statusCode: 200, body: [organisation] });
     cy.intercept("GET", "/api/v1/mandate/9997", { statusCode: 200, body: mandateWithOrganisation }).as("getMandate");
@@ -593,7 +598,7 @@ describe("Public mandate with organisations", () => {
 
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate").then(({ request }) => {
-      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+      const body = (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
       expect(body.isPublic).to.equal(true);
       expect(body.allowDelivery).to.equal(true);
       expect(body.organisations.map(o => o.id)).to.deep.equal([organisation.id]);
@@ -604,9 +609,10 @@ describe("Public mandate with organisations", () => {
 describe("Mandate with a file type in upper case", () => {
   // A stored format keeps the casing it was saved with. Entering the same format again must not add a second
   // entry for it, since a delivery is matched against both alike.
-  const mandateWithUpperCaseFileType = {
+  const mandateWithUpperCaseFileType: Mandate = {
     id: 9998,
     name: { de: "Upper Case Mandate" },
+    description: { de: "Upper Case Mandate Description" },
     isPublic: false,
     allowDelivery: true,
     fileTypes: [".XTF"],
@@ -626,7 +632,9 @@ describe("Mandate with a file type in upper case", () => {
     loginAsAdmin();
     cy.intercept("GET", "/api/v1/pipeline", {
       statusCode: 200,
-      body: { pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }] },
+      body: {
+        pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+      } satisfies AvailablePipelinesResponse,
     }).as("getPipelines");
     cy.intercept("GET", "/api/v1/mandate/9998", { statusCode: 200, body: mandateWithUpperCaseFileType }).as(
       "getMandate",

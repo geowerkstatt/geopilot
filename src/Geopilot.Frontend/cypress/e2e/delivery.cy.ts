@@ -1,3 +1,10 @@
+import type {
+  BrowserAuthOptions,
+  Delivery,
+  DeliveryRequest,
+  ProblemDetails,
+  ProcessingSettingsResponse,
+} from "geopilot/api/generated";
 import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers";
 import {
   addFile,
@@ -30,7 +37,9 @@ describe("Delivery tests", () => {
     // Limit the file types to a few extensions
     cy.intercept("GET", "/api/v2/processing", {
       statusCode: 200,
-      body: { allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"] },
+      body: {
+        allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"],
+      } satisfies ProcessingSettingsResponse,
     }).as("fileExtensions");
 
     loadWithoutAuth();
@@ -83,7 +92,7 @@ describe("Delivery tests", () => {
 
   // Runs the real pipeline: the valid XTF passes the validation and gets delivered
   it("can submit delivery", () => {
-    let created;
+    let created: { id: number; authorization: string | string[] };
     cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
@@ -121,12 +130,12 @@ describe("Delivery tests", () => {
     cy.dataCy("createDelivery-button").should("be.enabled").click();
 
     // The declared metadata reaches the API as text.
-    cy.wait("@createDelivery").then(({ request, response }) => {
+    cy.wait<DeliveryRequest, Delivery>("@createDelivery").then(({ request, response }) => {
       const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
       expect(body.partialDelivery).to.equal(true);
       expect(body.precursorDeliveryId).to.be.a("number");
 
-      created = { id: response.body.id, authorization: request.headers.authorization };
+      created = { id: response!.body.id, authorization: request.headers.authorization };
     });
 
     cy.dataCy("createDelivery-button").should("not.exist");
@@ -349,7 +358,7 @@ describe("Delivery tests", () => {
         statusCode: 418, // I'm a teapot
         body: {
           detail: "I'm a teapot",
-        },
+        } satisfies ProblemDetails,
         delay: 500, // Added 500ms delay
       },
     ).as("customError");
@@ -418,13 +427,16 @@ describe("File type filter per platform", () => {
   // The iOS cases first upload a wrong type and expect a rejection: that proves the restriction is
   // actually applied, so a missing `accept` can only mean the iOS branch dropped it, not that the
   // processing settings are still loading.
-  const visitAs = navigatorProps => {
+  const visitAs = (navigatorProps: Partial<Navigator>) => {
     // A mandate that restricts the file types (no ".*") so the accept filter would be active.
     cy.intercept("GET", "/api/v2/processing", {
       statusCode: 200,
-      body: { allowedFileExtensions: [".xtf"] },
+      body: { allowedFileExtensions: [".xtf"] } satisfies ProcessingSettingsResponse,
     }).as("fileExtensions");
-    cy.intercept("/api/v1/user/auth", { statusCode: 200, body: { authority: "", publicClientId: "" } });
+    cy.intercept("/api/v1/user/auth", {
+      statusCode: 200,
+      body: { authority: "", publicClientId: "", scope: "" } satisfies BrowserAuthOptions,
+    });
     cy.visit("/", {
       onBeforeLoad(win) {
         Object.entries(navigatorProps).forEach(([key, value]) =>

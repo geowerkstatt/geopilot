@@ -88,8 +88,9 @@ describe("Machine clients tests", () => {
     toggleCheckbox("isActive");
     cy.dataCy("save-button").click();
     cy.wait("@update").then(({ response }) => {
-      expect(response.statusCode).to.eq(200);
-      expect(response.body.state).to.eq("inactive");
+      expect(response).to.not.be.undefined;
+      expect(response!.statusCode).to.eq(200);
+      expect(response!.body.state).to.eq("inactive");
     });
 
     cy.location().should(location => {

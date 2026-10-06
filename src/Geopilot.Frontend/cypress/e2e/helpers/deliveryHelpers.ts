@@ -1,8 +1,15 @@
+import type {
+  Mandate,
+  ProcessingJobResponse,
+  ProcessingState,
+  StepResultResponse,
+  StepState,
+} from "geopilot/api/generated";
 import { loginAsUploader } from "./appHelpers";
 import { toggleCheckbox } from "./formHelpers";
 
-export const fileNameExists = (filePath, success) => {
-  const fileName = filePath.split("/").pop();
+export const fileNameExists = (filePath: string, success: boolean) => {
+  const fileName = filePath.split("/").pop()!;
   if (success) {
     cy.contains(fileName);
   } else {
@@ -10,8 +17,8 @@ export const fileNameExists = (filePath, success) => {
   }
 };
 
-export const addFile = (filePath, success) => {
-  const mapPath = path => `cypress/fixtures/${path}`;
+export const addFile = (filePath: string | string[], success: boolean) => {
+  const mapPath = (path: string) => `cypress/fixtures/${path}`;
   const files = Array.isArray(filePath) ? filePath.map(mapPath) : mapPath(filePath);
   cy.dataCy("file-dropzone").selectFile(files, { action: "drag-drop" });
   Array.isArray(filePath) ? filePath.forEach(file => fileNameExists(file, success)) : fileNameExists(filePath, success);
@@ -30,7 +37,7 @@ export const uploadFile = () => {
   cy.wait("@upload");
 };
 
-export const selectMandate = id => {
+export const selectMandate = (id: number) => {
   cy.wait(200);
   cy.dataCy("mandate-selection-group").dataCy(`mandate-${id}`).click();
 };
@@ -47,14 +54,14 @@ export const startProcessing = () => {
  * run takes longer than the default command timeout, so every poll gets its own generous limit.
  */
 export const waitForProcessingToFinish = () => {
-  cy.wait("@jobStatus", { timeout: 120000 }).then(({ response }) => {
-    if (["pending", "running"].includes(response.body.state)) {
+  cy.wait<unknown, ProcessingJobResponse>("@jobStatus", { timeout: 120000 }).then(({ response }) => {
+    if (["pending", "running"].includes(response!.body.state)) {
       waitForProcessingToFinish();
     }
   });
 };
 
-export const stepIsActive = (stepName, isActive = true) => {
+export const stepIsActive = (stepName: string, isActive = true) => {
   if (isActive) {
     cy.dataCy(`${stepName}-step`).should("have.attr", "aria-current", "step");
   } else {
@@ -62,7 +69,7 @@ export const stepIsActive = (stepName, isActive = true) => {
   }
 };
 
-export const stepIsLoading = (stepName, isLoading = true) => {
+export const stepIsLoading = (stepName: string, isLoading = true) => {
   if (isLoading) {
     cy.dataCy(`${stepName}-step`).dataCy("stepIcon-loading").should("exist");
   } else {
@@ -70,8 +77,18 @@ export const stepIsLoading = (stepName, isLoading = true) => {
   }
 };
 
-export const stepHasError = (stepName, hasError, errorText) => {
+type StepHasErrorFunction = {
+  (stepName: string, hasError: false): void;
+  (stepName: string, hasError: true, errorText: string | RegExp): void;
+};
+
+export const stepHasError: StepHasErrorFunction = (
+  stepName: string,
+  hasError: boolean,
+  errorText?: string | RegExp,
+) => {
   if (hasError) {
+    if (!errorText) throw new Error("Error text must be provided to stepHasError when hasError is true");
     cy.dataCy(`${stepName}-step`).dataCy("stepIcon-error").should("exist");
     cy.dataCy(`${stepName}-step`).contains(errorText);
   } else {
@@ -79,7 +96,7 @@ export const stepHasError = (stepName, hasError, errorText) => {
   }
 };
 
-export const stepIsSkipped = (stepName, isSkipped = true, text) => {
+export const stepIsSkipped = (stepName: string, isSkipped = true, text?: string) => {
   if (isSkipped) {
     cy.dataCy(`${stepName}-step`).dataCy("stepIcon-skipped").should("exist");
     if (text) {
@@ -90,7 +107,7 @@ export const stepIsSkipped = (stepName, isSkipped = true, text) => {
   }
 };
 
-export const stepIsCompleted = (stepName, isCompleted = true) => {
+export const stepIsCompleted = (stepName: string, isCompleted = true) => {
   if (isCompleted) {
     cy.dataCy(`${stepName}-step`).dataCy("stepIcon-success").should("exist");
   } else {
@@ -98,7 +115,7 @@ export const stepIsCompleted = (stepName, isCompleted = true) => {
   }
 };
 
-export const selectStep = stepName => {
+export const selectStep = (stepName: string) => {
   cy.dataCy(`${stepName}-step`).click();
 };
 
@@ -106,7 +123,13 @@ export const selectStep = stepName => {
  * Builds a single pipeline-step result for a mocked processing job. Omitting `message` leaves the step
  * without a condition message.
  */
-export const processingStep = (id, name, state, message, deliveries = []) => ({
+export const processingStep = (
+  id: string,
+  name: string,
+  state: StepState,
+  message?: string,
+  deliveries: string[] = [],
+): StepResultResponse => ({
   id,
   name: { en: name, de: name },
   state,
@@ -119,7 +142,11 @@ export const processingStep = (id, name, state, message, deliveries = []) => ({
 /**
  * Builds a mocked processing-job response for mandate 1 with the given aggregate state and steps.
  */
-export const processingJob = (jobId, state, steps) => ({
+export const processingJob = (
+  jobId: string,
+  state: ProcessingState,
+  steps: StepResultResponse[],
+): ProcessingJobResponse => ({
   jobId,
   state,
   mandateId: 1,
@@ -132,21 +159,29 @@ export const processingJob = (jobId, state, steps) => ({
  * so the create-delivery button is enabled without filling anything. Use it to stub the mandate list when a
  * test needs a deterministic delivery form rather than the randomly seeded mandate config.
  */
-export const deliverableMandate = (id, name) => ({
+export const deliverableMandate = (id: number, name: string | { en: string; de: string }): Mandate => ({
   id,
   name: typeof name === "string" ? { en: name, de: name } : name,
   description: {},
+  isPublic: false,
   allowDelivery: true,
+  fileTypes: [".*"],
+  coordinates: [],
   evaluatePrecursorDelivery: "notEvaluated",
   evaluatePartial: "notEvaluated",
   evaluateComment: "notEvaluated",
+  organisations: [],
+  deliveries: [],
 });
 
 /**
  * Builds a mandate that allows no delivery, so the wizard omits the delivery step and the processing step
  * becomes the last one.
  */
-export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, name), allowDelivery: false });
+export const nonDeliverableMandate = (id: number, name: string | { en: string; de: string }): Mandate => ({
+  ...deliverableMandate(id, name),
+  allowDelivery: false,
+});
 
 /**
  * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job as
@@ -156,7 +191,11 @@ export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, 
  * Pass `runningJob` to answer the start request and the first status poll with an unfinished job, so a test
  * can assert on the running state before waiting for the next poll, which then delivers `job`.
  */
-export const runMockedProcessingJob = (job, mandates, runningJob) => {
+export const runMockedProcessingJob = (
+  job: ProcessingJobResponse,
+  mandates?: Mandate[],
+  runningJob?: ProcessingJobResponse,
+) => {
   // Registered before the upload: the mandate request follows the upload response immediately,
   // so an intercept set up afterwards can miss it.
   if (mandates) {
@@ -191,31 +230,31 @@ export const runMockedProcessingJob = (job, mandates, runningJob) => {
 };
 
 /** Asserts the results-pane accordion for a pipeline step shows the icon for the given state. */
-export const resultStepHasIcon = (stepId, state) => {
+export const resultStepHasIcon = (stepId: string, state: string) => {
   cy.dataCy(`processing-step-${stepId}`).dataCy(`stepIcon-${state}`).should("exist");
 };
 
 /** Asserts the results-pane accordion for a pipeline step contains the given text. */
-export const resultStepShowsMessage = (stepId, text) => {
+export const resultStepShowsMessage = (stepId: string, text: string) => {
   cy.dataCy(`processing-step-${stepId}`).contains(text);
 };
 
 /** Asserts the stepper node for a wizard step shows the icon for the given state. */
-export const stepperStepHasIcon = (stepName, state) => {
+export const stepperStepHasIcon = (stepName: string, state: string) => {
   cy.dataCy(`${stepName}-step`).dataCy(`stepIcon-${state}`).should("exist");
 };
 
 /** Asserts the stepper node for a wizard step does not show the icon for the given state. */
-export const stepperStepMissingIcon = (stepName, state) => {
+export const stepperStepMissingIcon = (stepName: string, state: string) => {
   cy.dataCy(`${stepName}-step`).dataCy(`stepIcon-${state}`).should("not.exist");
 };
 
 /** Asserts the stepper node for a wizard step contains the given text. */
-export const stepperStepShowsMessage = (stepName, text) => {
+export const stepperStepShowsMessage = (stepName: string, text: string) => {
   cy.dataCy(`${stepName}-step`).contains(text);
 };
 
 /** Asserts the stepper node for a wizard step does not contain the given text. */
-export const stepperStepMissingMessage = (stepName, text) => {
+export const stepperStepMissingMessage = (stepName: string, text: string) => {
   cy.dataCy(`${stepName}-step`).should("not.contain", text);
 };
