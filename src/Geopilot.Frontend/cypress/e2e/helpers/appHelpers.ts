@@ -102,8 +102,8 @@ export const selectLanguage = (language: string) => {
 
 /**
  * Creates a base selector for an element with an optional parent.
- * @param {string} parent  (optional) The parent of the element.
- * @returns {string} The base selector.
+ * @param parent (optional) The parent of the element.
+ * @returns The base selector.
  */
 export const createBaseSelector = (parent?: string): string => {
   if (parent) {
@@ -127,9 +127,9 @@ export const openToolMenu = () => {
 
 /**
  * Opens the tool navigation to switch between delivery, administation and stac browser. Requires the user to be logged in.
- * @param tool The tool to open (delivery, admin, stacBrowser).
+ * @param tool The tool to open.
  */
-export const openTool = (tool: "delivery" | "admin" | "stacBrowser") => {
+export const openTool = (tool: "delivery" | "admin" | "my-deliveries" | "stacBrowser") => {
   openToolMenu();
   cy.dataCy(`${tool}-nav`).click();
 };
@@ -137,7 +137,7 @@ export const openTool = (tool: "delivery" | "admin" | "stacBrowser") => {
 /**
  * Checks if a navigation item is selected.
  * @param item The item to check.
- * @param {string} parent  (optional) The parent of the item.
+ * @param parent (optional) The parent of the item.
  */
 export const isSelectedNavItem = (item: string, parent?: string) => {
   const selector = createBaseSelector(parent) + `[data-cy="${item}"]`;

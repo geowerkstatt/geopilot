@@ -1,5 +1,5 @@
 import type {
-  Mandate,
+  MandateSummary,
   ProcessingJobResponse,
   ProcessingState,
   StepResultResponse,
@@ -159,26 +159,21 @@ export const processingJob = (
  * so the create-delivery button is enabled without filling anything. Use it to stub the mandate list when a
  * test needs a deterministic delivery form rather than the randomly seeded mandate config.
  */
-export const deliverableMandate = (id: number, name: string | { en: string; de: string }): Mandate => ({
+export const deliverableMandate = (id: number, name: string | { en: string; de: string }): MandateSummary => ({
   id,
   name: typeof name === "string" ? { en: name, de: name } : name,
   description: {},
-  isPublic: false,
   allowDelivery: true,
-  fileTypes: [".*"],
-  coordinates: [],
   evaluatePrecursorDelivery: "notEvaluated",
   evaluatePartial: "notEvaluated",
   evaluateComment: "notEvaluated",
-  organisations: [],
-  deliveries: [],
 });
 
 /**
  * Builds a mandate that allows no delivery, so the wizard omits the delivery step and the processing step
  * becomes the last one.
  */
-export const nonDeliverableMandate = (id: number, name: string | { en: string; de: string }): Mandate => ({
+export const nonDeliverableMandate = (id: number, name: string | { en: string; de: string }): MandateSummary => ({
   ...deliverableMandate(id, name),
   allowDelivery: false,
 });
@@ -193,7 +188,7 @@ export const nonDeliverableMandate = (id: number, name: string | { en: string; d
  */
 export const runMockedProcessingJob = (
   job: ProcessingJobResponse,
-  mandates?: Mandate[],
+  mandates?: MandateSummary[],
   runningJob?: ProcessingJobResponse,
 ) => {
   // Registered before the upload: the mandate request follows the upload response immediately,
