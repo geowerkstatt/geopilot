@@ -1,4 +1,4 @@
-import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateCheckbox,
@@ -7,8 +7,8 @@ import {
   isDisabled,
   setAutocomplete,
   toggleCheckbox,
-} from "./helpers/formHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers";
 
 describe("Users tests", () => {
   beforeEach(() => {

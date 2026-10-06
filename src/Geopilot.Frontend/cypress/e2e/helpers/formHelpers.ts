@@ -143,7 +143,7 @@ export const setSelect = (fieldName, index, expected, parent) => {
  * @param {string} parent (optional) The parent of the form element.
  */
 export const evaluateSelect = (fieldName, expectedValueOrPredicate, parent) => {
-  var selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formSelect"] input`;
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formSelect"] input`;
   cy.get(selector)
     .filter((k, input) => {
       if (typeof expectedValueOrPredicate === "function") {

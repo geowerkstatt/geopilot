@@ -1,4 +1,4 @@
-import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
+import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateInput,
@@ -7,8 +7,8 @@ import {
   removeAutocompleteValue,
   setAutocomplete,
   setInput,
-} from "./helpers/formHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers";
 
 const getRandomOrganisationName = () => `Organisation-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -244,7 +244,7 @@ describe("Organisations tests", () => {
     });
 
     // Record initial chip values before any changes
-    let initialChips = [];
+    const initialChips = [];
 
     // Capture all existing user chips before changes
     cy.dataCy("users-formAutocomplete")

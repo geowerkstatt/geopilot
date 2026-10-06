@@ -1,4 +1,4 @@
-import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers.js";
+import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers";
 import {
   addFile,
   deliverableMandate,
@@ -22,8 +22,8 @@ import {
   stepperStepShowsMessage,
   uploadFile,
   waitForProcessingToFinish,
-} from "./helpers/deliveryHelpers.js";
-import { hasError, setSelect, toggleCheckbox } from "./helpers/formHelpers.js";
+} from "./helpers/deliveryHelpers";
+import { hasError, setSelect, toggleCheckbox } from "./helpers/formHelpers";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {

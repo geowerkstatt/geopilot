@@ -1,4 +1,4 @@
-import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateCheckbox,
@@ -14,8 +14,8 @@ import {
   setInput,
   setSelect,
   toggleCheckbox,
-} from "./helpers/formHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers";
 
 const getRandomManadateName = () => `Mandate-${Math.random().toString(36).substring(2, 15)}`;
 

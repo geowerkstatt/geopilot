@@ -1,4 +1,4 @@
-import { createBaseSelector, isSelectedNavItem } from "./appHelpers.js";
+import { createBaseSelector, isSelectedNavItem } from "./appHelpers";
 
 /**
  * Selects an admin navigation item.

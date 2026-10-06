@@ -1,4 +1,4 @@
-import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateCheckbox,
@@ -8,8 +8,8 @@ import {
   setAutocomplete,
   setInput,
   toggleCheckbox,
-} from "./helpers/formHelpers.js";
-import { handlePrompt } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { handlePrompt } from "./helpers/promptHelpers";
 
 const getRandomName = () => `Client-${Math.random().toString(36).substring(2, 15)}`;
 const getRandomIdentifier = () => `sub-${Math.random().toString(36).substring(2, 15)}`;

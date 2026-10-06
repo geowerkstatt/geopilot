@@ -1,4 +1,4 @@
-import { selectLanguage } from "./helpers/appHelpers.js";
+import { selectLanguage } from "./helpers/appHelpers";
 
 describe("Footer tests", () => {
   const languages = ["en", "de", "fr", "it"];

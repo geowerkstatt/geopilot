@@ -1,4 +1,4 @@
-import { loginAsAdmin } from "./helpers/appHelpers.js";
+import { loginAsAdmin } from "./helpers/appHelpers";
 
 const expectOidcSession = exists => {
   cy.window().should(win => {

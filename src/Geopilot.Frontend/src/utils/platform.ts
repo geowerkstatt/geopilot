@@ -7,7 +7,7 @@
  * distinguishable from a real Mac by its touch support (Macs report 0 touch points).
  *
  * The branching heuristic is safeguarded by a Cypress test that stubs `navigator`
- * (see cypress/e2e/delivery.cy.js).
+ * (see cypress/e2e/delivery.cy.ts).
  */
 export const isIosDevice = (): boolean => {
   // `navigator.platform` is deprecated (its successor `navigator.userAgentData` is missing in

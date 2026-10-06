@@ -1,4 +1,4 @@
-import { createBaseSelector } from "./appHelpers.js";
+import { createBaseSelector } from "./appHelpers";
 
 /**
  * Clicks the cancel button.

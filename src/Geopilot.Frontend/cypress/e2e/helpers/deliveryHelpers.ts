@@ -1,5 +1,5 @@
-import { loginAsUploader } from "./appHelpers.js";
-import { toggleCheckbox } from "./formHelpers.js";
+import { loginAsUploader } from "./appHelpers";
+import { toggleCheckbox } from "./formHelpers";
 
 export const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
