@@ -509,9 +509,9 @@ pipelines:
             actions:
               - StatusMessage
   # DMAV mit Zusatzanforderungen: liest die BFS-Nummer aus der Lieferung und prüft gegen die Referenzdaten dieser
-  # Gemeinde, samt GWR-Plugin. Braucht die DMAV-Testwelt (TestData/Dmav/README.md): das Repository unter
-  # http://interlis-models/dmav/ für Profil und Referenzdaten, das Mapping unter Resources/dmav/ und das Plugin aus
-  # dem Compose-Profil dmav; ohne Plugin scheitert der Schritt.
+  # Gemeinde, samt GWR-Plugin. Braucht die DMAV-Testwelt (TestData/Dmav/README.md): das Repository, das der Wrapper
+  # als %REPOSITORIES/dmav@0.1.1 anbietet, für Profil und Referenzdaten, das Mapping unter Resources/dmav/ und das
+  # Plugin aus dem Compose-Profil dmav; ohne Plugin scheitert der Schritt.
   - id: dmav_validation
     display_name:
       en: DMAV Validation with Additional Requirements
