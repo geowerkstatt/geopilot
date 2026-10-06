@@ -1,4 +1,4 @@
-import type { Mandate, User } from "geopilot/api/generated";
+import type { Mandate, User } from "@/api/generated";
 import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,

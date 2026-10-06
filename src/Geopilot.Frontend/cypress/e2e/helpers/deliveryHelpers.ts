@@ -4,7 +4,7 @@ import type {
   ProcessingState,
   StepResultResponse,
   StepState,
-} from "geopilot/api/generated";
+} from "@/api/generated";
 import { loginAsUploader } from "./appHelpers";
 import { toggleCheckbox } from "./formHelpers";
 

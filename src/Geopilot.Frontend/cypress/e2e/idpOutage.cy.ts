@@ -1,4 +1,4 @@
-import type { ProblemDetails } from "geopilot/api/generated";
+import type { ProblemDetails } from "@/api/generated";
 import { loginAsAdmin } from "./helpers/appHelpers";
 
 const expectOidcSession = (exists: boolean) => {

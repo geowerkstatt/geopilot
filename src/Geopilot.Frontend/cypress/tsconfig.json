@@ -2,7 +2,7 @@
   "compilerOptions": {
     "types": ["cypress"],
     "paths": {
-      "geopilot/*": ["../src/*"]
+      "@/*": ["../src/*"]
     }
   },
   "exclude": [],

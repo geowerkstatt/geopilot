@@ -4,7 +4,7 @@ import type {
   DeliveryRequest,
   ProblemDetails,
   ProcessingSettingsResponse,
-} from "geopilot/api/generated";
+} from "@/api/generated";
 import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers";
 import {
   addFile,

@@ -1,4 +1,4 @@
-import type { AvailablePipelinesResponse, Mandate, Organisation } from "geopilot/api/generated";
+import type { AvailablePipelinesResponse, Mandate, Organisation } from "@/api/generated";
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,

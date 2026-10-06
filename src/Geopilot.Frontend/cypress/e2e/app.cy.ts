@@ -1,4 +1,4 @@
-import type { ClientSettings } from "geopilot/components/appSettings/appSettingsInterface";
+import type { ClientSettings } from "@/components/appSettings/appSettingsInterface";
 import { selectAdminNavItem } from "./helpers/adminHelpers";
 import {
   isSelectedNavItem,

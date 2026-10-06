@@ -1,4 +1,4 @@
-import type { BrowserAuthOptions } from "geopilot/api/generated";
+import type { BrowserAuthOptions } from "@/api/generated";
 
 export const interceptApiCalls = () => {
   cy.intercept("/api/v1/user/auth").as("auth");
