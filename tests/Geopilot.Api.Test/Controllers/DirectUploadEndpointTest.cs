@@ -36,7 +36,7 @@ public class DirectUploadEndpointTest
     [TestMethod]
     [DataRow("my file.xtf")]
     [DataRow("a + b.xtf")]
-    public async Task UploadsFileWithBlankSpaceInName(string fileName)
+    public async Task UploadsFileWithReservedCharactersInName(string fileName)
     {
         var session = await InitiateAsync((fileName, 3));
 

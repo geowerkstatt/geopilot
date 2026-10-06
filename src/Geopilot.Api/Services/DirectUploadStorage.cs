@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Web;
 
 namespace Geopilot.Api.Services;
 
