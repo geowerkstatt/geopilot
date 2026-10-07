@@ -128,6 +128,8 @@
   "menu": "Menü",
   "myDeliveries": "Meine Lieferungen",
   "name": "Name",
+  "noMandateAvailableAnonymous": "Kein Mandat verfügbar. Bitte <loginLink>melden Sie sich an</loginLink>.",
+  "noMandateAvailableSignedIn": "Für Ihr Konto ist kein Mandat verfügbar.",
   "noMandatesFound": "Es wurde kein passendes Mandat für Ihre Lieferung gefunden.",
   "or": "oder",
   "organisationDisconnect": "Möchten Sie die Organisation wirklich inaktiv setzen? Die Organisation wird von allen Mandaten und Benutzer:innen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",

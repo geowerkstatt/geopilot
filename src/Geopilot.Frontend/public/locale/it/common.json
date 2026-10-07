@@ -128,6 +128,8 @@
   "menu": "Menu",
   "myDeliveries": "Le mie consegne",
   "name": "Nome",
+  "noMandateAvailableAnonymous": "Nessun mandato disponibile. <loginLink>Effettuate l'accesso</loginLink>.",
+  "noMandateAvailableSignedIn": "Nessun mandato disponibile per il vostro account.",
   "noMandatesFound": "Non è stato trovato un mandato adatto per la vostra consegna.",
   "or": "o",
   "organisationDisconnect": "Volete davvero scollegare l'organizzazione?Questa operazione rimuove tutti i collegamenti ai mandati e agli utenti, e non può essere annullata.",
