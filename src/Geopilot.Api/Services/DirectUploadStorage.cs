@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Web;
 
 namespace Geopilot.Api.Services;
 
@@ -41,7 +40,7 @@ public class DirectUploadStorage : IUploadStorage
         // The URL points at the API's own upload endpoint instead of a presigned storage URL. Expiry is
         // not encoded into the URL; the endpoint checks the upload session's age against the same window.
         var (uploadId, fileName) = SplitKey(key);
-        return Task.FromResult($"/api/v2/upload/{uploadId}/{HttpUtility.UrlEncode(fileName)}");
+        return Task.FromResult($"/api/v2/upload/{uploadId}/{Uri.EscapeDataString(fileName)}");
     }
 
     /// <summary>

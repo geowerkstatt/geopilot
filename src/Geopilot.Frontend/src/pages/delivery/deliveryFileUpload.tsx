@@ -1,9 +1,10 @@
 import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { Trans } from "react-i18next";
-import { Link, Stack } from "@mui/material";
+import { Trans, useTranslation } from "react-i18next";
+import { Alert, Link, Stack } from "@mui/material";
 import { DeliveryStepState } from "../../api/apiInterfaces.ts";
-import { ProcessingSettingsResponse } from "../../api/generated";
+import { MandateSummary, ProcessingSettingsResponse } from "../../api/generated";
+import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
@@ -17,6 +18,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettingsResponse>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
+  const { t } = useTranslation();
   const formMethods = useForm({ mode: "all" });
   const {
     setStepStatus,
@@ -41,6 +43,29 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     formMethods.reset();
   }, [formMethods, lastCompletedStep]);
 
+  const { user, authLoaded, login } = useGeopilotAuth();
+  // Undefined while the sign-in is still resolving, null for an anonymous visitor.
+  const userId = user === undefined ? undefined : (user?.id ?? null);
+  const [mandateCheck, setMandateCheck] = useState<{ userId: number | null; isEmpty: boolean }>();
+
+  useEffect(() => {
+    // The API identifies the caller by the geopilot.auth cookie, so only ask once it is settled who is asking.
+    if (userId === undefined) return;
+    let isCurrent = true;
+    fetchApi<MandateSummary[]>("/api/v1/mandate/summary")
+      .then(mandates => mandates.length === 0)
+      .catch(() => false)
+      .then(isEmpty => {
+        if (isCurrent) setMandateCheck({ userId, isEmpty });
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [fetchApi, userId]);
+
+  // An answer given for someone else, for example before a sign-in, locks nothing.
+  const hasNoMandate = mandateCheck?.isEmpty === true && mandateCheck.userId === userId;
+
   const submitForm = () => {
     setStepStatus(DeliveryStepEnum.Files, undefined);
     uploadFile();
@@ -56,7 +81,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const button = completed ? undefined : (
     <Button
       variant="contained"
-      disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
+      disabled={isLoading || hasNoMandate || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
       label="upload"
     />
@@ -74,7 +99,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 removeFile={removeFile}
                 fileUploadStatus={fileUploadStatus}
                 fileExtensions={processingSettings?.allowedFileExtensions}
-                disabled={completed || isLoading}
+                disabled={completed || isLoading || hasNoMandate}
                 hideDropzone={completed}
                 setFileError={setFileError}
                 maxFileSizeMB={uploadSettings?.maxFileSizeMB}
@@ -82,6 +107,24 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
+              {!completed && hasNoMandate && (
+                <Alert severity="info" data-cy="no-mandate-available">
+                  {user ? (
+                    t("noMandateAvailableSignedIn")
+                  ) : (
+                    <Trans
+                      i18nKey="noMandateAvailableAnonymous"
+                      components={{
+                        loginLink: authLoaded ? (
+                          <Link component="button" type="button" onClick={login} data-cy="no-mandate-login-link" />
+                        ) : (
+                          <span />
+                        ),
+                      }}
+                    />
+                  )}
+                </Alert>
+              )}
               <FormCheckbox
                 fieldName="acceptTermsOfUse"
                 label={
