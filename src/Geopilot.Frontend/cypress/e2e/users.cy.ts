@@ -1,4 +1,4 @@
-import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateCheckbox,
@@ -7,8 +7,8 @@ import {
   isDisabled,
   setAutocomplete,
   toggleCheckbox,
-} from "./helpers/formHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers";
 
 describe("Users tests", () => {
   beforeEach(() => {
@@ -115,9 +115,10 @@ describe("Users tests", () => {
     // The saved user (server response) must still be an active administrator; saving your own account
     // must neither drop your admin rights nor deactivate you.
     cy.wait("@updateUser").then(({ response }) => {
-      expect(response.statusCode).to.eq(200);
-      expect(response.body.isAdmin).to.eq(true);
-      expect(response.body.state).to.eq("active");
+      expect(response).to.not.be.undefined;
+      expect(response!.statusCode).to.eq(200);
+      expect(response!.body.isAdmin).to.eq(true);
+      expect(response!.body.state).to.eq("active");
     });
 
     // After the redirect to the list, the user is still an administrator.

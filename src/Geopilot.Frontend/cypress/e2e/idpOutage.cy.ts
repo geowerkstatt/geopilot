@@ -1,6 +1,7 @@
-import { loginAsAdmin } from "./helpers/appHelpers.js";
+import type { ProblemDetails } from "@/api/generated";
+import { loginAsAdmin } from "./helpers/appHelpers";
 
-const expectOidcSession = exists => {
+const expectOidcSession = (exists: boolean) => {
   cy.window().should(win => {
     const hasSession = Object.keys(win.localStorage).some(key => key.startsWith("oidc.user:"));
     expect(hasSession).to.eq(exists);
@@ -31,7 +32,7 @@ describe("Identity provider outage", () => {
           status: 503,
           title: "Authentication unavailable",
           detail: "Authentication currently not possible.",
-        },
+        } satisfies ProblemDetails,
       },
     ).as("selfOutage");
     cy.reload();

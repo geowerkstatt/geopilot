@@ -1,4 +1,4 @@
-import { handlePrompt } from "./promptHelpers.js";
+import { handlePrompt } from "./promptHelpers";
 
 export function assertCancelDoesNotDeleteDelivery() {
   cy.intercept("DELETE", "/api/v1/delivery/*", () => {

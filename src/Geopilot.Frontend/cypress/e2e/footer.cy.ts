@@ -1,14 +1,15 @@
-import { selectLanguage } from "./helpers/appHelpers.js";
+import type { Interception } from "cypress/types/net-stubbing";
+import { selectLanguage } from "./helpers/appHelpers";
 
 describe("Footer tests", () => {
   const languages = ["en", "de", "fr", "it"];
   /**
    * Tests if the correct localized markdown content is displayed when switching language
-   * @param {string} pagePath - URL path of the page to visit
-   * @param {string} markdownName - Base name of the markdown file
-   * @param {string} language - Language code (en, de, fr, it)
+   * @param pagePath - URL path of the page to visit
+   * @param markdownName - Base name of the markdown file
+   * @param language - Language code (en, de, fr, it)
    */
-  const testLocalizedMarkdown = (pagePath, markdownName, language) => {
+  const testLocalizedMarkdown = (pagePath: string, markdownName: string, language: string) => {
     // Step 1: Intercept both localized and fallback markdown requests
     cy.intercept(`**/${markdownName}.${language}.md`).as("localizedMd");
 
@@ -22,7 +23,7 @@ describe("Footer tests", () => {
     });
 
     // Step 3: Check if localized markdown loaded with 200 status
-    cy.get("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
+    cy.get<Interception[]>("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
       const localizedLoaded = interceptions.some(i => i.response && i.response.statusCode === 200);
 
       if (localizedLoaded) {
@@ -41,11 +42,11 @@ describe("Footer tests", () => {
 
   /**
    * Tests if fallback markdown is used when localized content is not available
-   * @param {string} pagePath - URL path of the page to visit
-   * @param {string} markdownName - Base name of the markdown file
-   * @param {string} language - Language code (en, de, fr, it)
+   * @param pagePath - URL path of the page to visit
+   * @param markdownName - Base name of the markdown file
+   * @param language - Language code (en, de, fr, it)
    */
-  const testFallbackMarkdown = (pagePath, markdownName, language) => {
+  const testFallbackMarkdown = (pagePath: string, markdownName: string, language: string) => {
     // Step 1: Force 404 for localized version and intercept fallback
     cy.intercept(`**/${markdownName}.${language}.md`, { statusCode: 404 }).as("localizedMd");
     cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
@@ -63,7 +64,7 @@ describe("Footer tests", () => {
     cy.wait("@localizedMd").its("response.statusCode").should("eq", 404);
 
     // Step 4: Check if fallback markdown loaded with 200 status
-    cy.get("@fallbackMd.all", { timeout: 5000 }).then(fallbackInterceptions => {
+    cy.get<Interception[]>("@fallbackMd.all", { timeout: 5000 }).then(fallbackInterceptions => {
       const fallbackLoaded = fallbackInterceptions.some(i => i.response && i.response.statusCode === 200);
 
       if (fallbackLoaded) {

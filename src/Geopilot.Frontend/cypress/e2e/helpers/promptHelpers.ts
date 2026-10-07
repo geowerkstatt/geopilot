@@ -1,6 +1,6 @@
 /**
  * Checks if a prompt is visible.
- * @param {boolean} visible The expected visibility state.
+ * @param visible The expected visibility state.
  */
 export const isPromptVisible = (visible = true) => {
   if (visible) {
@@ -12,9 +12,9 @@ export const isPromptVisible = (visible = true) => {
 
 /**
  * Checks if a prompt is visible and contains the expected action buttons.
- * @param {string[]} actions An array of action button labels.
+ * @param actions An array of action button labels.
  */
-export const checkPromptActions = actions => {
+export const checkPromptActions = (actions: string[]) => {
   isPromptVisible();
   cy.dataCy("prompt").within(() => {
     cy.get("button").should("have.length", actions.length);
@@ -26,10 +26,10 @@ export const checkPromptActions = actions => {
 
 /**
  * Handles a prompt by clicking the action button.
- * @param {string} message Name of the prompt message label.
- * @param {string} action Name of the action button label.
+ * @param message Name of the prompt message label.
+ * @param action Name of the action button label.
  */
-export const handlePrompt = (message, action) => {
+export const handlePrompt = (message: string, action: string) => {
   isPromptVisible();
   cy.contains(message);
   cy.dataCy("prompt").dataCy(`prompt-button-${action.toLowerCase()}`).click();
