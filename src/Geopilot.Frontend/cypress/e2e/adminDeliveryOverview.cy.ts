@@ -1,5 +1,5 @@
-import { loginAsAdmin } from "./helpers/appHelpers.js";
-import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper.js";
+import { loginAsAdmin } from "./helpers/appHelpers";
+import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper";
 
 describe("Admin Delivery Overview tests", () => {
   it("can delete delivery", () => {

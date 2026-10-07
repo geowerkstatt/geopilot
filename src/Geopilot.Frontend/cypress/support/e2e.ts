@@ -1,4 +1,4 @@
-import "./commands.js";
+import "./commands";
 import { interceptApiCalls } from "../e2e/helpers/appHelpers";
 
 Cypress.on("uncaught:exception", () => {

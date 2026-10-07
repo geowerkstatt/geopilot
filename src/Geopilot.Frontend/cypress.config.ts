@@ -8,7 +8,7 @@ export default defineConfig({
     video: false,
     viewportWidth: 1920,
     viewportHeight: 1080,
-    supportFile: "cypress/support/e2e.js",
+    supportFile: "cypress/support/e2e.ts",
     setupNodeEvents(on) {
       on("file:preprocessor", vitePreprocessor());
 
@@ -35,7 +35,7 @@ export default defineConfig({
       framework: "react",
       bundler: "vite",
     },
-    supportFile: "cypress/support/component.js",
+    supportFile: "cypress/support/component.ts",
   },
   defaultCommandTimeout: 10000,
   waitForAnimations: false,

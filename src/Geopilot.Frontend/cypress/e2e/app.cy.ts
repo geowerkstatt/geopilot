@@ -1,4 +1,5 @@
-import { selectAdminNavItem } from "./helpers/adminHelpers.js";
+import type { ClientSettings } from "@/components/appSettings/appSettingsInterface";
+import { selectAdminNavItem } from "./helpers/adminHelpers";
 import {
   isSelectedNavItem,
   loadWithoutAuth,
@@ -8,7 +9,7 @@ import {
   logout,
   openTool,
   selectLanguage,
-} from "./helpers/appHelpers.js";
+} from "./helpers/appHelpers";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
@@ -85,10 +86,10 @@ describe("General app tests", () => {
     cy.visit("/");
 
     // Wait for client settings to load and extract the localNames
-    cy.wait("@clientSettings").then(interception => {
+    cy.wait<unknown, ClientSettings>("@clientSettings").then(interception => {
       // Extract the application settings from the intercepted response
-      const settings = interception.response.body;
-      const localNames = settings.application.localName;
+      const settings = interception.response!.body;
+      const localNames = settings.application.localName!;
       expect(Object.keys(localNames)).to.have.length.greaterThan(0);
 
       // Test each available language
@@ -114,8 +115,8 @@ describe("General app tests", () => {
 
     cy.visit("/");
 
-    cy.wait("@clientSettings").then(interception => {
-      const localTitle = interception.response.body.application.localTitle;
+    cy.wait<unknown, ClientSettings>("@clientSettings").then(interception => {
+      const localTitle = interception.response!.body.application.localTitle!;
       expect(Object.keys(localTitle)).to.have.length.greaterThan(0);
 
       Object.entries(localTitle).forEach(([language, expectedTitle]) => {
@@ -142,8 +143,8 @@ describe("General app tests", () => {
 
       cy.visit("/");
 
-      cy.wait("@clientSettings").then(interception => {
-        const expectedTitle = interception.response.body.application.localTitle[base];
+      cy.wait<unknown, ClientSettings>("@clientSettings").then(interception => {
+        const expectedTitle = interception.response!.body.application.localTitle![base];
         cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
       });
 
@@ -154,7 +155,7 @@ describe("General app tests", () => {
   });
 
   it("hides the delivery title when none is configured", () => {
-    cy.intercept("**/client-settings.json", req => {
+    cy.intercept<unknown, ClientSettings>("**/client-settings.json", req => {
       req.continue(res => {
         const modifiedBody = { ...res.body };
         delete modifiedBody.application.localTitle;
@@ -173,7 +174,7 @@ describe("General app tests", () => {
     const fallbackName = "geowerkstatt Fallback DE";
 
     // Configure the application name only in German, so the other languages must fall back to it.
-    cy.intercept("**/client-settings.json", req => {
+    cy.intercept<unknown, ClientSettings>("**/client-settings.json", req => {
       req.continue(res => {
         const modifiedBody = { ...res.body };
         modifiedBody.application.localName = { de: fallbackName };
