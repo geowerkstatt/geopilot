@@ -1,3 +1,5 @@
+import type { BrowserAuthOptions } from "@/api/generated";
+
 export const interceptApiCalls = () => {
   cy.intercept("/api/v1/user/auth").as("auth");
   cy.intercept("/api/v1/version").as("version");
@@ -9,7 +11,7 @@ export const interceptApiCalls = () => {
  * Logs in a user and sets the session token.
  * @param user
  */
-export const login = user => {
+export const login = (user: string) => {
   cy.session(
     ["login", user],
     () => {
@@ -71,7 +73,7 @@ export const loginAsNewUser = () => {
 export const loadWithoutAuth = () => {
   cy.intercept("/api/v1/user/auth", {
     statusCode: 200,
-    body: { authority: "", publicClientId: "" },
+    body: { authority: "", publicClientId: "", scope: "" } satisfies BrowserAuthOptions,
   });
   cy.visit("/");
 };
@@ -88,7 +90,7 @@ export const logout = () => {
  * Selects a language from the language selector.
  * @param language The language to select (de, fr, it, en).
  */
-export const selectLanguage = language => {
+export const selectLanguage = (language: string) => {
   // IMPORTANT: This wait is necessary due to React component initialization timing
   // issues (suspicion being languagePopup.tsx useEffect). We've tried multiple
   // alternatives but only this approach works reliably.
@@ -100,10 +102,10 @@ export const selectLanguage = language => {
 
 /**
  * Creates a base selector for an element with an optional parent.
- * @param {string} parent  (optional) The parent of the element.
- * @returns {string} The base selector.
+ * @param parent (optional) The parent of the element.
+ * @returns The base selector.
  */
-export const createBaseSelector = parent => {
+export const createBaseSelector = (parent?: string): string => {
   if (parent) {
     return `[data-cy="${parent}"] `;
   } else {
@@ -125,9 +127,9 @@ export const openToolMenu = () => {
 
 /**
  * Opens the tool navigation to switch between delivery, administation and stac browser. Requires the user to be logged in.
- * @param tool The tool to open (delivery, admin, stacBrowser).
+ * @param tool The tool to open.
  */
-export const openTool = tool => {
+export const openTool = (tool: "delivery" | "admin" | "my-deliveries" | "stacBrowser") => {
   openToolMenu();
   cy.dataCy(`${tool}-nav`).click();
 };
@@ -135,13 +137,13 @@ export const openTool = tool => {
 /**
  * Checks if a navigation item is selected.
  * @param item The item to check.
- * @param {string} parent  (optional) The parent of the item.
+ * @param parent (optional) The parent of the item.
  */
-export const isSelectedNavItem = (item, parent) => {
+export const isSelectedNavItem = (item: string, parent?: string) => {
   const selector = createBaseSelector(parent) + `[data-cy="${item}"]`;
   cy.get(selector).should("have.class", "Mui-selected");
 };
 
-export const getGridRowThatContains = (grid, text) => {
+export const getGridRowThatContains = (grid: string, text: string) => {
   return cy.dataCy(grid).find(".MuiDataGrid-row").contains(text).parents(".MuiDataGrid-row");
 };

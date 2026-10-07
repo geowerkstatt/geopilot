@@ -1,4 +1,5 @@
-import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
+import type { Mandate, User } from "@/api/generated";
+import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
   evaluateInput,
@@ -7,8 +8,8 @@ import {
   removeAutocompleteValue,
   setAutocomplete,
   setInput,
-} from "./helpers/formHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
+} from "./helpers/formHelpers";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers";
 
 const getRandomOrganisationName = () => `Organisation-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -244,7 +245,11 @@ describe("Organisations tests", () => {
     });
 
     // Record initial chip values before any changes
-    let initialChips = [];
+    interface Chip {
+      field: string;
+      value: string;
+    }
+    const initialChips: Chip[] = [];
 
     // Capture all existing user chips before changes
     cy.dataCy("users-formAutocomplete")
@@ -279,8 +284,10 @@ describe("Organisations tests", () => {
     cy.wait(500); // Wait for reset to complete
 
     // Verify all initial chips are still present with correct values
-    cy.wrap(initialChips).each(chip => {
-      cy.dataCy(`${chip.field}-formAutocomplete`).find(".MuiChip-label").contains(chip.value).should("exist");
+    cy.then(() => {
+      for (const chip of initialChips) {
+        cy.dataCy(`${chip.field}-formAutocomplete`).find(".MuiChip-label").contains(chip.value).should("exist");
+      }
     });
 
     // Verify Jaime Pagac is not present in the users chips after reset
@@ -302,30 +309,24 @@ describe("Organisations tests", () => {
 
   it("should not duplicate autocomplete options when typing and clearing", () => {
     // Intercept the mandates API call
-    cy.intercept("GET", "**/api/v1/mandate*", req => {
+    cy.intercept<unknown, Mandate[]>("GET", "**/api/v1/mandate*", req => {
       req.continue(res => {
         // Make a copy of the first mandate and add it to the response
         if (res.body && Array.isArray(res.body)) {
           const firstMandate = { ...res.body[0] };
           res.body.push(firstMandate);
-        } else if (res.body && res.body.data && Array.isArray(res.body.data)) {
-          const firstMandate = { ...res.body.data[0] };
-          res.body.data.push(firstMandate);
         }
         console.log("Modified mandate response:", res.body);
       });
     }).as("mandatesRequest");
 
     // Intercept the users API call
-    cy.intercept("GET", "**/api/v1/user*", req => {
+    cy.intercept<unknown, User[]>("GET", "**/api/v1/user*", req => {
       req.continue(res => {
         // Make a copy of the first user and add it to the response
         if (res.body && Array.isArray(res.body)) {
           const firstUser = { ...res.body[0] };
           res.body.push(firstUser);
-        } else if (res.body && res.body.data && Array.isArray(res.body.data)) {
-          const firstUser = { ...res.body.data[0] };
-          res.body.data.push(firstUser);
         }
         console.log("Modified user response:", res.body);
       });
@@ -347,7 +348,7 @@ describe("Organisations tests", () => {
     testAutocomplete("users-formAutocomplete");
 
     // Function to test an autocomplete field
-    function testAutocomplete(autocompleteSelector) {
+    function testAutocomplete(autocompleteSelector: string) {
       // Click on the autocomplete field
       cy.dataCy(autocompleteSelector).click();
 
@@ -355,8 +356,8 @@ describe("Organisations tests", () => {
       cy.get(".MuiAutocomplete-popper").should("be.visible");
 
       // Get the initial count of autocomplete options
-      let initialOptionCount;
-      let itemToSearch;
+      let initialOptionCount: number;
+      let itemToSearch: string;
 
       cy.get(".MuiAutocomplete-popper .MuiAutocomplete-option")
         .its("length")
@@ -373,7 +374,7 @@ describe("Organisations tests", () => {
               cy.log(`Will search for item: ${itemToSearch}`);
 
               // Function to perform type-delete cycle and verify count
-              const performTypingCycle = (cycleNumber, searchText) => {
+              const performTypingCycle = (cycleNumber: number, searchText: string) => {
                 // Check if dropdown is visible
                 cy.get("body").then($body => {
                   const isDropdownVisible = $body.find(".MuiAutocomplete-popper").length > 0;

@@ -1,5 +1,3 @@
-// cypress/e2e/licenses.cy.js
-
 describe("Licenses Component", () => {
   beforeEach(() => {
     // Intercept API calls and provide mock data
