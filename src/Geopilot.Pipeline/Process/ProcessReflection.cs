@@ -1,7 +1,7 @@
 ﻿using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
-namespace Geopilot.Pipeline;
+namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Reflection over a process type's <c>[PipelineProcessRun]</c> run method. The rule "exactly one

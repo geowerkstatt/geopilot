@@ -1,6 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-
-namespace Geopilot.Pipeline.Test;
+﻿namespace Geopilot.Pipeline.Test;
 
 [TestClass]
 public class RawValueConverterTest

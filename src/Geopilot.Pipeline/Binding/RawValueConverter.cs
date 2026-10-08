@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Geopilot.Pipeline.Config;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Converts a raw value, as produced by the YAML deserializer, to a requested target type. Shared
