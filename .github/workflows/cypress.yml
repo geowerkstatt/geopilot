@@ -35,6 +35,8 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v7
         with:
+          # npx sets npm_package_name, which vite.config.ts needs to find the dev certificate.
+          command: npx cypress run
           wait-on: "https://localhost:5173"
           wait-on-timeout: 120
           working-directory: ./src/Geopilot.Frontend

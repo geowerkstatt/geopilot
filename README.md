@@ -174,7 +174,7 @@ Die TypeScript-Typen für das geopilot API werden automatisch aus der OpenAPI-Sp
 
 ## Cypress Tests
 
-Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Die Testergebnisse stehen in der Zusammenfassung des Workflow-Laufs; schlägt ein Test fehl, hängen seine Screenshots als Artefakt am Lauf.
+Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Die Testergebnisse stehen im Log des Workflow-Laufs; schlägt ein Test fehl, hängen seine Screenshots als Artefakt am Lauf.
 
 ## Health Check API
 
