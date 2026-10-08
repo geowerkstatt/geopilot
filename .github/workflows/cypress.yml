@@ -9,6 +9,7 @@ permissions:
 jobs:
   cypress-run:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       # The single entry keeps the check name "cypress-run (1)" that branch protection on main requires.
       matrix:
