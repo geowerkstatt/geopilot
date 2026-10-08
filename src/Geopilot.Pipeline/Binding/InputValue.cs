@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Config;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// A compiled pipeline step input value for a single process parameter. Produced by

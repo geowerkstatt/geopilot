@@ -1,6 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using Geopilot.Pipeline.Config;
+using System.Text.RegularExpressions;
 
-namespace Geopilot.Pipeline.Config;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Compiles the raw YAML input map of a pipeline step into a typed <see cref="InputValue"/> for

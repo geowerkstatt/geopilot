@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Pipeline.Process;
+﻿using Geopilot.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline.Process;
 
 namespace Geopilot.Pipeline.Test;
 

@@ -1,6 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-
-namespace Geopilot.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Resolves a compiled <see cref="InputValue"/> to a concrete value and coerces it to the type of

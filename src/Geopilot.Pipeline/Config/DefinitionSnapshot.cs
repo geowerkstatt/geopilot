@@ -1,7 +1,6 @@
-﻿using Geopilot.Pipeline.Config;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 
-namespace Geopilot.Pipeline;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// The definition snapshot of a single pipeline, shaped like a minimal pipeline definition file:

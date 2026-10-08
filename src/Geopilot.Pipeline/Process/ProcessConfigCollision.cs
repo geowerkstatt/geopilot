@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Config;
+﻿namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Formats the diagnostics for a process configuration key that the pipeline definition sets although
