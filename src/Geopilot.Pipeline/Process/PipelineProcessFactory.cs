@@ -668,7 +668,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// configuration of the deployment (lowest priority), the <c>default_config</c> of the process,
         /// and the <c>process_config_overwrites</c> of the step (highest priority). A definition that
         /// touches a key the base configuration pins is rejected, because that layer is not overridable
-        /// by design. <see cref="ValidationAttributes.NoBaseConfigOverwriteAttribute"/> catches the same
+        /// by design. <see cref="Validation.NoBaseConfigOverwriteAttribute"/> catches the same
         /// collision when the definition is loaded and reports every occurrence at once; the checks here
         /// are the backstop for a caller that builds a step without running that validation.
         /// </summary>

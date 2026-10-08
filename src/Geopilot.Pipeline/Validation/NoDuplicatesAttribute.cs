@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Pipeline.ValidationAttributes;
+namespace Geopilot.Pipeline.Validation;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
 internal sealed class NoDuplicatesAttribute : ValidationAttribute

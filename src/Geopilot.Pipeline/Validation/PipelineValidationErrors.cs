@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline;
+﻿namespace Geopilot.Pipeline.Validation;
 
 internal class PipelineValidationErrors : List<PipelineValidationError>
 {

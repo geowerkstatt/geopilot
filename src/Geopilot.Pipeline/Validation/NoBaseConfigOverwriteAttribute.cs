@@ -2,7 +2,7 @@
 using Geopilot.Pipeline.Process;
 using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Pipeline.ValidationAttributes;
+namespace Geopilot.Pipeline.Validation;
 
 /// <summary>
 /// Rejects a pipeline definition that sets a process configuration key which the hosting base

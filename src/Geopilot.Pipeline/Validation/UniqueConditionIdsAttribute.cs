@@ -1,7 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Pipeline.ValidationAttributes;
+namespace Geopilot.Pipeline.Validation;
 
 /// <summary>
 /// A condition id must be unique within its step, across all condition lists of the step: two conditions

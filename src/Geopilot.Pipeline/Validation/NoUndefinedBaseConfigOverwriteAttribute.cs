@@ -1,7 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Pipeline.ValidationAttributes;
+namespace Geopilot.Pipeline.Validation;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class NoUndefinedBaseConfigOverwriteAttribute : ValidationAttribute
