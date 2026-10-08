@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 
 namespace Geopilot.Pipeline.Config;
 

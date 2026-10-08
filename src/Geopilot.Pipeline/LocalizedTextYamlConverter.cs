@@ -3,7 +3,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Pipeline.Config;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Reads and writes <see cref="LocalizedText"/> as a YAML mapping of language code to text,
