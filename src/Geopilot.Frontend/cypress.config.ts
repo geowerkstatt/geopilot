@@ -2,7 +2,6 @@ import { defineConfig } from "cypress";
 import vitePreprocessor from "cypress-vite";
 
 export default defineConfig({
-  projectId: "bqtbpp",
   e2e: {
     baseUrl: "https://localhost:5173",
     video: false,

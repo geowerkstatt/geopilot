@@ -9,8 +9,9 @@ permissions:
 jobs:
   cypress-run:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
-      fail-fast: false
+      # The single entry keeps the check name "cypress-run (1)" that branch protection on main requires.
       matrix:
         containers: [1]
 
@@ -35,11 +36,18 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v7
         with:
-          command: npx cypress run --record --parallel --ci-build-id ${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt}}
+          # npx sets npm_package_name, which vite.config.ts needs to find the dev certificate.
+          command: npx cypress run
           wait-on: "https://localhost:5173"
           wait-on-timeout: 120
           working-directory: ./src/Geopilot.Frontend
         env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_EXTRA_CA_CERTS: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+
+      - name: Upload screenshots of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cypress-screenshots-${{ github.run_attempt }}
+          path: ./src/Geopilot.Frontend/cypress/screenshots
+          if-no-files-found: ignore
