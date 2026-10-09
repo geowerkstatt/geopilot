@@ -6,6 +6,7 @@ processes:
     default_config:
       fileExtensions:
         - xtf
+      fileNamePatterns:
   - id: file_matcher
     implementation: Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess
     default_config:
@@ -45,6 +46,8 @@ processes:
       scope:
         path: "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde[not(DMAV_HoheitsgrenzenAV_V1_0:Untergang)]/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer"
         fetch: Single
+  - id: xtf_diff
+    implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
 pipelines:
   - id: ili_validation
     display_name:
@@ -641,3 +644,86 @@ pipelines:
           - property: StatusMessage
             actions:
               - StatusMessage
+  # Vergleicht zwei hochgeladene Stände einer Transferdatei. Bis zum eigenen Zuordnungsschritt (#1053) erkennen
+  # zwei Matcher den alten und den neuen Stand an den Wörtern alt/old und neu/new im Dateinamen.
+  - id: xtf_diff
+    display_name:
+      en: XTF Comparison
+      de: XTF Vergleich
+      fr: Comparaison XTF
+      it: Confronto XTF
+    steps:
+      - id: old_xtf
+        display_name:
+          en: Old State
+          de: Alter Stand
+          fr: Ancien état
+          it: Stato precedente
+        process_id: xtf_matcher
+        process_config_overwrites:
+          fileNamePatterns:
+            - '(?i)(^|[^a-z0-9])(alt|old)([^a-z0-9]|$)'
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: new_xtf
+        display_name:
+          en: New State
+          de: Neuer Stand
+          fr: Nouvel état
+          it: Stato attuale
+        process_id: xtf_matcher
+        process_config_overwrites:
+          fileNamePatterns:
+            - '(?i)(^|[^a-z0-9])(neu|new)([^a-z0-9]|$)'
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: comparison
+        display_name:
+          en: Comparison
+          de: Vergleich
+          fr: Comparaison
+          it: Confronto
+        process_id: xtf_diff
+        conditions:
+          pre:
+            fail_conditions:
+              - id: one-old-and-one-new-state
+                expression: "Length([old_xtf.XtfFiles]) != 1 || Length([new_xtf.XtfFiles]) != 1"
+                message:
+                  de: "Es braucht genau eine XTF-Datei mit alt oder old und genau eine mit neu oder new im Namen."
+                  en: "Exactly one XTF file with old or alt and exactly one with new or neu in its name is required."
+                  fr: "Il faut exactement un fichier XTF avec alt ou old et exactement un avec neu ou new dans son nom."
+                  it: "Serve esattamente un file XTF con alt o old ed esattamente uno con neu o new nel nome."
+          post:
+            fail_conditions:
+              - id: states-not-comparable
+                expression: "[comparison.ComparisonState] != 'Compared'"
+                message:
+                  de: "Die beiden Stände lassen sich nicht vergleichen."
+                  en: "The two states cannot be compared."
+                  fr: "Les deux états ne peuvent pas être comparés."
+                  it: "I due stati non possono essere confrontati."
+        input:
+          oldXtf: "${step_output(old_xtf.XtfFiles)}"
+          newXtf: "${step_output(new_xtf.XtfFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+          - property: Diff
+            actions:
+              - Download
+          - property: Log
+            actions:
+              - Download

@@ -1,7 +1,9 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
+using Geopilot.Pipeline.Processes.XtfDiff;
 using Geopilot.Pipeline.Processes.XtfValidation;
+using Geopilot.Pipeline.Test.Processes;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -315,6 +317,62 @@ public class PipelineIntegrationTest
                 It.IsAny<IPipelineFile?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [TestMethod(DisplayName = "The diff compares the states the matchers found, whatever the order of the upload")]
+    public async Task DiffComparesTheStatesTheMatchersFound()
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        var validation = factory.ValidateDefinition();
+        Assert.IsTrue(validation.IsValid, validation.ErrorMessage);
+
+        using var pipeline = factory.CreatePipeline("xtf_diff", Guid.NewGuid());
+        var client = new XtfDiffClientFake(compared: true, diffContent: "[]", logContent: string.Empty);
+        InjectXtfDiffClient(pipeline, client);
+
+        var upload = new List<IPipelineFile>
+        {
+            new PipelineFile("TestData/ModelRepository/AllErrors23-ok.xtf", "stand_neu.xtf"),
+            new PipelineFile("TestData/ModelRepository/AllErrors23-errors.xtf", "stand_alt.xtf"),
+        };
+        var context = await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.AreEqual("stand_alt.xtf", client.OldTransferFile?.OriginalFileName);
+        Assert.AreEqual("stand_neu.xtf", client.NewTransferFile?.OriginalFileName);
+        Assert.AreEqual(ComparisonState.Compared, context.StepResults["comparison"].ExtractProperty("ComparisonState"));
+    }
+
+    [TestMethod(DisplayName = "A definition can fail the step on states that cannot be compared")]
+    public async Task StatesThatCannotBeComparedFailTheStep()
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        using var pipeline = factory.CreatePipeline("xtf_diff", Guid.NewGuid());
+        var log = $"java.lang.IllegalStateException: {XtfDiffProcess.DifferentModelsMarker}\n";
+        InjectXtfDiffClient(pipeline, new XtfDiffClientFake(compared: false, diffContent: null, log));
+
+        var upload = new List<IPipelineFile>
+        {
+            new PipelineFile("TestData/ModelRepository/AllErrors23-ok.xtf", "stand_alt.xtf"),
+            new PipelineFile("TestData/ModelRepository/AllErrors23-errors.xtf", "stand_neu.xtf"),
+        };
+        await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        var comparison = pipeline.Steps.Single(step => step.Id == "comparison");
+        Assert.AreEqual(StepState.Error, comparison.State);
+        Assert.AreEqual("states-not-comparable", comparison.ConditionEvaluations.Single(evaluation => evaluation.Matched).ConditionId);
+    }
+
+    private static void InjectXtfDiffClient(IPipeline pipeline, IXtfDiffClient client)
+    {
+        var clientField = typeof(XtfDiffProcess).GetField("xtfDiffClient", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(clientField, "XtfDiffProcess no longer holds the client in a field named <xtfDiffClient>.");
+
+        foreach (var process in pipeline.Steps.Select(s => s.Process).OfType<XtfDiffProcess>())
+        {
+            clientField.SetValue(process, client);
+        }
     }
 
     // The validation logs are the input of the zip step, so the client double has to produce them the way the

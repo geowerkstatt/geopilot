@@ -1,0 +1,48 @@
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      fileNamePatterns:
+  - id: xtf_diff
+    implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
+pipelines:
+  - id: xtf_diff
+    display_name:
+      en: XTF comparison
+    steps:
+      - id: old_xtf
+        display_name:
+          en: Old state
+        process_id: xtf_matcher
+        process_config_overwrites:
+          fileNamePatterns:
+            - '(?i)(^|[^a-z0-9])(alt|old)([^a-z0-9]|$)'
+        input:
+          files: "${upload()}"
+      - id: new_xtf
+        display_name:
+          en: New state
+        process_id: xtf_matcher
+        process_config_overwrites:
+          fileNamePatterns:
+            - '(?i)(^|[^a-z0-9])(neu|new)([^a-z0-9]|$)'
+        input:
+          files: "${upload()}"
+      - id: comparison
+        display_name:
+          en: Comparison
+        process_id: xtf_diff
+        conditions:
+          post:
+            fail_conditions:
+              - id: states-not-comparable
+                expression: "[comparison.ComparisonState] != 'Compared'"
+        input:
+          oldXtf: "${step_output(old_xtf.XtfFiles)}"
+          newXtf: "${step_output(new_xtf.XtfFiles)}"
+        output_actions:
+          - property: Diff
+            actions:
+              - Download
