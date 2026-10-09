@@ -512,6 +512,7 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [File Matcher](Prozessoren/file-matcher.md)
 - [XTF Metadaten-Extraktor](Prozessoren/xtf-metadaten.md)
 - [XTF Validierung](Prozessoren/xtf-validierung.md)
+- [XTF Diff](Prozessoren/xtf-diff.md)
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)
 - [XTF Fehlervisualisierung](Prozessoren/xtf-fehlervisualisierung.md)
