@@ -41,6 +41,14 @@ internal class XtfDiffProcess
         { "en", "One change found." },
     };
 
+    private static readonly LocalizedText ChangesStatusMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "{0} Änderungen gefunden." },
+        { "fr", "{0} modifications trouvées." },
+        { "it", "{0} modifiche trovate." },
+        { "en", "{0} changes found." },
+    };
+
     private static readonly LocalizedText DifferentInterlisVersionsStatusMessage = new Dictionary<string, string>
     {
         { "de", "Die beiden Dateien lassen sich nicht vergleichen, weil sie verschiedene INTERLIS-Versionen verwenden." },
@@ -136,18 +144,11 @@ internal class XtfDiffProcess
 
     private static LocalizedText ChangesStatusMessage(int changeCount)
     {
-        if (changeCount == 0)
-            return NoChangesStatusMessage;
-        if (changeCount == 1)
-            return OneChangeStatusMessage;
-
-        var count = changeCount.ToString(CultureInfo.InvariantCulture);
-        return new Dictionary<string, string>
+        return changeCount switch
         {
-            { "de", $"{count} Änderungen gefunden." },
-            { "fr", $"{count} modifications trouvées." },
-            { "it", $"{count} modifiche trovate." },
-            { "en", $"{count} changes found." },
+            0 => NoChangesStatusMessage,
+            1 => OneChangeStatusMessage,
+            _ => ChangesStatusMessageFormat.Map(message => string.Format(CultureInfo.InvariantCulture, message, changeCount)),
         };
     }
 
