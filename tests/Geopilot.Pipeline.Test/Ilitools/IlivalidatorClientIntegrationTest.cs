@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
@@ -29,7 +30,7 @@ public class IlivalidatorClientIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        grpcChannel = PipelineProcessFactory.CreateIlitoolsWrapperChannel("http://localhost:5555");
         ilivalidatorClient = new IlivalidatorClient(grpcChannel, NullLogger<IlivalidatorClient>.Instance);
     }
 
@@ -310,6 +311,28 @@ public class IlivalidatorClientIntegrationTest
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
         Assert.Contains("REF_MAPPING_FILE", exception.Status.Detail, "Only the check for the mapping file names its type; an image without it refuses the type as invalid.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncThrowsOperationCanceledWhenCancelled()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var modelFile = GetTestPipelineFile("model.ili");
+        var logFile = GetTestPipelineFile("validation_cancelled.log");
+        var xtfLogFile = GetTestPipelineFile("validation_cancelled.xtf");
+
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR/models"] };
+
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
+
+        // Lands while the wrapper still validates, so the cancellation has to come back through the gRPC call.
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: cancellation.Token);
+        });
     }
 
     private async Task DeleteIfExistsAsync(PipelineFile file)

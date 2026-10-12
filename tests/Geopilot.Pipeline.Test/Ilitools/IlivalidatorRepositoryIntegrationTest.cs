@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,7 +33,7 @@ public class IlivalidatorRepositoryIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        grpcChannel = PipelineProcessFactory.CreateIlitoolsWrapperChannel("http://localhost:5555");
         ilivalidatorClient = new IlivalidatorClient(grpcChannel, NullLogger<IlivalidatorClient>.Instance);
     }
 

@@ -771,6 +771,38 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task JobTimeoutCancelsTheRunningJobAndKeepsItsUpload()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var jobTimeout = TimeSpan.FromSeconds(2);
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline, jobTimeout);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
+
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        Assert.AreEqual(StepState.Cancelled, step.State, "The step the timeout interrupted must not be reported as an error.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, $"Job timed out after {jobTimeout}.", It.IsAny<CancellationToken>()),
+            Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task HostShutdownLetsTheRunningJobFinishWithinTheDrainWindow()
     {
         var jobId = NewJob();
