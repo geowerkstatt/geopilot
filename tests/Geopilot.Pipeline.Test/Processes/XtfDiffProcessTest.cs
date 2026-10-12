@@ -19,7 +19,8 @@ public class XtfDiffProcessTest
         var result = await process.RunAsync(CreateFile("stand_alt.xtf"), CreateFile("stand_neu.xtf"), CancellationToken.None);
 
         Assert.AreEqual(ComparisonState.Compared, result.ComparisonState);
-        Assert.AreEqual("diff.json", result.Diff?.OriginalFileName);
+        Assert.HasCount(1, result.Diff);
+        Assert.AreEqual("diff.json", result.Diff[0].OriginalFileName);
         Assert.AreEqual("diffLog.log", result.Log.OriginalFileName);
         Assert.AreEqual("stand_alt.xtf", client.OldTransferFile?.OriginalFileName, "The old state has to reach the tool as the old one.");
         Assert.AreEqual("stand_neu.xtf", client.NewTransferFile?.OriginalFileName, "The new state has to reach the tool as the new one.");
@@ -57,7 +58,7 @@ public class XtfDiffProcessTest
 
         // Not comparable is a result and not an error: the definition decides whether it blocks the delivery.
         Assert.AreEqual(ComparisonState.NotComparable, result.ComparisonState);
-        Assert.IsNull(result.Diff, "There is no diff to offer when the tool could not compare the states.");
+        Assert.IsEmpty(result.Diff, "There is no diff to offer when the tool could not compare the states.");
         Assert.AreEqual("diffLog.log", result.Log.OriginalFileName);
         Assert.Contains("INTERLIS-Versionen", result.StatusMessage["de"]);
         Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
@@ -72,7 +73,7 @@ public class XtfDiffProcessTest
         var result = await process.RunAsync(CreateFile("old.xtf"), CreateFile("new.xtf"), CancellationToken.None);
 
         Assert.AreEqual(ComparisonState.NotComparable, result.ComparisonState);
-        Assert.IsNull(result.Diff);
+        Assert.IsEmpty(result.Diff);
         Assert.Contains("Modelle", result.StatusMessage["de"]);
     }
 

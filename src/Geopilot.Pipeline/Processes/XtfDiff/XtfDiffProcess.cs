@@ -114,7 +114,7 @@ internal class XtfDiffProcess
             {
                 ComparisonState = ComparisonState.Compared,
                 StatusMessage = ChangesStatusMessage(changeCount),
-                Diff = diff,
+                Diff = [diff],
                 Log = log,
             };
         }
@@ -130,6 +130,7 @@ internal class XtfDiffProcess
         {
             ComparisonState = ComparisonState.NotComparable,
             StatusMessage = notComparableStatusMessage,
+            Diff = [],
             Log = log,
         };
     }

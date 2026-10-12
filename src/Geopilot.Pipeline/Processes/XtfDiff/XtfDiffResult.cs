@@ -9,10 +9,11 @@ internal class XtfDiffResult
     public required LocalizedText StatusMessage { get; init; }
 
     /// <summary>
-    /// The changes from the old to the new state as a JSON array, as the XTF-Diff-Tool writes them. Absent when the two
-    /// states could not be compared.
+    /// The changes from the old to the new state as a JSON array, as the XTF-Diff-Tool writes them: one file, or none when
+    /// the two states could not be compared. A list, because a download of an empty list offers nothing, while a download
+    /// of a missing file fails the run.
     /// </summary>
-    public IPipelineFile? Diff { get; init; }
+    public required IPipelineFile[] Diff { get; init; }
 
     public required IPipelineFile Log { get; init; }
 }
