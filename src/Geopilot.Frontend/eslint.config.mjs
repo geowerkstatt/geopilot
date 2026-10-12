@@ -75,7 +75,6 @@ export default defineConfig([
       "src/appContext.tsx",
       "src/auth/userProvider.tsx",
       "src/components/alert/alertProvider.tsx",
-      "src/components/fileDropzone.tsx",
       "src/components/visualizations/map/layerSwitcherRow.tsx",
       "src/components/visualizations/tree/treeVisualization.tsx",
       "src/components/visualizations/visualizationLoader.tsx",

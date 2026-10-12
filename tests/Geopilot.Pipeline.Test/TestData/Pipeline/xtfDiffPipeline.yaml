@@ -4,7 +4,15 @@ processes:
     default_config:
       fileExtensions:
         - xtf
-      fileNamePatterns:
+  - id: old_new_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.OldNewMatcher.OldNewMatcherProcess
+    default_config:
+      oldWords:
+        - alt
+        - old
+      newWords:
+        - neu
+        - new
   - id: xtf_diff
     implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
 pipelines:
@@ -12,24 +20,26 @@ pipelines:
     display_name:
       en: XTF comparison
     steps:
-      - id: old_xtf
+      - id: xtf_matching
         display_name:
-          en: Old state
+          en: XTF Matching
         process_id: xtf_matcher
-        process_config_overwrites:
-          fileNamePatterns:
-            - '(?i)(^|[^a-z0-9])(alt|old)([^a-z0-9]|$)'
         input:
           files: "${upload()}"
-      - id: new_xtf
+      - id: old_new
         display_name:
-          en: New state
-        process_id: xtf_matcher
-        process_config_overwrites:
-          fileNamePatterns:
-            - '(?i)(^|[^a-z0-9])(neu|new)([^a-z0-9]|$)'
+          en: Old and new state
+        process_id: old_new_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: one-old-one-new-required
+                expression: "Length([old_new.OldFiles]) != 1 || Length([old_new.NewFiles]) != 1"
+            warn_conditions:
+              - id: decided-by-name-order
+                expression: "[old_new.DecidedBy] != 'RoleWords'"
         input:
-          files: "${upload()}"
+          files: "${step_output(xtf_matching.XtfFiles)}"
       - id: comparison
         display_name:
           en: Comparison
@@ -40,8 +50,8 @@ pipelines:
               - id: states-not-comparable
                 expression: "[comparison.ComparisonState] != 'Compared'"
         input:
-          oldXtf: "${step_output(old_xtf.XtfFiles)}"
-          newXtf: "${step_output(new_xtf.XtfFiles)}"
+          oldXtf: "${step_output(old_new.OldFiles)}"
+          newXtf: "${step_output(old_new.NewFiles)}"
         output_actions:
           - property: Diff
             actions:
