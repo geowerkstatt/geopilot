@@ -84,8 +84,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         this.pipelineOptions = pipelinePluginOptions.Value;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
-        ilitoolsWrapperChannel = GrpcChannel.ForAddress(ilitoolsOptions.Value.IlitoolsWrapperAddress);
+        ilitoolsWrapperChannel = CreateIlitoolsWrapperChannel(ilitoolsOptions.Value.IlitoolsWrapperAddress);
         LoadPlugins();
+    }
+
+    /// <summary>
+    /// Creates the channel to the ilitools-wrapper. A cancelled call throws an <see cref="OperationCanceledException"/>
+    /// instead of an <c>RpcException</c> with status <c>Cancelled</c>, because step, pipeline and runner recognize a
+    /// cancellation only by that exception.
+    /// </summary>
+    internal static GrpcChannel CreateIlitoolsWrapperChannel(string address)
+    {
+        return GrpcChannel.ForAddress(address, new GrpcChannelOptions { ThrowOperationCanceledOnCancellation = true });
     }
 
     private void LoadPlugins()
