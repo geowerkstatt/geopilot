@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
+using Geopilot.Pipeline.Processes.Matcher.OldNewMatcher;
 using Geopilot.Pipeline.Processes.XtfDiff;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.Pipeline.Test.Processes;
@@ -319,8 +320,8 @@ public class PipelineIntegrationTest
             Times.Never);
     }
 
-    [TestMethod(DisplayName = "The diff compares the states the matchers found, whatever the order of the upload")]
-    public async Task DiffComparesTheStatesTheMatchersFound()
+    [TestMethod(DisplayName = "The diff compares the states the matcher assigned, whatever the order of the upload")]
+    public async Task DiffComparesTheStatesTheMatcherAssigned()
     {
         var factory = CreatePipelineFactory("xtfDiffPipeline");
         var validation = factory.ValidateDefinition();
@@ -338,9 +339,51 @@ public class PipelineIntegrationTest
         var context = await pipeline.Run(upload, CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.AreEqual(RoleDecision.RoleWords, context.StepResults["old_new"].ExtractProperty("DecidedBy"));
         Assert.AreEqual("stand_alt.xtf", client.OldTransferFile?.OriginalFileName);
         Assert.AreEqual("stand_neu.xtf", client.NewTransferFile?.OriginalFileName);
         Assert.AreEqual(ComparisonState.Compared, context.StepResults["comparison"].ExtractProperty("ComparisonState"));
+    }
+
+    [TestMethod(DisplayName = "A matching by the order of the names ends with a warning and still compares")]
+    public async Task MatchingByNameOrderEndsWithAWarning()
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        using var pipeline = factory.CreatePipeline("xtf_diff", Guid.NewGuid());
+        var client = new XtfDiffClientFake(compared: true, diffContent: "[]", logContent: string.Empty);
+        InjectXtfDiffClient(pipeline, client);
+
+        var upload = new List<IPipelineFile>
+        {
+            new PipelineFile("TestData/ModelRepository/AllErrors23-ok.xtf", "gemeinde_2026-10-01.xtf"),
+            new PipelineFile("TestData/ModelRepository/AllErrors23-errors.xtf", "gemeinde_2025-01-01.xtf"),
+        };
+        await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Warning, pipeline.State, "A guessed assignment must not block the delivery, but has to show.");
+        var matching = pipeline.Steps.Single(step => step.Id == "old_new");
+        Assert.AreEqual(StepState.Warning, matching.State);
+        Assert.AreEqual("decided-by-name-order", matching.ConditionEvaluations.Single(evaluation => evaluation.Matched).ConditionId);
+        Assert.AreEqual("gemeinde_2025-01-01.xtf", client.OldTransferFile?.OriginalFileName);
+    }
+
+    [TestMethod]
+    [DataRow(new[] { "stand_alt.xtf" }, DisplayName = "A single file")]
+    [DataRow(new[] { "stand_neu_1.xtf", "stand_neu_2.xtf" }, DisplayName = "Contradicting role words")]
+    public async Task WithoutOneOldAndOneNewStateTheMatchingFails(string[] fileNames)
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        using var pipeline = factory.CreatePipeline("xtf_diff", Guid.NewGuid());
+        var client = new XtfDiffClientFake(compared: true, diffContent: "[]", logContent: string.Empty);
+        InjectXtfDiffClient(pipeline, client);
+
+        var upload = fileNames.Select(name => new PipelineFile("TestData/ModelRepository/AllErrors23-ok.xtf", name)).ToList<IPipelineFile>();
+        await pipeline.Run(upload, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        var matching = pipeline.Steps.Single(step => step.Id == "old_new");
+        Assert.AreEqual("one-old-one-new-required", matching.ConditionEvaluations.Single(evaluation => evaluation.Matched).ConditionId);
+        Assert.IsNull(client.OldTransferFile, "The diff must not run without one old and one new state.");
     }
 
     [TestMethod(DisplayName = "A definition can fail the step on states that cannot be compared")]

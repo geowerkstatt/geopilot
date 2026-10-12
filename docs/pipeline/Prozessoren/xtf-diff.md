@@ -25,7 +25,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 - `oldXtf`: Der alte Stand vom Typ `IPipelineFile`, genau eine Datei.
 - `newXtf`: Der neue Stand vom Typ `IPipelineFile`, genau eine Datei.
 
-Kommen beide Stände aus dem Upload, braucht es vorgelagerte Schritte, die sie dem alten und dem neuen Stand zuordnen, etwa zwei [XTF Matcher](xtf-matcher.md) mit `fileNamePatterns` (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig.
+Kommen beide Stände aus dem Upload, ordnet sie der [Alt/Neu Matcher](alt-neu-matcher.md) zu (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Strenger geht es mit zwei [XTF Matchern](xtf-matcher.md), deren `fileNamePatterns` je eine Rolle erkennen: Dann muss der Lieferant seine Dateien passend benennen, und der Matcher muss `fileNamePatterns` in seiner `default_config` deklarieren, damit ein Schritt den Schlüssel überschreiben darf.
 
 ## Output
 
@@ -42,7 +42,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 
 ## Beispiel
 
-Zwei hochgeladene Stände, die zwei Matcher an den Wörtern `alt` oder `old` und `neu` oder `new` im Dateinamen erkennen. Nur ganze Wörter zählen, `Altlasten.xtf` enthält kein `alt`. Damit ein Schritt `fileNamePatterns` überschreiben kann, muss der Matcher den Schlüssel in seiner `default_config` deklarieren.
+Zwei hochgeladene Stände, die der [Alt/Neu Matcher](alt-neu-matcher.md) an den Wörtern `alt` oder `old` und `neu` oder `new` im Dateinamen erkennt. Zwei Stände verschiedener Modelle lassen den Vergleich scheitern, weil dann eine Datei falsch ist.
 
 ```yaml
 processes:
@@ -51,7 +51,15 @@ processes:
     default_config:
       fileExtensions:
         - xtf
-      fileNamePatterns:
+  - id: old_new_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.OldNewMatcher.OldNewMatcherProcess
+    default_config:
+      oldWords:
+        - alt
+        - old
+      newWords:
+        - neu
+        - new
   - id: xtf_diff
     implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
 pipelines:
@@ -60,39 +68,44 @@ pipelines:
       de: XTF Vergleich
       en: XTF Comparison
     steps:
-      - id: old_xtf
+      - id: xtf_matching
         display_name:
-          de: Alter Stand
-          en: Old State
+          de: XTF Zuordnung
+          en: XTF Matching
         process_id: xtf_matcher
-        process_config_overwrites:
-          fileNamePatterns:
-            - '(?i)(^|[^a-z0-9])(alt|old)([^a-z0-9]|$)'
         input:
           files: "${upload()}"
-      - id: new_xtf
+      - id: old_new
         display_name:
-          de: Neuer Stand
-          en: New State
-        process_id: xtf_matcher
-        process_config_overwrites:
-          fileNamePatterns:
-            - '(?i)(^|[^a-z0-9])(neu|new)([^a-z0-9]|$)'
+          de: Alter und neuer Stand
+          en: Old and New State
+        process_id: old_new_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: one-old-one-new-required
+                expression: "Length([old_new.OldFiles]) != 1 || Length([old_new.NewFiles]) != 1"
+                message:
+                  de: "Für den Vergleich braucht es genau einen alten und einen neuen Stand."
+                  en: "The comparison needs exactly one old and one new state."
+            warn_conditions:
+              - id: decided-by-name-order
+                expression: "[old_new.DecidedBy] != 'RoleWords'"
+                message:
+                  de: "Kein Dateiname sagt, ob er der alte oder der neue Stand ist. Bitte die Zuordnung prüfen."
+                  en: "No file name says whether it is the old or the new state. Please check the assignment."
         input:
-          files: "${upload()}"
+          files: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
       - id: comparison
         display_name:
           de: Vergleich
           en: Comparison
         process_id: xtf_diff
         conditions:
-          pre:
-            fail_conditions:
-              - id: one-old-and-one-new-state
-                expression: "Length([old_xtf.XtfFiles]) != 1 || Length([new_xtf.XtfFiles]) != 1"
-                message:
-                  de: "Es braucht genau eine XTF-Datei mit alt oder old und genau eine mit neu oder new im Namen."
-                  en: "Exactly one XTF file with old or alt and exactly one with new or neu in its name is required."
           post:
             fail_conditions:
               - id: states-not-comparable
@@ -101,8 +114,8 @@ pipelines:
                   de: "Die beiden Stände lassen sich nicht vergleichen."
                   en: "The two states cannot be compared."
         input:
-          oldXtf: "${step_output(old_xtf.XtfFiles)}"
-          newXtf: "${step_output(new_xtf.XtfFiles)}"
+          oldXtf: "${step_output(old_new.OldFiles)}"
+          newXtf: "${step_output(old_new.NewFiles)}"
         output_actions:
           - property: StatusMessage
             actions:
