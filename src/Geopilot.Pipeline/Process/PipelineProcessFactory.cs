@@ -522,7 +522,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (parameterInfo.ParameterType == typeof(ILogger) ||
                 parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
                 parameterInfo.ParameterType == typeof(IIli2GpkgClient) ||
-                parameterInfo.ParameterType == typeof(IIlivalidatorClient))
+                parameterInfo.ParameterType == typeof(IIlivalidatorClient) ||
+                parameterInfo.ParameterType == typeof(IXtfDiffClient))
             {
                 return;
             }
@@ -651,6 +652,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IIlivalidatorClient))
             {
                 return new IlivalidatorClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<IlivalidatorClient>());
+            }
+            else if (parameterInfo.ParameterType == typeof(IXtfDiffClient))
+            {
+                return new XtfDiffClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<XtfDiffClient>());
             }
             else if (parameterInfo.ParameterType == typeof(IPipelineFile) && TryGetResourcePath(parameterInfo, processConfig, out var resourcePath))
             {

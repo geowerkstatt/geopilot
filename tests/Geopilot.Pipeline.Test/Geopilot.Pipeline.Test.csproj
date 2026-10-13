@@ -20,6 +20,16 @@
     <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors23-errors.xtf" Link="TestData\ModelRepository\AllErrors23-errors.xtf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors24-ok.xtf" Link="TestData\ModelRepository\AllErrors24-ok.xtf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors24-errors.xtf" Link="TestData\ModelRepository\AllErrors24-errors.xtf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <!-- An INTERLIS 2.4 transfer of another model, which the diff refuses to compare with an AllErrors24 transfer. -->
+    <Content Include="..\..\TestData\XtfErrorVisualization\test_24.xtf" Link="TestData\ModelRepository\Grundwasservorkommen_24.xtf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
 
     <!-- The same repository as an archive, the resource a pipeline hands to the process as modelRepository. -->
     <Content Include="..\..\src\Geopilot.Api\Resources\model-repository.zip" Link="TestData\ModelRepository\model-repository.zip">

@@ -45,6 +45,17 @@ processes:
       scope:
         path: "DMAV_HoheitsgrenzenAV_V1_0:Gemeinde[not(DMAV_HoheitsgrenzenAV_V1_0:Untergang)]/DMAV_HoheitsgrenzenAV_V1_0:BFSNummer"
         fetch: Single
+  - id: old_new_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.OldNewMatcher.OldNewMatcherProcess
+    default_config:
+      oldWords:
+        - alt
+        - old
+      newWords:
+        - neu
+        - new
+  - id: xtf_diff
+    implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
 pipelines:
   - id: ili_validation
     display_name:
@@ -641,3 +652,89 @@ pipelines:
           - property: StatusMessage
             actions:
               - StatusMessage
+  # Vergleicht zwei hochgeladene Stände einer Transferdatei. Welcher alt und welcher neu ist, entscheiden die
+  # Wörter alt/old und neu/new im Dateinamen, sonst die Reihenfolge der Namen mit einer Warnung.
+  - id: xtf_diff
+    display_name:
+      en: XTF Comparison
+      de: XTF Vergleich
+      fr: Comparaison XTF
+      it: Confronto XTF
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          fr: XTF Correspondance
+          it: XTF Corrispondenza
+        process_id: xtf_matcher
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: old_new
+        display_name:
+          en: Old and New State
+          de: Alter und neuer Stand
+          fr: Ancien et nouvel état
+          it: Stato precedente e attuale
+        process_id: old_new_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: one-old-one-new-required
+                expression: "Length([old_new.OldFiles]) != 1 || Length([old_new.NewFiles]) != 1"
+                message:
+                  de: "Für den Vergleich braucht es genau einen alten und einen neuen Stand."
+                  en: "The comparison needs exactly one old and one new state."
+                  fr: "La comparaison nécessite exactement un ancien et un nouvel état."
+                  it: "Il confronto richiede esattamente uno stato precedente e uno attuale."
+            warn_conditions:
+              - id: decided-by-name-order
+                expression: "[old_new.DecidedBy] != 'RoleWords'"
+                message:
+                  de: "Kein Dateiname sagt, ob er der alte oder der neue Stand ist. Bitte die Zuordnung prüfen."
+                  en: "No file name says whether it is the old or the new state. Please check the assignment."
+                  fr: "Aucun nom de fichier n'indique s'il s'agit de l'ancien ou du nouvel état. Veuillez vérifier l'attribution."
+                  it: "Nessun nome di file indica se si tratta dello stato precedente o di quello attuale. Si prega di verificare l'assegnazione."
+        input:
+          files: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: NewFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: comparison
+        display_name:
+          en: Comparison
+          de: Vergleich
+          fr: Comparaison
+          it: Confronto
+        process_id: xtf_diff
+        conditions:
+          post:
+            fail_conditions:
+              - id: states-not-comparable
+                expression: "[comparison.ComparisonState] != 'Compared'"
+                message:
+                  de: "Die beiden Stände lassen sich nicht vergleichen."
+                  en: "The two states cannot be compared."
+                  fr: "Les deux états ne peuvent pas être comparés."
+                  it: "I due stati non possono essere confrontati."
+        input:
+          oldXtf: "${step_output(old_new.OldFiles)}"
+          newXtf: "${step_output(old_new.NewFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+          - property: Diff
+            actions:
+              - Download
+          - property: Log
+            actions:
+              - Download
