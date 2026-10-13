@@ -326,7 +326,7 @@ public class IlivalidatorClientIntegrationTest
 
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
 
-        // Lands while the wrapper still validates, so the cancellation has to come back through the gRPC call.
+        // Lands while the call is still in flight, so the cancellation has to come back through the gRPC call.
         cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>

@@ -38,6 +38,7 @@ public interface IIlivalidatorClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<IlivalidatorResult> ValidateAsync(
         IlivalidatorArgs args,
         IPipelineFile transferFile,

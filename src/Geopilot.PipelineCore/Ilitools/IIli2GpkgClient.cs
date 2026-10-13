@@ -15,6 +15,7 @@ public interface IIli2GpkgClient
     /// <param name="gpkgFile">GeoPackage file for the schema import.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<Ili2GpkgResult> SchemaImportAsync(
         Ili2GpkgArgs args,
         IPipelineFile modelFile,
@@ -38,6 +39,7 @@ public interface IIli2GpkgClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<Ili2GpkgResult> ImportAsync(
         Ili2GpkgArgs args,
         IPipelineFile inputFile,
@@ -59,6 +61,7 @@ public interface IIli2GpkgClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<Ili2GpkgResult> ExportAsync(
         Ili2GpkgArgs args,
         IPipelineFile gpkgFile,
@@ -82,6 +85,7 @@ public interface IIli2GpkgClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<Ili2GpkgResult> UpdateAsync(
         Ili2GpkgArgs args,
         IPipelineFile inputFile,
@@ -103,6 +107,7 @@ public interface IIli2GpkgClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<Ili2GpkgResult> ValidateAsync(
         Ili2GpkgArgs args,
         IPipelineFile gpkgFile,
