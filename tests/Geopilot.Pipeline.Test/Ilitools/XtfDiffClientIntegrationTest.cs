@@ -2,7 +2,7 @@
 using Geopilot.Pipeline.Processes.XtfDiff;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test.Ilitools;
 
@@ -46,9 +46,16 @@ public class XtfDiffClientIntegrationTest
         Assert.IsTrue(result.Compared, "The two states should have been compared. Log:\n" + result.Log);
         Assert.Contains("AllErrors24", result.Log, "The log should name the model the tool compiled.");
 
-        // The object only the old state contains is deleted. The tool writes the properties of a change in a fixed order.
-        var deletion = new Regex("\"oid\"\\s*:\\s*\"550e8400-e29b-41d4-a716-446655440010\"\\s*,\\s*\"changeType\"\\s*:\\s*\"deleted\"");
-        Assert.IsTrue(deletion.IsMatch(result.Diff), "The diff should report the object of the old state as deleted. Diff:\n" + result.Diff);
+        // Only the UuidTopic declares OIDs, so its one object is all the tool compares. The new state gives it an invalid
+        // OID, so the tool sees one object deleted and another added.
+        using var diff = JsonDocument.Parse(result.Diff);
+        var changes = diff.RootElement.EnumerateArray()
+            .Select(change => $"{change.GetProperty("changeType").GetString()} {change.GetProperty("oid").GetString()}")
+            .ToList();
+        CollectionAssert.AreEquivalent(
+            new[] { "deleted 550e8400-e29b-41d4-a716-446655440010", "added not-a-uuid" },
+            changes,
+            "The diff should list exactly the deleted and the added object. Diff:\n" + result.Diff);
     }
 
     [TestMethod]
