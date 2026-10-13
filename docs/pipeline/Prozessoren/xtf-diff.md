@@ -32,13 +32,13 @@ Kommen beide Stände aus dem Upload, braucht die Pipeline davor einen Schritt, d
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `Diff`: Die Änderungen vom alten zum neuen Stand vom Typ `IPipelineFile[]`, eine Datei mit einem JSON-Array im Format des XTF-Diff-Tools ([OutputFileDescription.md](https://github.com/geowerkstatt/XTF-Diff-Tool/blob/main/OutputFileDescription.md)). Leer, wenn sich die Stände nicht vergleichen lassen: `Download` bietet dann nichts an, statt wie bei einer fehlenden Datei den Lauf scheitern zu lassen. Mit `Download` wird es zum Herunterladen angeboten, mit `Delivery` geht es in die Lieferung. Ein nachfolgender Schritt bekommt die Datei auch als einzelnen Parameter.
-- `Log`: Das Log des Tools vom Typ `IPipelineFile`, auch wenn sich die Stände nicht vergleichen lassen.
+- `Log`: Das Log des Tools vom Typ `IPipelineFile`, auch wenn sich die Stände nicht vergleichen lassen. Dann nennt es den Grund.
 - `ComparisonState`: Ob das Tool die beiden Stände vergleichen konnte:
   - `Compared`: verglichen, `Diff` listet die Änderungen, möglicherweise keine.
-  - `NotComparable`: Die Stände verwenden verschiedene Modelle oder INTERLIS-Versionen, `Diff` ist leer.
+  - `NotComparable`: nicht verglichen, weil die Stände verschiedene Modelle oder INTERLIS-Versionen verwenden oder eine Datei fehlerhaft ist, etwa durch eine doppelte TID. `Diff` ist leer, die Status-Nachricht und das `Log` nennen den Grund.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche die Anzahl Änderungen nennt, oder warum sich die Stände nicht vergleichen lassen.
 
-`NotComparable` ist kein Fehler des Schrittes: Ob es die Lieferung verhindert, entscheidet die Pipeline mit einer Condition. Vergleicht sie zwei Uploads, ist eine Datei falsch, und eine `fail_conditions` passt. Vergleicht sie mit einer früheren Lieferung, steckt meist ein Modellwechsel dahinter, und eine `warn_conditions` lässt die Lieferung zu. Wie beim [XTF Metadaten-Extraktor](xtf-metadaten.md) empfiehlt sich die Form `!= 'Compared'`, damit ein Tippfehler im Vergleichswert auffällt. Jeder andere Fehler des Tools, etwa eine unlesbare Datei, lässt den Schritt scheitern.
+`NotComparable` ist kein Fehler des Schrittes: Ob es die Lieferung verhindert, entscheidet die Pipeline mit einer Condition. Vergleicht sie zwei Uploads, ist eine Datei falsch, und eine `fail_conditions` passt. Vergleicht sie mit einer früheren Lieferung, steckt meist ein Modellwechsel dahinter, und eine `warn_conditions` lässt die Lieferung zu. Wie beim [XTF Metadaten-Extraktor](xtf-metadaten.md) empfiehlt sich die Form `!= 'Compared'`, damit ein Tippfehler im Vergleichswert auffällt. Weil auch eine fehlerhafte Datei `NotComparable` ergibt, hält sie unter einer `warn_conditions` erst eine Validierung auf. Nur wenn das Tool gar kein Log schreibt, scheitert der Schritt.
 
 ## Beispiel
 

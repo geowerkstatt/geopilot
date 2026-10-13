@@ -10,6 +10,14 @@ public class XtfDiffProcessTest
 {
     private const string TwoChanges = """[{"oid":"a","changeType":"added"},{"oid":"b","changeType":"deleted"}]""";
 
+    // Shortened from the log the tool writes for a duplicate TID.
+    private const string DuplicateTidLog =
+        "10:53:57.026 [main] WARN  ch.geowerkstatt.xtfdifftool.ObjectPool - Class or Association \"Model.Topic.Class\" has no stable OID.\n" +
+        "10:53:57.027 [main] ERROR ch.geowerkstatt.xtfdifftool.Main - Error processing XTF files\n" +
+        "java.lang.IllegalStateException: Duplicate TID encountered x\n" +
+        "\tat ch.geowerkstatt.xtfdifftool.ObjectPool.lambda$new$3(ObjectPool.java:49)\n" +
+        "\tat ch.geowerkstatt.xtfdifftool.Main.main(Main.java:72)\n";
+
     [TestMethod]
     public async Task ReportsTheChangesFromTheOldToTheNewState()
     {
@@ -78,11 +86,48 @@ public class XtfDiffProcessTest
     }
 
     [TestMethod]
-    public async Task ThrowsWhenTheToolFailsForAnotherReason()
+    public async Task ReportsAnyOtherFailureAsNotComparable()
     {
-        // A failure the log does not explain is not a verdict about the two states, so the step fails.
-        var log = "ERROR ch.geowerkstatt.xtfdifftool.Main - Error processing XTF files\njava.lang.IllegalStateException: Duplicate TID encountered x\n";
-        var process = CreateProcess(new XtfDiffClientFake(compared: false, diffContent: null, log), modelDirs: null);
+        // A duplicate TID or an unreadable file is a matter of the data too, and only the log names it, so the log has to
+        // reach the user instead of the step failing without it.
+        var process = CreateProcess(new XtfDiffClientFake(compared: false, diffContent: null, DuplicateTidLog), modelDirs: null);
+
+        var result = await process.RunAsync(CreateFile("old.xtf"), CreateFile("new.xtf"), CancellationToken.None);
+
+        Assert.AreEqual(ComparisonState.NotComparable, result.ComparisonState);
+        Assert.IsEmpty(result.Diff);
+        Assert.AreEqual("diffLog.log", result.Log.OriginalFileName);
+        Assert.Contains("Vergleichsprotokoll", result.StatusMessage["de"], "The status message has to point to the log, which names the cause.");
+        Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
+    }
+
+    [TestMethod]
+    public async Task WarnsWithTheCauseOfAnyOtherFailure()
+    {
+        var logger = new Mock<ILogger>();
+        var process = CreateProcess(new XtfDiffClientFake(compared: false, diffContent: null, DuplicateTidLog), modelDirs: null, logger.Object);
+
+        await process.RunAsync(CreateFile("old.xtf"), CreateFile("new.xtf"), CancellationToken.None);
+
+        // The operators learn the cause as well, without the lines before the error and without the stack frames.
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    $"{state}".Contains("Duplicate TID encountered x", StringComparison.Ordinal)
+                    && !$"{state}".Contains("no stable OID", StringComparison.Ordinal)
+                    && !$"{state}".Contains("ObjectPool.java", StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ThrowsWhenTheToolLeavesNoLog()
+    {
+        // Without a log nothing names the cause, so all that is left to report is the failed step.
+        var process = CreateProcess(new XtfDiffClientFake(compared: false, diffContent: null, logContent: null), modelDirs: null);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateFile("old.xtf"), CreateFile("new.xtf"), CancellationToken.None));
 
@@ -113,10 +158,10 @@ public class XtfDiffProcessTest
         Assert.IsNull(client.ModelDirs);
     }
 
-    private static XtfDiffProcess CreateProcess(XtfDiffClientFake client, string? modelDirs)
+    private static XtfDiffProcess CreateProcess(XtfDiffClientFake client, string? modelDirs, ILogger? logger = null)
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfDiffProcess");
-        return new XtfDiffProcess(modelDirs, client, pipelineFileManager, Mock.Of<ILogger<XtfDiffProcessTest>>());
+        return new XtfDiffProcess(modelDirs, client, pipelineFileManager, logger ?? Mock.Of<ILogger<XtfDiffProcessTest>>());
     }
 
     private static PipelineFile CreateFile(string originalFileName)

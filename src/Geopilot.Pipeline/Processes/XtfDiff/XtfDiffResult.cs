@@ -29,8 +29,10 @@ internal enum ComparisonState
     Compared,
 
     /// <summary>
-    /// The two states use different models or INTERLIS versions, so there is no diff. Whether that blocks the delivery
-    /// is up to the pipeline: with two uploads it is a wrong file, against a previous delivery a change of the model.
+    /// The tool could not compare the two states, so there is no diff: they use different models or INTERLIS versions, or
+    /// a file is broken, for example by a duplicate TID. The status message and the log name the cause. Whether that blocks
+    /// the delivery is up to the pipeline: with two uploads it is a wrong file, against a previous delivery mostly a change
+    /// of the model.
     /// </summary>
     NotComparable,
 }

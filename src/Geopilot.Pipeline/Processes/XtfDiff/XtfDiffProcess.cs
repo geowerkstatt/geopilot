@@ -65,6 +65,14 @@ internal class XtfDiffProcess
         { "en", "The two files cannot be compared because they use different models." },
     };
 
+    private static readonly LocalizedText ComparisonFailedStatusMessage = new Dictionary<string, string>
+    {
+        { "de", "Die beiden Dateien lassen sich nicht vergleichen. Details stehen im Vergleichsprotokoll." },
+        { "fr", "Les deux fichiers ne peuvent pas être comparés. Les détails figurent dans le journal de comparaison." },
+        { "it", "I due file non possono essere confrontati. I dettagli sono riportati nel protocollo di confronto." },
+        { "en", "The two files cannot be compared. See the comparison log for details." },
+    };
+
     private readonly IReadOnlyList<string>? modelDirs;
     private readonly IXtfDiffClient xtfDiffClient;
     private readonly IPipelineFileManager pipelineFileManager;
@@ -119,17 +127,22 @@ internal class XtfDiffProcess
             };
         }
 
-        // States the tool refuses to compare are a result the definition decides on, any other failure says nothing
-        // about the two states and fails the step.
-        var notComparableStatusMessage = await FindNotComparableStatusMessageAsync(log, cancellationToken)
+        // Only the log names why the tool failed, different models as much as a duplicate TID, so it reaches the user as a
+        // result the definition decides on. A failure without a log leaves nothing to report but the failed step.
+        var logContent = await ReadLogAsync(log, cancellationToken)
             ?? throw new InvalidOperationException(
-                $"The XTF-Diff-Tool could not compare <{oldXtf.OriginalFileName}> with <{newXtf.OriginalFileName}>. The diff log names the cause.");
+                $"The XTF-Diff-Tool could not compare <{oldXtf.OriginalFileName}> with <{newXtf.OriginalFileName}> and wrote no log.");
 
-        logger.LogInformation("The two states cannot be compared.");
+        var knownCauseStatusMessage = FindKnownCauseStatusMessage(logContent);
+        if (knownCauseStatusMessage is null)
+            logger.LogWarning($"The XTF-Diff-Tool could not compare <{oldXtf.OriginalFileName}> with <{newXtf.OriginalFileName}>:{Environment.NewLine}{FindCause(logContent)}");
+        else
+            logger.LogInformation("The two states cannot be compared.");
+
         return new XtfDiffResult
         {
             ComparisonState = ComparisonState.NotComparable,
-            StatusMessage = notComparableStatusMessage,
+            StatusMessage = knownCauseStatusMessage ?? ComparisonFailedStatusMessage,
             Diff = [],
             Log = log,
         };
@@ -153,19 +166,32 @@ internal class XtfDiffProcess
         };
     }
 
-    private static async Task<LocalizedText?> FindNotComparableStatusMessageAsync(IPipelineFile log, CancellationToken cancellationToken)
+    private static async Task<string?> ReadLogAsync(IPipelineFile log, CancellationToken cancellationToken)
     {
         var path = await log.GetLocalPathAsync(cancellationToken);
-        if (!File.Exists(path))
-            return null;
+        return File.Exists(path) ? await File.ReadAllTextAsync(path, cancellationToken) : null;
+    }
 
-        var content = await File.ReadAllTextAsync(path, cancellationToken);
-        if (content.Contains(DifferentInterlisVersionsMarker, StringComparison.Ordinal))
+    private static LocalizedText? FindKnownCauseStatusMessage(string logContent)
+    {
+        if (logContent.Contains(DifferentInterlisVersionsMarker, StringComparison.Ordinal))
             return DifferentInterlisVersionsStatusMessage;
-        if (content.Contains(DifferentModelsMarker, StringComparison.Ordinal))
+        if (logContent.Contains(DifferentModelsMarker, StringComparison.Ordinal))
             return DifferentModelsStatusMessage;
 
         return null;
+    }
+
+    /// <summary>
+    /// The tool logs a failure as an <c>ERROR</c> line, followed by the exception that names the cause and its stack
+    /// frames. Returns the lines from the first error on, without the frames.
+    /// </summary>
+    private static string FindCause(string logContent)
+    {
+        var causeLines = logContent.ReplaceLineEndings("\n").Split('\n')
+            .SkipWhile(line => !line.Contains(" ERROR ", StringComparison.Ordinal))
+            .Where(line => line.Length > 0 && !char.IsWhiteSpace(line[0]));
+        return string.Join(Environment.NewLine, causeLines);
     }
 
     /// <summary>

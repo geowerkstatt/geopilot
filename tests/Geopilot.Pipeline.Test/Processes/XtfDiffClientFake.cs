@@ -5,15 +5,16 @@ namespace Geopilot.Pipeline.Test.Processes;
 
 /// <summary>
 /// Stands in for the XTF-Diff-Tool behind the ilitools-wrapper: writes the given log and diff into the files the process
-/// hands over, the way the real client does with what the tool returns, and records what it was called with.
+/// hands over, the way the real client does with what the tool returns, and records what it was called with. Like the
+/// real client it creates no file for content that never arrives.
 /// </summary>
 internal sealed class XtfDiffClientFake : IXtfDiffClient
 {
     private readonly bool compared;
     private readonly string? diffContent;
-    private readonly string logContent;
+    private readonly string? logContent;
 
-    public XtfDiffClientFake(bool compared, string? diffContent, string logContent)
+    public XtfDiffClientFake(bool compared, string? diffContent, string? logContent)
     {
         this.compared = compared;
         this.diffContent = diffContent;
@@ -38,7 +39,8 @@ internal sealed class XtfDiffClientFake : IXtfDiffClient
         OldTransferFile = oldTransferFile;
         NewTransferFile = newTransferFile;
 
-        await WriteAsync(logFile, logContent, cancellationToken);
+        if (logContent is not null)
+            await WriteAsync(logFile, logContent, cancellationToken);
         if (diffContent is not null)
             await WriteAsync(diffFile, diffContent, cancellationToken);
 
