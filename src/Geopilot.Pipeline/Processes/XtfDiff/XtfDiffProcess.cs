@@ -67,10 +67,10 @@ internal class XtfDiffProcess
 
     private static readonly LocalizedText ComparisonFailedStatusMessage = new Dictionary<string, string>
     {
-        { "de", "Die beiden Dateien lassen sich nicht vergleichen. Details stehen im Vergleichsprotokoll." },
-        { "fr", "Les deux fichiers ne peuvent pas être comparés. Les détails figurent dans le journal de comparaison." },
-        { "it", "I due file non possono essere confrontati. I dettagli sono riportati nel protocollo di confronto." },
-        { "en", "The two files cannot be compared. See the comparison log for details." },
+        { "de", "Die beiden Dateien lassen sich nicht vergleichen." },
+        { "fr", "Les deux fichiers ne peuvent pas être comparés." },
+        { "it", "I due file non possono essere confrontati." },
+        { "en", "The two files cannot be compared." },
     };
 
     private readonly IReadOnlyList<string>? modelDirs;

@@ -97,7 +97,9 @@ public class XtfDiffProcessTest
         Assert.AreEqual(ComparisonState.NotComparable, result.ComparisonState);
         Assert.IsEmpty(result.Diff);
         Assert.AreEqual("diffLog.log", result.Log.OriginalFileName);
-        Assert.Contains("Vergleichsprotokoll", result.StatusMessage["de"], "The status message has to point to the log, which names the cause.");
+
+        // Whether the log is offered is up to the definition, so the message must not point to it.
+        Assert.AreEqual("Die beiden Dateien lassen sich nicht vergleichen.", result.StatusMessage["de"]);
         Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
     }
 
