@@ -3,6 +3,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Processes.XtfDiff;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
@@ -287,6 +288,43 @@ public class ProcessingRunnerTest
 
         Assert.Contains("Download", exception.Message);
         Assert.IsEmpty(step.Downloads);
+    }
+
+    [TestMethod]
+    public async Task ExtractStepDownloadsOffersTheLogOfStatesThatCannotBeCompared()
+    {
+        // Tagged like the comparison of the development pipeline: states the tool cannot compare have no diff, which
+        // must neither fail the run nor keep the log from being offered.
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = PipelineStep
+            .Builder()
+            .Id("comparison")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions(
+            [
+                new OutputActionConfig { Property = nameof(XtfDiffResult.Diff), Actions = new HashSet<OutputAction> { OutputAction.Download } },
+                new OutputActionConfig { Property = nameof(XtfDiffResult.Log), Actions = new HashSet<OutputAction> { OutputAction.Download } },
+            ])
+            .Process(new object())
+            .Logger(pipelineLogger)
+            .Build();
+        var stepResult = new StepResult
+        {
+            Result = new XtfDiffResult
+            {
+                ComparisonState = ComparisonState.NotComparable,
+                StatusMessage = LocalizedText.Empty,
+                Diff = [],
+                Log = new PipelineFile(WriteTempFile("XTF files use different INTERLIS models"), "diffLog.log"),
+            },
+        };
+
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
+
+        Assert.HasCount(1, step.Downloads);
+        Assert.AreEqual("diffLog.log", step.Downloads[0].OriginalFileName);
     }
 
     [TestMethod]

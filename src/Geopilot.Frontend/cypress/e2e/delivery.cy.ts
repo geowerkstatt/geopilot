@@ -464,11 +464,12 @@ describe("File type filter per platform", () => {
     cy.intercept("GET", "/api/v2/processing", {
       statusCode: 200,
       body: { allowedFileExtensions: [".xtf"] } satisfies ProcessingSettingsResponse,
-    }).as("fileExtensions");
+    });
     cy.intercept("/api/v1/user/auth", {
       statusCode: 200,
       body: { authority: "", publicClientId: "", scope: "" } satisfies BrowserAuthOptions,
     });
+    cy.intercept("GET", "/api/v1/mandate/summary").as("mandateCheck");
     cy.visit("/", {
       onBeforeLoad(win) {
         Object.entries(navigatorProps).forEach(([key, value]) =>
@@ -476,8 +477,10 @@ describe("File type filter per platform", () => {
         );
       },
     });
-    cy.wait("@fileExtensions");
-    cy.dataCy("file-dropzone").should("exist");
+    // The page mounts again once the auth configuration has arrived, which resets the processing settings, and
+    // only that mount checks the mandates. Its dropzone shows the limits once it knows the allowed file types.
+    cy.wait("@mandateCheck");
+    cy.dataCy("file-dropzone-limits").should("exist");
   };
 
   const fileInput = () => cy.dataCy("file-dropzone").find("input[type=file]");
