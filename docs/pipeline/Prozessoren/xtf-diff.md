@@ -15,7 +15,7 @@ Ein XTF Diff muss unter `processes[X].implementation` den Wert `Geopilot.Pipelin
 ### Was das Tool vergleicht
 
 - Beide Stände müssen dieselbe INTERLIS-Version und dieselben Modelle verwenden, sonst gibt es kein Diff (siehe `ComparisonState`).
-- Das Tool ordnet die Objekte der beiden Stände über ihre OID einander zu und vergleicht deshalb nur Klassen und Assoziationen, die im Modell eine OID haben, etwa `OID AS INTERLIS.UUIDOID`. Die übrigen überspringt es, und nur das Log nennt sie (`has no stable OID`). Bei einem Modell ohne OID meldet der Schritt darum keine Änderungen, auch wenn sich die Daten unterscheiden. Die DMAV-Modelle haben OIDs.
+- Das Tool ordnet die Objekte der beiden Stände über ihre OID einander zu und vergleicht deshalb nur Klassen und Assoziationen, die im Modell eine OID haben, etwa `OID AS INTERLIS.UUIDOID`. Die übrigen überspringt es, und nur das Log nennt sie (`has no stable OID`). Bei einem Modell ohne OID meldet der Schritt darum keine Änderungen, auch wenn sich die Daten unterscheiden.
 - Das Tool liest beide Dateien vollständig in den Speicher.
 
 ## Input
@@ -25,7 +25,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 - `oldXtf`: Der alte Stand vom Typ `IPipelineFile`, genau eine Datei.
 - `newXtf`: Der neue Stand vom Typ `IPipelineFile`, genau eine Datei.
 
-Kommen beide Stände aus dem Upload, ordnet sie der [Alt/Neu Matcher](alt-neu-matcher.md) zu (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Strenger geht es mit zwei [XTF Matchern](xtf-matcher.md), deren `fileNamePatterns` je eine Rolle erkennen: Dann muss der Lieferant seine Dateien passend benennen, und der Matcher muss `fileNamePatterns` in seiner `default_config` deklarieren, damit ein Schritt den Schlüssel überschreiben darf.
+Kommen beide Stände aus dem Upload, braucht die Pipeline davor einen Schritt, der sie zuordnet, etwa mit dem [Alt/Neu Matcher](alt-neu-matcher.md) (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Strenger geht es mit zwei [XTF Matchern](xtf-matcher.md), deren `fileNamePatterns` je eine Rolle erkennen: Dann muss der Lieferant seine Dateien passend benennen, und der Matcher muss `fileNamePatterns` in seiner `default_config` deklarieren, damit ein Schritt den Schlüssel überschreiben darf.
 
 ## Output
 
