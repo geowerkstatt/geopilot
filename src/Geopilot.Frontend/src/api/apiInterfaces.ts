@@ -74,7 +74,12 @@ export interface MapLayer {
   attributionUrl?: string;
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
+  /** How the features of a feature layer are drawn; absent draws them in the default map colour. */
+  style?: MapLayerStyle;
 }
+
+/** A way to draw the features of a feature layer other than in the default map colour. */
+export type MapLayerStyle = "old" | "new";
 
 /** The map-visualization payload produced by the map visualization pipeline step. */
 export interface MapVisualizationConfig {
@@ -115,6 +120,39 @@ export interface TreeVisualizationConfig {
   items: TreeItem[];
   /** The fields to group by, outermost first (e.g. ["model", "topic", "class"]). */
   groupBy: TreeField[];
+}
+
+/** Whether a value was added, deleted or changed, as the XTF-Diff-Tool reports it. */
+export type DiffChangeType = "added" | "deleted" | "changed";
+
+/** The kind of property that changed, as the XTF-Diff-Tool reports it. */
+export type DiffValueType = "object" | "reference" | "attribute" | "geometry";
+
+/** One entry of an XTF diff: the change of one property of one object, or an object added or deleted as a whole. */
+export interface DiffChange {
+  /** Id of the change, unique within the visualization. */
+  id: string;
+  /** Transfer id of the changed object, also the id of its features on the map. */
+  objectId: string;
+  changeType: DiffChangeType;
+  valueType: DiffValueType;
+  /** Qualified INTERLIS name of the class of the object, e.g. "Model.Topic.Class". */
+  interlisName: string;
+  /** Path of the changed property; absent when the object was added or deleted as a whole. */
+  attributePath?: string;
+  /** Value in the old state as text, lists and structures as compact JSON; absent when the old state has none. */
+  oldValue?: string;
+  /** Value in the new state as text, lists and structures as compact JSON; absent when the new state has none. */
+  newValue?: string;
+}
+
+/**
+ * The table of the diff visualization. The map beside it reads the same changes for its popup and its filter, so a
+ * map without the table shows only the class of each object and offers no filter.
+ */
+export interface TableVisualizationConfig {
+  /** Every change of the diff, in the order of the diff. */
+  changes: DiffChange[];
 }
 
 /**
