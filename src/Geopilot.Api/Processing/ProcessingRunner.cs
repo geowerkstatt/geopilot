@@ -99,10 +99,11 @@ public class ProcessingRunner : BackgroundService
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
-                // Stage the delivery payload only when the job is actually deliverable, the same gate the
-                // submission endpoint enforces (DeliveryController.Create). It goes to the staging store, not
-                // the asset store: the asset directory holds deliveries only, and declaring one promotes
-                // the staged files (AssetHandler.RecordJobAssetsAsync).
+                // Stage the delivery payload only when the run is deliverable, by the same rule the declaration
+                // applies to the job state (DeliveryDeclarationService). The job only turns deliverable with
+                // PipelineFinished below, so a declaration never promotes a partial staging. It goes to the
+                // staging store, not the asset store: the asset directory holds deliveries only, and declaring
+                // one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
                 if (pipeline.State.IsDeliverable())
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
@@ -117,10 +118,9 @@ public class ProcessingRunner : BackgroundService
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
-                // Pipeline state is already Cancelled (set by the running step). Downloads from steps that
-                // completed before the timeout were already persisted by the per-step callback; only the
-                // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
-                // only for a successful, deliverable run).
+                // The timeout can hit a step or the delivery staging, so the pipeline may still report Success;
+                // the job ends Cancelled either way, which keeps a partial staging undeliverable. Downloads of
+                // steps finished before the timeout were already persisted by the per-step callback.
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
                 terminalState = ProcessingState.Cancelled;
                 failureReason = $"Job timed out after {processingOptions.JobTimeout}.";

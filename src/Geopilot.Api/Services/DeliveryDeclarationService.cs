@@ -46,7 +46,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
         }
 
-        if (job.Pipeline is null || !job.Pipeline.State.IsDeliverable())
+        if (!job.State.IsDeliverable())
         {
             logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");

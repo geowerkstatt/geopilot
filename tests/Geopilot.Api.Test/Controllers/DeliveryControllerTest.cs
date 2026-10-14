@@ -57,22 +57,25 @@ public class DeliveryControllerTest
     [TestCleanup]
     public void Cleanup()
     {
+        // Dispose first: a failing VerifyAll would otherwise leave the test transaction open, and its uncommitted
+        // rows block every parallel test that inserts the same unique key until that test times out.
+        context.Dispose();
         processingServiceMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         assetHandlerMock.VerifyAll();
         loggerMock.VerifyAll();
-        context.Dispose();
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Running)]
-    [DataRow(ProcessingState.Failed)]
-    [DataRow(ProcessingState.Cancelled)]
+    [DataRow(ProcessingState.Pending, DisplayName = "Preflight still running")]
+    [DataRow(ProcessingState.Running, DisplayName = "Pipeline finished, delivery files still being staged")]
+    [DataRow(ProcessingState.Failed, DisplayName = "Staging the delivery files failed")]
+    [DataRow(ProcessingState.Cancelled, DisplayName = "Staging the delivery files was cut short")]
     [DataRow(ProcessingState.DeliveryRestriction)]
-    public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState)
+    public async Task CreateFailsJobNotCompleted(ProcessingState jobState)
     {
         var mandateId = context.Mandates.First().Id;
-        var guid = SetupProcessingJob(mandateId, pipelineState);
+        var guid = SetupProcessingJob(mandateId, jobState);
         deliveryController.SetupTestUser(context.Users.First());
         var deliveriesCount = context.Deliveries.Count();
 
@@ -506,17 +509,21 @@ public class DeliveryControllerTest
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success)
     {
         var guid = Guid.NewGuid();
+
+        // The pipeline always reports Success, so a refused declaration shows that the gate reads the job state:
+        // the job only becomes deliverable once its delivery files are staged.
         var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(pipelineState);
+        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
 
         var job = new ProcessingJob(guid, Guid.NewGuid(), mandateId, DateTime.Now)
         {
             Pipeline = pipelineMock.Object,
+            State = jobState,
         };
 
         processingServiceMock
