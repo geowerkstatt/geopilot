@@ -574,3 +574,4 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
 - [GPKG Export](Prozessoren/gpkg-export.md)
 - [GPKG Validierung](Prozessoren/gpkg-validierung.md)
+- [XTF Diff Visualisierung](Prozessoren/xtf-diff-visualisierung.md)

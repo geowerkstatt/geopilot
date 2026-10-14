@@ -56,6 +56,12 @@ processes:
         - new
   - id: xtf_diff
     implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
+  - id: xtf_diff_visualizer
+    implementation: Geopilot.Pipeline.Processes.XtfDiffVisualization.XtfDiffVisualizationProcess
+    default_config:
+      include:
+        - map
+        - table
   - id: gpkg_data_import
     implementation: Geopilot.Pipeline.Processes.Gpkg.Ili2GpkgDataImportProcess
     default_config:
@@ -744,6 +750,23 @@ pipelines:
           - property: Log
             actions:
               - Download
+      # Läuft nur nach einem Vergleich: Lassen sich die Stände nicht vergleichen, beendet die fail_conditions oben den Lauf.
+      - id: diff_visualization
+        display_name:
+          en: Diff Visualization
+          de: Differenzvisualisierung
+          fr: Visualisation des différences
+          it: Visualizzazione delle differenze
+        process_id: xtf_diff_visualizer
+        input:
+          diff: "${step_output(comparison.Diff)}"
+        output_actions:
+          - property: Visualization
+            actions:
+              - Visualization
+          - property: StatusMessage
+            actions:
+              - StatusMessage
   - id: gpkg_data_import
     display_name:
       en: GPKG Data Import
