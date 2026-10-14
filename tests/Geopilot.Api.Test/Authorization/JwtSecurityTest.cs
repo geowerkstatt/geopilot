@@ -330,6 +330,17 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
+    public async Task StacBrowserIsOpenWithoutToken()
+    {
+        using var request = CreateRequest("GET", "/browser/");
+        var response = await client.SendAsync(request);
+
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, "The STAC browser must be reachable without a token.");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, "The STAC browser must be reachable without a token.");
+        Assert.AreNotEqual("/", response.Headers.Location?.OriginalString, "The STAC browser must not send anonymous visitors home.");
+    }
+
+    [TestMethod]
     public void EndpointDiscoveryFindsEndpoints()
     {
         var allEndpoints = EndpointDiscovery.GetProtectedEndpoints()
