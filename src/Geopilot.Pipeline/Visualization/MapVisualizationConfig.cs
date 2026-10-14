@@ -54,6 +54,28 @@ internal class MapLayer
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.
     /// </summary>
     public IList<MapFeature>? Features { get; set; }
+
+    /// <summary>
+    /// How the client draws the features of a feature layer, for example the old and the new state of a diff
+    /// in colors of their own. <see langword="null"/> draws them in the default map color.
+    /// </summary>
+    public MapLayerStyle? Style { get; set; }
+}
+
+/// <summary>
+/// A way the client draws the features of a feature layer other than in the default map color.
+/// </summary>
+internal enum MapLayerStyle
+{
+    /// <summary>
+    /// The old state of something that changed.
+    /// </summary>
+    Old,
+
+    /// <summary>
+    /// The new state of something that changed.
+    /// </summary>
+    New,
 }
 
 /// <summary>
