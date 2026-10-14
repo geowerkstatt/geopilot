@@ -105,7 +105,7 @@ volumes:
 | http://localhost:5555  | ilitools-wrapper service                      | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
-Der STAC Browser ist über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
+Der STAC Browser ist über https://localhost:5173/browser erreichbar. Ohne Anmeldung zeigt er nur Mandate, deren STAC-Zugriff auf _Öffentlich_ steht (im Seed das öffentliche Mandat); angemeldete Administratoren sehen über das Cookie alle Mandate.
 
 ### Debugging 🪲
 
