@@ -1,0 +1,11 @@
+[
+  {
+    "oid": "parcel",
+    "changeType": "changed",
+    "valueType": "attribute",
+    "interlisName": "DMAV_Grundstuecke_V1_0.Grundstuecke.Grundstueck",
+    "attributePath": "Nummer",
+    "oldValue": "1132",
+    "newValue": "320"
+  }
+]
