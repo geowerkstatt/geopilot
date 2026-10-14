@@ -712,7 +712,7 @@ public class DeliveryControllerTest
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
             .ReturnsAsync(AuthorizationResult.Success());
-        var delivery = CreateDeliveryWithAsset(context.Mandates.First());
+        var delivery = CreateDeliveryWithAsset(context.Mandates.First(m => m.StacAccess == StacAccess.AdminsOnly));
 
         var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
         Assert.IsNotNull(result);
