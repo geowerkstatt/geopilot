@@ -1,4 +1,5 @@
-﻿using Stac.Api.Clients.Features;
+﻿using Stac.Api;
+using Stac.Api.Clients.Features;
 
 namespace Geopilot.Api.StacApi;
 
@@ -13,7 +14,7 @@ public class FeaturesTest
     public void Initialize()
     {
         app = new GeopilotApiApp();
-        httpClient = app.CreateClient();
+        httpClient = app.CreateAdminClient();
         featuresClient = new FeaturesClient(httpClient);
     }
 
@@ -40,5 +41,16 @@ public class FeaturesTest
 
         StringAssert.StartsWith(feature.Title, "Datenlieferung_2023-07");
         Assert.HasCount(3, feature.Assets);
+    }
+
+    [TestMethod]
+    public async Task AnonymousCannotGetAnItemOfAnAdminOnlyCollection()
+    {
+        using var anonymousClient = app.CreateClient();
+        var anonymousFeaturesClient = new FeaturesClient(anonymousClient);
+
+        var adminOnly = await Assert.ThrowsExactlyAsync<StacApiException>(() => anonymousFeaturesClient.GetFeatureAsync("coll_1", "item_14"));
+        var nonExistent = await Assert.ThrowsExactlyAsync<StacApiException>(() => anonymousFeaturesClient.GetFeatureAsync("coll_1", "item_999999"));
+        Assert.AreEqual(nonExistent.StatusCode, adminOnly.StatusCode);
     }
 }
