@@ -173,6 +173,29 @@ public class ProcessingRunnerTest
             => throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Stands in for an uploaded file whose fetch from remote storage fails, as when the storage is
+    /// unreachable by the time the run stages the file for delivery.
+    /// </summary>
+    private sealed class UnreachableFile : IPipelineFile
+    {
+        public string OriginalFileName => "data.xtf";
+
+        public string OriginalFileNameWithoutExtension => "data";
+
+        public string FileExtension => "xtf";
+
+        public string OriginalRelativePath => string.Empty;
+
+        public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
+            => Task.FromException<Stream>(new IOException("The upload storage is unreachable."));
+
+        public FileStream OpenWriteFileStream() => throw new NotSupportedException();
+
+        public Task<string> GetLocalPathAsync(CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
     [TestMethod]
     public async Task ExtractStepDownloadsWritesDownloadFileToDownloadStoreOnly()
     {
@@ -960,6 +983,65 @@ public class ProcessingRunnerTest
         Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
         Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No delivery may be staged when delivery is restricted.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task JobTurnsDeliverableOnlyOnceItsDeliveryFilesAreStaged()
+    {
+        var jobId = NewJob();
+        var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        // The declaration lets a job through on its state alone, so the job must not turn deliverable before
+        // its delivery files are staged, and the unattended declaration must not start before that. Recorded
+        // here and asserted after the run, because the runner catches whatever these callbacks throw.
+        var stagedWhenDeliverable = false;
+        var calls = new List<string>();
+        store
+            .Setup(s => s.PipelineFinished(jobId, ProcessingState.Success))
+            .Callback(() =>
+            {
+                stagedWhenDeliverable = stagingStore.Exists(jobId, "data.xtf");
+                calls.Add(nameof(IProcessingJobStore.PipelineFinished));
+            });
+        jobCompletionHandlerMock
+            .Setup(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add(nameof(IJobCompletionHandler.OnJobFinishedAsync)))
+            .Returns(Task.CompletedTask);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        CollectionAssert.AreEqual(
+            new[] { nameof(IProcessingJobStore.PipelineFinished), nameof(IJobCompletionHandler.OnJobFinishedAsync) },
+            calls,
+            "The unattended declaration must not start before the job is deliverable.");
+        Assert.IsTrue(stagedWhenDeliverable, "The job must not turn deliverable while its delivery files are still being staged.");
+    }
+
+    [TestMethod]
+    public async Task JobFailsWhenItsDeliveryFilesCannotBeStaged()
+    {
+        var jobId = NewJob();
+        using var pipeline = BuildPipeline(jobId, BuildUploadPassthroughStep("passthrough"));
+
+        // The step succeeds, but fetching the upload it passes on fails once the run stages it for delivery,
+        // as when the upload storage is unreachable: the pipeline ends as Success with an incomplete staging.
+        var (runner, store) = CreateRunnerWithStore(pipeline, uploads: [new UnreachableFile()]);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State, "The steps succeeded, only the staging failed.");
+        store.Verify(s => s.TryMarkAsFailed(jobId), Times.Once);
+        store.Verify(
+            s => s.PipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()),
+            Times.Never,
+            "A job whose delivery files could not be staged must never turn deliverable.");
     }
 
     [TestMethod]
