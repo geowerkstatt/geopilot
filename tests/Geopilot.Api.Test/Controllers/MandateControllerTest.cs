@@ -608,6 +608,7 @@ namespace Geopilot.Api.Controllers
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
             mandateToUpdate.AllowDelivery = false;
+            mandateToUpdate.StacAccess = StacAccess.Public;
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
@@ -619,6 +620,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNull(updatedMandate.Key, "Empty key should normalize to null");
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
+            Assert.AreEqual(StacAccess.Public, updatedMandate.StacAccess);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
             Assert.HasCount(mandateToUpdate.Organisations.Count, updatedMandate.Organisations);

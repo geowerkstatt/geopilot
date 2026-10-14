@@ -47,6 +47,13 @@ public class Mandate
     public bool AllowDelivery { get; set; }
 
     /// <summary>
+    /// Who may see the deliveries of this mandate in the STAC catalog and download their assets.
+    /// Independent of <see cref="IsPublic"/>, which only concerns validating against the mandate.
+    /// </summary>
+    [Column(TypeName = "varchar(12)")]
+    public StacAccess StacAccess { get; set; }
+
+    /// <summary>
     /// List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
     /// </summary>
 #pragma warning disable CA1819 // Properties should not return arrays
