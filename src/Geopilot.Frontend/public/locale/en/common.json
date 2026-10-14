@@ -161,7 +161,6 @@
   "spatialExtentInvalidOrder": "Bottom left must be smaller than upper right",
   "stacAccess": "STAC access",
   "stacAccessAdminsOnly": "Administrators only",
-  "stacAccessHelperText": "Public: the deliveries of this mandate can be viewed and downloaded in STAC without signing in. The name of the person who delivered and the comment stay hidden.",
   "stacAccessPublic": "Public",
   "stacBrowser": "STAC Browser",
   "startProcessing": "Start processing",

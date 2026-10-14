@@ -99,10 +99,6 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
         </FormContainerHalfWidth>
       </FormContainer>
       <FormContainer sx={{ alignItems: "center" }}>
-        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-      </FormContainer>
-      <FormContainer sx={{ alignItems: "center" }}>
         <FormContainerHalfWidth>
           <FormSelect
             fieldName={"stacAccess"}
@@ -115,7 +111,10 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             ]}
           />
         </FormContainerHalfWidth>
-        <FormHelperText>{t("stacAccessHelperText")}</FormHelperText>
+        <FormContainerHalfWidth sx={{ alignItems: "center" }}>
+          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+        </FormContainerHalfWidth>
       </FormContainer>
       <FormContainer>
         <FormContainerHalfWidth>

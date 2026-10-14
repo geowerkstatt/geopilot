@@ -161,7 +161,6 @@
   "spatialExtentInvalidOrder": "Unten links muss kleiner sein als oben rechts",
   "stacAccess": "STAC-Zugriff",
   "stacAccessAdminsOnly": "Nur Administratoren",
-  "stacAccessHelperText": "Öffentlich: Die Lieferungen dieses Mandats sind im STAC ohne Anmeldung sichtbar und herunterladbar. Name der liefernden Person und Kommentar bleiben verborgen.",
   "stacAccessPublic": "Öffentlich",
   "stacBrowser": "STAC Browser",
   "startProcessing": "Verarbeitung starten",

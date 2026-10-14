@@ -161,7 +161,6 @@
   "spatialExtentInvalidOrder": "In basso a sinistra deve essere inferiore a in alto a destra",
   "stacAccess": "Accesso STAC",
   "stacAccessAdminsOnly": "Solo amministratori",
-  "stacAccessHelperText": "Pubblico: le consegne di questo mandato sono visibili e scaricabili in STAC senza accesso. Il nome della persona che ha consegnato e il commento restano nascosti.",
   "stacAccessPublic": "Pubblico",
   "stacBrowser": "Browser STAC",
   "startProcessing": "Avvia elaborazione",
