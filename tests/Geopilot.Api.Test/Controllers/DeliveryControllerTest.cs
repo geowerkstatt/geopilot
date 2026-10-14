@@ -1,10 +1,12 @@
-﻿using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Globalization;
+using System.Security.Claims;
 using System.Text;
 
 namespace Geopilot.Api.Controllers;
@@ -25,6 +28,7 @@ public class DeliveryControllerTest
     private Mock<ILogger<DeliveryController>> loggerMock;
     private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
+    private Mock<IAuthorizationService> authorizationServiceMock;
     private DeliveryController deliveryController;
     private Context context;
 
@@ -43,7 +47,11 @@ public class DeliveryControllerTest
         // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
         // moved into it, and mocking it here would leave those rules untested.
         var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
-        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+        authorizationServiceMock = new Mock<IAuthorizationService>();
+        authorizationServiceMock
+            .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
+            .ReturnsAsync(AuthorizationResult.Failed());
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object);
     }
 
     [TestCleanup]
@@ -701,17 +709,48 @@ public class DeliveryControllerTest
     public async Task Download()
     {
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
-        var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First() };
-        delivery.Assets.Add(new Asset() { OriginalFilename = "Test.xml", SanitizedFilename = "xyz.xml" });
-        context.Deliveries.Add(delivery);
-        context.SaveChanges();
+        authorizationServiceMock
+            .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
+            .ReturnsAsync(AuthorizationResult.Success());
+        var delivery = CreateDeliveryWithAsset(context.Mandates.First());
 
         var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.FileContents);
         Assert.AreEqual("Test.xml", result.FileDownloadName);
         Assert.AreEqual("text/xml", result.ContentType);
+    }
+
+    [TestMethod]
+    public async Task DownloadOfAPublicMandateNeedsNoAdmin()
+    {
+        assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual("Test.xml", result.FileDownloadName);
+    }
+
+    [TestMethod]
+    public async Task DownloadOfAnAdminOnlyMandateIsNotFoundForNonAdmins()
+    {
+        var delivery = CreateDeliveryWithAsset(context.Mandates.First(m => m.StacAccess == StacAccess.AdminsOnly));
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    private Delivery CreateDeliveryWithAsset(Mandate mandate)
+    {
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First() };
+        delivery.Assets.Add(new Asset() { OriginalFilename = "Test.xml", SanitizedFilename = "xyz.xml" });
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+        return delivery;
     }
 
     [TestMethod]
