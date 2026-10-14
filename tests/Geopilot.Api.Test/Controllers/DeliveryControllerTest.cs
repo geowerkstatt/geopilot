@@ -49,11 +49,13 @@ public class DeliveryControllerTest
     [TestCleanup]
     public void Cleanup()
     {
+        // Dispose first: a failing VerifyAll would otherwise leave the test transaction open, and its uncommitted
+        // rows block every parallel test that inserts the same unique key until that test times out.
+        context.Dispose();
         processingServiceMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         assetHandlerMock.VerifyAll();
         loggerMock.VerifyAll();
-        context.Dispose();
     }
 
     [TestMethod]
