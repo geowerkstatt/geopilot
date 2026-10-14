@@ -366,6 +366,7 @@ export type Mandate = {
    * Gets or sets a value indicating whether delivery is permitted.
    */
   allowDelivery: boolean;
+  stacAccess: StacAccess;
   /**
    * List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
    */
@@ -737,6 +738,16 @@ export const ScanState = {
  * The outcome of the malware scan of a run's uploaded files. Persisted as text.
  */
 export type ScanState = (typeof ScanState)[keyof typeof ScanState];
+
+/**
+ * Who may see the deliveries of a Geopilot.Api.Models.Mandate in the STAC catalog and download their assets.
+ */
+export const StacAccess = { AdminsOnly: "adminsOnly", Public: "public" } as const;
+
+/**
+ * Who may see the deliveries of a Geopilot.Api.Models.Mandate in the STAC catalog and download their assets.
+ */
+export type StacAccess = (typeof StacAccess)[keyof typeof StacAccess];
 
 /**
  * Request to start a job.

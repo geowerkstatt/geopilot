@@ -11,6 +11,7 @@ import {
   Mandate,
   Organisation,
   PipelineSummary,
+  StacAccess,
 } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
@@ -69,6 +70,7 @@ const MandateDetail = () => {
         description: {},
         isPublic: false,
         allowDelivery: false,
+        stacAccess: StacAccess.AdminsOnly,
         organisations: [],
         fileTypes: [],
         // Prefill coordinates to allow editing them in the form

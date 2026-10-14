@@ -18,6 +18,11 @@ describe("General app tests", () => {
     cy.dataCy("delivery").should("exist");
   });
 
+  it("offers the STAC browser to everyone", () => {
+    cy.visit("/");
+    cy.dataCy("stac-browser-footer-nav").should("have.attr", "href", "/browser");
+  });
+
   it.skip("registers new users and logs them in", () => {
     loginAsNewUser();
     cy.dataCy("loggedInUser-button").should("exist");
