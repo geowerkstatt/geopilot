@@ -5,7 +5,6 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -566,14 +565,9 @@ namespace Geopilot.Api.Controllers
 
             var guid = Guid.NewGuid();
             var processingServiceMock = new Mock<IProcessingService>();
-            var pipelineMock = new Mock<IPipeline>();
-            pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-            pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-            pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-
             var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
             {
-                Pipeline = pipelineMock.Object,
+                State = ProcessingState.Success,
             };
 
             processingServiceMock

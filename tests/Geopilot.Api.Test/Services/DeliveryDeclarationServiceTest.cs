@@ -4,7 +4,6 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -74,14 +73,9 @@ public class DeliveryDeclarationServiceTest
     private Guid SetupDeliverableJob(int mandateId)
     {
         var jobId = Guid.NewGuid();
-        var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-        pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-
         processingServiceMock
             .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { Pipeline = pipelineMock.Object });
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success });
         return jobId;
     }
 }

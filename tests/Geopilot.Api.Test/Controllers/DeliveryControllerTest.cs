@@ -59,14 +59,14 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Running)]
-    [DataRow(ProcessingState.Failed)]
+    [DataRow(ProcessingState.Running, DisplayName = "Pipeline finished, delivery files still being staged")]
+    [DataRow(ProcessingState.Failed, DisplayName = "Staging the delivery files failed")]
     [DataRow(ProcessingState.Cancelled)]
     [DataRow(ProcessingState.DeliveryRestriction)]
-    public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState)
+    public async Task CreateFailsJobNotCompleted(ProcessingState jobState)
     {
         var mandateId = context.Mandates.First().Id;
-        var guid = SetupProcessingJob(mandateId, pipelineState);
+        var guid = SetupProcessingJob(mandateId, jobState);
         deliveryController.SetupTestUser(context.Users.First());
         var deliveriesCount = context.Deliveries.Count();
 
@@ -500,17 +500,21 @@ public class DeliveryControllerTest
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success)
     {
         var guid = Guid.NewGuid();
+
+        // The pipeline always reports Success, so a refused declaration shows that the gate reads the job state:
+        // the job only becomes deliverable once its delivery files are staged.
         var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(pipelineState);
+        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
 
         var job = new ProcessingJob(guid, Guid.NewGuid(), mandateId, DateTime.Now)
         {
             Pipeline = pipelineMock.Object,
+            State = jobState,
         };
 
         processingServiceMock
