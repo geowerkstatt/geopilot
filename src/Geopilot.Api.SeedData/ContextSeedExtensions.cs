@@ -131,6 +131,7 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
             .RuleFor(o => o.IsPublic, f => false)
             .RuleFor(o => o.AllowDelivery, f => true)
+            .RuleFor(o => o.StacAccess, f => StacAccess.AdminsOnly)
             .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }))
 
             // Derived from the row index, because the key is unique in the database and a random word
@@ -161,6 +162,7 @@ public static class ContextSeedExtensions
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,
+            StacAccess = StacAccess.Public,
         });
 
         context.SaveChanges();

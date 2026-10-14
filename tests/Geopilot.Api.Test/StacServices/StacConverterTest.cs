@@ -93,7 +93,7 @@ public class StacConverterTest
     [TestMethod]
     public void ConvertToStacCollectionWithoutItems()
     {
-        var collection = converter.ToStacCollection(mandate);
+        var collection = converter.ToStacCollection(mandate, includePersonalData: true);
         Assert.IsNotNull(collection, "StacCollection should not be null.");
         Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
         Assert.AreEqual("Test Mandate", collection.Title);
@@ -128,7 +128,7 @@ public class StacConverterTest
     {
         SetupContextMocks();
         mandate.Deliveries.Add(testDelivery);
-        var collection = converter.ToStacCollection(mandate);
+        var collection = converter.ToStacCollection(mandate, includePersonalData: true);
         Assert.IsNotNull(collection, "StacCollection should not be null.");
         Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
         Assert.AreEqual("Test Mandate", collection.Title);
@@ -146,12 +146,13 @@ public class StacConverterTest
     public void ConvertToStacItem()
     {
         SetupContextMocks();
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         Assert.AreEqual(converter.GetItemId(testDelivery), item.Id);
         Assert.AreEqual(converter.GetCollectionId(testDelivery.Mandate), item.Collection);
         Assert.AreEqual("Datenlieferung_2023-11-06T10:45:18", item.Title);
         Assert.AreEqual(string.Empty, item.Description);
+        Assert.IsTrue(item.Properties.ContainsKey("Abgegeben durch"));
         Assert.AreNotEqual(0, item.Links.Count);
 
         Assert.HasCount(2, item.Assets);
@@ -170,9 +171,20 @@ public class StacConverterTest
     {
         SetupContextMocks();
         testDelivery.Comment = comment;
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         Assert.AreEqual(expectedDescription, item.Description);
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemOmitsPersonalDataForTheAudience()
+    {
+        SetupContextMocks();
+        testDelivery.Comment = "Nur für Admins";
+        var item = converter.ToStacItem(testDelivery, includePersonalData: false);
+
+        Assert.IsFalse(item.Properties.ContainsKey("Abgegeben durch"));
+        Assert.IsNull(item.Description);
     }
 
     [TestMethod]
@@ -182,7 +194,7 @@ public class StacConverterTest
     {
         SetupContextMocks();
         testDelivery.Partial = isPartial;
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         var property = item.GetProperty<string>("Teillieferung");
         Assert.AreEqual(expectedPartialAttribute, property);
@@ -193,7 +205,7 @@ public class StacConverterTest
     {
         SetupContextMocks();
         testDelivery.Partial = null;
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         var property = item.GetProperty<string>("Teillieferung");
         Assert.IsNull(property, "Found unexpected property Teillieferung.");
@@ -205,7 +217,7 @@ public class StacConverterTest
         SetupContextMocks();
         testDelivery.PrecursorDelivery =
             new Delivery() { Id = 25, Date = new DateTime(10, 11, 12, 13, 14, 16) };
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         var property = item.GetProperty<string>("Vorgängerversion");
         Assert.IsNotNull(property, "Expected property Vorgängerversion not found.");
@@ -217,7 +229,7 @@ public class StacConverterTest
     {
         SetupContextMocks();
         testDelivery.PrecursorDelivery = null;
-        var item = converter.ToStacItem(testDelivery);
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
         Assert.IsNotNull(item, "StacItem should not be null.");
         var property = item.GetProperty<string>("Vorgängerversion");
         Assert.IsNull(property, "Found unexpected property Vorgängerversion.");

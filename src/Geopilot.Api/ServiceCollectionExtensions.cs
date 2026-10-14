@@ -74,6 +74,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configure);
 
+        services.AddHttpContextAccessor();
         services.AddStacWebApi();
 
         // Add the Http Stac Api context factory

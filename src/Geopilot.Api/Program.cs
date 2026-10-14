@@ -333,12 +333,7 @@ app.UseAuthentication();
 
 app.Use(async (context, next) =>
 {
-    var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
-    if (context.Request.Path.StartsWithSegments("/browser") && !(await authorizationService.AuthorizeAsync(context.User, GeopilotPolicies.Admin)).Succeeded)
-    {
-        context.Response.Redirect("/");
-    }
-    else if (context.Request.Path == "/browser")
+    if (context.Request.Path == "/browser")
     {
         context.Response.Redirect("/browser/");
     }

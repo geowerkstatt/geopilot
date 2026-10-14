@@ -3,7 +3,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
-import { Organisation, PipelineSummary } from "../../../api/generated";
+import { Organisation, PipelineSummary, StacAccess } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormAutocomplete,
@@ -12,6 +12,7 @@ import {
   FormContainer,
   FormContainerHalfWidth,
   FormInput,
+  FormSelect,
 } from "../../../components/form/form.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
@@ -98,8 +99,22 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
         </FormContainerHalfWidth>
       </FormContainer>
       <FormContainer sx={{ alignItems: "center" }}>
-        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+        <FormContainerHalfWidth>
+          <FormSelect
+            fieldName={"stacAccess"}
+            label={"stacAccess"}
+            required={true}
+            selected={mandate?.stacAccess}
+            values={[
+              { key: 0, value: StacAccess.AdminsOnly, name: t("stacAccessAdminsOnly") },
+              { key: 1, value: StacAccess.Public, name: t("stacAccessPublic") },
+            ]}
+          />
+        </FormContainerHalfWidth>
+        <FormContainerHalfWidth sx={{ alignItems: "center" }}>
+          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+        </FormContainerHalfWidth>
       </FormContainer>
       <FormContainer>
         <FormContainerHalfWidth>

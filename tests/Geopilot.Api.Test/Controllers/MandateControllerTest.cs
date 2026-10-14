@@ -587,7 +587,7 @@ namespace Geopilot.Api.Controllers
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object);
             deliveryController.SetupTestUser(editUser);
             mandateServiceMock.Setup(s => s.GetMandateForDeliveryAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 
@@ -608,6 +608,7 @@ namespace Geopilot.Api.Controllers
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
             mandateToUpdate.AllowDelivery = false;
+            mandateToUpdate.StacAccess = StacAccess.Public;
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
@@ -619,6 +620,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNull(updatedMandate.Key, "Empty key should normalize to null");
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
+            Assert.AreEqual(StacAccess.Public, updatedMandate.StacAccess);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
             Assert.HasCount(mandateToUpdate.Organisations.Count, updatedMandate.Organisations);

@@ -20,7 +20,7 @@ Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client ü
 
 Die Zugangsdaten eines Clients öffnen die Weboberfläche nicht. Ein Client ist kein Benutzer: er erreicht ausschliesslich `api/v1/submission*`, weder eine Lieferungsliste noch die Verwaltung, und ein Token, dessen Kennung als Client registriert ist, wird nirgends als Person behandelt, auch wenn der Identity Provider dazu Benutzerinformationen liefern würde; geopilot fragt sie für einen registrierten Client gar nicht ab. Umgekehrt lässt sich die Kennung einer bestehenden Person nicht als Client registrieren.
 
-Der Anzeigename des Clients erscheint als Urheber der Lieferung, im Portal wie im STAC-Katalog, und das [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) hält den Client fest.
+Der Anzeigename des Clients erscheint als Urheber der Lieferung, im Portal wie im STAC-Katalog für Administratoren, und das [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) hält den Client fest.
 
 Ein Benutzer-Token wird auf diesen Endpunkten derzeit ebenfalls angenommen. Das dient Probe und Support und wird in einem späteren Schritt auf Clients eingeschränkt.
 

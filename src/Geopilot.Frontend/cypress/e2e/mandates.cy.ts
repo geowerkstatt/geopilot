@@ -492,6 +492,7 @@ describe("Mandate with a removed pipeline", () => {
     name: { de: "Ghost Pipeline Mandate" },
     description: { de: "Ghost Pipeline Mandate Description" },
     isPublic: false,
+    stacAccess: "adminsOnly",
     allowDelivery: true,
     fileTypes: [".xml"],
     coordinates: [
@@ -559,6 +560,7 @@ describe("Public mandate with organisations", () => {
     name: { de: "Organisation Mandate" },
     description: { de: "Organisation Mandate Description" },
     isPublic: false,
+    stacAccess: "adminsOnly",
     allowDelivery: true,
     fileTypes: [".xtf"],
     coordinates: [
@@ -593,6 +595,7 @@ describe("Public mandate with organisations", () => {
     cy.wait("@getPipelines");
 
     toggleCheckbox("isPublic");
+    setSelect("stacAccess", 1, 2);
     evaluateAutocomplete("organisations", [organisation.name]);
     evaluateCheckbox("allowDelivery", true);
 
@@ -600,6 +603,7 @@ describe("Public mandate with organisations", () => {
     cy.wait("@updateMandate").then(({ request }) => {
       const body = (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
       expect(body.isPublic).to.equal(true);
+      expect(body.stacAccess).to.equal("public");
       expect(body.allowDelivery).to.equal(true);
       expect(body.organisations.map(o => o.id)).to.deep.equal([organisation.id]);
     });
@@ -614,6 +618,7 @@ describe("Mandate with a file type in upper case", () => {
     name: { de: "Upper Case Mandate" },
     description: { de: "Upper Case Mandate Description" },
     isPublic: false,
+    stacAccess: "adminsOnly",
     allowDelivery: true,
     fileTypes: [".XTF"],
     coordinates: [

@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Geopilot.Api.Conventions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -11,6 +12,10 @@ namespace Geopilot.Api.Authorization;
 internal static class EndpointDiscovery
 {
     private static readonly Regex RouteParameterRegex = new(@"\{[^}]+\}", RegexOptions.Compiled);
+
+    // The library's MandatoryExtensionArgumentConstraint never selects this action ([BindRequired] on a route parameter),
+    // so every request falls through to the fallback policy and no status says anything about its authorization.
+    private static readonly HashSet<string> UnreachableStacActions = ["FilterController.GetQueryablesForCollection"];
 
     public static IEnumerable<object[]> GetProtectedEndpoints()
     {
@@ -141,26 +146,28 @@ internal static class EndpointDiscovery
                     .OfType<HttpMethodAttribute>()
                     .ToList();
 
-                if (httpMethodAttrs.Count == 0)
+                if (httpMethodAttrs.Count == 0 || UnreachableStacActions.Contains($"{controller.Name}.{method.Name}"))
                     continue;
 
                 var methodAllowAnonymous = method.GetCustomAttribute<AllowAnonymousAttribute>() != null;
-                var isAnonymous = classAllowAnonymous || methodAllowAnonymous;
 
-                if (anonymous != isAnonymous)
-                    continue;
-
-                var policy = isAnonymous ? null : GeopilotPolicies.Admin;
-                var description = $"{controller.Name}.{method.Name}";
+                // The STAC library puts the template on a separate [Route], not on [HttpGet] and the like.
+                var methodRouteTemplate = method.GetCustomAttribute<RouteAttribute>()?.Template;
 
                 foreach (var httpMethodAttr in httpMethodAttrs)
                 {
                     var httpMethod = httpMethodAttr.HttpMethods.First();
-                    var methodTemplate = httpMethodAttr.Template;
+                    var methodTemplate = httpMethodAttr.Template ?? methodRouteTemplate;
                     var combinedTemplate = CombineTemplates(classRoute, methodTemplate);
+                    var isAnonymous = classAllowAnonymous || methodAllowAnonymous || StacRoutingConvention.IsRead(httpMethod, combinedTemplate);
+
+                    if (anonymous != isAnonymous)
+                        continue;
+
+                    var policy = isAnonymous ? null : GeopilotPolicies.Admin;
                     var route = BuildRoute(stacRoutePrefix, combinedTemplate, controllerName);
 
-                    yield return (httpMethod, route, policy, description);
+                    yield return (httpMethod, route, policy, $"{controller.Name}.{method.Name}");
                 }
             }
         }
