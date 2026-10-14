@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Moq;
 using System.Collections;
 using System.Reflection;

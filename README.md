@@ -66,6 +66,8 @@ docker compose up -d
 
 Der Service `seed` erzeugt dabei die Testdaten, sobald die API die Migrationen angewendet hat, und beendet sich danach.
 
+Startet der Container ohne root (z.B. `docker run --user 1654` oder in OpenShift), überspringt der Entrypoint das Anpassen der Benutzerkennung und der Berechtigungen. Die Datenverzeichnisse `/downloads`, `/assets`, `/pipeline`, `/resources` und `/visualizations` gehören im Image dem Benutzer `app` (UID 1654) und der Gruppe 0. Ohne Mount sind sie deshalb für diesen Benutzer und für jede UID mit GID 0 beschreibbar. Werden Verzeichnisse oder Volumes darüber gemountet, muss die Plattform sie für die laufende UID oder GID beschreibbar machen (in Kubernetes z.B. mit `fsGroup`).
+
 ### Pipeline-Konfiguration
 
 geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
@@ -99,12 +101,11 @@ volumes:
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
-| http://localhost:3081  | interlis-models (in docker-compose)           | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
 | http://localhost:5555  | ilitools-wrapper service                      | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
-Der STAC Browser ist über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
+Der STAC Browser ist über https://localhost:5173/browser erreichbar. Ohne Anmeldung zeigt er nur Mandate, deren STAC-Zugriff auf _Öffentlich_ steht (im Seed das öffentliche Mandat); angemeldete Administratoren sehen über das Cookie alle Mandate.
 
 ### Debugging 🪲
 
@@ -173,7 +174,7 @@ Die TypeScript-Typen für das geopilot API werden automatisch aus der OpenAPI-Sp
 
 ## Cypress Tests
 
-Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Das Projekt ist mit [Cypress Cloud](https://cloud.cypress.io/) konfiguriert, wodurch unter anderem die parallele Ausführung der End-to-End (E2E) Tests ermöglicht wird. Testergebnisse und Aufzeichnungen sind ebenfalls direkt in [Cypress Cloud](https://cloud.cypress.io/) einsehbar, was die Identifikation und Behebung möglicher Fehler und Probleme erleichtert. Um die detaillierten Testergebnisse einzusehen und die E2E-Tests des Projekts zu debuggen, kann die [Cypress Dashboard-Seite](https://cloud.cypress.io/projects/bqtbpp/runs) besucht werden.
+Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Die Testergebnisse stehen im Log des Workflow-Laufs; schlägt ein Test fehl, hängen seine Screenshots als Artefakt am Lauf.
 
 ## Health Check API
 
@@ -188,6 +189,18 @@ Der Health Check ist auch im Docker Container integriert und kann ebenfalls übe
 ```bash
 docker inspect --format='{{json .State.Health.Status}}' container_name
 ```
+
+Für Kubernetes gibt es zwei weitere Endpunkte, beide ohne Anmeldung:
+
+| Endpunkt | Prüft | Verwendung |
+| --- | --- | --- |
+| `/health/live` | nichts, nur dass der Prozess antwortet | Liveness- und Startup-Probe |
+| `/health/ready` | Datenbank, Datenverzeichnisse, im Direct-Upload-Modus das Upload-Verzeichnis | Readiness-Probe |
+| `/health` | alles, wie bisher | Docker `HEALTHCHECK`, Monitoring |
+
+Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der Pipeline-Definition vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
+
+Beim Start legt geopilot fehlende Datenverzeichnisse an und schreibt in jedes eine Probedatei, in `Storage:ResourcesDirectory` wird nur gelesen. Gelingt das nicht, etwa weil ein Volume dem falschen Benutzer gehört, bricht der Start mit dem Namen des Verzeichnisses ab.
 
 ## Neue Version erstellen
 
@@ -270,13 +283,19 @@ Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im S
 
 Den Namen einer Person bildet die API aus den Claims in `Auth:UserNameClaims` (Standard: `["name"]`). Mehrere Claims werden mit einem Leerzeichen verbunden, ein fehlender Claim wird übersprungen. Liefert ein Identity Provider kein `name`, etwa einer mit Anbindung an AGOV, setzt `["givenname", "surname"]` den Namen aus Vor- und Nachname zusammen. Liefert keiner der Claims einen Wert, meldet die API die Person nicht an. Die Einstellung gilt für beide Token-Formate.
 
+### Datenbank-Migration
+
+Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen gleichzeitig, etwa zwei Pods während eines Rollouts, migriert eine nach der anderen, die zweite findet danach nichts mehr zu tun. Mit `Database:MigrateOnStartup=false` (Umgebungsvariable `Database__MigrateOnStartup`, Standard `true`) startet die API ohne Migrationsversuch. Die Migration muss dann vorher anderweitig laufen, etwa in einem eigenen Job; der Container `seed` wartet sonst vergeblich auf sie.
+
 ## Cloud Upload
 
 Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
-Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job an seiner eigenen Logik scheitert oder die Lieferung sperrt, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Ein abgebrochener Lauf (Job-Timeout oder Herunterfahren) behält sie bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Jobs noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Jobs starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+
+`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Jobs warten, bis ein Platz frei wird. Wie viele Jobs insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jeder wartende Job seinen Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
 
 ### Entwicklung
 
@@ -327,7 +346,7 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 ```
 
 > [!WARNING]
-> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Lieferungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
+> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Prüfungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
 
 Für den direkten Modus gilt:
 

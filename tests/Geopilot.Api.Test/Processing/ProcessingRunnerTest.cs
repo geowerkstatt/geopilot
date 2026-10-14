@@ -3,6 +3,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Processes.XtfDiff;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
@@ -290,6 +291,43 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task ExtractStepDownloadsOffersTheLogOfStatesThatCannotBeCompared()
+    {
+        // Tagged like the comparison of the development pipeline: states the tool cannot compare have no diff, which
+        // must neither fail the run nor keep the log from being offered.
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = PipelineStep
+            .Builder()
+            .Id("comparison")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions(
+            [
+                new OutputActionConfig { Property = nameof(XtfDiffResult.Diff), Actions = new HashSet<OutputAction> { OutputAction.Download } },
+                new OutputActionConfig { Property = nameof(XtfDiffResult.Log), Actions = new HashSet<OutputAction> { OutputAction.Download } },
+            ])
+            .Process(new object())
+            .Logger(pipelineLogger)
+            .Build();
+        var stepResult = new StepResult
+        {
+            Result = new XtfDiffResult
+            {
+                ComparisonState = ComparisonState.NotComparable,
+                StatusMessage = LocalizedText.Empty,
+                Diff = [],
+                Log = new PipelineFile(WriteTempFile("XTF files use different INTERLIS models"), "diffLog.log"),
+            },
+        };
+
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
+
+        Assert.HasCount(1, step.Downloads);
+        Assert.AreEqual("diffLog.log", step.Downloads[0].OriginalFileName);
+    }
+
+    [TestMethod]
     public async Task ExtractStepDownloadsFailsWhenPropertyDoesNotExistOnResult()
     {
         var jobId = NewJob();
@@ -373,7 +411,7 @@ public class ProcessingRunnerTest
         runRecorderMock.Verify(r => r.RecordStepStartedAsync(jobId, step, 0), Times.Once);
         runRecorderMock.Verify(r => r.RecordStepCompletedAsync(jobId, step, 0), Times.Once);
         runRecorderMock.Verify(
-            r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null),
+            r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -415,7 +453,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "A failing completion must not change the outcome of the run.");
         store.Verify(s => s.TryMarkAsFailed(jobId), Times.Never, "A failing completion must not mark the job as failed.");
         runRecorderMock.Verify(
-            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null),
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once,
             "The execution protocol must still record the run as successful.");
     }
@@ -745,24 +783,85 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task UploadIsKeptWhenTheRunWasInterruptedByAHostShutdown()
+    public async Task HostShutdownCancelsTheRunningJobAndKeepsItsUpload()
     {
         var jobId = NewJob();
         var uploadId = Guid.NewGuid();
-        var step = BuildThrowingStep("step_1");
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
         using var pipeline = BuildPipeline(jobId, step);
 
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-
-        // A host shutdown leaves the job in Running: nobody has decided yet whether it mattered, so the
-        // originals have to survive. UploadCleanupService's age-based sweep is what collects them.
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Running));
+        var (runner, store) = CreateRunnerAwaitingShutdown(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
 
         await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once, "A run the shutdown cancelled must not stay Running.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, "host shutdown", It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // The shutdown says nothing about the data, so the originals stay for a second attempt until
+        // UploadCleanupService's age-based sweep collects them.
         orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task JobTimeoutCancelsTheRunningJobAndKeepsItsUpload()
+    {
+        var store = new ProcessingJobStore();
+        var gate = new TaskCompletionSource();
+
+        var job = store.CreateJob(Guid.NewGuid());
+        createdJobIds.Add(job.Id);
+
+        var jobTimeout = TimeSpan.FromSeconds(2);
+        var step = BuildBlockingStep("step_1", gate.Task);
+        using var pipeline = BuildPipeline(job.Id, step);
+        store.AttachPipeline(job.Id, pipeline, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+
+        using var runner = CreateRunner(store, jobTimeout);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => store.GetJob(job.Id)!.State != ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(job.UploadId), Times.Never);
+        Assert.AreEqual(ProcessingState.Cancelled, store.GetJob(job.Id)!.State);
+        Assert.AreEqual(StepState.Cancelled, step.State, "The step the timeout interrupted must not be reported as an error.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(job.Id, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, $"Job timed out after {jobTimeout}.", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task HostShutdownLetsTheRunningJobFinishWithinTheDrainWindow()
+    {
+        var jobId = NewJob();
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerAwaitingShutdown(pipeline, TimeSpan.FromSeconds(30));
+
+        await runner.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
+        var stopping = runner.StopAsync(CancellationToken.None);
+
+        Assert.IsFalse(stopping.IsCompleted, "The runner must wait for the job in flight during the drain window.");
+        gate.SetResult();
+        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -981,6 +1080,42 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task RunnerRunsNoMoreJobsAtOnceThanMaxConcurrentJobs()
+    {
+        var store = new ProcessingJobStore();
+        var gates = Enumerable.Range(0, 3).Select(_ => new TaskCompletionSource()).ToList();
+        var pipelines = new List<Geopilot.Pipeline.Pipeline>();
+
+        foreach (var gate in gates)
+        {
+            var job = store.CreateJob(Guid.NewGuid());
+            createdJobIds.Add(job.Id);
+            var pipeline = BuildPipeline(job.Id, BuildBlockingStep("step_1", gate.Task));
+            pipelines.Add(pipeline);
+            store.AttachPipeline(job.Id, pipeline, 1);
+            store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+        }
+
+        using var runner = CreateRunner(store, maxConcurrentJobs: 2);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => pipelines[0].State == ProcessingState.Running && pipelines[1].State == ProcessingState.Running, TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+            Assert.AreEqual(ProcessingState.Pending, pipelines[2].State, "The third job must wait while both slots are taken.");
+
+            gates[0].SetResult();
+            await WaitUntilAsync(() => pipelines[2].State == ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            gates.ForEach(gate => gate.TrySetResult());
+            await runner.StopAsync(CancellationToken.None);
+            pipelines.ForEach(pipeline => pipeline.Dispose());
+        }
+    }
+
+    [TestMethod]
     public async Task RunnerSurvivesTimeoutTransitionRejectedByTheStore()
     {
         var jobId = NewJob();
@@ -1009,8 +1144,8 @@ public class ProcessingRunnerTest
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
         orchestrationServiceMock.Verify(
             c => c.ReleaseUploadAsync(uploadId),
-            Times.Once,
-            "The cleanup must still release the upload after the rejected transition.");
+            Times.Never,
+            "A timed out run says nothing about its data, so the upload stays for a second attempt.");
     }
 
     /// <summary>
@@ -1060,12 +1195,33 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
-    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null) =>
+    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default) =>
         new ProcessingRunner(
             Mock.Of<ILogger<ProcessingRunner>>(),
             jobStore,
             scopeFactory,
-            Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5) }));
+            Options.Create(new ProcessingOptions
+            {
+                JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5),
+                MaxConcurrentJobs = maxConcurrentJobs,
+                ShutdownDrainTimeout = shutdownDrainTimeout,
+            }));
+
+    /// <summary>
+    /// Like <see cref="CreateRunnerWithStore"/>, but the queue stays open, so the runner only ends when it is
+    /// stopped, which is how a host shutdown reaches it.
+    /// </summary>
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerAwaitingShutdown(IPipeline pipeline, TimeSpan shutdownDrainTimeout = default)
+    {
+        var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
+
+        var store = new Mock<IProcessingJobStore>();
+        store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
+        store.Setup(s => s.TryPipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>())).Returns(true);
+
+        return (CreateRunner(store.Object, shutdownDrainTimeout: shutdownDrainTimeout), store);
+    }
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state };

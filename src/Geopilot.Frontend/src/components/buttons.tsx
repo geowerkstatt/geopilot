@@ -12,6 +12,9 @@ export interface ButtonProps extends MuiButtonProps {
   // from the non-generic MuiButtonProps, so declare the ones we use.
   component?: ElementType;
   to?: string;
+  href?: string;
+  target?: string;
+  rel?: string;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, ...props }, ref) => {

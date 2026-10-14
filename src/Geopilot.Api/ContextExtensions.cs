@@ -10,6 +10,9 @@ namespace Geopilot.Api;
 
 internal static class ContextExtensions
 {
+    // Any fixed value works, it only has to be the same for every instance migrating the database ("geopilot" in ASCII).
+    private const long MigrationLockKey = 0x67656F70696C6F74;
+
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
     /// </summary>
@@ -90,7 +93,39 @@ internal static class ContextExtensions
         #pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
     }
 
+    /// <summary>
+    /// Applies pending migrations. Instances starting concurrently against the same database migrate one after another.
+    /// </summary>
     public static void MigrateDatabase(this Context context)
+    {
+        // Serializes concurrent starts, e.g. two pods during a rolling update. The PostGIS branch runs a script
+        // and bypasses the migration lock EF Core would otherwise take. An advisory lock belongs to the session,
+        // so the connection stays open until the lock is released.
+        context.Database.OpenConnection();
+        try
+        {
+            // shortcut: the wait is bounded by the default command timeout (30 s); a longer migration makes the
+            // waiting instance fail its start and restart, and it then finds nothing pending.
+            context.Database.ExecuteSql($"SELECT pg_advisory_lock({MigrationLockKey})");
+            try
+            {
+                if (context.Database.GetPendingMigrations().Any())
+                {
+                    context.ApplyMigrations();
+                }
+            }
+            finally
+            {
+                context.Database.ExecuteSql($"SELECT pg_advisory_unlock({MigrationLockKey})");
+            }
+        }
+        finally
+        {
+            context.Database.CloseConnection();
+        }
+    }
+
+    private static void ApplyMigrations(this Context context)
     {
         if (context.IsPostgisInstalled())
         {

@@ -59,7 +59,7 @@ public class DeliveryDeclarationServiceTest
 
         var declarer = Declarer.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.GetMandateForDeclarerAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(m => m.GetMandateForDeliveryAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
         var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), declarer, CancellationToken.None);

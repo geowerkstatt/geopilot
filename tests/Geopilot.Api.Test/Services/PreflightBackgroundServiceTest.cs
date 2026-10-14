@@ -72,6 +72,33 @@ public class PreflightBackgroundServiceTest
     }
 
     [TestMethod]
+    public async Task ProcessRequestAsyncLeavesJobAndUploadUntouchedWhenTheHostShutsDown()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>(MockBehavior.Strict).Object);
+        using var shutdown = new CancellationTokenSource();
+
+        // The scan only ends when the shutdown cancels it, like a scan over several gigabytes would.
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        orchestrationServiceMock
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
+            .Returns<Guid, CancellationToken>(async (_, cancellationToken) =>
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return new ScanResult(true);
+            });
+
+        var processing = service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId), shutdown.Token);
+        await shutdown.CancelAsync();
+        await processing.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // The strict mocks refuse any other call, so the job is neither failed nor queued and no file is released.
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(It.IsAny<Guid>(), It.IsAny<ScanResult>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task ProcessRequestAsyncRecordsScanOutcomeOfDetectedThreat()
     {
         var jobId = Guid.NewGuid();

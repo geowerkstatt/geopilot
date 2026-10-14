@@ -60,6 +60,16 @@ const Footer = () => {
           to="/about"
           onClick={linkClick("/about")}
         />
+        <Button
+          size={isXs ? "small" : "medium"}
+          variant="text"
+          data-cy="stac-browser-footer-nav"
+          label="stacBrowser"
+          component="a"
+          href="/browser"
+          target="_blank"
+          rel="noopener"
+        />
       </Stack>
     </Stack>
   );

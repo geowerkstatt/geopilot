@@ -26,12 +26,14 @@ public class DeliveryController : ControllerBase
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
+    private readonly IAuthorizationService authorizationService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService)
     {
+        this.authorizationService = authorizationService;
         this.logger = logger;
         this.context = context;
         this.deliveryDeclarationService = deliveryDeclarationService;
@@ -134,7 +136,7 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var mandate = await mandateService.GetMandateForDeclarerAsync(mandateId, Declarer.ForUser(user.Id));
+        var mandate = await mandateService.GetMandateForDeliveryAsync(mandateId, Declarer.ForUser(user.Id));
         if (mandate == null)
             return NotFound();
 
@@ -250,7 +252,7 @@ public class DeliveryController : ControllerBase
     /// </summary>
     /// <returns>The asset file.</returns>
     [HttpGet("assets/{assetId}")]
-    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could not be found.")]
@@ -260,8 +262,13 @@ public class DeliveryController : ControllerBase
         logger.LogInformation("Downloading asset with id <{AssetId}> started.", assetId);
         try
         {
-            var asset = context.Assets.Include(a => a.Delivery).SingleOrDefault(a => a.Id == assetId && !a.Deleted);
-            if (asset == default)
+            var asset = context.Assets
+                .Include(a => a.Delivery)
+                .ThenInclude(d => d!.Mandate)
+                .SingleOrDefault(a => a.Id == assetId && !a.Deleted);
+
+            // A caller who may not download the asset learns as much as for an id that does not exist.
+            if (asset == default || !await MayDownloadAsync(asset))
             {
                 logger.LogTrace("No asset with id <{AssetId}> found.", assetId);
                 return NotFound($"No asset with id <{assetId}> found.");
@@ -281,6 +288,10 @@ public class DeliveryController : ControllerBase
             return Problem($"Error while accessing delivery asset with id <{assetId}>.");
         }
     }
+
+    private async Task<bool> MayDownloadAsync(Asset asset) =>
+        asset.Delivery?.Mandate?.StacAccess == StacAccess.Public
+        || (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
 
     internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime? utcNow = null)
     {

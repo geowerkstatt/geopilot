@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -31,7 +32,7 @@ public partial class Ili2GpkgClientIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        grpcChannel = PipelineProcessFactory.CreateIlitoolsWrapperChannel("http://localhost:5555");
         ili2GpkgClient = new Ili2GpkgClient(grpcChannel, NullLogger<Ili2GpkgClient>.Instance);
     }
 
