@@ -39,16 +39,13 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   isUploading,
 }) => {
   const { t } = useTranslation();
-  const [acceptsAllFileTypes, setAcceptsAllFileTypes] = useState<boolean>(true);
   const [error, setError] = useState<string>();
+  // Derived during render, so the restriction applies in the same render that shows the limits.
+  const acceptsAllFileTypes = !fileExtensions || fileExtensions.includes(".*");
 
   useEffect(() => {
     setFileError(error);
   }, [error, setFileError]);
-
-  useEffect(() => {
-    setAcceptsAllFileTypes(!fileExtensions || fileExtensions?.includes(".*"));
-  }, [fileExtensions]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[], fileRejections: FileRejection[]) => {
@@ -156,6 +153,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           <Typography
             variant="caption"
             component="div"
+            data-cy="file-dropzone-limits"
             className={disabled ? "Mui-disabled" : ""}
             sx={{
               color: "text.secondary",
