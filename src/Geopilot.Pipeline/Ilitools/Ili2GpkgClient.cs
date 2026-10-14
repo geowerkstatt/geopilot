@@ -200,6 +200,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     {
         var success = false;
         var logBuilder = new StringBuilder();
+        var xtfLogBuilder = new StringBuilder();
         Ili2gpkgFileStart? currentFile = null;
         Stream? outputFileStream = null;
 
@@ -226,6 +227,11 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
                             outputFileStream ??= outputFile.OpenWriteFileStream();
                             await outputFileStream.WriteAsync(response.Chunk.Memory, cancellationToken);
                         }
+                        else if (currentFile?.Type == Ili2gpkgFileType.XtfLogFile)
+                        {
+                            // The XTF log is written to the output file instead if outputFileType is XtfLogFile.
+                            xtfLogBuilder.Append(response.Chunk.ToStringUtf8());
+                        }
 
                         break;
                 }
@@ -240,6 +246,6 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
         }
 
         logger.LogInformation("Ili2Gpkg operation completed. Success: {Success}", success);
-        return new Ili2GpkgResult(success, logBuilder.ToString());
+        return new Ili2GpkgResult(success, logBuilder.ToString(), xtfLogBuilder.ToString());
     }
 }
