@@ -46,14 +46,23 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile? inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
+        if (inputFile == null && !args.DoSchemaImport)
+        {
+            throw new ArgumentException("Input gpkg file must be provided for import unless --doSchemaImport is specified.", nameof(inputFile));
+        }
+
         logger.LogInformation("Starting Ili2Gpkg import operation for {Count} transfer file(s).", transferFiles.Count);
 
         using var call = client.Convert(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationImport, args), cancellationToken);
-        await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
+        if (inputFile != null)
+        {
+            await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
+        }
+
         foreach (var transferFile in transferFiles)
         {
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
@@ -142,6 +151,21 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             Dataset = args.Dataset ?? string.Empty,
             MetaConfig = args.MetaConfig ?? string.Empty,
             ToolVersion = args.ToolVersion ?? string.Empty,
+            CreateFk = args.CreateFk,
+            CreateGeomIdx = args.CreateGeomIdx,
+            CreateEnumTabs = args.CreateEnumTabs,
+            CreateTidCol = args.CreateTidCol,
+            BeautifyEnumDispName = args.BeautifyEnumDispName,
+            Smart1Inheritance = args.Smart1Inheritance,
+            Smart2Inheritance = args.Smart2Inheritance,
+            SqlColsAsText = args.SqlColsAsText,
+            DoSchemaImport = args.DoSchemaImport,
+            DeleteData = args.DeleteData,
+            SkipPolygonBuilding = args.SkipPolygonBuilding,
+            ImportBid = args.ImportBid,
+            DisableAreaValidation = args.DisableAreaValidation,
+            ForceTypeValidation = args.ForceTypeValidation,
+            ValidConfig = args.ValidConfig ?? string.Empty,
         };
 
         if (args.Models != null)
@@ -158,6 +182,30 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
         {
             info.PluginIds.AddRange(args.PluginIds);
         }
+
+        if (args.Topics != null)
+        {
+            info.Topics.AddRange(args.Topics);
+        }
+
+        if (args.Baskets != null)
+        {
+            info.Baskets.AddRange(args.Baskets);
+        }
+
+        if (args.ExportModels != null)
+        {
+            info.ExportModels.AddRange(args.ExportModels);
+        }
+
+        info.TransferFormat = args.TransferFormat switch
+        {
+            Ili2GpkgTransferFormat.Xtf => TransferFormat.Xtf,
+            Ili2GpkgTransferFormat.Itf => TransferFormat.Itf,
+            Ili2GpkgTransferFormat.Gml => TransferFormat.Gml,
+            Ili2GpkgTransferFormat.Gml20 => TransferFormat.Gml20,
+            _ => throw new ArgumentOutOfRangeException(nameof(args), args.TransferFormat, "Invalid transfer format."),
+        };
 
         return new ConvertRequest
         {

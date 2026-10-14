@@ -29,7 +29,7 @@ public interface IIli2GpkgClient
     /// <paramref name="inputFile"/>. On success, the populated GeoPackage is written to <paramref name="outputFile"/>.
     /// </summary>
     /// <param name="args">Additional ili2gpkg arguments.</param>
-    /// <param name="inputFile">Input GeoPackage file.</param>
+    /// <param name="inputFile">Input GeoPackage file. Required unless <see cref="Ili2GpkgArgs.DoSchemaImport"/> is specified.</param>
     /// <param name="outputFile">Output GeoPackage file for a successful import.</param>
     /// <param name="transferFiles">INTERLIS transfer files.</param>
     /// <param name="modelFiles">
@@ -43,7 +43,7 @@ public interface IIli2GpkgClient
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> ImportAsync(
         Ili2GpkgArgs args,
-        IPipelineFile inputFile,
+        IPipelineFile? inputFile,
         IPipelineFile outputFile,
         IReadOnlyList<IPipelineFile> transferFiles,
         IReadOnlyList<IPipelineFile>? modelFiles = null,

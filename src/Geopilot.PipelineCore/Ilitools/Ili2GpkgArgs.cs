@@ -109,4 +109,118 @@ public sealed record Ili2GpkgArgs
     /// version actually ran is visible in the log header the tool writes.
     /// </remarks>
     public string? ToolVersion { get; init; }
+
+    /// <summary>
+    /// Creates foreign key constraints for columns that reference records in other tables.
+    /// Maps to the ili2gpkg option <c>--createFk</c>.
+    /// </summary>
+    public bool CreateFk { get; init; }
+
+    /// <summary>
+    /// Creates a spatial index for each geometry column.
+    /// Maps to the ili2gpkg option <c>--createGeomIdx</c>.
+    /// </summary>
+    public bool CreateGeomIdx { get; init; }
+
+    /// <summary>
+    /// Creates a table with the enumeration values for each enumeration definition.
+    /// Maps to the ili2gpkg option <c>--createEnumTabs</c>.
+    /// </summary>
+    public bool CreateEnumTabs { get; init; }
+
+    /// <summary>
+    /// Creates an additional column <c>T_Ili_Tid</c> in each table.
+    /// Maps to the ili2gpkg option <c>--createTidCol</c>.
+    /// </summary>
+    public bool CreateTidCol { get; init; }
+
+    /// <summary>
+    /// Fills the enumeration display name with the XTF code without underscores.
+    /// Maps to the ili2gpkg option <c>--beautifyEnumDispName</c>.
+    /// </summary>
+    public bool BeautifyEnumDispName { get; init; }
+
+    /// <summary>
+    /// Maps the inheritance hierarchy with the dynamic smart1 strategy.
+    /// Maps to the ili2gpkg option <c>--smart1Inheritance</c>.
+    /// </summary>
+    public bool Smart1Inheritance { get; init; }
+
+    /// <summary>
+    /// Maps the inheritance hierarchy with the dynamic smart2 strategy.
+    /// Maps to the ili2gpkg option <c>--smart2Inheritance</c>.
+    /// </summary>
+    public bool Smart2Inheritance { get; init; }
+
+    /// <summary>
+    /// Maps all simple INTERLIS attributes to TEXT columns, so that invalid data can be imported.
+    /// Maps to the ili2gpkg option <c>--sqlColsAsText</c>.
+    /// </summary>
+    public bool SqlColsAsText { get; init; }
+
+    /// <summary>
+    /// Creates the tables during the data import, so no separate schema import is required.
+    /// Maps to the ili2gpkg option <c>--doSchemaImport</c>.
+    /// </summary>
+    public bool DoSchemaImport { get; init; }
+
+    /// <summary>
+    /// Deletes all data in the existing tables before the data import, keeping the table structure.
+    /// Maps to the ili2gpkg option <c>--deleteData</c>.
+    /// </summary>
+    public bool DeleteData { get; init; }
+
+    /// <summary>
+    /// Reads the line tables of ITF files as they are, without building polygons.
+    /// Maps to the ili2gpkg option <c>--skipPolygonBuilding</c>.
+    /// </summary>
+    public bool SkipPolygonBuilding { get; init; }
+
+    /// <summary>
+    /// Imports the basket identification (BID) into the column <c>T_Ili_Tid</c> of the table <c>t_ili2db_basket</c>.
+    /// Maps to the ili2gpkg option <c>--importBid</c>.
+    /// </summary>
+    public bool ImportBid { get; init; }
+
+    /// <summary>
+    /// The qualified names (<c>Model.Topic</c>) of the topics whose baskets are imported, exported or validated.
+    /// Maps to the ili2gpkg option <c>--topics</c>, joined by a semicolon.
+    /// </summary>
+    public IReadOnlyList<string>? Topics { get; init; }
+
+    /// <summary>
+    /// The BIDs of the baskets to import, export or validate.
+    /// Maps to the ili2gpkg option <c>--baskets</c>, joined by a semicolon.
+    /// </summary>
+    public IReadOnlyList<string>? Baskets { get; init; }
+
+    /// <summary>
+    /// The base or translated models the data is exported or validated against, instead of the models it was captured in.
+    /// Maps to the ili2gpkg option <c>--exportModels</c>, joined by a semicolon.
+    /// </summary>
+    public IReadOnlyList<string>? ExportModels { get; init; }
+
+    /// <summary>
+    /// The format of the transfer file(s), <see cref="Ili2GpkgTransferFormat.Xtf"/> by default.
+    /// </summary>
+    public Ili2GpkgTransferFormat TransferFormat { get; init; } = Ili2GpkgTransferFormat.Xtf;
+
+    /// <summary>
+    /// Disables the validation of the AREA topology.
+    /// Maps to the ili2gpkg option <c>--disableAreaValidation</c>.
+    /// </summary>
+    public bool DisableAreaValidation { get; init; }
+
+    /// <summary>
+    /// Restricts relaxing the validation through a validation configuration to <c>multiplicity</c>.
+    /// Maps to the ili2gpkg option <c>--forceTypeValidation</c>.
+    /// </summary>
+    public bool ForceTypeValidation { get; init; }
+
+    /// <summary>
+    /// The validation configuration to apply, in the form <c>ilidata:&lt;DatasetId&gt;</c>, resolved by the tool
+    /// through <see cref="ModelDirs"/>.
+    /// Maps to the ili2gpkg option <c>--validConfig</c>.
+    /// </summary>
+    public string? ValidConfig { get; init; }
 }
