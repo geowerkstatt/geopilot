@@ -1045,6 +1045,28 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task JobIsCancelledWhenTheTimeoutHitsWhileItsDeliveryFilesAreStaged()
+    {
+        var jobId = NewJob();
+        using var pipeline = BuildPipeline(jobId, BuildUploadPassthroughStep("passthrough"));
+
+        // The step succeeds, but the upload it passes on never becomes ready, so the job timeout hits while the
+        // run stages it for delivery: the pipeline ends as Success with an incomplete staging.
+        var (runner, store) = CreateRunnerWithStore(pipeline, TimeSpan.FromSeconds(2), uploads: [new NeverReadyFile()]);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State, "The steps succeeded, only the staging was cut short.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        store.Verify(
+            s => s.PipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()),
+            Times.Never,
+            "A job whose staging was cut short by the timeout must never turn deliverable.");
+    }
+
+    [TestMethod]
     public async Task PipelineDisposeFailureDoesNotAbortTheRunner()
     {
         var jobId = NewJob();
