@@ -144,7 +144,7 @@
   "precursor": "Precursor",
   "privacyPolicy": "Privacy policy",
   "processing": "Processing",
-  "public": "Public",
+  "public": "Public processing",
   "publicMandateHelperText": "Anyone can validate against public mandates. Only signed-in members of the eligible organisations can deliver",
   "removeFile": "Remove file",
   "removeLayer": "Remove layer",
