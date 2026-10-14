@@ -8,17 +8,20 @@ namespace Geopilot.PipelineCore.Ilitools;
 public interface IIli2GpkgClient
 {
     /// <summary>
-    /// Imports the schema from the INTERLIS model file <paramref name="modelFile"/> into the GeoPackage file <paramref name="gpkgFile"/>.
+    /// Imports the schema from the INTERLIS model file <paramref name="modelFile"/> into the GeoPackage file <paramref name="outputFile"/>,
+    /// optionally extending the existing schema if <paramref name="inputFile"/> is provided.
     /// </summary>
     /// <param name="args">Additional ili2gpkg arguments.</param>
     /// <param name="modelFile">INTERLIS model file.</param>
-    /// <param name="gpkgFile">GeoPackage file for the schema import.</param>
+    /// <param name="outputFile">GeoPackage output file for the schema import.</param>
+    /// <param name="inputFile">Optional input GeoPackage file.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> SchemaImportAsync(
         Ili2GpkgArgs args,
         IPipelineFile modelFile,
-        IPipelineFile gpkgFile,
+        IPipelineFile outputFile,
+        IPipelineFile? inputFile = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

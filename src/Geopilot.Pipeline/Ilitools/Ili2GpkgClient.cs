@@ -26,17 +26,23 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> SchemaImportAsync(Ili2GpkgArgs args, IPipelineFile modelFile, IPipelineFile gpkgFile, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> SchemaImportAsync(Ili2GpkgArgs args, IPipelineFile modelFile, IPipelineFile outputFile, IPipelineFile? inputFile = null, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting Ili2Gpkg schema import operation.");
+        logger.LogInformation("Starting Ili2Gpkg schema import operation into {NewOrExisting} database.", inputFile == null ? "new" : "existing");
 
         using var call = client.Convert(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationSchemaImport, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.ModelFile, modelFile, cancellationToken);
+
+        if (inputFile != null)
+        {
+            await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
+        }
+
         await call.RequestStream.CompleteAsync();
 
-        return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, outputFile, cancellationToken);
     }
 
     /// <inheritdoc />
