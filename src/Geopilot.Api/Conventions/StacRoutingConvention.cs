@@ -33,7 +33,7 @@ public class StacRoutingConvention : IActionModelConvention
     internal static bool IsRead(string httpMethod, string? template) =>
         HttpMethods.IsGet(httpMethod)
         || HttpMethods.IsHead(httpMethod)
-        || (HttpMethods.IsPost(httpMethod) && template?.TrimEnd('/').EndsWith("search", StringComparison.OrdinalIgnoreCase) == true);
+        || (HttpMethods.IsPost(httpMethod) && string.Equals(template?.TrimEnd('/').Split('/')[^1], "search", StringComparison.OrdinalIgnoreCase));
 
     /// <inheritdoc/>
     public void Apply(ActionModel action)
