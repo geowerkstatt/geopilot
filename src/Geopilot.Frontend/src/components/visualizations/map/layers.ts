@@ -129,7 +129,7 @@ export const buildFeatureLayer = (
         geometry,
         info: mapFeature.info,
       });
-      feature.setId(mapFeature.errorId);
+      feature.setId(mapFeature.id);
       source.addFeature(feature);
     } catch {
       // Skip features with unparseable geometry rather than failing the whole map.
