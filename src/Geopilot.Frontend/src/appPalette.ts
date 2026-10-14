@@ -63,6 +63,17 @@ export const themePalette = {
     highlight: "#980303",
     hintBackground: alpha("#000000", 0.6),
     hintText: "#ffffff",
+    // The old and the new state of a diff, orange and blue so they stay apart for colour-blind eyes too.
+    old: {
+      fill: "#f57c00",
+      stroke: "#ffffff",
+      highlight: "#a64b00",
+    },
+    new: {
+      fill: "#1e88e5",
+      stroke: "#ffffff",
+      highlight: "#0d47a1",
+    },
   },
   divider: alpha("#124A4F", 0.2),
   tooltip: {
