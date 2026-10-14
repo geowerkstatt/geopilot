@@ -118,10 +118,9 @@ public class ProcessingRunner : BackgroundService
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
-                // Pipeline state is already Cancelled (set by the running step). Downloads from steps that
-                // completed before the timeout were already persisted by the per-step callback; only the
-                // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
-                // only for a successful, deliverable run).
+                // The timeout can hit a step or the delivery staging, so the pipeline may still report Success;
+                // the job ends Cancelled either way, which keeps a partial staging undeliverable. Downloads of
+                // steps finished before the timeout were already persisted by the per-step callback.
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
                 terminalState = ProcessingState.Cancelled;
                 failureReason = $"Job timed out after {processingOptions.JobTimeout}.";

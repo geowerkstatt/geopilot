@@ -59,6 +59,7 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    [DataRow(ProcessingState.Pending, DisplayName = "Preflight still running")]
     [DataRow(ProcessingState.Running, DisplayName = "Pipeline finished, delivery files still being staged")]
     [DataRow(ProcessingState.Failed, DisplayName = "Staging the delivery files failed")]
     [DataRow(ProcessingState.Cancelled)]

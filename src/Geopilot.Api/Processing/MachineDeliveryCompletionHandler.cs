@@ -57,8 +57,8 @@ public class MachineDeliveryCompletionHandler : IJobCompletionHandler
                 break;
 
             case DeliveryDeclarationStatus.AlreadyDeclared when result.DeliveryId is int existingDeliveryId:
-                // The caller declared the delivery itself before the run finished. It exists, so reporting the
-                // attempt as failed would contradict it.
+                // The caller declared the delivery itself once the job was deliverable, before this declaration
+                // ran. It exists, so reporting the attempt as failed would contradict it.
                 submissionStore.MarkDelivered(jobId, existingDeliveryId);
                 logger.LogInformation("Job <{JobId}> was already delivered as <{DeliveryId}>, so the attempt adopts it.", jobId, existingDeliveryId);
                 break;
