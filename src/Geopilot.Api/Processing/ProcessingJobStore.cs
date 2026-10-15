@@ -51,31 +51,10 @@ public class ProcessingJobStore : IProcessingJobStore
         TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
 
     /// <inheritdoc/>
-    public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
-    {
-        EnsureStateIsTerminal(pipelineState);
-
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                if (!CanCompletePipeline(currentJob))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{pipelineState}>.");
-                }
-
-                return currentJob with { State = pipelineState };
-            });
-    }
-
-    /// <inheritdoc/>
     public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
         // A state that is not terminal is a defect at the call site and cannot be caused by a race, so
-        // it surfaces here just as it does in the throwing operation. What this operation tolerates is
-        // a job that moved on, not a wrong argument.
+        // it still throws. What this operation tolerates is a job that moved on, not a wrong argument.
         EnsureStateIsTerminal(pipelineState);
 
         return TryTransition(jobId, CanCompletePipeline, pipelineState);

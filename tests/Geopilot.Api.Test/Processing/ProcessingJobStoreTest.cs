@@ -150,42 +150,6 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Success)]
-    [DataRow(ProcessingState.Warning)]
-    [DataRow(ProcessingState.DeliveryRestriction)]
-    [DataRow(ProcessingState.Failed)]
-    [DataRow(ProcessingState.Cancelled)]
-    public void PipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-        var updated = store.PipelineFinished(job.Id, pipelineState);
-
-        Assert.AreEqual(pipelineState, updated.State);
-    }
-
-    [TestMethod]
-    public void PipelineFinishedThrowsIfNotRunning()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.PipelineFinished(job.Id, ProcessingState.Success));
-    }
-
-    [TestMethod]
-    [DataRow(ProcessingState.Pending)]
-    [DataRow(ProcessingState.Running)]
-    public void PipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.PipelineFinished(job.Id, pipelineState));
-    }
-
-    [TestMethod]
     public void TryMarkAsFailedSetsState()
     {
         var job = store.CreateJob(Guid.NewGuid());
@@ -202,7 +166,7 @@ public class ProcessingJobStoreTest
         var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-        store.PipelineFinished(job.Id, ProcessingState.Success);
+        Assert.IsTrue(store.TryPipelineFinished(job.Id, ProcessingState.Success));
 
         Assert.IsFalse(store.TryMarkAsFailed(job.Id));
         Assert.AreEqual(ProcessingState.Success, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
