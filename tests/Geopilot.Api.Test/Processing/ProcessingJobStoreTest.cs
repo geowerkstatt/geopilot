@@ -257,7 +257,7 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    public void RemoveJobDisposesPipeline()
+    public void RemoveJobLeavesThePipelineToWhoeverEndedTheJob()
     {
         var job = store.CreateJob(Guid.NewGuid());
         var pipelineMock = new Mock<IPipeline>();
@@ -267,6 +267,6 @@ public class ProcessingJobStoreTest
 
         Assert.IsTrue(removed);
         Assert.IsNull(store.GetJob(job.Id));
-        pipelineMock.Verify(p => p.Dispose(), Times.Once);
+        pipelineMock.Verify(p => p.Dispose(), Times.Never, "The pipeline was disposed when the job ended; a second disposal would break 'exactly once'.");
     }
 }

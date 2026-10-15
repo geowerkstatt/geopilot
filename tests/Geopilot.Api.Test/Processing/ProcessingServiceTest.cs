@@ -112,7 +112,8 @@ public class ProcessingServiceTest
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var job = new ProcessingJob(jobId, uploadId, null, DateTime.Now);
-        var pipeline = new Mock<IPipeline>().Object;
+        var pipelineMock = new Mock<IPipeline>();
+        var pipeline = pipelineMock.Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
         mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
@@ -130,6 +131,7 @@ public class ProcessingServiceTest
         });
 
         processingJobStoreMock.Verify(x => x.RemoveJob(jobId), Times.Once, "a job without protocol record must not stay in the store.");
+        pipelineMock.Verify(p => p.Dispose(), Times.Once, "the pipeline of a job that never started must not leak.");
         Assert.IsFalse(preflightQueue.Reader.TryRead(out _), "a job without protocol record must not be queued.");
     }
 

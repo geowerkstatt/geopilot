@@ -94,7 +94,7 @@ public interface IProcessingJobStore
     ProcessingJob EnqueueForProcessing(Guid jobId, IReadOnlyList<IPipelineFile> files);
 
     /// <summary>
-    /// Removes the job from the store and disposes its pipeline (if any).
+    /// Removes the job from the store. Its pipeline is left alone: whoever ends a job disposes it, exactly once.
     /// </summary>
     bool RemoveJob(Guid jobId);
 }

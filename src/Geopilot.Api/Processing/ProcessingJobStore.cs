@@ -126,15 +126,7 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public bool RemoveJob(Guid jobId)
-    {
-        if (!jobs.TryRemove(jobId, out var removed))
-            return false;
-
-        // Idempotent dispose handles the case where the runner already disposed after extracting.
-        removed.Pipeline?.Dispose();
-        return true;
-    }
+    public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);
 
     private static bool IsTerminal(ProcessingState state) =>
         state is ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction
