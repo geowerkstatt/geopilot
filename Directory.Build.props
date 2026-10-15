@@ -10,7 +10,7 @@
     <RepositoryType>git</RepositoryType>
     <AnalysisLevel>10.0-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
-    <VersionPrefix>3.1</VersionPrefix>
+    <VersionPrefix>3.2</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' And '$(MSBuildProjectExtension)' != '.esproj'">
