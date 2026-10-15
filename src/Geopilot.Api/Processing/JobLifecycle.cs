@@ -118,6 +118,16 @@ public class JobLifecycle
     }
 
     /// <summary>
+    /// Retires a job whose retention has run out by removing it from the store. Neither its pipeline nor its
+    /// upload is touched: the pipeline was disposed when the job ended (the cleanup never retires a job that is
+    /// still pending or running), and the upload was released then too, or is kept on purpose until its upload
+    /// session expires (a cancelled run, see <see cref="Decide"/>). An unknown job is fine, because the cleanup
+    /// also retires directories left behind by a restart.
+    /// </summary>
+    /// <param name="jobId">The job to retire.</param>
+    public void Retire(Guid jobId) => jobStore.RemoveJob(jobId);
+
+    /// <summary>
     /// Declares the delivery of a machine delivery attempt on the caller's behalf. The handler is registered only
     /// while machine delivery is enabled, so a missing one means there is nothing to do.
     /// </summary>

@@ -150,9 +150,10 @@ public class ProcessingJobStore : IProcessingJobStore
         job.State == ProcessingState.Running;
 
     /// <summary>
-    /// Applies <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's current state,
-    /// retrying against the freshly read job whenever a concurrent write wins the compare-and-swap. Reports the
-    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse.
+    /// Applies the terminal <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's
+    /// current state, and stamps <see cref="ProcessingJob.FinishedAt"/> with it. Retries against the freshly read
+    /// job whenever a concurrent write wins the compare-and-swap. Reports the outcome rather than throwing, so a
+    /// caller that is already handling a failure cannot make it worse.
     /// </summary>
     private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
     {
@@ -161,7 +162,7 @@ public class ProcessingJobStore : IProcessingJobStore
             if (!isAllowed(currentJob))
                 return false;
 
-            if (jobs.TryUpdate(jobId, currentJob with { State = newState }, currentJob))
+            if (jobs.TryUpdate(jobId, currentJob with { State = newState, FinishedAt = DateTime.UtcNow }, currentJob))
                 return true;
         }
 

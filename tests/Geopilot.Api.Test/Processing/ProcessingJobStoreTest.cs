@@ -190,8 +190,10 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob(Guid.NewGuid());
 
+        Assert.IsNull(job.FinishedAt, "A pending job has not finished.");
         Assert.IsTrue(store.TryMarkAsFailed(job.Id));
         Assert.AreEqual(ProcessingState.Failed, store.GetJob(job.Id)!.State);
+        Assert.IsNotNull(store.GetJob(job.Id)!.FinishedAt, "Failing ends the job, so its retention starts counting.");
     }
 
     [TestMethod]
@@ -226,6 +228,7 @@ public class ProcessingJobStoreTest
 
         Assert.IsTrue(store.TryPipelineFinished(job.Id, pipelineState));
         Assert.AreEqual(pipelineState, store.GetJob(job.Id)!.State);
+        Assert.IsNotNull(store.GetJob(job.Id)!.FinishedAt, "Finishing the run ends the job, so its retention starts counting.");
     }
 
     [TestMethod]
