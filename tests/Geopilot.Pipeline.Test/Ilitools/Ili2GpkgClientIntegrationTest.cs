@@ -47,18 +47,18 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var modelFile = GetTestPipelineFile("model.ili");
         var gpkgFile = GetTestPipelineFile("schema_import.gpkg");
-        await DeleteIfExistsAsync(gpkgFile);
+        var logFile = GetTestPipelineFile("schema_import.log");
+        var xtfLogFile = GetTestPipelineFile("schema_import.xtf");
+        await DeleteIfExistsAsync(gpkgFile, xtfLogFile, logFile);
 
         var args = new Ili2GpkgArgs
         {
             CreateBasketCol = true, // required for update
         };
-        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsTrue(result.Success, "Schema import failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Schema import failed.");
 
         using var stream = await gpkgFile.OpenReadAsync();
         Assert.IsGreaterThan(0, stream.Length, "Resulting GPKG file is empty.");
@@ -70,15 +70,15 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var modelFile = GetTestPipelineFile("invalid_model.ili");
         var gpkgFile = GetTestPipelineFile("schema_import_invalid.gpkg");
-        await DeleteIfExistsAsync(gpkgFile);
+        var logFile = GetTestPipelineFile("schema_import_invalid.log");
+        var xtfLogFile = GetTestPipelineFile("schema_import_invalid.xtf");
+        await DeleteIfExistsAsync(gpkgFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs();
-        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsFalse(result.Success, "Schema import should have failed. Log: " + result.Log);
+        Assert.IsFalse(result.Success, "Schema import should have failed.");
 
         Assert.IsFalse(File.Exists(await gpkgFile.GetLocalPathAsync()), "GPKG file should not have been created for an invalid model.");
     }
@@ -90,18 +90,18 @@ public partial class Ili2GpkgClientIntegrationTest
         var inputFile = GetTestPipelineFile("schema.gpkg");
         var outputFile = GetTestPipelineFile("import.gpkg");
         var transferFile = GetTestPipelineFile("transfer.xtf");
-        await DeleteIfExistsAsync(outputFile);
+        var logFile = GetTestPipelineFile("import.log");
+        var xtfLogFile = GetTestPipelineFile("import.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
             Dataset = DatasetName, // required for update
         };
-        var result = await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [transferFile], cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [transferFile], logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsTrue(result.Success, "Import failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Import failed.");
 
         using var inputFileStream = await inputFile.OpenReadAsync();
         using var outputFileStream = await outputFile.OpenReadAsync();
@@ -115,13 +115,15 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("schema.gpkg");
         var outputFile = GetTestPipelineFile("import_invalid.gpkg");
-        await DeleteIfExistsAsync(outputFile);
+        var logFile = GetTestPipelineFile("import_invalid.log");
+        var xtfLogFile = GetTestPipelineFile("import_invalid.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs();
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [], cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [], logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -134,18 +136,17 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
         var transferFile = GetTestPipelineFile("export.xtf");
-        await DeleteIfExistsAsync(transferFile);
+        var logFile = GetTestPipelineFile("export.log");
+        var xtfLogFile = GetTestPipelineFile("export.xtflog");
+        await DeleteIfExistsAsync(transferFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
             Models = ["SimpleModel"],
         };
-        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
-        Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsTrue(result.Success, "Export failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Export failed.");
 
         await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
     }
@@ -156,7 +157,9 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
         var transferFile = GetTestPipelineFile("export_modeldirs.xtf");
-        await DeleteIfExistsAsync(transferFile);
+        var logFile = GetTestPipelineFile("export_modeldirs.log");
+        var xtfLogFile = GetTestPipelineFile("export_modeldirs.xtflog");
+        await DeleteIfExistsAsync(transferFile, logFile, xtfLogFile);
 
         // Model dirs replace the default of the tool, so the model has to come from the GeoPackage itself.
         var args = new Ili2GpkgArgs
@@ -164,10 +167,9 @@ public partial class Ili2GpkgClientIntegrationTest
             Models = ["SimpleModel"],
             ModelDirs = ["%ILI_FROM_DB", "%XTF_DIR"],
         };
-        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
-        Assert.IsNotNull(result);
-        Assert.IsTrue(result.Success, "Export with model dirs failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Export with model dirs failed.");
 
         await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
     }
@@ -178,7 +180,9 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
         var transferFile = GetTestPipelineFile("export_invalid_modeldir.xtf");
-        await DeleteIfExistsAsync(transferFile);
+        var logFile = GetTestPipelineFile("export_invalid_modeldir.log");
+        var xtfLogFile = GetTestPipelineFile("export_invalid_modeldir.xtflog");
+        await DeleteIfExistsAsync(transferFile, logFile, xtfLogFile);
 
         // Only http(s) URLs and the tool placeholders are accepted, so the wrapper has to reject a local path.
         var args = new Ili2GpkgArgs
@@ -189,7 +193,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -201,7 +205,9 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
         var transferFile = GetTestPipelineFile("export_invalid_metaconfig.xtf");
-        await DeleteIfExistsAsync(transferFile);
+        var logFile = GetTestPipelineFile("export_invalid_metaconfig.log");
+        var xtfLogFile = GetTestPipelineFile("export_invalid_metaconfig.xtflog");
+        await DeleteIfExistsAsync(transferFile, logFile, xtfLogFile);
 
         // Only the repository indexed form ilidata:<DatasetId> is accepted, not a file path.
         var args = new Ili2GpkgArgs
@@ -212,7 +218,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -225,18 +231,17 @@ public partial class Ili2GpkgClientIntegrationTest
         var inputFile = GetTestPipelineFile("data.gpkg");
         var outputFile = GetTestPipelineFile("update.gpkg");
         var transferFile = GetTestPipelineFile("transfer.xtf");
-        await DeleteIfExistsAsync(outputFile);
+        var logFile = GetTestPipelineFile("update.log");
+        var xtfLogFile = GetTestPipelineFile("update.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
             Dataset = DatasetName,
         };
-        var result = await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [transferFile], cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [transferFile], logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
-        Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsTrue(result.Success, "Update failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Update failed.");
 
         using var inputFileStream = await inputFile.OpenReadAsync();
         using var outputFileStream = await outputFile.OpenReadAsync();
@@ -250,7 +255,9 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
         var outputFile = GetTestPipelineFile("update_invalid.gpkg");
-        await DeleteIfExistsAsync(outputFile);
+        var logFile = GetTestPipelineFile("update_invalid.log");
+        var xtfLogFile = GetTestPipelineFile("update_invalid.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -259,7 +266,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [], cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [], logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -271,20 +278,18 @@ public partial class Ili2GpkgClientIntegrationTest
     public async Task ValidateAsync()
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
+        var logFile = GetTestPipelineFile("log_success.log");
         var xtfLogFile = GetTestPipelineFile("log_success.xtf");
-        await DeleteIfExistsAsync(xtfLogFile);
+        await DeleteIfExistsAsync(logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
             Models = ["SimpleModel"],
         };
 
-        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
-        Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsTrue(result.Success, "Validation failed. Log: " + result.Log);
+        Assert.IsTrue(result.Success, "Validation failed.");
 
         await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
@@ -294,8 +299,9 @@ public partial class Ili2GpkgClientIntegrationTest
     public async Task ValidateAsyncFailsWithAnUnknownPluginId()
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
+        var logFile = GetTestPipelineFile("log_unknown_plugin.log");
         var xtfLogFile = GetTestPipelineFile("log_unknown_plugin.xtf");
-        await DeleteIfExistsAsync(xtfLogFile);
+        await DeleteIfExistsAsync(logFile, xtfLogFile);
 
         // The wrapper offers only what its plugin directory holds, which is empty in the compose image, so every id
         // is unknown and has to be rejected. That rejection is what proves the deployed image understands the field
@@ -310,7 +316,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.ValidateAsync(args, inputFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -321,8 +327,9 @@ public partial class Ili2GpkgClientIntegrationTest
     public async Task ValidateAsyncFailsWithAnUnknownToolVersion()
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
+        var logFile = GetTestPipelineFile("log_unknown_version.log");
         var xtfLogFile = GetTestPipelineFile("log_unknown_version.xtf");
-        await DeleteIfExistsAsync(xtfLogFile);
+        await DeleteIfExistsAsync(logFile, xtfLogFile);
 
         // The wrapper offers the versions its image ships, so a version it does not offer has to be rejected. As
         // with the plugin id above, that rejection is what proves the deployed image understands the field at all:
@@ -337,7 +344,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+            await ili2GpkgClient.ValidateAsync(args, inputFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -348,31 +355,32 @@ public partial class Ili2GpkgClientIntegrationTest
     public async Task ValidateAsyncCreatesXtfLogOnError()
     {
         var inputFile = GetTestPipelineFile("data_error.gpkg"); // contains a name that is too short
+        var logFile = GetTestPipelineFile("log_error.log");
         var xtfLogFile = GetTestPipelineFile("log_error.xtf");
-        await DeleteIfExistsAsync(xtfLogFile);
+        await DeleteIfExistsAsync(logFile, xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
             Models = ["SimpleModel"],
         };
 
-        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
-        Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Log);
-        Assert.IsNotEmpty(result.Log);
-        Assert.IsFalse(result.Success, "Validation should have failed. Log: " + result.Log);
-        Assert.MatchesRegex(MandatoryConstraintErrorRegex(), result.Log);
+        Assert.IsFalse(result.Success, "Validation should have failed.");
+        Assert.MatchesRegex(MandatoryConstraintErrorRegex(), await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(TestContext.CancellationToken), TestContext.CancellationToken));
 
         await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
 
-    private async Task DeleteIfExistsAsync(PipelineFile file)
+    private async Task DeleteIfExistsAsync(params PipelineFile[] files)
     {
-        var path = await file.GetLocalPathAsync();
-        if (File.Exists(path))
+        foreach (var file in files)
         {
-            File.Delete(path);
+            var path = await file.GetLocalPathAsync(TestContext.CancellationToken);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
     }
 
