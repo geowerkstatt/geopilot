@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
@@ -19,12 +18,14 @@ namespace Geopilot.Api.Processing;
 /// payload files (<see cref="OutputAction.Delivery"/>) are staged once, only when the run finished successfully and
 /// delivery is allowed; declaring the delivery promotes them into the asset store. They populate
 /// <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/> and
-/// <see cref="IPipelineStep.DeliveryFiles"/> respectively.
+/// <see cref="IPipelineStep.DeliveryFiles"/> respectively. However a run ends, the runner reports its outcome to
+/// <see cref="JobLifecycle"/>, which carries out what follows for the job.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
     private readonly ILogger<ProcessingRunner> logger;
     private readonly IProcessingJobStore jobStore;
+    private readonly JobLifecycle lifecycle;
     private readonly ProcessingOptions processingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
 
@@ -42,6 +43,7 @@ public class ProcessingRunner : BackgroundService
     public ProcessingRunner(
         ILogger<ProcessingRunner> logger,
         IProcessingJobStore jobStore,
+        JobLifecycle lifecycle,
         IServiceScopeFactory serviceScopeFactory,
         IOptions<ProcessingOptions> processingOptions)
     {
@@ -49,6 +51,7 @@ public class ProcessingRunner : BackgroundService
 
         this.logger = logger;
         this.jobStore = jobStore;
+        this.lifecycle = lifecycle;
         this.serviceScopeFactory = serviceScopeFactory;
         this.processingOptions = processingOptions.Value;
     }
@@ -90,31 +93,22 @@ public class ProcessingRunner : BackgroundService
                 await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepCompletedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
             };
 
-            // The terminal outcome is collected per branch and written to the protocol once, in the
-            // finally below. A hard kill leaves the run without terminal state on purpose: that is how
-            // restart victims stay countable.
-            ProcessingState? terminalState = null;
-            string? failureReason = null;
+            // The outcome is collected per branch and reported once below. A hard kill leaves the run without
+            // terminal state on purpose: that is how restart victims stay countable.
+            RunOutcome outcome;
             try
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
                 // Stage the delivery payload only when the run is deliverable, by the same rule the declaration
-                // applies to the job state (DeliveryDeclarationService). The job only turns deliverable with
-                // PipelineFinished below, so a declaration never promotes a partial staging. It goes to the
-                // staging store, not the asset store: the asset directory holds deliveries only, and declaring
-                // one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
+                // applies to the job state (DeliveryDeclarationService). The job only turns deliverable once
+                // RunFinishedAsync below sets its state, so a declaration never promotes a partial staging. It
+                // goes to the staging store, not the asset store: the asset directory holds deliveries only, and
+                // declaring one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
                 if (pipeline.State.IsDeliverable())
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
-                terminalState = pipeline.State;
-                jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
-
-                // Declare the delivery for an unattended caller that asked for it. Guarded inside, because an
-                // exception escaping here would be caught below and would record this finished run as failed.
-                // On the shutdown token, not the linked one: the job timeout bounds the run, and the declaration
-                // starts once the run is over, so a nearly exhausted timeout must not cut it short.
-                await CompleteJobAsync(pipeline.JobId, cancellationToken);
+                outcome = new RunOutcome.Completed(pipeline.State);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
@@ -122,72 +116,26 @@ public class ProcessingRunner : BackgroundService
                 // the job ends Cancelled either way, which keeps a partial staging undeliverable. Downloads of
                 // steps finished before the timeout were already persisted by the per-step callback.
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
-                terminalState = ProcessingState.Cancelled;
-                failureReason = $"Job timed out after {processingOptions.JobTimeout}.";
-
-                // Nothing above this catch block handles an exception, so the reporting variant keeps
-                // an unexpected job state in the log instead of stopping the host.
-                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
-                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
+                outcome = new RunOutcome.TimedOut();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // Host shutdown. The protocol write below is best effort: it distinguishes a graceful stop
-                // (Cancelled, "host shutdown") from a hard kill (no terminal state at all).
+                // Host shutdown. The protocol write in RunFinishedAsync is best effort: it distinguishes a graceful
+                // stop (Cancelled, "host shutdown") from a hard kill (no terminal state at all).
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
-                terminalState = ProcessingState.Cancelled;
-                failureReason = "host shutdown";
-
-                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
-                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
+                outcome = new RunOutcome.ShutDown();
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
-                terminalState = ProcessingState.Failed;
-                failureReason = ex.Message;
-
-                if (!jobStore.TryMarkAsFailed(pipeline.JobId))
-                    logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", pipeline.JobId);
+                outcome = new RunOutcome.Crashed(ex.Message);
             }
-            finally
-            {
-                // This is the body of a Parallel.ForEachAsync inside a BackgroundService: an exception
-                // escaping here aborts the whole loop, so the queue stops draining, and by default it
-                // stops the host. Each cleanup step is guarded on its own, so releasing the upload is
-                // independent of the disposal (the protocol write guards itself, see RecordProtocolAsync).
-                if (terminalState is { } state)
-                {
-                    // During a shutdown a slow database must not use up the time the host grants for stopping.
-                    // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
-                    using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
-                    await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordRunFinishedAsync(pipeline.JobId, pipeline.Steps, state, failureReason, protocolCts.Token));
-                }
 
-                try
-                {
-                    // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
-                    // states, status-message dictionaries and PersistedDownloads survive disposal; what
-                    // goes is the pipeline's temp directory, including the uploaded files fetched into it
-                    // during the run.
-                    pipeline.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to dispose pipeline <{Pipeline}>.", pipeline.Id);
-                }
-
-                try
-                {
-                    await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
-                }
-                catch (Exception ex)
-                {
-                    // The upload store is remote, so releasing it is a network call. The age-based sweep
-                    // in UploadCleanupService is the backstop for blobs left behind here.
-                    logger.LogError(ex, "Failed to release the upload of job <{JobId}>.", pipeline.JobId);
-                }
-            }
+            // On the shutdown token, not the linked one: the job timeout bounds the run, and what follows starts
+            // once the run is over, so a nearly exhausted timeout must not cut the declaration short. It never
+            // throws, which matters here: an exception escaping the body of a Parallel.ForEachAsync stops the
+            // queue from draining and, by default, the host.
+            await lifecycle.RunFinishedAsync(pipeline, outcome, cancellationToken);
         });
     }
 
@@ -315,47 +263,6 @@ public class ProcessingRunner : BackgroundService
         {
             logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
         }
-    }
-
-    /// <summary>
-    /// Runs the job completion handler against a fresh scope, if one is registered. It only is while machine
-    /// delivery is enabled, so the nullable resolve is the switch. Guarded like the protocol write: a problem
-    /// here must not change the outcome of the run, which the catch in the loop would record as a failure.
-    /// </summary>
-    private async Task CompleteJobAsync(Guid jobId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var scope = serviceScopeFactory.CreateScope();
-            var handler = scope.ServiceProvider.GetService<IJobCompletionHandler>();
-            if (handler is null)
-                return;
-
-            await handler.OnJobFinishedAsync(jobId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Completing job <{JobId}> failed; the run itself is unaffected.", jobId);
-        }
-    }
-
-    /// <summary>
-    /// Drops the job's uploaded blobs as soon as they can no longer be needed, decided by why the run ended.
-    /// A run that failed or was restricted by its own logic would end the same way a second time, so its
-    /// uploads go right away. A deliverable run keeps them until the job is retired. A run that was
-    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown) says nothing about the data, so
-    /// its blobs stay for a second attempt until the age-based sweep in UploadCleanupService collects them;
-    /// the same holds for a job still <see cref="ProcessingState.Running"/>, whose transition did not happen.
-    /// </summary>
-    private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
-    {
-        var job = jobStore.GetJob(jobId);
-        if (job is null || job.State is ProcessingState.Running or ProcessingState.Cancelled || job.State.IsDeliverable())
-            return;
-
-        using var scope = serviceScopeFactory.CreateScope();
-        var orchestrationService = scope.ServiceProvider.GetRequiredService<IUploadOrchestrationService>();
-        await orchestrationService.ReleaseUploadAsync(job.UploadId);
     }
 
     private static IEnumerable<IPipelineFile> ResolveFiles(object? data) => data switch

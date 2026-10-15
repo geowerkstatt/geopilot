@@ -474,7 +474,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "A failing completion must not change the outcome of the run.");
-        store.Verify(s => s.TryMarkAsFailed(jobId), Times.Never, "A failing completion must not mark the job as failed.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Never, "A failing completion must not mark the job as failed.");
         runRecorderMock.Verify(
             r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once,
@@ -502,7 +502,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task ExecuteCallsTheCompletionHandlerWhenDeliveryIsRestricted()
+    public async Task ExecuteDoesNotCallTheCompletionHandlerWhenDeliveryIsRestricted()
     {
         var jobId = NewJob();
         var step = BuildRestrictDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
@@ -517,8 +517,8 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
         jobCompletionHandlerMock.Verify(
             h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
-            Times.Once,
-            "The handler decides what a restricted run means for the attempt, so it has to see it.");
+            Times.Never,
+            "A restricted run is not deliverable, so there is nothing to declare.");
     }
 
     [TestMethod]
@@ -565,7 +565,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "a protocol write failure must not tear down the pipeline.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -638,7 +638,7 @@ public class ProcessingRunnerTest
             Assert.AreEqual(StepState.Success, step1.State);
             Assert.AreNotEqual(StepState.Success, step2.State, "Step 2 must still be running while step 1's download is offered.");
             Assert.AreEqual(ProcessingState.Running, pipeline.State);
-            store.Verify(s => s.PipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()), Times.Never);
+            store.Verify(s => s.TryPipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()), Times.Never);
 
             var persistedName = step1.Downloads[0].PersistedFileName;
             Assert.IsTrue(downloadStore.Exists(jobId, persistedName), "Step 1's download must be on disk before the pipeline finishes.");
@@ -656,7 +656,7 @@ public class ProcessingRunnerTest
 
             Assert.AreEqual(ProcessingState.Success, pipeline.State);
             Assert.IsTrue(downloadStore.Exists(jobId, persistedName));
-            store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+            store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
         }
         finally
         {
@@ -690,7 +690,7 @@ public class ProcessingRunnerTest
         Assert.HasCount(0, step1Response.Downloads);
         Assert.HasCount(1, step1Response.Deliveries);
         Assert.AreEqual("first.log", step1Response.Deliveries[0]);
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -709,7 +709,7 @@ public class ProcessingRunnerTest
 
         Assert.HasCount(1, step1.Downloads);
         Assert.IsTrue(downloadStore.Exists(jobId, step1.Downloads[0].PersistedFileName), "Earlier step's download must survive a later step failure.");
-        store.Verify(s => s.TryMarkAsFailed(jobId), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Once);
     }
 
     [TestMethod]
@@ -884,11 +884,11 @@ public class ProcessingRunnerTest
         await stopping.WaitAsync(TimeSpan.FromSeconds(10));
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
-    public async Task UploadIsKeptWhenTheRunCanStillBeDelivered()
+    public async Task UploadIsReleasedOnceTheDeliveryFilesAreStaged()
     {
         var jobId = NewJob();
         var uploadId = Guid.NewGuid();
@@ -902,8 +902,9 @@ public class ProcessingRunnerTest
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
-        // Declaring the delivery archives every original as primary data, so they must stay reachable.
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        // Declaring the delivery promotes the staged copies, so nothing reads the originals any more.
+        Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -923,7 +924,7 @@ public class ProcessingRunnerTest
         Assert.HasCount(1, step.DeliveryFiles);
         Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
         Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -943,7 +944,7 @@ public class ProcessingRunnerTest
         Assert.HasCount(1, step.DeliveryFiles);
         Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
         Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Warning), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Warning), Times.Once);
     }
 
     [TestMethod]
@@ -963,7 +964,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Failed, pipeline.State);
         Assert.IsEmpty(step1.DeliveryFiles, "No delivery files may be staged when the pipeline does not complete successfully.");
         Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No partial delivery may be staged on failure.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Failed), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Once);
     }
 
     [TestMethod]
@@ -982,7 +983,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
         Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
         Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No delivery may be staged when delivery is restricted.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
     }
 
     [TestMethod]
@@ -1000,12 +1001,13 @@ public class ProcessingRunnerTest
         var stagedWhenDeliverable = false;
         var calls = new List<string>();
         store
-            .Setup(s => s.PipelineFinished(jobId, ProcessingState.Success))
+            .Setup(s => s.TryPipelineFinished(jobId, ProcessingState.Success))
             .Callback(() =>
             {
                 stagedWhenDeliverable = stagingStore.Exists(jobId, "data.xtf");
-                calls.Add(nameof(IProcessingJobStore.PipelineFinished));
-            });
+                calls.Add(nameof(IProcessingJobStore.TryPipelineFinished));
+            })
+            .Returns(true);
         jobCompletionHandlerMock
             .Setup(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add(nameof(IJobCompletionHandler.OnJobFinishedAsync)))
@@ -1016,7 +1018,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         CollectionAssert.AreEqual(
-            new[] { nameof(IProcessingJobStore.PipelineFinished), nameof(IJobCompletionHandler.OnJobFinishedAsync) },
+            new[] { nameof(IProcessingJobStore.TryPipelineFinished), nameof(IJobCompletionHandler.OnJobFinishedAsync) },
             calls,
             "The unattended declaration must not start before the job is deliverable.");
         Assert.IsTrue(stagedWhenDeliverable, "The job must not turn deliverable while its delivery files are still being staged.");
@@ -1037,9 +1039,9 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "The steps succeeded, only the staging failed.");
-        store.Verify(s => s.TryMarkAsFailed(jobId), Times.Once);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Once);
         store.Verify(
-            s => s.PipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()),
+            s => s.TryPipelineFinished(It.IsAny<Guid>(), ProcessingState.Success),
             Times.Never,
             "A job whose delivery files could not be staged must never turn deliverable.");
     }
@@ -1061,7 +1063,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "The steps succeeded, only the staging was cut short.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
         store.Verify(
-            s => s.PipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>()),
+            s => s.TryPipelineFinished(It.IsAny<Guid>(), ProcessingState.Success),
             Times.Never,
             "A job whose staging was cut short by the timeout must never turn deliverable.");
     }
@@ -1141,8 +1143,8 @@ public class ProcessingRunnerTest
         var job = store.CreateJob(Guid.NewGuid());
         createdJobIds.Add(job.Id);
 
-        // Releasing the upload is the last thing the runner does for a work item, so it signals that the
-        // body reached the end of its finally block rather than being torn out of it.
+        // Releasing the upload is the last thing done for a work item, so it signals that the body got
+        // through to its end rather than being torn out of it.
         orchestrationServiceMock
             .Setup(c => c.ReleaseUploadAsync(job.UploadId))
             .Callback(() => uploadReleased.TrySetResult())
@@ -1299,17 +1301,20 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
-    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default) =>
-        new ProcessingRunner(
-            Mock.Of<ILogger<ProcessingRunner>>(),
-            jobStore,
-            scopeFactory,
-            Options.Create(new ProcessingOptions
-            {
-                JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5),
-                MaxConcurrentJobs = maxConcurrentJobs,
-                ShutdownDrainTimeout = shutdownDrainTimeout,
-            }));
+    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default)
+    {
+        var options = Options.Create(new ProcessingOptions
+        {
+            JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5),
+            MaxConcurrentJobs = maxConcurrentJobs,
+            ShutdownDrainTimeout = shutdownDrainTimeout,
+        });
+
+        // The real lifecycle, not a mock: it resolves the recorder, the orchestration and the completion handler
+        // from the same scope factory, so the runner's tests still see every consequence of a run.
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, scopeFactory, options);
+        return new ProcessingRunner(Mock.Of<ILogger<ProcessingRunner>>(), jobStore, lifecycle, scopeFactory, options);
+    }
 
     /// <summary>
     /// Like <see cref="CreateRunnerWithStore"/>, but the queue stays open, so the runner only ends when it is
@@ -1339,9 +1344,8 @@ public class ProcessingRunnerTest
         var store = new Mock<IProcessingJobStore>();
         store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
 
-        // Without these the mock answers false, which is the "job unknown or already terminal" case and
-        // would send every test down the runner's warning branch instead of its normal one.
-        store.Setup(s => s.TryMarkAsFailed(It.IsAny<Guid>())).Returns(true);
+        // Without this the mock answers false, which is the "job unknown or no longer running" case and
+        // would send every test down the lifecycle's warning branch instead of its normal one.
         store.Setup(s => s.TryPipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>())).Returns(true);
 
         return (CreateRunner(store.Object, jobTimeout), store);
