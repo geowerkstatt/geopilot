@@ -22,12 +22,19 @@ declare module "@mui/material/styles" {
     disabledBackground: string;
   }
 
-  interface PaletteMap {
+  interface PaletteMapFeature {
     fill: string;
     stroke: string;
     highlight: string;
+  }
+
+  interface PaletteMap extends PaletteMapFeature {
     hintBackground: string;
     hintText: string;
+    /** The features of the old state of a diff. */
+    old: PaletteMapFeature;
+    /** The features of the new state of a diff. */
+    new: PaletteMapFeature;
   }
 
   interface PaletteColor {

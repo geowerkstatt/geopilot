@@ -47,7 +47,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfError` und
         },
         {
           "features": [
-            { "errorId": "e0", "geom": "POINT(2600000 1200000)", "info": "Fehlerbeschreibung" }
+            { "id": "e0", "geom": "POINT(2600000 1200000)", "info": "Fehlerbeschreibung" }
           ]
         }
       ]

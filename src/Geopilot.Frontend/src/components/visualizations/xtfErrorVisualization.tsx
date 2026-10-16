@@ -88,7 +88,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   // Error ids that actually have a feature on the map; a tree node is zoomable only when its subtree holds
   // at least one of them. Without a map (tree-only visualization) nothing is zoomable.
   const mappableErrorIds = useMemo(
-    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.errorId) ?? [])),
+    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.id) ?? [])),
     [config.map],
   );
   const zoomableNodeIds = useMemo(() => {

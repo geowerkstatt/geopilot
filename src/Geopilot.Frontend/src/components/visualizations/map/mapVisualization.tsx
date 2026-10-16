@@ -18,7 +18,8 @@ interface MapVisualizationProps {
   /** Whether the view should reserve space for filters in fullscreen mode. */
   reserveSpaceForFilters?: boolean;
   fullscreen?: boolean;
-  setFullscreen: (fullscreen: boolean) => void;
+  /** Leaves fullscreen; only a visualization that offers fullscreen needs it. */
+  setFullscreen?: (fullscreen: boolean) => void;
 }
 
 export const MapVisualization = ({
@@ -111,7 +112,7 @@ export const MapVisualization = ({
                 icon={<CloseIcon />}
                 label="fullscreenExit"
                 tooltipPlacement="left"
-                onClick={() => setFullscreen(false)}
+                onClick={() => setFullscreen?.(false)}
               />
             )}
             <ButtonGroup orientation="vertical">
