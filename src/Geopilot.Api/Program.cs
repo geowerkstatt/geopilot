@@ -188,6 +188,7 @@ contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
+builder.Services.AddSingleton<JobLifecycle>();
 builder.Services.AddSingleton<IUploadStore, UploadStore>();
 builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();

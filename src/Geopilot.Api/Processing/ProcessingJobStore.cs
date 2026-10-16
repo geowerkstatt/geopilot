@@ -51,31 +51,10 @@ public class ProcessingJobStore : IProcessingJobStore
         TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
 
     /// <inheritdoc/>
-    public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
-    {
-        EnsureStateIsTerminal(pipelineState);
-
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                if (!CanCompletePipeline(currentJob))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{pipelineState}>.");
-                }
-
-                return currentJob with { State = pipelineState };
-            });
-    }
-
-    /// <inheritdoc/>
     public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
         // A state that is not terminal is a defect at the call site and cannot be caused by a race, so
-        // it surfaces here just as it does in the throwing operation. What this operation tolerates is
-        // a job that moved on, not a wrong argument.
+        // it still throws. What this operation tolerates is a job that moved on, not a wrong argument.
         EnsureStateIsTerminal(pipelineState);
 
         return TryTransition(jobId, CanCompletePipeline, pipelineState);
@@ -126,15 +105,7 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public bool RemoveJob(Guid jobId)
-    {
-        if (!jobs.TryRemove(jobId, out var removed))
-            return false;
-
-        // Idempotent dispose handles the case where the runner already disposed after extracting.
-        removed.Pipeline?.Dispose();
-        return true;
-    }
+    public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);
 
     private static bool IsTerminal(ProcessingState state) =>
         state is ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction
@@ -158,9 +129,10 @@ public class ProcessingJobStore : IProcessingJobStore
         job.State == ProcessingState.Running;
 
     /// <summary>
-    /// Applies <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's current state,
-    /// retrying against the freshly read job whenever a concurrent write wins the compare-and-swap. Reports the
-    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse.
+    /// Applies the terminal <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's
+    /// current state, and stamps <see cref="ProcessingJob.FinishedAt"/> with it. Retries against the freshly read
+    /// job whenever a concurrent write wins the compare-and-swap. Reports the outcome rather than throwing, so a
+    /// caller that is already handling a failure cannot make it worse.
     /// </summary>
     private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
     {
@@ -169,7 +141,7 @@ public class ProcessingJobStore : IProcessingJobStore
             if (!isAllowed(currentJob))
                 return false;
 
-            if (jobs.TryUpdate(jobId, currentJob with { State = newState }, currentJob))
+            if (jobs.TryUpdate(jobId, currentJob with { State = newState, FinishedAt = DateTime.UtcNow }, currentJob))
                 return true;
         }
 

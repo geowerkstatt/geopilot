@@ -22,6 +22,7 @@ public class ProcessingJobCleanupServiceTest
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<ISubmissionStore> submissionStoreMock;
+    private JobLifecycle lifecycle;
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private Context context;
     private string tempAssetRoot;
@@ -65,9 +66,12 @@ public class ProcessingJobCleanupServiceTest
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
+        lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, scopeFactoryMock.Object, optionsMock.Object);
+
         service = new ProcessingJobCleanupService(
             jobStoreMock.Object,
             submissionStoreMock.Object,
+            lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
             loggerMock.Object,
@@ -161,6 +165,7 @@ public class ProcessingJobCleanupServiceTest
         using var serviceWithoutRetention = new ProcessingJobCleanupService(
             jobStoreMock.Object,
             submissionStoreMock.Object,
+            lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
             loggerMock.Object,
@@ -282,11 +287,12 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)));
+        var finishedAt = DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1));
+        var partlyExpiredJob = new ProcessingJob(jobId, Guid.NewGuid(), null, finishedAt)
+        {
+            State = ProcessingState.Success,
+            FinishedAt = finishedAt,
+        };
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
 
@@ -304,11 +310,12 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
+        var finishedAt = DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25));
+        var partlyExpiredJob = new ProcessingJob(jobId, Guid.NewGuid(), null, finishedAt)
+        {
+            State = ProcessingState.Success,
+            FinishedAt = finishedAt,
+        };
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
 
@@ -321,7 +328,28 @@ public class ProcessingJobCleanupServiceTest
     }
 
     [TestMethod]
-    public async Task RunCleanupReleasesTheUploadOfARetiredJob()
+    public async Task RunCleanupKeepsDownloadsOfAJobThatWaitedLongBeforeItsRun()
+    {
+        var jobId = Guid.NewGuid();
+        var (_, downloadDir, visualizationDir, _) = CreateJobDirectories(jobId);
+
+        // Created long before, but the run only just finished: the retention counts from the end of the run.
+        var lateJob = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)))
+        {
+            State = ProcessingState.Success,
+            FinishedAt = DateTime.UtcNow,
+        };
+
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(lateJob);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(downloadDir), "Downloads must stay for the full retention after the run ended.");
+        Assert.IsTrue(Directory.Exists(visualizationDir), "Visualizations must stay for the full retention after the run ended.");
+    }
+
+    [TestMethod]
+    public async Task RunCleanupDoesNotReleaseTheUploadOfARetiredJob()
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
@@ -333,7 +361,7 @@ public class ProcessingJobCleanupServiceTest
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
-            State = ProcessingState.Success,
+            State = ProcessingState.Cancelled,
         };
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
@@ -341,7 +369,10 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        // Every other upload went when its job ended; a cancelled run keeps its upload until the upload session
+        // expires, which takes longer than the job retention.
+        jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -367,7 +398,6 @@ public class ProcessingJobCleanupServiceTest
         await service.RunCleanupAsync();
 
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -376,7 +406,7 @@ public class ProcessingJobCleanupServiceTest
     public async Task RunCleanupLeavesAStuckJobAlone(ProcessingState state)
     {
         // Past its retention but not finished: preflight or the pipeline is hanging. Retiring it would
-        // delete the uploaded blobs, the only remaining copy, from under a run that may yet continue.
+        // delete its working directory and drop the job from under a run that may yet continue.
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
@@ -395,14 +425,14 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never, "the upload is the only copy left and the run may still need it");
-        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "disposing the pipeline would pull its working directory away mid-run");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "retiring would drop the job and its working directory mid-run");
         Assert.IsTrue(Directory.Exists(assetDir));
         Assert.IsTrue(Directory.Exists(pipelineDir));
 
-        // Downloads and visualizations still age out on their own, shorter retentions.
-        Assert.IsFalse(Directory.Exists(downloadDir));
-        Assert.IsFalse(Directory.Exists(visualizationDir));
+        // Their retentions count from the end of the run, so an unfinished job keeps its downloads and
+        // visualizations too.
+        Assert.IsTrue(Directory.Exists(downloadDir));
+        Assert.IsTrue(Directory.Exists(visualizationDir));
     }
 
     [TestMethod]

@@ -85,6 +85,7 @@
 - A processing job is only accepted once its execution protocol record (see Added) is written: if that write fails, starting the job fails instead of returning an accepted response, because an accepted delivery without an audit record must not exist. Protocol writes during the run never abort a running pipeline; they are logged as warnings.
 - The OpenAPI documentation now combines all API versions in a single document `/swagger/all/swagger.json`. The old `v1` and `v2` documents are no longer provided.
 - The first user of an installation is no longer automatically granted admin access. The first administrator should be assigned manually in the database instead.
+- The uploaded files of a processing run cancelled by the job timeout or a shutdown now stay until their upload session expires (`Upload:CleanupAgeHours`) instead of being deleted with the job once `Processing:JobRetention` has passed. Every other run releases its upload when it ends.
 
 ### Removed
 
@@ -110,6 +111,8 @@
 - A failure while cleaning up after a processing job no longer stops the instance. When the temporary working directory of a pipeline could not be deleted, because a virus scanner or a process still held a file open, the application shut down and every job running at that moment was lost with it. Such failures are now logged, the leftovers are collected by the job cleanup, and the uploaded files of a job that cannot be delivered are released in any case.
 - The startup validation refuses a key without a value for a process parameter that requires one, just as it refuses a missing key. That covers a key written empty, as `~` or as `null` in the definition, and a JSON `null` in `Pipeline:ProcessConfigs`. Such a definition used to start and handed the process no value, which could fail the first run with an error that did not name the parameter. Plugins built without nullable annotations still accept a key without a value.
 - A delivery can only be declared once its delivery files are completely staged. Through the API, a job could be declared as soon as its pipeline had finished, while the files were still being staged, and a job whose staging had failed stayed declarable, so the delivery received an incomplete set of files. Both are now refused as a job that cannot be delivered (`400`). The web interface was not affected.
+- A processing run whose result can be delivered releases its uploaded files once its delivery files are staged, instead of holding them until the job is removed after `Processing:JobRetention`. Many such runs could use up `Upload:MaxActiveJobs`, so that new uploads were refused.
+- Downloads and visualizations of a processing job stay for their full retention (`Processing:DownloadRetention`, `Processing:VisualizationRetention`) counted from the end of the run. The retention counted from the creation of the job, so a job that waited long for a free processing slot lost its visualizations shortly after writing them, and a running job could lose them mid-run.
 
 ## v3.0.341 - 2026-06-17
 

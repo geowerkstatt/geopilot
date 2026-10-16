@@ -150,48 +150,14 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Success)]
-    [DataRow(ProcessingState.Warning)]
-    [DataRow(ProcessingState.DeliveryRestriction)]
-    [DataRow(ProcessingState.Failed)]
-    [DataRow(ProcessingState.Cancelled)]
-    public void PipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-        var updated = store.PipelineFinished(job.Id, pipelineState);
-
-        Assert.AreEqual(pipelineState, updated.State);
-    }
-
-    [TestMethod]
-    public void PipelineFinishedThrowsIfNotRunning()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.PipelineFinished(job.Id, ProcessingState.Success));
-    }
-
-    [TestMethod]
-    [DataRow(ProcessingState.Pending)]
-    [DataRow(ProcessingState.Running)]
-    public void PipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.PipelineFinished(job.Id, pipelineState));
-    }
-
-    [TestMethod]
     public void TryMarkAsFailedSetsState()
     {
         var job = store.CreateJob(Guid.NewGuid());
 
+        Assert.IsNull(job.FinishedAt, "A pending job has not finished.");
         Assert.IsTrue(store.TryMarkAsFailed(job.Id));
         Assert.AreEqual(ProcessingState.Failed, store.GetJob(job.Id)!.State);
+        Assert.IsNotNull(store.GetJob(job.Id)!.FinishedAt, "Failing ends the job, so its retention starts counting.");
     }
 
     [TestMethod]
@@ -200,7 +166,7 @@ public class ProcessingJobStoreTest
         var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-        store.PipelineFinished(job.Id, ProcessingState.Success);
+        Assert.IsTrue(store.TryPipelineFinished(job.Id, ProcessingState.Success));
 
         Assert.IsFalse(store.TryMarkAsFailed(job.Id));
         Assert.AreEqual(ProcessingState.Success, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
@@ -226,6 +192,7 @@ public class ProcessingJobStoreTest
 
         Assert.IsTrue(store.TryPipelineFinished(job.Id, pipelineState));
         Assert.AreEqual(pipelineState, store.GetJob(job.Id)!.State);
+        Assert.IsNotNull(store.GetJob(job.Id)!.FinishedAt, "Finishing the run ends the job, so its retention starts counting.");
     }
 
     [TestMethod]
@@ -257,7 +224,7 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    public void RemoveJobDisposesPipeline()
+    public void RemoveJobLeavesThePipelineToWhoeverEndedTheJob()
     {
         var job = store.CreateJob(Guid.NewGuid());
         var pipelineMock = new Mock<IPipeline>();
@@ -267,6 +234,6 @@ public class ProcessingJobStoreTest
 
         Assert.IsTrue(removed);
         Assert.IsNull(store.GetJob(job.Id));
-        pipelineMock.Verify(p => p.Dispose(), Times.Once);
+        pipelineMock.Verify(p => p.Dispose(), Times.Never, "The pipeline was disposed when the job ended; a second disposal would break 'exactly once'.");
     }
 }
