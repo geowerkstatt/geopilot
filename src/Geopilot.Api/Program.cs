@@ -167,7 +167,10 @@ builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pi
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
-builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
+builder.Services.AddOptions<DeliveryOptions>()
+    .BindConfiguration("Delivery")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
@@ -296,6 +299,7 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
+app.LogDeleteWindowTimeZone();
 
 if (accessTokenFormat == AccessTokenFormat.Opaque)
 {

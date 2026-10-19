@@ -1,6 +1,6 @@
 # Begriffe
 
-Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs, so wie sie in Issues, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
+Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
 ## Job
 
@@ -37,3 +37,7 @@ Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und 
 ## Lieferabsicht
 
 Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst deklariert, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Scheitert die Deklaration, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, deklariert in `JobLifecycle.RunFinishedAsync`.
+
+## Löschfenster
+
+Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`). Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.

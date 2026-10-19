@@ -367,3 +367,17 @@ volumes:
 
 - **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
 - **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.
+
+## Löschen von Lieferungen
+
+Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.
+
+```json
+"Delivery": {
+    "UploaderDeleteEnabled": true,
+    "DeleteDuration": "02:00:00", // bis zwei Stunden nach der Abgabe
+    "DeleteRestrictInterval": "0 0 * * *" // höchstens bis zur nächsten Mitternacht
+}
+```
+
+Das Löschfenster schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
