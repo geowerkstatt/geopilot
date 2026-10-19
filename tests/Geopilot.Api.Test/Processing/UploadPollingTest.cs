@@ -46,14 +46,6 @@ public class UploadPollingTest
 
         var runRecorderMock = new Mock<IPipelineRunRecorder>();
 
-        processingService = new ProcessingService(
-            jobStore,
-            uploadStore,
-            mandateServiceMock.Object,
-            pipelineFactoryMock.Object,
-            runRecorderMock.Object,
-            preflightChannel.Writer);
-
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStore))).Returns(uploadStore);
@@ -68,7 +60,9 @@ public class UploadPollingTest
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
-        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+
+        processingService = new ProcessingService(jobStore, uploadStore, mandateServiceMock.Object, lifecycle);
 
         backgroundService = new PreflightBackgroundService(
             preflightChannel.Reader,
@@ -170,8 +164,8 @@ public class UploadPollingTest
 
         mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(mandate);
 
-        // The pipeline is now instantiated up front in StartJobAsync (without files) and attached to the job.
-        // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
+        // The start instantiates the pipeline up front (without files) and attaches it to the job. On a preflight
+        // failure the job lifecycle disposes the attached pipeline, so allow Dispose on the strict mock.
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
         pipeline.SetupGet(p => p.Id).Returns(pipelineId);
         pipeline.Setup(p => p.Dispose());

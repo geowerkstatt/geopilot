@@ -8,17 +8,22 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
+using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
 
 [TestClass]
 public class JobLifecycleTest
 {
+    private const string PipelineId = "pipe_a";
+
     private Context context;
     private string uploadRoot;
     private DirectUploadStorage uploadStorage;
     private UploadStore uploadStore;
     private ProcessingJobStore jobStore;
+    private Mock<IPipelineFactory> pipelineFactory;
+    private Channel<PreflightRequest> preflightQueue;
     private PipelineRunRecorder recorder;
     private ServiceProvider services;
     private Mandate mandate;
@@ -49,7 +54,8 @@ public class JobLifecycleTest
         uploadStore = new UploadStore();
         jobStore = new ProcessingJobStore();
 
-        var pipelineFactory = new Mock<IPipelineFactory>();
+        preflightQueue = Channel.CreateUnbounded<PreflightRequest>();
+        pipelineFactory = new Mock<IPipelineFactory>();
         pipelineFactory.Setup(f => f.GetDefinitionSnapshotJson(It.IsAny<string>())).Returns("{}");
         recorder = new PipelineRunRecorder(context, pipelineFactory.Object, uploadStorage, Mock.Of<IHttpContextAccessor>(), Mock.Of<ILogger<PipelineRunRecorder>>());
 
@@ -66,9 +72,14 @@ public class JobLifecycleTest
             .BuildServiceProvider();
 
         lifecycle = new JobLifecycle(
-            Mock.Of<ILogger<JobLifecycle>>(), jobStore, services.GetRequiredService<IServiceScopeFactory>(), Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+            Mock.Of<ILogger<JobLifecycle>>(),
+            jobStore,
+            pipelineFactory.Object,
+            preflightQueue.Writer,
+            services.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
 
-        mandate = new Mandate { Name = TestHelpers.Localized(nameof(JobLifecycleTest)), FileTypes = [".xtf"], PipelineId = "pipe_a" };
+        mandate = new Mandate { Name = TestHelpers.Localized(nameof(JobLifecycleTest)), FileTypes = [".xtf"], PipelineId = PipelineId };
         context.Mandates.Add(mandate);
         context.SaveChanges();
     }
@@ -80,6 +91,64 @@ public class JobLifecycleTest
         context.Dispose();
         if (Directory.Exists(uploadRoot))
             Directory.Delete(uploadRoot, true);
+    }
+
+    [TestMethod]
+    public async Task StartCreatesAPendingJobAndHandsItToThePreflight()
+    {
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        await context.SaveChangesAsync();
+        var upload = await CreateUploadAsync();
+        var pipeline = SetupPipeline();
+
+        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, Declarer.ForUser(user.Id));
+
+        Assert.AreEqual(ProcessingState.Pending, job.State);
+        Assert.AreSame(pipeline.Object, job.Pipeline);
+        Assert.AreEqual(mandate.Id, job.MandateId);
+        Assert.AreEqual(job, jobStore.GetJob(job.Id));
+
+        Assert.IsTrue(preflightQueue.Reader.TryRead(out var request), "The preflight must be asked to check the job.");
+        Assert.AreEqual(new PreflightRequest(job.Id, upload.Id), request);
+
+        var run = await ReadRunAsync(job.Id);
+        Assert.IsNull(run.TerminalState);
+        Assert.AreEqual(user.Id, run.UserId, "The protocol must name who started the job.");
+        AssertUploadKept(upload.Id, true);
+        pipeline.Verify(p => p.Dispose(), Times.Never, "The run still needs the pipeline.");
+    }
+
+    [TestMethod]
+    public async Task StartLeavesNoJobWhenThePipelineCannotBeCreated()
+    {
+        var upload = await CreateUploadAsync();
+        pipelineFactory
+            .Setup(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()))
+            .Throws(new InvalidOperationException("A processor could not be instantiated."));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+
+        AssertStartLeftNoJob(upload.Id);
+
+        // The upload is still there for another start.
+        SetupPipeline();
+        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        Assert.AreEqual(ProcessingState.Pending, job.State);
+    }
+
+    [TestMethod]
+    public async Task StartLeavesNoJobWhenTheStartRecordCannotBeWritten()
+    {
+        var upload = await CreateUploadAsync();
+        var pipeline = SetupPipeline();
+        pipelineFactory
+            .Setup(f => f.GetDefinitionSnapshotJson(PipelineId))
+            .Throws(new InvalidOperationException("The definition snapshot could not be read."));
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+
+        AssertStartLeftNoJob(upload.Id);
+        pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline of a job that never started must not leak.");
     }
 
     [TestMethod]
@@ -242,28 +311,53 @@ public class JobLifecycleTest
     public void RetireToleratesAnUnknownJob() => lifecycle.Retire(Guid.NewGuid());
 
     /// <summary>
-    /// Creates a job with a real upload and protocol record, the way the start does today. With
-    /// <paramref name="passPreflight"/> the job goes on to Running through the lifecycle itself.
+    /// Starts a job for a real upload through the lifecycle itself. With <paramref name="passPreflight"/> the job
+    /// goes on to Running as well.
     /// </summary>
     private async Task<(Guid JobId, Guid UploadId, Mock<IPipeline> Pipeline)> CreateJobAsync(bool passPreflight = true)
     {
-        var uploadId = Guid.NewGuid();
-        var key = $"uploads/{uploadId}/data.xtf";
-        await uploadStorage.WriteAsync(key, new MemoryStream("content"u8.ToArray()));
-        var upload = uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.xtf", key, 7)));
-
-        var job = jobStore.CreateJob(uploadId);
-        var pipeline = new Mock<IPipeline>();
-        pipeline.SetupGet(p => p.Id).Returns("pipe_a");
-        pipeline.SetupGet(p => p.JobId).Returns(job.Id);
-        pipeline.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-        jobStore.AttachPipeline(job.Id, pipeline.Object, mandate.Id);
-        await recorder.RecordJobStartedAsync(jobStore.GetJob(job.Id)!, mandate, null, upload);
+        var upload = await CreateUploadAsync();
+        var pipeline = SetupPipeline();
+        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
 
         if (passPreflight)
             await lifecycle.PreflightPassedAsync(job.Id, new ScanResult(true), []);
 
-        return (job.Id, uploadId, pipeline);
+        return (job.Id, upload.Id, pipeline);
+    }
+
+    private async Task<UploadInfo> CreateUploadAsync()
+    {
+        var uploadId = Guid.NewGuid();
+        var key = $"uploads/{uploadId}/data.xtf";
+        await uploadStorage.WriteAsync(key, new MemoryStream("content"u8.ToArray()));
+        return uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.xtf", key, 7)));
+    }
+
+    /// <summary>
+    /// Lets the pipeline factory hand out a pipeline mock, which learns its job id the moment it is created.
+    /// </summary>
+    private Mock<IPipeline> SetupPipeline()
+    {
+        var pipeline = new Mock<IPipeline>();
+        pipeline.SetupGet(p => p.Id).Returns(PipelineId);
+        pipeline.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
+        pipelineFactory
+            .Setup(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()))
+            .Returns((string _, Guid jobId) =>
+            {
+                pipeline.SetupGet(p => p.JobId).Returns(jobId);
+                return pipeline.Object;
+            });
+
+        return pipeline;
+    }
+
+    private void AssertStartLeftNoJob(Guid uploadId)
+    {
+        Assert.IsEmpty(jobStore.GetJobIds(), "A failed start must not leave a job behind.");
+        Assert.IsFalse(preflightQueue.Reader.TryRead(out _), "A job that never started must not reach the preflight.");
+        AssertUploadKept(uploadId, true);
     }
 
     /// <summary>

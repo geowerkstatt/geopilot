@@ -98,6 +98,7 @@
 
 ### Fixed
 
+- A start whose pipeline cannot be instantiated no longer leaves a pending job behind that never runs and that the cleanup reports as stuck on every run. The start is refused as before.
 - Instances starting at the same time against the same database, for example two pods during a rolling update in Kubernetes, no longer run the database migrations concurrently. One instance migrates, the others wait and then find nothing left to apply.
 - Shutting the application down no longer marks an upload under its malware scan as failed and deletes its files. The scan is cancelled with the shutdown instead of running on until the process is killed, and the upload stays as it was. A processing run interrupted by the shutdown now ends as `Cancelled` instead of staying `Running`, in the job status and in the execution protocol. The upload checks also stop before the processing, so no job is queued any more once nothing processes the queue.
 - The container stops gracefully on `docker stop` and when Kubernetes stops a pod. The application now receives the stop signal itself, so it shuts down in an orderly way instead of being killed once the grace period has passed.

@@ -3,7 +3,8 @@
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Handles the business logic for processing jobs and delegates job storage to an <see cref="IProcessingJobStore"/>.
+/// Handles the business logic for processing jobs: checks what a start may use and hands the start to
+/// <see cref="JobLifecycle"/>, which writes the job. Reads jobs from the <see cref="IProcessingJobStore"/>.
 /// </summary>
 public interface IProcessingService
 {

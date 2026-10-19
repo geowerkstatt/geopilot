@@ -42,9 +42,9 @@ public class PreflightBackgroundServiceTest
 
         // The real lifecycle, not a mock: it resolves the recorder and the orchestration from the same scope
         // factory, so these tests still see every consequence of a preflight.
-        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
-
         var channel = Channel.CreateUnbounded<PreflightRequest>();
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, Mock.Of<IPipelineFactory>(), channel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+
         service = new PreflightBackgroundService(channel.Reader, scopeFactoryMock.Object, loggerMock.Object, lifecycle);
     }
 
