@@ -280,17 +280,17 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
                         break;
                     case ConvertResponse.PayloadOneofCase.FileStart:
                         currentFile = response.FileStart;
+                        if (targetFiles.TryGetValue(currentFile.Type, out var targetFile) && !openStreams.TryGetValue(currentFile.Type, out var stream))
+                        {
+                            stream = targetFile.OpenWriteFileStream();
+                            openStreams.Add(currentFile.Type, stream);
+                        }
+
                         break;
                     case ConvertResponse.PayloadOneofCase.Chunk:
-                        if (currentFile is not null && targetFiles.TryGetValue(currentFile.Type, out var targetFile))
+                        if (currentFile is not null && openStreams.TryGetValue(currentFile.Type, out var currentStream))
                         {
-                            if (!openStreams.TryGetValue(currentFile.Type, out var stream))
-                            {
-                                stream = targetFile.OpenWriteFileStream();
-                                openStreams.Add(currentFile.Type, stream);
-                            }
-
-                            await stream.WriteAsync(response.Chunk.Memory, cancellationToken);
+                            await currentStream.WriteAsync(response.Chunk.Memory, cancellationToken);
                         }
 
                         break;
@@ -301,15 +301,34 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
         }
         finally
         {
-            foreach (var stream in openStreams.Values)
+            foreach (var (streamType, stream) in openStreams)
             {
-                await stream.DisposeAsync();
+                try
+                {
+                    await stream.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Error while closing file stream.");
+                    if (streamType == outputFileType)
+                    {
+                        // If the output file stream fails to close, fail the operation as the file might only be partially written.
+                        success = false;
+                    }
+                }
             }
 
             // Delete a partial output on error, but keep the log files.
             if (!responseCompleted && outputFileType is { } type && openStreams.TryGetValue(type, out var partialOutput))
             {
-                File.Delete(partialOutput.Name);
+                try
+                {
+                    File.Delete(partialOutput.Name);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Error while deleting partial output file.");
+                }
             }
         }
 
