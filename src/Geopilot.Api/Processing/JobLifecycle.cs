@@ -53,6 +53,7 @@ public class JobLifecycle
         ArgumentNullException.ThrowIfNull(runOutcome);
 
         var jobId = pipeline.JobId;
+        var uploadId = jobStore.GetJob(jobId)?.UploadId;
         var decision = Decide(runOutcome);
 
         if (!jobStore.TryPipelineFinished(jobId, decision.State))
@@ -69,7 +70,7 @@ public class JobLifecycle
         DisposePipeline(jobId, pipeline);
 
         if (decision.ReleaseUpload)
-            await ReleaseUploadAsync(jobId);
+            await ReleaseUploadAsync(jobId, uploadId);
     }
 
     /// <summary>
@@ -100,6 +101,8 @@ public class JobLifecycle
     /// <param name="scanResult">The outcome of the scan if one ran, otherwise <see langword="null"/>.</param>
     public async Task PreflightFailedAsync(Guid jobId, string failureReason, ScanResult? scanResult)
     {
+        var job = jobStore.GetJob(jobId);
+
         await RecordProtocolAsync(jobId, async recorder =>
         {
             if (scanResult is not null)
@@ -112,9 +115,9 @@ public class JobLifecycle
             logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", jobId);
 
         // The pipeline was instantiated up front but never queued, so no run will dispose it.
-        DisposePipeline(jobId, jobStore.GetJob(jobId)?.Pipeline);
+        DisposePipeline(jobId, job?.Pipeline);
 
-        await ReleaseUploadAsync(jobId);
+        await ReleaseUploadAsync(jobId, job?.UploadId);
     }
 
     /// <summary>
@@ -132,7 +135,7 @@ public class JobLifecycle
     /// while machine delivery is enabled, so a missing one means there is nothing to do.
     /// </summary>
     private Task DeclareMachineDeliveryAsync(Guid jobId, CancellationToken cancellationToken) =>
-        CarryOutAsync(jobId, "declare the machine delivery", async services =>
+        CarryOutAsync(jobId, "declare the machine delivery", LogLevel.Warning, async services =>
         {
             if (services.GetService<IJobCompletionHandler>() is { } handler)
                 await handler.OnJobFinishedAsync(jobId, cancellationToken);
@@ -143,14 +146,14 @@ public class JobLifecycle
     /// resolving it.
     /// </summary>
     private Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record) =>
-        CarryOutAsync(jobId, "write the execution protocol", services => record(services.GetRequiredService<IPipelineRunRecorder>()));
+        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IPipelineRunRecorder>()));
 
     /// <summary>
     /// Carries out one consequence against a fresh scope, because the services behind it depend on the scoped
     /// database context. Logs a failure instead of throwing, so it neither skips the consequences after it nor
     /// reaches the loop that reported the event.
     /// </summary>
-    private async Task CarryOutAsync(Guid jobId, string consequence, Func<IServiceProvider, Task> carryOut)
+    private async Task CarryOutAsync(Guid jobId, string consequence, LogLevel failureLevel, Func<IServiceProvider, Task> carryOut)
     {
         try
         {
@@ -159,7 +162,7 @@ public class JobLifecycle
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Could not {Consequence} for job <{JobId}>.", consequence, jobId);
+            logger.Log(failureLevel, ex, "Could not {Consequence} for job <{JobId}>.", consequence, jobId);
         }
     }
 
@@ -198,13 +201,13 @@ public class JobLifecycle
     /// Releases the uploaded files of the job. Only a known job carries the upload id. The release is a network
     /// call to the upload storage; the age-based sweep in UploadCleanupService picks up whatever it leaves behind.
     /// </summary>
-    private async Task ReleaseUploadAsync(Guid jobId)
+    private async Task ReleaseUploadAsync(Guid jobId, Guid? uploadId)
     {
-        if (jobStore.GetJob(jobId) is not { } job)
+        if (uploadId is not { } id)
             return;
 
-        await CarryOutAsync(jobId, "release the upload", services =>
-            services.GetRequiredService<IUploadOrchestrationService>().ReleaseUploadAsync(job.UploadId));
+        await CarryOutAsync(jobId, "release the upload", LogLevel.Error, services =>
+            services.GetRequiredService<IUploadOrchestrationService>().ReleaseUploadAsync(id));
     }
 
     /// <summary>
