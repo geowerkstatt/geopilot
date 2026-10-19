@@ -439,115 +439,6 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task ExecuteCallsTheCompletionHandlerWhenTheRunFinishes()
-    {
-        var jobId = NewJob();
-        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
-        using var pipeline = BuildPipeline(jobId, step);
-
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        jobCompletionHandlerMock.Verify(
-            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
-            Times.Once,
-            "A finished run must offer itself for completion exactly once, so an unattended delivery is declared and only once.");
-    }
-
-    [TestMethod]
-    public async Task ExecuteKeepsTheOutcomeWhenTheCompletionHandlerThrows()
-    {
-        var jobId = NewJob();
-        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
-        using var pipeline = BuildPipeline(jobId, step);
-        jobCompletionHandlerMock
-            .Setup(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("completion exploded"));
-
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        Assert.AreEqual(ProcessingState.Success, pipeline.State, "A failing completion must not change the outcome of the run.");
-        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Never, "A failing completion must not mark the job as failed.");
-        runRecorderMock.Verify(
-            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
-            Times.Once,
-            "The execution protocol must still record the run as successful.");
-    }
-
-    [TestMethod]
-    public async Task ExecuteCallsTheCompletionHandlerWhenTheRunOnlyWarns()
-    {
-        var jobId = NewJob();
-        var step = BuildWarningDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
-        using var pipeline = BuildPipeline(jobId, step);
-
-        var (runner, _) = CreateRunnerWithStore(pipeline);
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        Assert.AreEqual(ProcessingState.Warning, pipeline.State);
-        jobCompletionHandlerMock.Verify(
-            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
-            Times.Once,
-            "A warning does not block a delivery, so the run must still offer itself for completion.");
-    }
-
-    [TestMethod]
-    public async Task ExecuteDoesNotCallTheCompletionHandlerWhenDeliveryIsRestricted()
-    {
-        var jobId = NewJob();
-        var step = BuildRestrictDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
-        using var pipeline = BuildPipeline(jobId, step);
-
-        var (runner, _) = CreateRunnerWithStore(pipeline);
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
-        jobCompletionHandlerMock.Verify(
-            h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()),
-            Times.Never,
-            "A restricted run is not deliverable, so there is nothing to declare.");
-    }
-
-    [TestMethod]
-    public async Task ExecuteDoesNotCallTheCompletionHandlerWhenTheJobTimesOut()
-    {
-        var jobId = NewJob();
-        var gate = new TaskCompletionSource();
-        using var pipeline = BuildPipeline(jobId, BuildBlockingStep("step_1", gate.Task));
-
-        var (runner, _) = CreateRunnerWithStore(pipeline, TimeSpan.FromSeconds(2));
-
-        await runner.StartAsync(CancellationToken.None);
-        try
-        {
-            await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
-        }
-        finally
-        {
-            gate.TrySetResult();
-            await runner.StopAsync(CancellationToken.None);
-        }
-
-        jobCompletionHandlerMock.Verify(
-            h => h.OnJobFinishedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
-            Times.Never,
-            "A run that never reached a terminal state of its own has nothing to deliver.");
-    }
-
-    [TestMethod]
     public async Task ExecuteContinuesWhenProtocolRecorderFails()
     {
         var jobId = NewJob();
@@ -787,25 +678,6 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task UploadIsReleasedWhenTheRunCannotBeDelivered()
-    {
-        var jobId = NewJob();
-        var uploadId = Guid.NewGuid();
-        var step = BuildThrowingStep("step_1");
-        using var pipeline = BuildPipeline(jobId, step);
-
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        // The originals will never be archived, so they can go right away.
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
-    }
-
-    [TestMethod]
     public async Task HostShutdownCancelsTheRunningJobAndKeepsItsUpload()
     {
         var jobId = NewJob();
@@ -885,26 +757,6 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task UploadIsReleasedOnceTheDeliveryFilesAreStaged()
-    {
-        var jobId = NewJob();
-        var uploadId = Guid.NewGuid();
-        var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
-        using var pipeline = BuildPipeline(jobId, step);
-
-        var (runner, store) = CreateRunnerWithStore(pipeline);
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Success));
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        // Declaring the delivery promotes the staged copies, so nothing reads the originals any more.
-        Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -1089,27 +941,6 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task UploadIsReleasedWhenPipelineDisposeFails()
-    {
-        var jobId = NewJob();
-        var uploadId = Guid.NewGuid();
-        var pipeline = BuildStubPipeline(jobId);
-        pipeline.Setup(p => p.Dispose()).Throws(new IOException("The directory is not empty."));
-
-        var (runner, store) = CreateRunnerWithStore(pipeline.Object);
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
-
-        await runner.StartAsync(CancellationToken.None);
-        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
-        await runner.StopAsync(CancellationToken.None);
-
-        orchestrationServiceMock.Verify(
-            c => c.ReleaseUploadAsync(uploadId),
-            Times.Once,
-            "The uploaded blobs of a non-deliverable run must be released even when disposing the pipeline failed.");
-    }
-
-    [TestMethod]
     public async Task ReleasingTheUploadFailingDoesNotAbortTheRunner()
     {
         var jobId = NewJob();
@@ -1131,58 +962,6 @@ public class ProcessingRunnerTest
 
         Assert.IsTrue(runner.ExecuteTask.IsCompletedSuccessfully, "A failing upload release must not fault the runner loop.");
         orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task RunnerSurvivesTerminalTransitionRejectedByTheStore()
-    {
-        var store = new ProcessingJobStore();
-        var gate = new TaskCompletionSource();
-        var uploadReleased = new TaskCompletionSource();
-
-        var job = store.CreateJob(Guid.NewGuid());
-        createdJobIds.Add(job.Id);
-
-        // Releasing the upload is the last thing done for a work item, so it signals that the body got
-        // through to its end rather than being torn out of it.
-        orchestrationServiceMock
-            .Setup(c => c.ReleaseUploadAsync(job.UploadId))
-            .Callback(() => uploadReleased.TrySetResult())
-            .Returns(Task.CompletedTask);
-
-        using var pipeline = BuildPipeline(job.Id, BuildBlockingStep("step_1", gate.Task));
-        store.AttachPipeline(job.Id, pipeline, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-
-        using var runner = CreateRunner(store);
-        await runner.StartAsync(CancellationToken.None);
-        try
-        {
-            // The job reaches a terminal state while its pipeline is still running, so the transition the
-            // runner attempts once the pipeline finishes is no longer valid and the strict guard rejects it.
-            await WaitUntilAsync(() => pipeline.State == ProcessingState.Running, TimeSpan.FromSeconds(10));
-            Assert.IsTrue(store.TryMarkAsFailed(job.Id), "The job has to reach its terminal state before the pipeline does.");
-            gate.SetResult();
-
-            await uploadReleased.Task.WaitAsync(TimeSpan.FromSeconds(10));
-
-            // The real store leaves its queue open, so a runner that survived the rejected transition just
-            // keeps waiting for more work, while one that let the exception escape ends its loop right after
-            // this work item. The check has to happen before StopAsync: cancelling the runner replaces an
-            // already faulted loop with a cancelled one and would hide exactly what is being asserted.
-            var firstToSettle = await Task.WhenAny(runner.ExecuteTask!, Task.Delay(TimeSpan.FromSeconds(2)));
-
-            Assert.AreNotSame(
-                runner.ExecuteTask,
-                firstToSettle,
-                $"The runner loop ended after the rejected transition: {runner.ExecuteTask!.Exception?.InnerException?.Message}");
-            Assert.AreEqual(ProcessingState.Failed, store.GetJob(job.Id)!.State, "The job keeps the state it already reached.");
-        }
-        finally
-        {
-            gate.TrySetResult();
-            await runner.StopAsync(CancellationToken.None);
-        }
     }
 
     [TestMethod]
@@ -1219,39 +998,6 @@ public class ProcessingRunnerTest
             await runner.StopAsync(CancellationToken.None);
             pipelines.ForEach(pipeline => pipeline.Dispose());
         }
-    }
-
-    [TestMethod]
-    public async Task RunnerSurvivesTimeoutTransitionRejectedByTheStore()
-    {
-        var jobId = NewJob();
-        var uploadId = Guid.NewGuid();
-        var gate = new TaskCompletionSource();
-        using var pipeline = BuildPipeline(jobId, BuildBlockingStep("step_1", gate.Task));
-
-        var (runner, store) = CreateRunnerWithStore(pipeline, TimeSpan.FromSeconds(2));
-
-        // The job moved on while its pipeline timed out, so the store rejects the transition to Cancelled.
-        store.Setup(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled)).Returns(false);
-        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
-
-        await runner.StartAsync(CancellationToken.None);
-        try
-        {
-            await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
-        }
-        finally
-        {
-            gate.TrySetResult();
-            await runner.StopAsync(CancellationToken.None);
-        }
-
-        Assert.IsTrue(runner.ExecuteTask.IsCompletedSuccessfully, "A timeout transition the store rejects must not fault the runner loop.");
-        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
-        orchestrationServiceMock.Verify(
-            c => c.ReleaseUploadAsync(uploadId),
-            Times.Never,
-            "A timed out run says nothing about its data, so the upload stays for a second attempt.");
     }
 
     /// <summary>

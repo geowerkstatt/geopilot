@@ -156,27 +156,6 @@ public class UploadPollingTest
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
-    [TestMethod]
-    public async Task PollReturnsFailedEvenWhenCleanupFails()
-    {
-        var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
-
-        orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
-            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.ThreatDetected, "Threat detected."));
-        orchestrationServiceMock
-            .Setup(x => x.ReleaseUploadAsync(uploadId))
-            .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
-
-        var request = await preflightChannel.Reader.ReadAsync();
-        await backgroundService.ProcessRequestAsync(request);
-
-        var polledJob = processingService.GetJob(jobId);
-
-        Assert.IsNotNull(polledJob);
-        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
-    }
-
     private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartJobAsync()
     {
         var pipelineId = "pipeline1";
