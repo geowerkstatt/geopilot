@@ -127,11 +127,11 @@ Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in
 
 ## Lebensdauer
 
-Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie sein Verarbeitungsjob (`Processing:JobRetention`, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
+Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie sein Verarbeitungsjob (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
 
 **Der dauerhafte Griff ist die `deliveryId`.** Die Lieferung ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient; einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
 
-Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden nach `Processing:DownloadRetention` aufgeräumt, standardmässig nach einer Stunde, während der Job einen Tag lebt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
+Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden `Processing:DownloadRetention` nach dem Ende des Laufs aufgeräumt, standardmässig nach einer Stunde, während der Job einen Tag bleibt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
 
 ## Antworten
 
