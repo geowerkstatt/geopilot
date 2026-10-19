@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -22,6 +23,24 @@ public static class WebApplicationExtensions
         if (!validationResult.IsValid)
         {
             throw new InvalidOperationException(validationResult.ErrorMessage);
+        }
+    }
+
+    /// <summary>
+    /// Logs the time zone the uploader's delete window closes in, when <see cref="DeliveryOptions.DeleteRestrictInterval"/>
+    /// depends on it: a daily "0 0 * * *" means midnight on the server's clock.
+    /// </summary>
+    public static void LogDeleteWindowTimeZone(this WebApplication app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+
+        var options = app.Services.GetRequiredService<IOptions<DeliveryOptions>>().Value;
+        if (options.UploaderDeleteEnabled && options.DeleteRestrictIntervalExpression is not null)
+        {
+            app.Logger.LogInformation(
+                "Uploaders can delete a delivery until the next '{DeleteRestrictInterval}' in time zone {TimeZone}.",
+                options.DeleteRestrictInterval,
+                options.TimeZone.Id);
         }
     }
 
