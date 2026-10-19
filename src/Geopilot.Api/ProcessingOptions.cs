@@ -8,21 +8,22 @@ namespace Geopilot.Api;
 public class ProcessingOptions
 {
     /// <summary>
-    /// The duration after which uploads, deliveries, and the in-memory job entry are
-    /// eligible for cleanup.
+    /// The duration after the end of a job's run after which the in-memory job entry and its remaining files
+    /// (working directory, delivery files staged but never declared) are retired. A job that has not finished
+    /// counts from its creation.
     /// </summary>
     public TimeSpan JobRetention { get; set; }
 
     /// <summary>
-    /// The duration after which the user-facing pipeline downloads (logs, reports) are
-    /// eligible for cleanup. Typically much shorter than <see cref="JobRetention"/>
-    /// since downloads are only useful while the user is interacting with the result.
+    /// The duration after the end of a job's run after which the user-facing pipeline downloads (logs, reports)
+    /// are eligible for cleanup. Typically much shorter than <see cref="JobRetention"/> since downloads are only
+    /// useful while the user is interacting with the result.
     /// </summary>
     public TimeSpan DownloadRetention { get; set; }
 
     /// <summary>
-    /// The duration after which visualization configs are eligible for cleanup. Typically the
-    /// shortest retention, since a visualization is only needed while the user views the job
+    /// The duration after the end of a job's run after which visualization configs are eligible for cleanup.
+    /// Typically the shortest retention, since a visualization is only needed while the user views the job
     /// result in the browser.
     /// </summary>
     public TimeSpan VisualizationRetention { get; set; }

@@ -1333,7 +1333,7 @@ public class ProcessingRunnerTest
     }
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
-        => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state };
+        => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state, FinishedAt = DateTime.UtcNow };
 
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null)
     {

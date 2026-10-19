@@ -106,7 +106,9 @@ public class ProcessingJobCleanupService : BackgroundService
                 }
             }
 
-            // The in-memory job entry ages out on JobRetention. Its upload is not released here: it went when
+            // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
+            // so retiring a job never cuts their retention short; a job that has not finished counts from its
+            // creation, which is how a stuck one shows up below. Its upload is not released here: it went when
             // the job ended, or it stays on purpose until its upload session expires (a cancelled run, see
             // JobLifecycle.Decide). The asset directory is the long-term archive of deliveries, which survive
             // cleanup and are only removed via DeliveryController.Delete; a job directory there without a
@@ -122,7 +124,7 @@ public class ProcessingJobCleanupService : BackgroundService
             foreach (var jobId in retiredCandidates)
             {
                 var job = jobStore.GetJob(jobId);
-                if (job != null && now - job.CreatedAt <= processingOptions.JobRetention)
+                if (job != null && now - (job.FinishedAt ?? job.CreatedAt) <= processingOptions.JobRetention)
                     continue;
 
                 // A job still pending or running past its retention is stuck, not stale: its preflight or
