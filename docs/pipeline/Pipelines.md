@@ -71,7 +71,7 @@ Die Daten können dabei verschiedene Typen haben. Dies können einfache Datentyp
 
 Es ist möglich, dass die Daten von einem Schritt von mehreren darauffolgenden Schritten verarbeitet werden können. Ebenso ist es möglich, dass sich mehrere Schritte auf den gleichen Datensatz beziehen. Durch diese Möglichkeiten lassen sich Ausführungsstränge öffnen und wieder zusammenführen.
 
-Das folgende Beispiel zeigt diese Verknüpfungen an einer Pipeline mit drei Schritten. Der Output `Dateien` des Schrittes `zuordnung` wird von zwei Schritten verwendet, und `paket` führt ihn mit dem `Protokoll` aus `pruefung` und einer Ressourcen-Datei in seinem Parameter `dateien` zusammen. Schritt-IDs, Parameter und Property-Namen sind frei gewählt; welche Inputs und Outputs ein Prozessor hat, steht in seiner Dokumentation. Die Zylinder stehen für den Pipeline-Context, der mit jedem Schritt wächst. Durchgezogene Pfeile sind Inputs mit Parametername und Quelle, dicke Pfeile legen Daten im Pipeline-Context ab, und gestrichelte Pfeile weisen einer Property über `output_actions` eine Action zu.
+Das folgende Beispiel zeigt diese Verknüpfungen an einer Pipeline mit drei Schritten. Der Output `Dateien` des Schrittes `zuordnung` wird von zwei Schritten verwendet, und `paket` führt ihn mit dem `Protokoll` aus `pruefung` und einer Ressourcen-Datei in seinem Parameter `dateien` zusammen. Schritt-IDs, Parameter und Property-Namen sind frei gewählt; welche Inputs und Outputs ein Prozessor hat, steht in seiner Dokumentation.
 
 ```mermaid
 flowchart TB
@@ -88,10 +88,10 @@ flowchart TB
     pruefung["Schritt pruefung"]
     paket["Schritt paket"]
 
-    download["Download<br/>nach dem Schritt herunterladbar"]
-    visualisierung["Visualization<br/>nach dem Schritt zur Anzeige bereit"]
-    statusmeldung["StatusMessage<br/>als Statusnachricht des Schrittes angezeigt"]
-    lieferung["Delivery<br/>nach dem letzten Schritt in die Lieferung,<br/>sofern die Lieferung möglich ist"]
+    download{{"Download<br/>nach dem Schritt herunterladbar"}}
+    visualisierung{{"Visualization<br/>nach dem Schritt zur Anzeige bereit"}}
+    statusmeldung{{"StatusMessage<br/>als Statusnachricht des Schrittes angezeigt"}}
+    lieferung{{"Delivery<br/>nach dem letzten Schritt in die Lieferung,<br/>sofern die Lieferung möglich ist"}}
 
     hochgeladen ==> ctx_upload
     ctx_upload -- "dateien: ${upload()}" --> zuordnung
@@ -109,6 +109,17 @@ flowchart TB
     pruefung -. "Meldung" .-> statusmeldung
     paket -. "Paket" .-> lieferung
 ```
+
+Legende:
+
+- Parallelogramm: Datenquelle ausserhalb der Definition (Upload, Ressourcen-Verzeichnis)
+- Abgerundetes Rechteck: Literal, direkt in der Definition geschrieben
+- Rechteck: Schritt
+- Zylinder: Pipeline-Context nach einem Schritt
+- Sechseck: Output-Action
+- Dicker Pfeil: legt Daten im Pipeline-Context ab
+- Durchgezogener Pfeil: Input, beschriftet mit `parameter: quelle`
+- Gestrichelter Pfeil: weist einer Property über `output_actions` eine Action zu
 
 ## Wie ist eine Pipeline-Definition aufgebaut?
 
