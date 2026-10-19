@@ -14,7 +14,8 @@ services:
       SB_supportedLocales: "de-CH,fr-CH,it-CH,en"
 
   db:
-    image: postgis/postgis
+    # Pinned: from PostgreSQL 18 on the image keeps its data in /var/lib/postgresql/18/docker, outside the volume below.
+    image: postgis/postgis:17-3.5
     restart: always
     ports:
       - 5432:5432
