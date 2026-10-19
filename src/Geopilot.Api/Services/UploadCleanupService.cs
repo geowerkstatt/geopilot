@@ -53,7 +53,7 @@ public partial class UploadCleanupService : BackgroundService
         if (maxAge <= longestJobLifetime)
         {
             logger.LogWarning(
-                "Upload:CleanupAgeHours ({CleanupAge}) does not cover the longest job lifetime ({JobLifetime} = Processing:JobRetention + Processing:JobTimeout). Uploaded files may be deleted while a job or its delivery still needs them.",
+                "Upload:CleanupAgeHours ({CleanupAge}) does not cover the longest job lifetime ({JobLifetime} = Processing:JobRetention + Processing:JobTimeout). Uploaded files may be deleted while a job still needs them.",
                 maxAge,
                 longestJobLifetime);
         }
