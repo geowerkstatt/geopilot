@@ -2,6 +2,7 @@
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -60,6 +61,7 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotNull(result);
         Assert.IsTrue(result.Success, "Schema import failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         using var stream = await gpkgFile.OpenReadAsync();
         Assert.IsGreaterThan(0, stream.Length, "Resulting GPKG file is empty.");
@@ -81,6 +83,7 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotNull(result);
         Assert.IsFalse(result.Success, "Schema import should have failed.");
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         Assert.IsFalse(File.Exists(await gpkgFile.GetLocalPathAsync()), "GPKG file should not have been created for an invalid model.");
     }
@@ -89,7 +92,7 @@ public partial class Ili2GpkgClientIntegrationTest
     [Timeout(10_000, CooperativeCancellation = true)]
     public async Task SchemaImportAsyncIntoExistingDatabase()
     {
-        var modelFile = GetTestPipelineFile("model.ili");
+        var modelFile = GetTestPipelineFile("model2.ili");
         var inputFile = GetTestPipelineFile("schema.gpkg");
         var outputFile = GetTestPipelineFile("schema_import_existing.gpkg");
         var logFile = GetTestPipelineFile("schema_import_existing.log");
@@ -104,9 +107,11 @@ public partial class Ili2GpkgClientIntegrationTest
 
         Assert.IsTrue(result.Success, "Schema import into existing database failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
-        using var stream = await outputFile.OpenReadAsync();
-        Assert.IsGreaterThan(0, stream.Length, "Resulting GPKG file is empty.");
+        // SimpleModel comes from the existing database, SimpleModel2 from the imported model file.
+        CollectionAssert.AreEquivalent(new[] { "SimpleModel" }, await ReadModelNamesAsync(inputFile), "Precondition: Input file should only contain SimpleModel.");
+        CollectionAssert.AreEquivalent(new[] { "SimpleModel", "SimpleModel2" }, await ReadModelNamesAsync(outputFile));
     }
 
     [TestMethod]
@@ -138,6 +143,7 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotNull(result);
         Assert.IsTrue(result.Success, "Import failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         using var inputFileStream = await inputFile.OpenReadAsync();
         using var outputFileStream = await outputFile.OpenReadAsync();
@@ -168,6 +174,86 @@ public partial class Ili2GpkgClientIntegrationTest
 
     [TestMethod]
     [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ImportAsyncWithDoSchemaImportFromRepositoryArchive()
+    {
+        var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
+        var transferFile = new PipelineFile(Path.Combine("TestData", "ModelRepository", "AllErrors23-ok.xtf"), "AllErrors23-ok.xtf");
+        var outputFile = GetTestPipelineFile("import_repository_archive.gpkg");
+        var logFile = GetTestPipelineFile("import_repository_archive.log");
+        var xtfLogFile = GetTestPipelineFile("import_repository_archive.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
+
+        // Without an input database the schema is created from scratch, and the model only exists in the archive,
+        // which the service unpacks into the repository subfolder of the session.
+        var args = new Ili2GpkgArgs
+        {
+            DoSchemaImport = true,
+            DefaultSrsCode = 2056,
+            ModelDirs = ["%XTF_DIR/repository"],
+        };
+        var result = await ili2GpkgClient.ImportAsync(args, null, outputFile, [transferFile], logFile, xtfLogFile, archive, cancellationToken: TestContext.CancellationToken);
+
+        Assert.IsTrue(result.Success, "Import with schema import from the repository archive failed. Log: " + await ReadLogAsync(logFile));
+        await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
+
+        CollectionAssert.AreEquivalent(new[] { "AllErrors23" }, await ReadModelNamesAsync(outputFile));
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ImportAsyncWithDoSchemaImportFromModels()
+    {
+        var modelFile = GetTestPipelineFile("model.ili");
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var outputFile = GetTestPipelineFile("import_with_schema_import.gpkg");
+        var logFile = GetTestPipelineFile("import_with_schema_import.log");
+        var xtfLogFile = GetTestPipelineFile("import_with_schema_import.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
+
+        // Without an input database the schema is created from scratch, and the model files land in the models subfolder of the session.
+        var args = new Ili2GpkgArgs
+        {
+            DoSchemaImport = true,
+            ModelDirs = ["%XTF_DIR/models"],
+        };
+        var result = await ili2GpkgClient.ImportAsync(args, null, outputFile, [transferFile], logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: TestContext.CancellationToken);
+
+        Assert.IsTrue(result.Success, "Import with schema import from the models failed. Log: " + await ReadLogAsync(logFile));
+        await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
+
+        CollectionAssert.AreEquivalent(new[] { "SimpleModel" }, await ReadModelNamesAsync(outputFile));
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ImportAsyncWithItfTransferFormat()
+    {
+        var modelFile = GetTestPipelineFile("model_interlis1.ili");
+        var transferFile = GetTestPipelineFile("transfer_interlis1.itf");
+        var outputFile = GetTestPipelineFile("import_interlis1.gpkg");
+        var logFile = GetTestPipelineFile("import_interlis1.log");
+        var xtfLogFile = GetTestPipelineFile("import_interlis1.xtf");
+        await DeleteIfExistsAsync(outputFile, logFile, xtfLogFile);
+
+        var args = new Ili2GpkgArgs
+        {
+            DoSchemaImport = true,
+            TransferFormat = Ili2GpkgTransferFormat.Itf,
+            ModelDirs = ["%XTF_DIR/models"],
+        };
+        var result = await ili2GpkgClient.ImportAsync(args, null, outputFile, [transferFile], logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: TestContext.CancellationToken);
+
+        Assert.IsTrue(result.Success, "Import of INTERLIS 1 ITF transfer file failed. Log: " + await ReadLogAsync(logFile));
+        await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
+
+        CollectionAssert.Contains(await ReadModelNamesAsync(outputFile), "SimpleModel1");
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task ExportAsync()
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
@@ -184,6 +270,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         Assert.IsTrue(result.Success, "Export failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
     }
@@ -208,6 +295,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         Assert.IsTrue(result.Success, "Export with model dirs failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
     }
@@ -281,6 +369,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         Assert.IsTrue(result.Success, "Update failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         using var inputFileStream = await inputFile.OpenReadAsync();
         using var outputFileStream = await outputFile.OpenReadAsync();
@@ -330,6 +419,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         Assert.IsTrue(result.Success, "Validation failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);
+        await AssertXtfLogWrittenAsync(xtfLogFile);
 
         await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
@@ -434,6 +524,31 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         // ili2gpkg prefixes its log lines with the level, which also tells the log apart from an xtf log routed to the wrong file.
         Assert.Contains("Info:", await ReadLogAsync(logFile), StringComparison.OrdinalIgnoreCase, "The ili2gpkg log was not written.");
+    }
+
+    private async Task AssertXtfLogWrittenAsync(PipelineFile xtfLogFile)
+    {
+        await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
+    }
+
+    private async Task<List<string>> ReadModelNamesAsync(PipelineFile gpkgFile)
+    {
+        // Pooling off so no handle keeps the file locked for the next run's cleanup.
+        var path = await gpkgFile.GetLocalPathAsync(TestContext.CancellationToken);
+        using var connection = new SqliteConnection($"Data Source={path};Mode=ReadOnly;Pooling=False");
+        await connection.OpenAsync(TestContext.CancellationToken);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT modelName FROM T_ILI2DB_MODEL";
+        using var reader = await command.ExecuteReaderAsync(TestContext.CancellationToken);
+
+        var modelNames = new List<string>();
+        while (await reader.ReadAsync(TestContext.CancellationToken))
+        {
+            modelNames.Add(reader.GetString(0));
+        }
+
+        return modelNames;
     }
 
     private PipelineFile GetTestPipelineFile(string name)
