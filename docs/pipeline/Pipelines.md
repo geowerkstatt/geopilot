@@ -138,6 +138,8 @@ pipelines:
           fr: XTF Correspondance
           it: XTF Corrispondenza
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
       - id: validation
         display_name:
           en: XTF Validation
