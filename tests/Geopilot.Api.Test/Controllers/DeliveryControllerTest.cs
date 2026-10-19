@@ -713,6 +713,32 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public void IsDeleteAllowedForUploaderClosesAtLocalMidnight()
+    {
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = true,
+            DeleteRestrictInterval = "0 0 * * *",
+            TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich"),
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        // Midnight in Zurich is 23:00 UTC in winter, an hour before midnight UTC.
+        var delivery = new Delivery { Date = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc) };
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
+    }
+
+    [TestMethod]
+    public void IsDeleteAllowedForUploaderStaysDisabledBeforeTheDeclaration()
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = false });
+
+        var delivery = new Delivery { Date = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc) };
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, delivery.Date.AddMinutes(-1)));
+    }
+
+    [TestMethod]
     public async Task Download()
     {
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));

@@ -301,25 +301,7 @@ public class DeliveryController : ControllerBase
             return false;
         }
 
-        utcNow ??= DateTime.UtcNow;
-
-        var deliveryDateUtc = delivery.Date.Kind switch
-        {
-            DateTimeKind.Utc => delivery.Date,
-            DateTimeKind.Local => delivery.Date.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc),
-        };
-
-        if (options.DeleteDuration is TimeSpan deleteDuration && deleteDuration <= utcNow - deliveryDateUtc)
-        {
-            return false;
-        }
-
-        if (options.DeleteRestrictIntervalExpression?.GetNextOccurrence(deliveryDateUtc) is DateTime nextOccurrence && nextOccurrence <= utcNow)
-        {
-            return false;
-        }
-
-        return true;
+        var windowEnd = options.GetDeleteWindowEnd(delivery.Date);
+        return windowEnd is null || (utcNow ?? DateTime.UtcNow) < windowEnd;
     }
 }
