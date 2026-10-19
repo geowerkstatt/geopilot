@@ -58,7 +58,7 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 
 Ein Schritt und somit auch ein Prozess kann 1-n Inputs und 1-n Outputs haben. Die Inputs eines Schrittes werden von vorherigen Schritten bezogen. Ein Input kann zudem die hochgeladenen Dateien über `${upload()}` beziehen. Ebenso kann ein Input über eine Datei-Referenz `${file(pfad)}` eine Datei aus dem konfigurierten Ressourcen-Verzeichnis beziehen. Die Outputs eines Schrittes sind implizit alle öffentlichen, lesbaren Properties seines Prozess-Ergebnisses; sie stehen den darauffolgenden Schritten unter ihrem Property-Namen (PascalCase) zur Verfügung, ohne einzeln deklariert werden zu müssen.
 
-Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Am Ende der Pipeline-Ausführung stehen die Ergebnisse zur Datenlieferung oder zum Download bereit. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
+Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Downloads und Visualisierungen stehen bereit, sobald der jeweilige Schritt abgeschlossen ist. Die Dateien für die Datenlieferung werden erst am Ende der Pipeline-Ausführung bereitgestellt, und nur wenn die Lieferung möglich ist. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
 
 - `Download`: Die Daten werden zum Download bereitgestellt, und können von den Anwendern heruntergeladen werden. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein. Der deklarierte Typ der Property wird beim Laden geprüft: Eine Property, die gar keine Datei liefern kann, verhindert den Start. Ist der Wert zur Laufzeit nicht gesetzt (`null`), schlägt der Schritt fehl.
 - `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; auch hier wird der deklarierte Typ beim Laden geprüft. Ist der Wert zur Laufzeit nicht gesetzt (`null`), wird nichts geliefert, und der Schritt schlägt anders als bei `Download` nicht fehl. Die Lieferung enthält nur **genau** die Dateien, die von einem Schritt als `Delivery` getaggt wurden. Um hochgeladene Dateien in der Lieferung zu berücksichtigen, wird üblicherweise ein Matcher-Schritt verwendet, der die Uploads als `${upload()}` erhält und seine Treffer und optional seine `UnmatchedFiles` als `Delivery` taggt. Der Asset-Typ einer gelieferten Datei ergibt sich aus ihrer Herkunft: kam sie als Upload in die Pipeline, wird sie als `PrimaryData` geführt, wurde sie innerhalb der Pipeline erzeugt oder bearbeitet, als `ProcessedData`. Enthält eine Lieferung keine einzige `Delivery`-getaggte Datei, wird die Deklaration mit einem Fehler abgelehnt.
@@ -70,6 +70,56 @@ Der Zugriff auf diese Daten erfolgt über eine Referenz in der Form `${step_outp
 Die Daten können dabei verschiedene Typen haben. Dies können einfache Datentypen wie Strings oder Zahlen sein, aber auch komplexe Datentypen wie Dateien (z.B. `IPipelineFile`) oder Listen. Es ist dabei zu beachten, dass die Daten, welche von einem Schritt bereitgestellt werden, von den darauffolgenden Schritten verarbeitet werden können. Um dies zu gewährleisten muss die Dokumentation des jeweilig verwendeten Prozessors konsultiert werden. Dabei muss sowohl der Typ, als auch der Namen, unter welchem die Daten dem Prozessor bereitgestellt werden, übereinstimmen. Stimmt dies nicht überein, startet die Applikation nicht (siehe [Validierungen](#validierungen)).
 
 Es ist möglich, dass die Daten von einem Schritt von mehreren darauffolgenden Schritten verarbeitet werden können. Ebenso ist es möglich, dass sich mehrere Schritte auf den gleichen Datensatz beziehen. Durch diese Möglichkeiten lassen sich Ausführungsstränge öffnen und wieder zusammenführen.
+
+Das folgende Beispiel zeigt diese Verknüpfungen an einer Pipeline mit drei Schritten. Der Output `Dateien` des Schrittes `zuordnung` wird von zwei Schritten verwendet, und `paket` führt ihn mit dem `Protokoll` aus `pruefung` und einer Ressourcen-Datei in seinem Parameter `dateien` zusammen. Schritt-IDs, Parameter und Property-Namen sind frei gewählt; welche Inputs und Outputs ein Prozessor hat, steht in seiner Dokumentation.
+
+```mermaid
+flowchart TB
+    hochgeladen[/"Hochgeladene Dateien"/]
+    literal("Literal in der Definition")
+    ressourcen[/"Ressourcen-Verzeichnis"/]
+
+    ctx_upload[("Pipeline-Context<br/>Upload")]
+    ctx_zuordnung[("Pipeline-Context<br/>+ zuordnung: Dateien")]
+    ctx_pruefung[("Pipeline-Context<br/>+ pruefung: Protokoll, Meldung, Karte")]
+    ctx_paket[("Pipeline-Context<br/>+ paket: Paket")]
+
+    zuordnung["Schritt zuordnung"]
+    pruefung["Schritt pruefung"]
+    paket["Schritt paket"]
+
+    download{{"Download<br/>nach dem Schritt herunterladbar"}}
+    visualisierung{{"Visualization<br/>nach dem Schritt zur Anzeige bereit"}}
+    statusmeldung{{"StatusMessage<br/>als Statusnachricht des Schrittes angezeigt"}}
+    lieferung{{"Delivery<br/>nach dem letzten Schritt in die Lieferung,<br/>sofern die Lieferung möglich ist"}}
+
+    hochgeladen ==> ctx_upload
+    ctx_upload -- "dateien: ${upload()}" --> zuordnung
+    zuordnung ==> ctx_zuordnung
+    ctx_zuordnung -- "datei: ${step_output(zuordnung.Dateien)}" --> pruefung
+    literal -- "umfang: 449" --> pruefung
+    pruefung ==> ctx_pruefung
+    ctx_zuordnung -- "dateien: ${step_output(zuordnung.Dateien)}" --> paket
+    ctx_pruefung -- "dateien: ${step_output(pruefung.Protokoll)}" --> paket
+    ressourcen -- "dateien: ${file(vorlagen/liesmich.txt)}" --> paket
+    paket ==> ctx_paket
+
+    pruefung -. "Protokoll" .-> download
+    pruefung -. "Karte" .-> visualisierung
+    pruefung -. "Meldung" .-> statusmeldung
+    paket -. "Paket" .-> lieferung
+```
+
+Legende:
+
+- Parallelogramm: Datenquelle ausserhalb der Definition (Upload, Ressourcen-Verzeichnis)
+- Abgerundetes Rechteck: Literal, direkt in der Definition geschrieben
+- Rechteck: Schritt
+- Zylinder: Pipeline-Context nach einem Schritt
+- Sechseck: Output-Action
+- Dicker Pfeil: legt Daten im Pipeline-Context ab
+- Durchgezogener Pfeil: Input, beschriftet mit `parameter: quelle`
+- Gestrichelter Pfeil: weist einer Property über `output_actions` eine Action zu
 
 ## Wie ist eine Pipeline-Definition aufgebaut?
 
@@ -99,6 +149,8 @@ pipelines:
           fr: XTF Correspondance
           it: XTF Corrispondenza
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
       - id: validation
         display_name:
           en: XTF Validation
