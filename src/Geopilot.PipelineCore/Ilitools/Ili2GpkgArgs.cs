@@ -201,7 +201,9 @@ public sealed record Ili2GpkgArgs
     public IReadOnlyList<string>? ExportModels { get; init; }
 
     /// <summary>
-    /// The format of the transfer file(s). Without a value, the ilitools-wrapper default applies.
+    /// The format of the transfer file(s). Without a value, the xtf format is used.
+    /// For an INTERLIS 1 transfer file (itf), the transfer format must be set to <see cref="Ili2GpkgTransferFormat.Itf"/>,
+    /// as the wrapper ignores the file extension of the transfer file.
     /// <see cref="Ili2GpkgTransferFormat.Gml"/> and <see cref="Ili2GpkgTransferFormat.Gml20"/> are only accepted for export.
     /// </summary>
     public Ili2GpkgTransferFormat? TransferFormat { get; init; }
