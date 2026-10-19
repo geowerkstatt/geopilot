@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
@@ -55,6 +56,8 @@ public class JobLifecycle
     /// <param name="pipelineId">The pipeline of the mandate, which the caller has checked to be set.</param>
     /// <param name="declarer">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
     /// <returns>The pending job with its pipeline attached.</returns>
+    /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running. Nothing
+    /// was created then.</exception>
     /// <remarks>
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
     /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).

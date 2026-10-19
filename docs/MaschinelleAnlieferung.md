@@ -142,11 +142,11 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |
-| `409` | Das Mandat nimmt keine Lieferungen an, oder es nennt keine Pipeline, die diese Installation anbietet. |
+| `409` | Das Mandat nimmt keine Lieferungen an, es nennt keine Pipeline, die diese Installation anbietet, oder ein früherer Versuch verarbeitet denselben Upload noch. |
 | `413` | Eine Datei ist grösser, als die Installation annimmt. |
 | `503` | Die Installation hält bereits so viele oder so grosse Uploads, wie sie gleichzeitig annimmt. `Retry-After` nennt die Wartezeit in Sekunden. |
 
-`400`, `409` und `413` heissen "korrigiere die Anfrage", `503` heisst "schicke dieselbe Anfrage später nochmals". Ein Client, der beides gleich behandelt, wiederholt entweder vergeblich oder gibt zu früh auf.
+`400`, `409` und `413` heissen "korrigiere die Anfrage", `503` heisst "schicke dieselbe Anfrage später nochmals". Ein Client, der beides gleich behandelt, wiederholt entweder vergeblich oder gibt zu früh auf. Verarbeitet ein früherer Versuch den Upload noch, fragt der Client diesen Versuch ab, statt den Upload ein zweites Mal zu schicken.
 
 Ein unbekannter Schlüssel und ein nicht erreichbares Mandat ergeben **dieselbe** Antwort. Sonst wäre der Endpunkt ein Verzeichnis fremder Mandatsschlüssel.
 

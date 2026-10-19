@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
@@ -346,6 +347,22 @@ public sealed class ProcessingControllerTest
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
         Assert.AreEqual("User not authorized for mandate", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns409WhileAJobForTheUploadIsActive()
+    {
+        var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = 42 };
+        var exception = new JobAlreadyActiveException(startJobRequest.UploadId);
+
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, null))
+            .ThrowsAsync(exception);
+
+        var response = await controller.StartJobAsync(startJobRequest) as ObjectResult;
+
+        Assert.IsInstanceOfType<ObjectResult>(response);
+        Assert.AreEqual(StatusCodes.Status409Conflict, response!.StatusCode);
+        Assert.AreEqual(exception.Message, ((ProblemDetails)response.Value!).Detail);
     }
 
     [TestMethod]

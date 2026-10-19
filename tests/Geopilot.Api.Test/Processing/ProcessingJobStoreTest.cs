@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Moq;
 
@@ -36,6 +37,39 @@ public class ProcessingJobStoreTest
         Assert.AreEqual(DateTimeKind.Utc, job.CreatedAt.Kind);
         Assert.IsTrue(before <= job.CreatedAt);
         Assert.IsTrue(job.CreatedAt <= after);
+    }
+
+    [TestMethod]
+    public void CreateJobAcceptsAnotherUploadWhileOneIsActive()
+    {
+        store.CreateJob(Guid.NewGuid());
+
+        var job = store.CreateJob(Guid.NewGuid());
+
+        Assert.AreEqual(ProcessingState.Pending, job.State);
+    }
+
+    [TestMethod]
+    public void CreateJobAdmitsOneOfConcurrentStartsForTheSameUpload()
+    {
+        var uploadId = Guid.NewGuid();
+        var admitted = 0;
+
+        Parallel.For(0, 16, _ =>
+        {
+            try
+            {
+                store.CreateJob(uploadId);
+                Interlocked.Increment(ref admitted);
+            }
+            catch (JobAlreadyActiveException)
+            {
+                // The expected answer for every start but one.
+            }
+        });
+
+        Assert.AreEqual(1, admitted);
+        Assert.HasCount(1, store.GetJobIds());
     }
 
     [TestMethod]

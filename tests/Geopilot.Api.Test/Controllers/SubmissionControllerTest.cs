@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
@@ -173,6 +174,22 @@ public class SubmissionControllerTest
         submissionStoreMock.Verify(
             s => s.Add(It.Is<Submission>(sub => sub.JobId == jobId && sub.Declarer == declarer && sub.MandateKey == MandateKey)),
             Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RefusesAnUploadAnEarlierAttemptIsStillProcessing()
+    {
+        var controller = CreateController();
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer))
+            .ThrowsAsync(new JobAlreadyActiveException(uploadId));
+
+        var result = await controller.Create(NewRequest(), CancellationToken.None);
+
+        Assert.IsInstanceOfType<ConflictObjectResult>(result, "A caller that repeats its attempt must learn to retry later, not see a server error.");
+        submissionStoreMock.Verify(s => s.Add(It.IsAny<Submission>()), Times.Never);
     }
 
     [TestMethod]

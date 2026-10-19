@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Http;
@@ -149,6 +150,39 @@ public class JobLifecycleTest
 
         AssertStartLeftNoJob(upload.Id);
         pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline of a job that never started must not leak.");
+    }
+
+    [TestMethod]
+    public async Task StartRefusesASecondJobForTheSameUpload()
+    {
+        var upload = await CreateUploadAsync();
+        var pipeline = SetupPipeline();
+        var first = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        Assert.IsTrue(preflightQueue.Reader.TryRead(out _));
+
+        await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+
+        Assert.HasCount(1, jobStore.GetJobIds());
+        Assert.AreEqual(ProcessingState.Pending, jobStore.GetJob(first.Id)!.State);
+        Assert.IsFalse(preflightQueue.Reader.TryRead(out _), "The refused start must not reach the preflight.");
+        pipelineFactory.Verify(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()), Times.Once);
+        pipeline.Verify(p => p.Dispose(), Times.Never, "The refusal must leave the active job alone.");
+    }
+
+    [TestMethod]
+    public async Task StartAcceptsTheUploadAgainAfterACancelledRun()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync();
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.TimedOut(), CancellationToken.None);
+        var upload = uploadStore.GetUpload(uploadId);
+        Assert.IsNotNull(upload, "A cancelled run keeps its upload for another start.");
+
+        SetupPipeline();
+        var second = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+
+        Assert.AreNotEqual(jobId, second.Id);
+        Assert.AreEqual(ProcessingState.Pending, second.State);
+        Assert.AreEqual(ProcessingState.Cancelled, jobStore.GetJob(jobId)!.State);
     }
 
     [TestMethod]
