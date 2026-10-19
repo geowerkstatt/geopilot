@@ -100,7 +100,7 @@ public partial class Ili2GpkgClientIntegrationTest
         {
             CreateBasketCol = true,
         };
-        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, outputFile, logFile, xtfLogFile, inputFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, outputFile, logFile, xtfLogFile, inputFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsTrue(result.Success, "Schema import into existing database failed. Log: " + await ReadLogAsync(logFile));
         await AssertLogWrittenAsync(logFile);

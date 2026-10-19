@@ -25,7 +25,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> SchemaImportAsync(Ili2GpkgArgs args, IPipelineFile modelFile, IPipelineFile outputFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? inputFile = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> SchemaImportAsync(Ili2GpkgArgs args, IPipelineFile modelFile, IPipelineFile outputFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? inputFile = null, IPipelineFile? modelRepositoryArchive = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg schema import operation into {NewOrExisting} database.", inputFile is null ? "new" : "existing");
 
@@ -40,13 +40,15 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
         }
 
+        await SendRepositoryArchiveAsync(call.RequestStream, modelRepositoryArchive, cancellationToken);
+
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, outputFile, logFile, xtfLogFile, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile? inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IPipelineFile logFile, IPipelineFile xtfLogFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile? inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? modelRepositoryArchive = null, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         if (inputFile is null && !args.DoSchemaImport)
         {
@@ -69,6 +71,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
         }
 
+        await SendRepositoryArchiveAsync(call.RequestStream, modelRepositoryArchive, cancellationToken);
         await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
 
         await call.RequestStream.CompleteAsync();
@@ -77,7 +80,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ExportAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile transferFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ExportAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile transferFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? modelRepositoryArchive = null, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg export operation.");
 
@@ -86,6 +89,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
 
         await call.RequestStream.WriteAsync(request, cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        await SendRepositoryArchiveAsync(call.RequestStream, modelRepositoryArchive, cancellationToken);
         await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
         await call.RequestStream.CompleteAsync();
 
@@ -93,7 +97,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> UpdateAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IPipelineFile logFile, IPipelineFile xtfLogFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> UpdateAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? modelRepositoryArchive = null, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg update operation for {Count} transfer file(s).", transferFiles.Count);
 
@@ -107,6 +111,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
         }
 
+        await SendRepositoryArchiveAsync(call.RequestStream, modelRepositoryArchive, cancellationToken);
         await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
 
         await call.RequestStream.CompleteAsync();
@@ -115,7 +120,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ValidateAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ValidateAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile logFile, IPipelineFile xtfLogFile, IPipelineFile? modelRepositoryArchive = null, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg validation operation.");
 
@@ -124,10 +129,20 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
 
         await call.RequestStream.WriteAsync(request, cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        await SendRepositoryArchiveAsync(call.RequestStream, modelRepositoryArchive, cancellationToken);
         await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, null, null, logFile, xtfLogFile, cancellationToken);
+    }
+
+    private async Task SendRepositoryArchiveAsync(IClientStreamWriter<ConvertRequest> requestStream, IPipelineFile? modelRepositoryArchive, CancellationToken cancellationToken)
+    {
+        if (modelRepositoryArchive != null)
+        {
+            logger.LogInformation("Sending model repository archive {FileName}.", modelRepositoryArchive.OriginalFileName);
+            await SendFileAsync(requestStream, Ili2gpkgFileType.RepositoryArchive, modelRepositoryArchive, cancellationToken);
+        }
     }
 
     private async Task SendModelFilesAsync(IClientStreamWriter<ConvertRequest> requestStream, IReadOnlyList<IPipelineFile>? modelFiles, CancellationToken cancellationToken)

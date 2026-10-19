@@ -17,6 +17,11 @@ public interface IIli2GpkgClient
     /// <param name="logFile">File to write the ili2gpkg log to.</param>
     /// <param name="xtfLogFile">File to write the xtf log to.</param>
     /// <param name="inputFile">Optional input GeoPackage file.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository, reachable through the model dir entry <c>%XTF_DIR/repository</c>.
+    /// This is how a repository that is not published can be used, and its content is trusted as configuration: it
+    /// can define models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success.</returns>
     Task<Ili2GpkgResult> SchemaImportAsync(
@@ -26,6 +31,7 @@ public interface IIli2GpkgClient
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
         IPipelineFile? inputFile = null,
+        IPipelineFile? modelRepositoryArchive = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -38,6 +44,11 @@ public interface IIli2GpkgClient
     /// <param name="transferFiles">INTERLIS transfer files.</param>
     /// <param name="logFile">File to write the ili2gpkg log to.</param>
     /// <param name="xtfLogFile">File to write the xtf log to.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository, reachable through the model dir entry <c>%XTF_DIR/repository</c>.
+    /// This is how a repository that is not published can be used, and its content is trusted as configuration: it
+    /// can define models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="modelFiles">
     /// Optional INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
     /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
@@ -54,6 +65,7 @@ public interface IIli2GpkgClient
         IReadOnlyList<IPipelineFile> transferFiles,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
@@ -65,6 +77,11 @@ public interface IIli2GpkgClient
     /// <param name="transferFile">INTERLIS transfer file for the exported data.</param>
     /// <param name="logFile">File to write the ili2gpkg log to.</param>
     /// <param name="xtfLogFile">File to write the xtf log to.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository, reachable through the model dir entry <c>%XTF_DIR/repository</c>.
+    /// This is how a repository that is not published can be used, and its content is trusted as configuration: it
+    /// can define models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="modelFiles">
     /// Optional INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
     /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
@@ -78,6 +95,7 @@ public interface IIli2GpkgClient
         IPipelineFile transferFile,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
@@ -90,6 +108,11 @@ public interface IIli2GpkgClient
     /// <param name="transferFiles">INTERLIS transfer files for the updated data.</param>
     /// <param name="logFile">File to write the ili2gpkg log to.</param>
     /// <param name="xtfLogFile">File to write the xtf log to.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository, reachable through the model dir entry <c>%XTF_DIR/repository</c>.
+    /// This is how a repository that is not published can be used, and its content is trusted as configuration: it
+    /// can define models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="modelFiles">
     /// Optional INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
     /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
@@ -106,6 +129,7 @@ public interface IIli2GpkgClient
         IReadOnlyList<IPipelineFile> transferFiles,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
@@ -116,6 +140,11 @@ public interface IIli2GpkgClient
     /// <param name="gpkgFile">GeoPackage file to validate data from.</param>
     /// <param name="logFile">File to write the validation log to.</param>
     /// <param name="xtfLogFile">File to write the xtf validation log to.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository, reachable through the model dir entry <c>%XTF_DIR/repository</c>.
+    /// This is how a repository that is not published can be used, and its content is trusted as configuration: it
+    /// can define models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="modelFiles">
     /// Optional INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
     /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
@@ -128,6 +157,7 @@ public interface IIli2GpkgClient
         IPipelineFile gpkgFile,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 }
