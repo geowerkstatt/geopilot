@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Ilitools;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
@@ -92,6 +93,8 @@ internal class Ili2GpkgValidatorProcess : Ili2GpkgProcessBase
             xtfLogFile: xtfLogFile,
             modelRepositoryArchive: modelRepository,
             cancellationToken: cancellationToken);
+
+        await IlitoolsHelper.AssertNoUndefinedValidationOutcome(Ilitool.Ili2gpkg, errorLogFile, result.Success, args.MetaConfig, args.ValidConfig, args.ModelDirs, args.PluginIds, cancellationToken);
 
         return new Ili2GpkgValidatorResult
         {

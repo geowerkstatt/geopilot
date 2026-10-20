@@ -424,6 +424,26 @@ public partial class Ili2GpkgClientIntegrationTest
         await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
 
+    // The ili2gpkg processes turn the lines asserted below into an error of their own, because the tool exits like
+    // a failed validation. If a tool update rewords them, these assertions are what say so.
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncReportsAnUnresolvableMetaConfigInTheLog()
+    {
+        var log = await ValidateWithUnresolvableConfigAsync("validate_unknown_metaconfig", new Ili2GpkgArgs { MetaConfig = "ilidata:DOESNOTEXIST" });
+
+        Assert.Contains(IlitoolsHelper.Ili2gpkgMetaConfigNotFoundMarker, log);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncReportsAnUnresolvableValidConfigInTheLog()
+    {
+        var log = await ValidateWithUnresolvableConfigAsync("validate_unknown_validconfig", new Ili2GpkgArgs { ValidConfig = "ilidata:DOESNOTEXIST" });
+
+        Assert.Contains(IlitoolsHelper.ValidConfigNotFoundMarker("ilidata:DOESNOTEXIST"), log);
+    }
+
     [TestMethod]
     [Timeout(10_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncFailsWithAnUnknownPluginId()
@@ -512,6 +532,24 @@ public partial class Ili2GpkgClientIntegrationTest
                 File.Delete(path);
             }
         }
+    }
+
+    private async Task<string> ValidateWithUnresolvableConfigAsync(string outputName, Ili2GpkgArgs configArgs)
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var logFile = GetTestPipelineFile($"{outputName}.log");
+        var xtfLogFile = GetTestPipelineFile($"{outputName}.xtf");
+        await DeleteIfExistsAsync(logFile, xtfLogFile);
+
+        // Models from the GeoPackage and the session directory only, so the tool fails on the configuration without
+        // asking a remote repository.
+        var args = configArgs with { Models = ["SimpleModel"], ModelDirs = ["%ILI_FROM_DB", "%XTF_DIR"] };
+
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+
+        var log = await ReadLogAsync(logFile);
+        Assert.IsFalse(result.Success, "The validation should fail on the configuration. Log: " + log);
+        return log;
     }
 
     private async Task<string> ReadLogAsync(PipelineFile logFile)

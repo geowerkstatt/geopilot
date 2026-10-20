@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Processes.Gpkg;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Processes.Gpkg;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -13,17 +14,26 @@ public class Ili2GpkgExportProcessTest
     private Mock<IPipelineFile> modelRepositoryMock;
     private List<ExportCall> calls;
     private bool success;
+    private string? logContent;
 
     [TestInitialize]
     public void SetUp()
     {
         calls = [];
         success = true;
+        logContent = null;
         ili2GpkgClientMock = new Mock<IIli2GpkgClient>();
         ili2GpkgClientMock
             .Setup(c => c.ExportAsync(It.IsAny<Ili2GpkgArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
             .Callback<Ili2GpkgArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, CancellationToken>((args, gpkgFile, transferFile, errorLogFile, xtfLogFile, modelRepository, _, _) =>
-                calls.Add(new ExportCall(args, gpkgFile, transferFile, errorLogFile, xtfLogFile, modelRepository)))
+            {
+                calls.Add(new ExportCall(args, gpkgFile, transferFile, errorLogFile, xtfLogFile, modelRepository));
+                if (logContent != null)
+                {
+                    using var writer = new StreamWriter(errorLogFile.OpenWriteFileStream());
+                    writer.Write(logContent);
+                }
+            })
             .ReturnsAsync(() => new Ili2GpkgResult(success));
         modelRepositoryMock = new Mock<IPipelineFile>();
     }
@@ -67,6 +77,19 @@ public class Ili2GpkgExportProcessTest
         Assert.AreEqual("export-log.xtf", result.XtfLog.OriginalFileName);
         Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
         Assert.Contains("Fehler", result.StatusMessage["de"]);
+    }
+
+    [TestMethod]
+    [DataRow(false, IlitoolsHelper.Ili2gpkgMetaConfigNotFoundMarker, "ilidata:metaconfig", DisplayName = "Unresolved meta config")]
+    [DataRow(true, IlitoolsHelper.CheckNotEvaluatedMarker, "geow-interlis-functions", DisplayName = "Check not evaluated")]
+    public async Task ThrowsWhenTheLogShowsAnUndefinedOutcome(bool success, string logMarker, string expectedInMessage)
+    {
+        logContent = $"Warning: {logMarker}\n";
+        var process = CreateProcess(metaConfig: "metaconfig", pluginIds: "geow-interlis-functions", success: success);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, exportModels: null, transferFormat: null, CancellationToken.None));
+
+        Assert.Contains(expectedInMessage, exception.Message, "The message should name what was configured.");
     }
 
     [TestMethod]

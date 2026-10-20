@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Processes.Gpkg;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Processes.Gpkg;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -13,17 +14,26 @@ public class Ili2GpkgValidatorProcessTest
     private Mock<IPipelineFile> modelRepositoryMock;
     private List<ValidateCall> calls;
     private bool success;
+    private string? logContent;
 
     [TestInitialize]
     public void SetUp()
     {
         calls = [];
         success = true;
+        logContent = null;
         ili2GpkgClientMock = new Mock<IIli2GpkgClient>();
         ili2GpkgClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<Ili2GpkgArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
             .Callback<Ili2GpkgArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, CancellationToken>((args, gpkgFile, logFile, xtfLogFile, modelRepository, _, _) =>
-                calls.Add(new ValidateCall(args, gpkgFile, logFile, xtfLogFile, modelRepository)))
+            {
+                calls.Add(new ValidateCall(args, gpkgFile, logFile, xtfLogFile, modelRepository));
+                if (logContent != null)
+                {
+                    using var writer = new StreamWriter(logFile.OpenWriteFileStream());
+                    writer.Write(logContent);
+                }
+            })
             .ReturnsAsync(() => new Ili2GpkgResult(success));
         modelRepositoryMock = new Mock<IPipelineFile>();
     }
@@ -68,6 +78,46 @@ public class Ili2GpkgValidatorProcessTest
         Assert.AreEqual("validate-log.xtf", result.XtfLog.OriginalFileName);
         Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
         Assert.Contains("Fehler", result.StatusMessage["de"]);
+    }
+
+    [TestMethod]
+    [DataRow(true, DisplayName = "Reported as successful")]
+    [DataRow(false, DisplayName = "Reported as failed")]
+    public async Task ThrowsWhenACheckWasSkipped(bool success)
+    {
+        logContent = $"Warning: MandatoryConstraint Model.Topic.Class.Constraint1 {IlitoolsHelper.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(pluginIds: "geow-interlis-functions", success: success);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, CancellationToken.None));
+
+        Assert.Contains("geow-interlis-functions", exception.Message, "The message should name what was configured.");
+    }
+
+    [TestMethod]
+    public async Task ThrowsWhenTheValidConfigCannotBeResolved()
+    {
+        // The tool exits like a failed validation, so only its log tells the two apart.
+        logContent = $"Error: {IlitoolsHelper.ValidConfigNotFoundMarker("ilidata:validconfig")}\n";
+        var process = CreateProcess(modelDirs: "https://models.example.com/", validConfig: "validconfig", success: false);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, CancellationToken.None));
+
+        Assert.Contains("ilidata:validconfig", exception.Message);
+        Assert.Contains("https://models.example.com/", exception.Message);
+        Assert.Contains("ili2gpkg", exception.Message, "The message should name the tool that ran.");
+        Assert.Contains("Check the validConfig and modelDirs", exception.Message, "The message should name the setting to fix.");
+    }
+
+    [TestMethod]
+    public async Task ReportsFailedValidationWhenAnotherFileWasNotFound()
+    {
+        // Only the line naming the configured reference marks the config as unresolved.
+        logContent = "Error: file ilidata:other not found\n";
+        var process = CreateProcess(validConfig: "validconfig", success: false);
+
+        var result = await process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, CancellationToken.None);
+
+        Assert.IsFalse(result.ValidationSuccessful);
     }
 
     [TestMethod]

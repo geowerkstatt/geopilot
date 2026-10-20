@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Processes.Gpkg;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Processes.Gpkg;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -13,17 +14,26 @@ public class Ili2GpkgDataImportProcessTest
     private Mock<IPipelineFile> modelRepositoryMock;
     private List<ImportCall> calls;
     private bool success;
+    private string? logContent;
 
     [TestInitialize]
     public void SetUp()
     {
         calls = [];
         success = true;
+        logContent = null;
         ili2GpkgClientMock = new Mock<IIli2GpkgClient>();
         ili2GpkgClientMock
             .Setup(c => c.ImportAsync(It.IsAny<Ili2GpkgArgs>(), It.IsAny<IPipelineFile?>(), It.IsAny<IPipelineFile>(), It.IsAny<IReadOnlyList<IPipelineFile>>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
             .Callback<Ili2GpkgArgs, IPipelineFile?, IPipelineFile, IReadOnlyList<IPipelineFile>, IPipelineFile, IPipelineFile, IPipelineFile, IReadOnlyList<IPipelineFile>?, CancellationToken>((args, inputFile, outputFile, transferFiles, errorLogFile, xtfLogFile, modelRepository, _, _) =>
-                calls.Add(new ImportCall(args, inputFile, outputFile, transferFiles, errorLogFile, xtfLogFile, modelRepository)))
+            {
+                calls.Add(new ImportCall(args, inputFile, outputFile, transferFiles, errorLogFile, xtfLogFile, modelRepository));
+                if (logContent != null)
+                {
+                    using var writer = new StreamWriter(errorLogFile.OpenWriteFileStream());
+                    writer.Write(logContent);
+                }
+            })
             .ReturnsAsync(() => new Ili2GpkgResult(success));
         modelRepositoryMock = new Mock<IPipelineFile>();
     }
@@ -67,6 +77,31 @@ public class Ili2GpkgDataImportProcessTest
         Assert.AreEqual("import-log.xtf", result.XtfLog.OriginalFileName);
         Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
         Assert.Contains("Fehler", result.StatusMessage["de"]);
+    }
+
+    [TestMethod]
+    [DataRow(false, IlitoolsHelper.Ili2gpkgMetaConfigNotFoundMarker, "ilidata:metaconfig", DisplayName = "Unresolved meta config")]
+    [DataRow(true, IlitoolsHelper.CheckNotEvaluatedMarker, "geow-interlis-functions", DisplayName = "Check not evaluated")]
+    public async Task ThrowsWhenTheLogShowsAnUndefinedOutcome(bool success, string logMarker, string expectedInMessage)
+    {
+        logContent = $"Warning: {logMarker}\n";
+        var process = CreateProcess(metaConfig: "metaconfig", pluginIds: "geow-interlis-functions", success: success);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync([CreateTransferFile()], dbFile: null, models: null, defaultSrsCode: null, dataset: null, CancellationToken.None));
+
+        Assert.Contains(expectedInMessage, exception.Message, "The message should name what was configured.");
+    }
+
+    [TestMethod]
+    public async Task ThrowsNamingTheToolAndSettingWhenTheMetaConfigCannotBeResolved()
+    {
+        logContent = $"Error: {IlitoolsHelper.Ili2gpkgMetaConfigNotFoundMarker}\n";
+        var process = CreateProcess(metaConfig: "metaconfig", success: false);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync([CreateTransferFile()], dbFile: null, models: null, defaultSrsCode: null, dataset: null, CancellationToken.None));
+
+        Assert.Contains("so ili2gpkg did not process", exception.Message, "The message should name the tool that ran.");
+        Assert.Contains("Check the metaConfig and modelDirs", exception.Message, "The message should name the setting of this process, not the one of the XTF validator.");
     }
 
     [TestMethod]
