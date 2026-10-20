@@ -147,6 +147,11 @@ public class Context : DbContext
     public DbSet<Asset> Assets { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="DeliveryReaction"/>, the reactions to deliveries and the queue they are claimed from.
+    /// </summary>
+    public DbSet<DeliveryReaction> DeliveryReactions { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="PipelineRun"/> execution protocol records.
     /// </summary>
     public DbSet<PipelineRun> PipelineRuns { get; set; }
@@ -224,6 +229,22 @@ public class Context : DbContext
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
+
+        modelBuilder.Entity<DeliveryReaction>(reaction =>
+        {
+            // The reactions of a deleted delivery are never claimed, listed or reset again.
+            reaction.HasQueryFilter(r => !r.Delivery.Deleted);
+            reaction.HasOne(r => r.Delivery).WithMany().HasForeignKey(r => r.DeliveryId);
+            reaction.HasIndex(r => new { r.DeliveryId, r.ReactionId }).IsUnique();
+
+            // The queue looks for open reactions in the order they fall due.
+            reaction.HasIndex(r => r.NextAttemptAt).HasFilter("\"State\" IN ('Pending', 'Running')");
+
+            reaction.Property(r => r.ReactionId).HasMaxLength(128);
+            reaction.Property(r => r.Kind).HasConversion<string>().HasMaxLength(12);
+            reaction.Property(r => r.State).HasConversion<string>().HasMaxLength(12);
+            reaction.Property(r => r.Config).HasColumnType("jsonb");
+        });
 
         var localizedTextConverter = new ValueConverter<LocalizedText, string>(
             localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
