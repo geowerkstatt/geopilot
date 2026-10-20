@@ -192,6 +192,7 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
+- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `delivery_processing` verwendet werden können, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
 - `delivery_processing`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
 
 ## Validierungen
@@ -218,7 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
-- Die Sätze unter `delivery_processing` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
+- Die Kanäle unter `channels` und die Sätze unter `delivery_processing` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -560,14 +561,17 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `delivery_processing`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `delivery_processing`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
 
 ```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
 delivery_processing:
   - id: ablage
     transfers:
       - id: ablage
-        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+        channel_id: ablage
         mandate_config:
           - key: subfolder
             display_name:
@@ -577,29 +581,60 @@ delivery_processing:
               en: Subfolder of the file drop
 ```
 
+- `channels`: Liste von Kanälen, welche in den Reaktionen verwendet werden können.
+  - `channels[X].id`: Die eindeutige ID des Kanals, welche in den Reaktionen referenziert werden kann.
+  - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
+  - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
 - `delivery_processing[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
 - `delivery_processing[X].transfers`: Die Lieferungs-Schritte des Satzes, mindestens einer. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben.
   - `transfers[X].id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein und folgt denselben Regeln wie die Id des Satzes.
-  - `transfers[X].implementation`: Der Kanal, der die Reaktion ausführt, siehe [Kanäle](#kanäle).
-  - `transfers[X].config`: Optional. Werte, die der Satz für den Kanal fest vorgibt, etwa ein Unterordner oder ein Topic. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
+  - `transfers[X].channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
+  - `transfers[X].channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
   - `transfers[X].mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert.
 
-Ein Kanal bekommt seine Werte damit von drei Stellen: vom Betrieb unter `Pipeline:ChannelConfigs:<implementation>`, vom Satz unter `config` und vom Mandat. Ein Schlüssel gehört genau einer davon. Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, legt der Betrieb fest. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
+Eine Definition mit `channels` oder `delivery_processing` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 
-Eine Definition mit `delivery_processing` setzt eine Version von geopilot voraus, welche die Sektion kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektion in die Definition.
+### Konfiguration eines Kanals
+
+Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
+
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
+3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
+
+Wie bei den Prozessoren ist die Basis-Konfiguration unveränderbar: Setzt die Pipeline-Definition einen ihrer Schlüssel, ob in `default_config`, `channel_config_overwrites` oder `mandate_config`, startet die Applikation nicht, mit einer Meldung wie unter [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration). Ebenso darf ein Wert nicht zugleich in der Standard-Konfiguration des Kanals stehen und vom Mandat kommen. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
+
+Eine Ablage mit einem Unterordner, den ein Satz für sich überschreibt:
+
+```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+    default_config:
+      subfolder: allgemein
+delivery_processing:
+  - id: ablage_kanton_a
+    transfers:
+      - id: ablage_kanton_a
+        channel_id: ablage
+        channel_config_overwrites:
+          subfolder: kanton-a
+```
 
 ### Prüfung beim Start
 
-Die Sätze werden beim Start geprüft wie die Pipelines. geopilot startet nicht, wenn
+Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines. geopilot startet nicht, wenn
 
-- zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
-- eine Id nicht den Regeln oben folgt,
+- zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
+- die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
 - ein Satz keinen Lieferungs-Schritt hat,
+- ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
-- `config` einen Schlüssel enthält, den der Kanal nicht kennt, oder einen Wert, der sich nicht in den Typ des Parameters umwandeln lässt,
-- `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, oder einen, den der Kanal nicht als Wert des Mandats vorsieht,
-- ein Schlüssel an mehr als einer Stelle steht, also zwei von `Pipeline:ChannelConfigs`, `config` und `mandate_config` denselben Schlüssel setzen,
-- ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert unter `Pipeline:ChannelConfigs` nicht in den Typ des Parameters umwandeln lässt.
+- die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
+- eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
+- `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
+- die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet,
+- ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt.
 
 ### Kanäle
 

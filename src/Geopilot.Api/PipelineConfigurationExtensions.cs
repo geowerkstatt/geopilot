@@ -13,7 +13,7 @@ public static class PipelineConfigurationExtensions
 
     /// <summary>
     /// Binds <see cref="PipelineOptions"/> from <c>Pipeline</c>, including the scalar form of <c>Pipeline:Plugins</c>,
-    /// and checks the host values of the delivery channels when the application starts.
+    /// and checks the base configuration of the delivery channels when the application starts.
     /// </summary>
     public static IServiceCollection AddPipelineOptions(this IServiceCollection services, IConfiguration configuration)
     {

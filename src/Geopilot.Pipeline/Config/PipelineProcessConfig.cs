@@ -11,6 +11,9 @@ namespace Geopilot.Pipeline.Config;
 [ValidProcessReference]
 [NoUndefinedBaseConfigOverwrite]
 [NoBaseConfigOverwrite]
+[ValidChannelReference]
+[NoUndefinedChannelConfigOverwrite]
+[NoChannelBaseConfigOverwrite]
 public class PipelineProcessConfig
 {
     /// <summary>
@@ -30,6 +33,14 @@ public class PipelineProcessConfig
     [MinLength(1, ErrorMessage = "At least one Pipeline is required.")]
     [NoDuplicates(PropertyName = "Id")]
     public required List<PipelineConfig> Pipelines { get; set; }
+
+    /// <summary>
+    /// List of channels available for use in the reactions of <see cref="DeliveryProcessing"/>. Optional, like the
+    /// sets.
+    /// </summary>
+    [YamlMember(Alias = "channels")]
+    [NoDuplicates(PropertyName = "Id")]
+    public List<ChannelConfig>? Channels { get; set; }
 
     /// <summary>
     /// Named sets of reactions that run once a delivery can no longer be withdrawn. Optional: without them, no

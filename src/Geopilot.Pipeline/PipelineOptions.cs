@@ -25,9 +25,9 @@ public class PipelineOptions
     public Dictionary<string, Parameterization> ProcessConfigs { get; set; } = new Dictionary<string, Parameterization>();
 
     /// <summary>
-    /// Gets or sets the host values of the delivery channels, keyed by channel implementation: every parameter a
-    /// channel does not take from the mandate, such as a base directory or credentials. Kept apart from
-    /// <see cref="ProcessConfigs"/>, so they never go into the definition snapshot of a run.
+    /// Gets or sets the base configuration of the delivery channels, keyed by channel implementation, such as a base
+    /// directory or credentials. Neither the pipeline definition nor a mandate can override it. Kept apart from
+    /// <see cref="ProcessConfigs"/>, so it never goes into the definition snapshot of a run.
     /// </summary>
     public Dictionary<string, Parameterization> ChannelConfigs { get; set; } = new Dictionary<string, Parameterization>();
 }

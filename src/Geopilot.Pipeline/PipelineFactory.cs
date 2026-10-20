@@ -121,7 +121,7 @@ public class PipelineFactory : IPipelineFactory
     /// <inheritdoc />
     public PipelineDefinitionValidationResult ValidateDefinition()
     {
-        var definitionErrors = PipelineProcessConfig.Validate(processBaseConfigs);
+        var definitionErrors = PipelineProcessConfig.Validate(processBaseConfigs, channelBaseConfigs);
         if (definitionErrors.HasErrors)
         {
             return new PipelineDefinitionValidationResult(
@@ -171,17 +171,34 @@ public class PipelineFactory : IPipelineFactory
     }
 
     /// <summary>
-    /// Checks the channel of every reaction against the values of its set, its declared mandate values and, with a
-    /// host layer, its host values, without constructing a channel.
+    /// Checks the channel of every reaction against its default configuration with the reaction's overwrites, the
+    /// declared mandate values and, with a base configuration, the base values, without constructing a channel.
     /// </summary>
     private List<string> ValidateDeliveryProcessing()
     {
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channels = PipelineProcessConfig.Channels ?? [];
         return (PipelineProcessConfig.DeliveryProcessing ?? [])
-            .SelectMany(set => set.Transfers.SelectMany(reaction => channelFactory
-                .Validate(reaction.Implementation, reaction.Config, reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
-                .Select(error => $"delivery processing {set.Id}, reaction {reaction.Id}, error: {error}")))
+            .SelectMany(set => set.Transfers.SelectMany(reaction =>
+            {
+                // The definition validation has already rejected a reaction without a defined channel.
+                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+                return channelFactory
+                    .Validate(channel.Implementation, MergeChannelConfig(channel, reaction), reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
+                    .Select(error => $"delivery processing {set.Id}, reaction {reaction.Id}, channel {channel.Id}, error: {error}");
+            }))
             .ToList();
+    }
+
+    private static Parameterization MergeChannelConfig(ChannelConfig channel, ReactionConfig reaction)
+    {
+        var config = new Parameterization(channel.DefaultConfig ?? new Parameterization());
+        foreach (var overwrite in reaction.ChannelConfigOverwrites ?? new Parameterization())
+        {
+            config[overwrite.Key] = overwrite.Value;
+        }
+
+        return config;
     }
 
     private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
@@ -326,12 +343,12 @@ public class PipelineFactory : IPipelineFactory
         }
 
         /// <summary>
-        /// Supplies the host values of the delivery channels (appsettings <c>Pipeline:ChannelConfigs</c>), keyed by
-        /// channel implementation. <see cref="ValidateDefinition"/> then also checks that every channel gets the host
-        /// values it needs. Omitting them leaves those values unchecked, which is what a caller without a hosting
-        /// layer wants.
+        /// Supplies the base configuration of the delivery channels (appsettings <c>Pipeline:ChannelConfigs</c>),
+        /// keyed by channel implementation. That layer cannot be overridden, so <see cref="ValidateDefinition"/>
+        /// rejects a definition setting one of its keys, and it also checks that every channel gets the base values
+        /// it needs. Omitting it skips both, which is what a caller without a hosting layer wants.
         /// </summary>
-        /// <param name="channelBaseConfigs">The host values per channel implementation, or <see langword="null"/> when there is no hosting layer.</param>
+        /// <param name="channelBaseConfigs">The base configuration per channel implementation, or <see langword="null"/> when there is no hosting layer.</param>
         /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder ChannelBaseConfigs(IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs)
         {

@@ -12,7 +12,7 @@ public class DeliveryProcessingValidationTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
-    // A valid pipeline, so only the sets can make a definition invalid.
+    // A valid pipeline, so only the channels and the sets can make a definition invalid.
     private const string Pipelines = """
         processes:
           - id: zip
@@ -30,6 +30,56 @@ public class DeliveryProcessingValidationTest
                   input: "${upload()}"
 
         """;
+
+    // A file drop without a default configuration, so a reaction or a mandate has to provide the subfolder.
+    private const string FileDropChannel = $$"""
+        channels:
+          - id: ablage
+            implementation: {{FileDrop}}
+
+        """;
+
+    private const string FileDropChannelWithSubfolder = $$"""
+        channels:
+          - id: ablage
+            implementation: {{FileDrop}}
+            default_config:
+              subfolder: allgemein
+
+        """;
+
+    private const string PlainSet = """
+        delivery_processing:
+          - id: ablage
+            transfers:
+              - id: ablage
+                channel_id: ablage
+        """;
+
+    private const string OverwritingSet = """
+        delivery_processing:
+          - id: ablage
+            transfers:
+              - id: ablage
+                channel_id: ablage
+                channel_config_overwrites:
+                  subfolder: kanton-a
+        """;
+
+    private const string CollisionOrigin =
+        "Channel configuration collision for implementation '" + FileDrop + "': " +
+        "the key 'subfolder' is set in the base configuration " +
+        "(app settings 'Pipeline:ChannelConfigs:" + FileDrop + ":subfolder', " +
+        "environment variable 'Pipeline__ChannelConfigs__" + FileDrop + "__subfolder')";
+
+    private const string CollisionRemedy =
+        " The base configuration cannot be overridden. Remove the key from the pipeline definition, " +
+        "or remove it from the base configuration if the value has to be set per reaction or per mandate.";
+
+    private static readonly Dictionary<string, Parameterization> BaseConfigsWithSubfolder = new()
+    {
+        [FileDrop] = new Parameterization { ["baseDirectory"] = "/drop", ["subfolder"] = "kanton-a" },
+    };
 
     private PipelineProcessFactory processFactory;
     private Mock<ILoggerFactory> loggerFactoryMock;
@@ -63,9 +113,54 @@ public class DeliveryProcessingValidationTest
     [TestMethod]
     public void AcceptsAFileDropSet()
     {
-        var result = Factory(FileDropSet("ablage", "ablage")).ValidateDefinition();
+        var result = Factory(FileDropChannel + FileDropSet("ablage", "ablage")).ValidateDefinition();
 
         Assert.IsTrue(result.IsValid, result.ErrorMessage);
+    }
+
+    [TestMethod]
+    public void RejectsTwoChannelsWithTheSameId()
+    {
+        var channels = FileDropChannel + $$"""
+              - id: ablage
+                implementation: {{FileDrop}}
+
+            """;
+
+        AssertInvalid(Factory(channels + FileDropSet("weitergabe", "weitergabe")), "PipelineProcessConfig: Duplicate Id found: ablage.");
+    }
+
+    [TestMethod]
+    public void RejectsAChannelWithoutImplementation()
+    {
+        var channels = """
+            channels:
+              - id: ablage
+
+            """;
+
+        AssertInvalid(Factory(channels + FileDropSet("ablage", "ablage")), "ChannelConfig (Implementation): Channel Implementation is required.");
+    }
+
+    [TestMethod]
+    public void RejectsAReactionWithoutChannel()
+    {
+        var sets = """
+            delivery_processing:
+              - id: ablage
+                transfers:
+                  - id: ablage
+            """;
+
+        AssertInvalid(Factory(FileDropChannel + sets), "ReactionConfig (ChannelId): Channel Reference is required.");
+    }
+
+    [TestMethod]
+    public void RejectsAReferenceToAnUndefinedChannel()
+    {
+        AssertInvalid(
+            Factory(FileDropChannel + FileDropSet("ablage", "ablage", channelId: "archiv")),
+            "PipelineProcessConfig: One or more reactions reference a channel that is not defined in the channels collection: archiv.");
     }
 
     [TestMethod]
@@ -73,7 +168,7 @@ public class DeliveryProcessingValidationTest
     {
         var sets = FileDropSet("ablage", "ablage_a") + FileDropSet("ablage", "ablage_b", withHeader: false);
 
-        AssertInvalid(Factory(sets), "PipelineProcessConfig: Duplicate Id found: ablage.");
+        AssertInvalid(Factory(FileDropChannel + sets), "PipelineProcessConfig: Duplicate Id found: ablage.");
     }
 
     [TestMethod]
@@ -81,7 +176,7 @@ public class DeliveryProcessingValidationTest
     {
         var sets = FileDropSet("ablage", "ablage") + FileDropSet("ablage_zwei", "ablage", withHeader: false);
 
-        AssertInvalid(Factory(sets), "PipelineProcessConfig: The reaction id 'ablage' is used more than once. Reaction ids must be unique across all sets of delivery_processing.");
+        AssertInvalid(Factory(FileDropChannel + sets), "PipelineProcessConfig: The reaction id 'ablage' is used more than once. Reaction ids must be unique across all sets of delivery_processing.");
     }
 
     [TestMethod]
@@ -102,18 +197,18 @@ public class DeliveryProcessingValidationTest
     [DataRow("ab lage", DisplayName = "Space")]
     public void RejectsAReactionIdThatIsNoPlainName(string reactionId)
     {
-        AssertInvalid(Factory(FileDropSet("ablage", reactionId)), "ReactionConfig (Id): A reaction id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.");
+        AssertInvalid(Factory(FileDropChannel + FileDropSet("ablage", reactionId)), "ReactionConfig (Id): A reaction id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.");
     }
 
     [TestMethod]
     public void RejectsAMandateKeyDeclaredTwice()
     {
-        var sets = $$"""
+        var sets = """
             delivery_processing:
               - id: ablage
                 transfers:
                   - id: ablage
-                    implementation: {{FileDrop}}
+                    channel_id: ablage
                     mandate_config:
                       - key: subfolder
                         display_name:
@@ -123,53 +218,53 @@ public class DeliveryProcessingValidationTest
                           de: Noch ein Unterordner
             """;
 
-        AssertInvalid(Factory(sets), "ReactionConfig: Duplicate Key found: subfolder.");
+        AssertInvalid(Factory(FileDropChannel + sets), "ReactionConfig: Duplicate Key found: subfolder.");
     }
 
     [TestMethod]
     public void RejectsAMandateKeyWithoutDisplayName()
     {
-        var sets = $$"""
+        var sets = """
             delivery_processing:
               - id: ablage
                 transfers:
                   - id: ablage
-                    implementation: {{FileDrop}}
+                    channel_id: ablage
                     mandate_config:
                       - key: subfolder
             """;
 
-        AssertInvalid(Factory(sets), "MandateConfigEntry (DisplayName): Mandate Config Display Name is required.");
+        AssertInvalid(Factory(FileDropChannel + sets), "MandateConfigEntry (DisplayName): Mandate Config Display Name is required.");
     }
 
     [TestMethod]
     public void RejectsAnUnknownChannel()
     {
-        var sets = FileDropSet("ablage", "ablage").Replace(FileDrop, "Geopilot.Pipeline.Channels.Missing", StringComparison.Ordinal);
+        var channels = FileDropChannel.Replace(FileDrop, "Geopilot.Pipeline.Channels.Missing", StringComparison.Ordinal);
 
-        AssertInvalid(Factory(sets), "delivery processing ablage, reaction ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
+        AssertInvalid(Factory(channels + FileDropSet("ablage", "ablage")), "delivery processing ablage, reaction ablage, channel ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
     }
 
     [TestMethod]
     public void RejectsAMandateKeyTheChannelDoesNotMark()
     {
         AssertInvalid(
-            Factory(FileDropSet("ablage", "ablage", mandateKey: "baseDirectory")),
-            $"delivery processing ablage, reaction ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
+            Factory(FileDropChannel + FileDropSet("ablage", "ablage", mandateKey: "baseDirectory")),
+            $"delivery processing ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
     }
 
     [TestMethod]
-    public void RequiresTheHostValuesWithAHostLayer()
+    public void RequiresTheBaseValuesWithABaseConfiguration()
     {
-        var factory = Factory(FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>());
+        var factory = Factory(FileDropChannel + FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>());
 
-        AssertInvalid(factory, "delivery processing ablage, reaction ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
+        AssertInvalid(factory, "delivery processing ablage, reaction ablage, channel ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
     }
 
     [TestMethod]
-    public void AcceptsTheHostValuesWithAHostLayer()
+    public void AcceptsTheBaseValuesWithABaseConfiguration()
     {
-        var factory = Factory(FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>
+        var factory = Factory(FileDropChannel + FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>
         {
             [FileDrop] = new Parameterization { ["baseDirectory"] = "/drop" },
         });
@@ -180,54 +275,61 @@ public class DeliveryProcessingValidationTest
     }
 
     [TestMethod]
-    public void AcceptsASubfolderTheSetFixes()
+    public void AcceptsASubfolderTheChannelSets()
     {
-        var result = Factory(FixedSubfolderSet()).ValidateDefinition();
+        var result = Factory(FileDropChannelWithSubfolder + PlainSet).ValidateDefinition();
 
         Assert.IsTrue(result.IsValid, result.ErrorMessage);
     }
 
     [TestMethod]
-    public void RejectsAKeyTheSetFixesAndTheMandateSupplies()
+    public void AcceptsASubfolderTheReactionOverwrites()
     {
-        var sets = $$"""
-            delivery_processing:
-              - id: ablage
-                transfers:
-                  - id: ablage
-                    implementation: {{FileDrop}}
-                    config:
-                      subfolder: kanton-a
-                    mandate_config:
-                      - key: subfolder
-                        display_name:
-                          de: Unterordner
-            """;
+        var result = Factory(FileDropChannelWithSubfolder + OverwritingSet).ValidateDefinition();
 
-        AssertInvalid(Factory(sets), $"delivery processing ablage, reaction ablage, error: Channel <{FileDrop}>: the key 'subfolder' is set in config and mandate_config.");
+        Assert.IsTrue(result.IsValid, result.ErrorMessage);
     }
 
     [TestMethod]
-    public void RejectsAKeyTheSetFixesAndTheHostSets()
+    public void RejectsAnOverwriteOfAKeyTheDefaultConfigLacks()
     {
-        var sets = FixedSubfolderSet().Replace("subfolder: kanton-a", "baseDirectory: /elsewhere", StringComparison.Ordinal);
-        var factory = Factory(sets, new Dictionary<string, Parameterization>
-        {
-            [FileDrop] = new Parameterization { ["baseDirectory"] = "/drop", ["subfolder"] = "kanton-a" },
-        });
-
-        AssertInvalid(factory, $"delivery processing ablage, reaction ablage, error: Channel <{FileDrop}>: the key 'baseDirectory' is set in Pipeline:ChannelConfigs and config.");
+        AssertInvalid(
+            Factory(FileDropChannel + OverwritingSet),
+            "PipelineProcessConfig: Reaction 'ablage' in delivery processing 'ablage' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
     }
 
-    private static string FixedSubfolderSet() => $$"""
-        delivery_processing:
-          - id: ablage
-            transfers:
-              - id: ablage
-                implementation: {{FileDrop}}
-                config:
-                  subfolder: kanton-a
-        """;
+    [TestMethod]
+    public void RejectsAMandateValueTheDefaultConfigSets()
+    {
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder + FileDropSet("ablage", "ablage")),
+            $"delivery processing ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'subfolder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.");
+    }
+
+    [TestMethod]
+    public void RejectsADefaultConfigKeyTheBaseConfigurationSets()
+    {
+        // No reaction uses the channel, and the collision still fails the start, as it does for a process.
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder, BaseConfigsWithSubfolder),
+            "PipelineProcessConfig: " + CollisionOrigin + " and in the pipeline definition ('channels[id=ablage].default_config.subfolder')." + CollisionRemedy);
+    }
+
+    [TestMethod]
+    public void RejectsAnOverwriteTheBaseConfigurationSets()
+    {
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder + OverwritingSet, BaseConfigsWithSubfolder),
+            CollisionOrigin + " and overwritten in the pipeline definition ('delivery_processing[id=ablage].transfers[id=ablage].channel_config_overwrites.subfolder')." + CollisionRemedy);
+    }
+
+    [TestMethod]
+    public void RejectsAMandateValueTheBaseConfigurationSets()
+    {
+        AssertInvalid(
+            Factory(FileDropChannel + FileDropSet("ablage", "ablage"), BaseConfigsWithSubfolder),
+            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('delivery_processing[id=ablage].transfers[id=ablage].mandate_config[key=subfolder]')." + CollisionRemedy);
+    }
 
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
     {
@@ -237,12 +339,12 @@ public class DeliveryProcessingValidationTest
         Assert.Contains(expectedError, result.ErrorMessage);
     }
 
-    private static string FileDropSet(string setId, string reactionId, string mandateKey = "subfolder", bool withHeader = true)
+    private static string FileDropSet(string setId, string reactionId, string channelId = "ablage", string mandateKey = "subfolder", bool withHeader = true)
         => (withHeader ? "delivery_processing:\n" : string.Empty) + $$"""
               - id: {{setId}}
                 transfers:
                   - id: "{{reactionId}}"
-                    implementation: {{FileDrop}}
+                    channel_id: {{channelId}}
                     mandate_config:
                       - key: {{mandateKey}}
                         display_name:
@@ -250,10 +352,10 @@ public class DeliveryProcessingValidationTest
 
             """;
 
-    private PipelineFactory Factory(string sets, IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs = null)
+    private PipelineFactory Factory(string definition, IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs = null)
         => PipelineFactory
             .Builder()
-            .Yaml(Pipelines + sets)
+            .Yaml(Pipelines + definition)
             .PipelineProcessFactory(processFactory)
             .LoggerFactory(loggerFactoryMock.Object)
             .PipelineTempDirectory(Path.Combine(Path.GetTempPath(), "Pipeline"))
