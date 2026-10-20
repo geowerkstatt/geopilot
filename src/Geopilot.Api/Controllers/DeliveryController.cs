@@ -168,12 +168,12 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a filtered list of deliveries uploaded by the user.
+    /// Gets the deliveries the user declared.
     /// </summary>
-    /// <returns>A list of <see cref="Delivery"/>.</returns>
+    /// <returns>A list of <see cref="UploadedDelivery"/>.</returns>
     [HttpGet("uploads")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<UploadedDelivery>), "application/json")]
     public async Task<IActionResult> GetUploads()
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -182,17 +182,16 @@ public class DeliveryController : ControllerBase
             "User <{UserId}> accessed list of their uploaded deliveries",
             user.AuthIdentifier);
 
-        var result = await context.DeliveriesWithIncludes
+        // Whether a delivery may still be deleted depends on the configuration and the time, which SQL cannot evaluate.
+        var deliveries = await context.Deliveries
             .AsNoTracking()
             .Where(d => d.DeclaringUserId == user.Id)
+            .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name) })
             .ToListAsync();
 
-        foreach (var delivery in result)
-        {
-            delivery.CanDelete = IsDeleteAllowedForUploader(delivery);
-        }
-
-        return Ok(result);
+        return Ok(deliveries
+            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.Comment, IsDeleteAllowedForUploader(d.Date)))
+            .ToList());
     }
 
     /// <summary>
@@ -226,7 +225,7 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
-            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery))
+            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery.Date))
             {
                 logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
                 return Problem($"Deleting delivery with id <{deliveryId}> is not allowed.", statusCode: StatusCodes.Status403Forbidden);
@@ -294,7 +293,7 @@ public class DeliveryController : ControllerBase
         asset.Delivery?.Mandate?.StacAccess == StacAccess.Public
         || (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
 
-    internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime? utcNow = null)
+    internal bool IsDeleteAllowedForUploader(DateTime declaredAt, DateTime? utcNow = null)
     {
         var options = deliveryOptions.Value;
         if (!options.UploaderDeleteEnabled)
@@ -302,7 +301,7 @@ public class DeliveryController : ControllerBase
             return false;
         }
 
-        var windowEnd = options.GetDeleteWindowEnd(delivery.Date);
+        var windowEnd = options.GetDeleteWindowEnd(declaredAt);
         return windowEnd is null || (utcNow ?? DateTime.UtcNow) < windowEnd;
     }
 }
