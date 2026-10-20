@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace Geopilot.Api.FileAccess;
+﻿namespace Geopilot.Api.FileAccess;
 
 /// <summary>
 /// Finds directories that share files: one is the other or lies below it. A directory geopilot cleans up must not
@@ -9,17 +7,15 @@ namespace Geopilot.Api.FileAccess;
 internal static class DirectoryOverlap
 {
     /// <summary>
-    /// The configured <see cref="FileAccessOptions"/> directories with their configuration keys. Read off the type
-    /// instead of listed here: a listing is complete only until someone adds another directory, and what it costs to
-    /// miss one is deleted data. The static <see cref="FileAccessOptions.SectionName"/> is no instance property and
-    /// stays out by itself.
+    /// The configured data directories with their configuration keys, from <see cref="DataDirectories.Local"/>, the
+    /// list the startup probe uses too; a test pins that it covers every <see cref="FileAccessOptions"/> property,
+    /// because what it costs to miss a directory is deleted data. An empty directory is left out, the data
+    /// annotations report it.
     /// </summary>
     internal static IEnumerable<(string Key, string Directory)> StorageDirectories(FileAccessOptions storage)
-        => typeof(FileAccessOptions)
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.PropertyType == typeof(string) && property.CanRead)
-            .Select(property => (Key: $"{FileAccessOptions.SectionName}:{property.Name}", Directory: property.GetValue(storage) as string ?? string.Empty))
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.Directory));
+        => DataDirectories.Local(storage)
+            .Where(directory => !string.IsNullOrWhiteSpace(directory.Path))
+            .Select(directory => (directory.Key, directory.Path));
 
     /// <summary>
     /// True when one path is the other or lies below it. Compared case-insensitively, so a case-sensitive

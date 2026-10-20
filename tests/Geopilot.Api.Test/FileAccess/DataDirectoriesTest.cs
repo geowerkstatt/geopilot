@@ -23,10 +23,10 @@ public class DataDirectoriesTest
     [TestMethod]
     public void LocalCoversEveryStorageDirectoryOption()
     {
-        // Read off the type, so a sixth directory cannot be added to the options without being checked.
+        // Read off the type, so a sixth directory cannot be added to the options without being checked. Every
+        // property counts, not only strings, so a directory of another type cannot slip past either.
         var configured = typeof(FileAccessOptions)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.PropertyType == typeof(string))
             .Select(property => $"Storage:{property.Name}");
 
         var listed = DataDirectories.Local(CreateOptions()).Select(directory => directory.Key);
