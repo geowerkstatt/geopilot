@@ -5,37 +5,36 @@ namespace Geopilot.Pipeline.Channels;
 
 /// <summary>
 /// Resolves the channel of a reaction and binds its single public constructor by the same rules as a process. A value
-/// comes from exactly one of three places: the host (<c>Pipeline:ChannelConfigs:&lt;implementation&gt;</c>), the set
-/// (<c>config</c> of the reaction) or the mandate (<c>mandate_config</c>), the last only for parameters marked
-/// <see cref="MandateValueAttribute"/>.
+/// comes from exactly one of three places: the base configuration (<c>Pipeline:ChannelConfigs:&lt;implementation&gt;</c>),
+/// the pipeline definition (<c>default_config</c> of the channel with the reaction's <c>channel_config_overwrites</c>)
+/// or the mandate (<c>mandate_config</c>), the last only for parameters marked <see cref="MandateValueAttribute"/>.
 /// </summary>
 internal sealed class DeliveryChannelFactory
 {
     private const string Subject = "Channel";
-    private const string HostPlace = "Pipeline:ChannelConfigs";
-    private const string SetPlace = "config";
-    private const string MandatePlace = "mandate_config";
 
-    private readonly IReadOnlyDictionary<string, Parameterization>? hostConfigs;
+    private readonly IReadOnlyDictionary<string, Parameterization>? baseConfigs;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryChannelFactory"/> class.
     /// </summary>
-    /// <param name="hostConfigs">The host values per channel implementation, or <see langword="null"/> without a
-    /// host layer, which leaves the values unchecked that only the host could provide.</param>
-    public DeliveryChannelFactory(IReadOnlyDictionary<string, Parameterization>? hostConfigs)
+    /// <param name="baseConfigs">The base configuration per channel implementation, or <see langword="null"/>
+    /// without one, which leaves the values unchecked that only the base configuration could provide.</param>
+    public DeliveryChannelFactory(IReadOnlyDictionary<string, Parameterization>? baseConfigs)
     {
-        this.hostConfigs = hostConfigs;
+        this.baseConfigs = baseConfigs;
     }
 
     /// <summary>
     /// Checks a reaction without constructing its channel: the implementation is a channel with one public
-    /// constructor, every key of the set is a parameter and every declared mandate key a parameter marked as mandate
-    /// value, no key is set in two places, every value converts to its parameter, and, with a host layer, every
-    /// parameter that needs a value gets one.
+    /// constructor, every key of the definition is a parameter, every declared mandate key a parameter marked as
+    /// mandate value that the definition does not set, every value converts to its parameter, and, with a base
+    /// configuration, every parameter that needs a value gets one. A key the base configuration pins is the concern
+    /// of the definition validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
-    /// <param name="config">The values the set fixes in <c>config</c>.</param>
+    /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
+    /// the reaction's overwrites.</param>
     /// <param name="mandateKeys">The keys the set declares in <c>mandate_config</c>.</param>
     /// <returns>One message per problem, empty when the reaction is valid.</returns>
     public IReadOnlyList<string> Validate(string implementation, Parameterization? config, IReadOnlyCollection<string> mandateKeys)
@@ -56,15 +55,17 @@ internal sealed class DeliveryChannelFactory
         var parameters = constructor.GetParameters();
         var parameterNames = parameters.Select(parameter => parameter.Name).ToHashSet(StringComparer.Ordinal);
         var mandateParameters = parameters.Where(IsMandateValue).Select(parameter => parameter.Name).ToHashSet(StringComparer.Ordinal);
-        var host = hostConfigs is null ? null : HostConfig(implementation);
+        var baseConfig = baseConfigs is null ? null : BaseConfig(implementation);
 
         var errors = config.Keys
             .Where(key => !parameterNames.Contains(key))
-            .Select(key => $"Channel <{implementation}>: the config key '{key}' is not a constructor parameter.")
+            .Select(key => $"Channel <{implementation}>: the default_config key '{key}' is not a constructor parameter.")
             .Concat(mandateKeys
                 .Where(key => !mandateParameters.Contains(key))
                 .Select(key => $"Channel <{implementation}>: the mandate value '{key}' is not a constructor parameter marked [MandateValue]."))
-            .Concat(Collisions(implementation, host, config, mandateKeys))
+            .Concat(mandateKeys
+                .Where(config.ContainsKey)
+                .Select(key => $"Channel <{implementation}>: the mandate value '{key}' is already set in default_config. A value comes either from the pipeline definition or from the mandate."))
             .ToList();
 
         foreach (var parameter in parameters)
@@ -78,12 +79,12 @@ internal sealed class DeliveryChannelFactory
                 if (ConstructorBinding.TryGetConfiguredValue(parameter, config, Subject, out _))
                     continue;
 
-                // Without a host layer, a value nobody else provides may still come from there.
-                if (host is null || ConstructorBinding.TryGetConfiguredValue(parameter, host, Subject, out _) || ConstructorBinding.IsNullable(parameter))
+                // Without a base configuration, a value nobody else provides may still come from there.
+                if (baseConfig is null || ConstructorBinding.TryGetConfiguredValue(parameter, baseConfig, Subject, out _) || ConstructorBinding.IsNullable(parameter))
                     continue;
 
                 errors.Add(IsMandateValue(parameter)
-                    ? $"Channel <{implementation}>: the parameter '{parameter.Name}' has no value. Set it in {SetPlace} or declare it in {MandatePlace}."
+                    ? $"Channel <{implementation}>: the parameter '{parameter.Name}' has no value. Set it in default_config or declare it in mandate_config."
                     : MissingValueMessage(parameter));
             }
             catch (InvalidOperationException ex)
@@ -96,25 +97,26 @@ internal sealed class DeliveryChannelFactory
     }
 
     /// <summary>
-    /// Creates the channel for one attempt. The host values are read anew every time, so a changed password applies
-    /// to reactions that are already waiting.
+    /// Creates the channel for one attempt. The base configuration is read anew every time, so a changed password
+    /// applies to reactions that are already waiting.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
-    /// <param name="config">The values the set fixed in <c>config</c>.</param>
+    /// <param name="config">The values the pipeline definition set: the default configuration of the channel with
+    /// the reaction's overwrites.</param>
     /// <param name="mandateValues">The values the mandate supplied; only those for parameters marked as mandate
     /// values are used.</param>
     /// <exception cref="InvalidOperationException">The channel cannot be resolved or a value is missing.</exception>
     public IDeliveryChannel Create(string implementation, Parameterization? config, Parameterization? mandateValues)
     {
         var constructor = GetConstructor(implementation);
-        var host = HostConfig(implementation);
-        var set = config ?? new Parameterization();
+        var baseConfig = BaseConfig(implementation);
+        var definition = config ?? new Parameterization();
         var mandate = mandateValues ?? new Parameterization();
         var none = new Parameterization();
 
-        // The host comes first: where a channel writes and with which credentials is its decision.
+        // The base configuration comes first: where a channel writes and with which credentials is its decision.
         var arguments = constructor.GetParameters()
-            .Select(parameter => Bind(parameter, host, set, IsMandateValue(parameter) ? mandate : none))
+            .Select(parameter => Bind(parameter, baseConfig, definition, IsMandateValue(parameter) ? mandate : none))
             .ToArray();
         return (IDeliveryChannel)constructor.Invoke(arguments);
     }
@@ -132,23 +134,6 @@ internal sealed class DeliveryChannelFactory
             throw new InvalidOperationException($"<{implementation}> is not a delivery channel.");
 
         return ConstructorBinding.GetSingleConstructor(type, implementation, Subject);
-    }
-
-    private static IEnumerable<string> Collisions(string implementation, Parameterization? host, Parameterization config, IReadOnlyCollection<string> mandateKeys)
-    {
-        var places = new (string Place, IEnumerable<string> Keys)[]
-        {
-            (HostPlace, host?.Keys ?? Enumerable.Empty<string>()),
-            (SetPlace, config.Keys),
-            (MandatePlace, mandateKeys),
-        };
-
-        return places
-            .SelectMany(entry => entry.Keys.Select(key => (Key: key, entry.Place)))
-            .GroupBy(entry => entry.Key, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => $"Channel <{implementation}>: the key '{group.Key}' is set in {string.Join(" and ", group.Select(entry => entry.Place))}. " +
-                $"A key belongs to exactly one of {HostPlace}, {SetPlace} and {MandatePlace}.");
     }
 
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
@@ -170,6 +155,6 @@ internal sealed class DeliveryChannelFactory
     private static string MissingValueMessage(ParameterInfo parameter)
         => $"Channel initialization: No suitable parameter found for parameter of type <{parameter.ParameterType.Name}> and name <{parameter.Name}>. Parameter is not nullable, cannot initialize channel.";
 
-    private Parameterization HostConfig(string implementation)
-        => hostConfigs?.GetValueOrDefault(implementation) ?? new Parameterization();
+    private Parameterization BaseConfig(string implementation)
+        => baseConfigs?.GetValueOrDefault(implementation) ?? new Parameterization();
 }
