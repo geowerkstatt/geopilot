@@ -4,7 +4,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { ApiError, LocalizedText } from "../../api/apiInterfaces";
-import { Delivery } from "../../api/generated";
+import { Delivery, UploadedDelivery } from "../../api/generated";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "..//alert/alertContext";
@@ -37,16 +37,17 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { localized } = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
-    fetchApi<Delivery[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    // Administrators get whole deliveries, a user gets their own uploads with whether each can still be deleted.
+    fetchApi<(Delivery | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
         setDeliveries(
-          response.map((d: Delivery) => ({
+          response.map(d => ({
             id: d.id,
             date: d.date,
-            userName: d.declarerName,
+            userName: "declarerName" in d ? d.declarerName : "",
             mandateName: d.mandate.name,
             comment: d.comment,
-            canDelete: d.canDelete ?? undefined,
+            canDelete: "canDelete" in d ? d.canDelete : undefined,
           })),
         );
       })
