@@ -846,10 +846,15 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetUploadsReturnsDeliveriesOfUser()
+    public async Task GetUploadsReturnsDeliveriesOfUserInTheOrderTheyWereDeclared()
     {
-        var user = UserWithDeliveries();
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
         deliveryController.SetupTestUser(user);
+
+        // An update moves the row within the table, so the database no longer returns the deliveries in id order by chance.
+        var first = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        first.Comment += " (edited)";
+        context.SaveChanges();
 
         var response = (await deliveryController.GetUploads()) as ObjectResult;
 
@@ -857,11 +862,11 @@ public class DeliveryControllerTest
         var expected = context.Deliveries
             .Include(d => d.Mandate)
             .Where(d => d.DeclaringUserId == user.Id)
+            .OrderBy(d => d.Id)
             .AsEnumerable()
             .Select(d => (d.Id, d.Date, d.Comment, Mandate: new MandateReference(d.Mandate.Id, d.Mandate.Name)))
             .ToList();
-        Assert.IsNotEmpty(uploads);
-        CollectionAssert.AreEquivalent(expected, uploads.Select(u => (u.Id, u.Date, u.Comment, u.Mandate)).ToList());
+        CollectionAssert.AreEqual(expected, uploads.Select(u => (u.Id, u.Date, u.Comment, u.Mandate)).ToList());
     }
 
     [TestMethod]
