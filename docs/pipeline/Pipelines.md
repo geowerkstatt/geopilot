@@ -502,3 +502,8 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)
 - [XTF Fehlervisualisierung](Prozessoren/xtf-fehlervisualisierung.md)
+- [GPKG Schema-Import](Prozessoren/gpkg-schema-import.md)
+- [GPKG Daten-Import](Prozessoren/gpkg-import.md)
+- [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
+- [GPKG Export](Prozessoren/gpkg-export.md)
+- [GPKG Validierung](Prozessoren/gpkg-validierung.md)
