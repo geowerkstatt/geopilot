@@ -4,14 +4,14 @@ namespace Geopilot.Pipeline.Channels.FileDrop;
 
 /// <summary>
 /// Places the files of a delivery in a folder of their own, <c>{baseDirectory}/{subfolder}/{delivery id}</c>, where
-/// the systems of the recipient pick them up. The host provides the base directory, the mandate the subfolder. The
-/// files go to a temporary folder that is renamed at the end, so the target never shows half a delivery, and a target
-/// that already exists counts as delivered.
+/// the systems of the recipient pick them up. The base configuration provides the base directory, the pipeline
+/// definition or the mandate the subfolder. The files go to a temporary folder that is renamed at the end, so the
+/// target never shows half a delivery, and a target that already exists counts as delivered.
 /// </summary>
 internal sealed class FileDropChannel : IDeliveryChannel
 {
     /// <summary>
-    /// The name of the host value with the base directory, below <c>Pipeline:ChannelConfigs</c>.
+    /// The name of the base configuration value with the base directory, below <c>Pipeline:ChannelConfigs</c>.
     /// </summary>
     internal const string BaseDirectoryKey = "baseDirectory";
 
@@ -21,8 +21,8 @@ internal sealed class FileDropChannel : IDeliveryChannel
     /// <summary>
     /// Initializes a new instance of the <see cref="FileDropChannel"/> class.
     /// </summary>
-    /// <param name="baseDirectory">The directory the host provides for all file drops.</param>
-    /// <param name="subfolder">The folder of the mandate, a relative path below the base directory.</param>
+    /// <param name="baseDirectory">The directory the base configuration provides for all file drops.</param>
+    /// <param name="subfolder">The folder of the deliveries, a relative path below the base directory.</param>
     /// <exception cref="ArgumentException">The subfolder does not lie below the base directory.</exception>
     public FileDropChannel(string baseDirectory, [MandateValue] string subfolder)
     {
