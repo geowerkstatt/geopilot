@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
 using Microsoft.Extensions.Options;
-using System.Reflection;
 
 namespace Geopilot.Api.Services;
 
@@ -27,42 +26,17 @@ internal sealed class UploadDirectDirectoryValidator : IValidateOptions<UploadDi
         if (string.IsNullOrWhiteSpace(options.Directory))
             return ValidateOptionsResult.Success;
 
-        // Read the directories off the type instead of listing them here. A listing is complete only
-        // until someone adds a sixth directory, and what it costs to miss one is deleted data. The
-        // static SectionName is not an instance property and stays out by itself.
-        var storage = fileAccessOptions.Value;
-        var storageDirectories = typeof(FileAccessOptions)
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.PropertyType == typeof(string) && property.CanRead)
-            .Select(property => (Key: property.Name, Directory: property.GetValue(storage) as string));
-
-        foreach (var (key, directory) in storageDirectories)
+        foreach (var (key, directory) in DirectoryOverlap.StorageDirectories(fileAccessOptions.Value))
         {
-            if (string.IsNullOrWhiteSpace(directory) || !Overlaps(options.Directory, directory))
+            if (!DirectoryOverlap.Overlaps(options.Directory, directory))
                 continue;
 
             return ValidateOptionsResult.Fail(
                 $"{UploadDirectOptions.SectionName}:{nameof(UploadDirectOptions.Directory)} <{Path.GetFullPath(options.Directory)}> overlaps " +
-                $"{FileAccessOptions.SectionName}:{key} <{Path.GetFullPath(directory)}>. The upload directory belongs to the direct upload " +
+                $"{key} <{Path.GetFullPath(directory)}>. The upload directory belongs to the direct upload " +
                 $"backend alone, because both cleanups delete files they cannot account for. Configure separate directories.");
         }
 
         return ValidateOptionsResult.Success;
     }
-
-    /// <summary>
-    /// True when one path is the other or lies below it. Compared case-insensitively, so a case-sensitive
-    /// filesystem may see an overlap reported that it would not have; refusing to start is the harmless side.
-    /// </summary>
-    private static bool Overlaps(string left, string right)
-    {
-        var first = WithTrailingSeparator(left);
-        var second = WithTrailingSeparator(right);
-
-        return first.StartsWith(second, StringComparison.OrdinalIgnoreCase)
-            || second.StartsWith(first, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string WithTrailingSeparator(string path)
-        => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)) + Path.DirectorySeparatorChar;
 }
