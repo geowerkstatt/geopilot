@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Geopilot.Pipeline.Processes.Gpkg;
 
-internal class Ili2GpkgSchemaImportProcess : Ili2GpkgProcessBase
+internal class Ili2GpkgSchemaImportProcess
 {
     private readonly Ili2GpkgArgs ili2GpkgArgs;
     private readonly IPipelineFile? modelRepository;
@@ -51,19 +51,17 @@ internal class Ili2GpkgSchemaImportProcess : Ili2GpkgProcessBase
         IIli2GpkgClient ili2GpkgClient,
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
-        : base(
-            metaConfig: null,
-            modelDirs,
-            toolVersion,
-            pluginIds: null)
     {
         this.modelRepository = modelRepository;
         this.ili2GpkgClient = ili2GpkgClient;
         this.pipelineFileManager = pipelineFileManager;
         this.logger = logger;
 
-        ili2GpkgArgs = CreateCommonArgs() with
+        ili2GpkgArgs = new Ili2GpkgArgs
         {
+            ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
+            ToolVersion = string.IsNullOrWhiteSpace(toolVersion) ? null : toolVersion.Trim(),
+
             CreateBasketCol = createBasketCol ?? false,
             CreateFk = createFk ?? false,
             CreateGeomIdx = createGeomIdx ?? false,

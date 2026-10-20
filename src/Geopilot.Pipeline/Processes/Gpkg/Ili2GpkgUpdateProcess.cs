@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Geopilot.Pipeline.Processes.Gpkg;
 
-internal class Ili2GpkgUpdateProcess : Ili2GpkgProcessBase
+internal class Ili2GpkgUpdateProcess
 {
     private readonly Ili2GpkgArgs ili2GpkgArgs;
     private readonly IPipelineFile? modelRepository;
@@ -46,19 +46,19 @@ internal class Ili2GpkgUpdateProcess : Ili2GpkgProcessBase
         IIli2GpkgClient ili2GpkgClient,
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
-        : base(
-            metaConfig,
-            modelDirs,
-            toolVersion,
-            pluginIds)
     {
         this.modelRepository = modelRepository;
         this.ili2GpkgClient = ili2GpkgClient;
         this.pipelineFileManager = pipelineFileManager;
         this.logger = logger;
 
-        ili2GpkgArgs = CreateCommonArgs() with
+        ili2GpkgArgs = new Ili2GpkgArgs
         {
+            MetaConfig = IlitoolsHelper.ToIlidataReference(metaConfig),
+            ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
+            ToolVersion = string.IsNullOrWhiteSpace(toolVersion) ? null : toolVersion.Trim(),
+            PluginIds = IlitoolsHelper.SplitConfiguredList(pluginIds),
+
             DisableValidation = disableValidation ?? false,
             SkipGeometryErrors = skipGeometryErrors ?? false,
             SkipReferenceErrors = skipReferenceErrors ?? false,
@@ -82,7 +82,7 @@ internal class Ili2GpkgUpdateProcess : Ili2GpkgProcessBase
             throw new ArgumentException("No transfer files provided for data update.", nameof(transferFiles));
         }
 
-        var transferFormat = GetFormatOfTransferFiles(transferFiles);
+        var transferFormat = IlitoolsHelper.GetFormatOfTransferFiles(transferFiles);
         if (!(transferFormat is Ili2GpkgTransferFormat.Xtf or Ili2GpkgTransferFormat.Itf))
         {
             throw new ArgumentException("Format of the transfer files must be either 'xtf' or 'itf'.", nameof(transferFiles));
