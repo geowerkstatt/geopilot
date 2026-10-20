@@ -581,9 +581,10 @@ delivery_processing:
 - `delivery_processing[X].transfers`: Die Lieferungs-Schritte des Satzes, mindestens einer. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben.
   - `transfers[X].id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein und folgt denselben Regeln wie die Id des Satzes.
   - `transfers[X].implementation`: Der Kanal, der die Reaktion ausführt, siehe [Kanäle](#kanäle).
-  - `transfers[X].mandate_config`: Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert.
+  - `transfers[X].config`: Optional. Werte, die der Satz für den Kanal fest vorgibt, etwa ein Unterordner oder ein Topic. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
+  - `transfers[X].mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert.
 
-Alles andere, was ein Kanal braucht, etwa ein Basisverzeichnis oder Zugangsdaten, legt der Betrieb unter `Pipeline:ChannelConfigs:<implementation>` fest. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
+Ein Kanal bekommt seine Werte damit von drei Stellen: vom Betrieb unter `Pipeline:ChannelConfigs:<implementation>`, vom Satz unter `config` und vom Mandat. Ein Schlüssel gehört genau einer davon. Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, legt der Betrieb fest. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
 
 Eine Definition mit `delivery_processing` setzt eine Version von geopilot voraus, welche die Sektion kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektion in die Definition.
 
@@ -595,9 +596,10 @@ Die Sätze werden beim Start geprüft wie die Pipelines. geopilot startet nicht,
 - eine Id nicht den Regeln oben folgt,
 - ein Satz keinen Lieferungs-Schritt hat,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
+- `config` einen Schlüssel enthält, den der Kanal nicht kennt, oder einen Wert, der sich nicht in den Typ des Parameters umwandeln lässt,
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, oder einen, den der Kanal nicht als Wert des Mandats vorsieht,
-- ein Wert des Mandats, den der Kanal zwingend braucht, im Satz nicht deklariert ist,
-- ein Wert, den der Kanal vom Betrieb braucht, unter `Pipeline:ChannelConfigs` fehlt oder sich nicht in den Typ des Parameters umwandeln lässt, oder dort ein Wert gesetzt ist, der dem Mandat vorbehalten ist.
+- ein Schlüssel an mehr als einer Stelle steht, also zwei von `Pipeline:ChannelConfigs`, `config` und `mandate_config` denselben Schlüssel setzen,
+- ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert unter `Pipeline:ChannelConfigs` nicht in den Typ des Parameters umwandeln lässt.
 
 ### Kanäle
 

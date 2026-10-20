@@ -11,7 +11,7 @@ Eine Ablage muss unter `delivery_processing[X].transfers[X].implementation` den 
 | Parameter | Herkunft | Bedeutung |
 | --- | --- | --- |
 | `baseDirectory` | Host, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. |
-| `subfolder` | Mandat, im Satz unter `mandate_config` deklariert | Der Ordner des Mandats, ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Ein Mandat lässt sich mit einem anderen Wert nicht speichern. |
+| `subfolder` | Satz (`config`) oder Mandat (`mandate_config`) | Der Ordner der Lieferungen, ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Ein anderer Wert hält den Start an oder lässt das Mandat nicht speichern. |
 
 Das Basisverzeichnis legt der Betrieb fest, entweder in den Appsettings:
 
@@ -31,13 +31,25 @@ oder als Umgebungsvariable:
 Pipeline__ChannelConfigs__Geopilot.Pipeline.Channels.FileDrop.FileDropChannel__baseDirectory=/drop
 ```
 
-Den Unterordner verlangt der Satz vom Mandat:
+Den Unterordner gibt entweder der Satz fest vor, dann landen die Lieferungen aller Mandate mit diesem Satz im selben Ordner:
 
 ```yaml
 delivery_processing:
-  - id: ablage
+  - id: ablage_kanton_a
     transfers:
-      - id: ablage
+      - id: ablage_kanton_a
+        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+        config:
+          subfolder: kanton-a
+```
+
+oder der Satz verlangt ihn vom Mandat, und jedes Mandat trägt seinen eigenen ein:
+
+```yaml
+delivery_processing:
+  - id: ablage_pro_mandat
+    transfers:
+      - id: ablage_pro_mandat
         implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
         mandate_config:
           - key: subfolder
