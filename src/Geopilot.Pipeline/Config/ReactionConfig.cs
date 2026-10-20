@@ -5,8 +5,8 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// One reaction of a <see cref="DeliveryProcessingConfig"/>: the channel that runs it, the values the set fixes for
-/// that channel and the values the mandate supplies.
+/// One reaction of a <see cref="DeliveryProcessingConfig"/>: the channel that runs it, how the reaction overwrites the
+/// channel's default configuration and the values the mandate supplies.
 /// </summary>
 public class ReactionConfig
 {
@@ -24,21 +24,22 @@ public class ReactionConfig
     public required string Id { get; set; }
 
     /// <summary>
-    /// The fully qualified type name of the channel that runs the reaction.
+    /// The channel that runs the reaction. References the <see cref="ChannelConfig.Id"/> of a defined channel.
     /// </summary>
-    [YamlMember(Alias = "implementation")]
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Reaction Implementation is required.")]
-    public required string Implementation { get; set; }
+    [YamlMember(Alias = "channel_id")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Channel Reference is required.")]
+    public string? ChannelId { get; set; }
 
     /// <summary>
-    /// The values the set fixes for the channel, such as a topic. A key set here is set neither by the host nor by
-    /// the mandate.
+    /// Optional configuration overrides for the channel of this reaction. Overrides the default configuration defined
+    /// in <see cref="ChannelConfig.DefaultConfig"/>.
     /// </summary>
-    [YamlMember(Alias = "config")]
-    public Parameterization? Config { get; set; }
+    [YamlMember(Alias = "channel_config_overwrites")]
+    public Parameterization? ChannelConfigOverwrites { get; set; }
 
     /// <summary>
-    /// The values a mandate supplies to the channel. Only parameters the channel marks as mandate values qualify.
+    /// The values a mandate supplies to the channel. Only parameters the channel marks as mandate values qualify, and
+    /// only those neither the base configuration nor the default configuration of the channel sets.
     /// </summary>
     [YamlMember(Alias = "mandate_config")]
     [NoDuplicates(PropertyName = "Key")]
