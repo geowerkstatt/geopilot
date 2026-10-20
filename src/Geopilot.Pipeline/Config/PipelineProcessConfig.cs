@@ -30,4 +30,13 @@ public class PipelineProcessConfig
     [MinLength(1, ErrorMessage = "At least one Pipeline is required.")]
     [NoDuplicates(PropertyName = "Id")]
     public required List<PipelineConfig> Pipelines { get; set; }
+
+    /// <summary>
+    /// Named sets of reactions that run once a delivery can no longer be withdrawn. Optional: without them, no
+    /// mandate can choose a set.
+    /// </summary>
+    [YamlMember(Alias = "delivery_processing")]
+    [NoDuplicates(PropertyName = "Id")]
+    [UniqueReactionIds]
+    public List<DeliveryProcessingConfig>? DeliveryProcessing { get; set; }
 }

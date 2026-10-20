@@ -923,3 +923,15 @@ pipelines:
           - property: StatusMessage
             actions:
               - StatusMessage
+delivery_processing:
+  - id: ablage
+    transfers:
+      - id: ablage
+        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+        mandate_config:
+          - key: subfolder
+            display_name:
+              de: Unterordner der Ablage
+              fr: Sous-dossier du dépôt
+              it: Sottocartella del deposito
+              en: Subfolder of the file drop
