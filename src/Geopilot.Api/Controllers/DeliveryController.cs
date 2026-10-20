@@ -186,6 +186,7 @@ public class DeliveryController : ControllerBase
         var deliveries = await context.Deliveries
             .AsNoTracking()
             .Where(d => d.DeclaringUserId == user.Id)
+            .OrderBy(d => d.Id)
             .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name) })
             .ToListAsync();
 
