@@ -18,7 +18,7 @@ namespace Geopilot.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
@@ -116,6 +116,72 @@ namespace Geopilot.Api.Migrations
                         {
                             t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)");
                         });
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.DeliveryReaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Config")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("DeliveryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Implementation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<DateTime?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReactionId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasFilter("\"State\" IN ('Pending', 'Running')");
+
+                    b.HasIndex("DeliveryId", "ReactionId")
+                        .IsUnique();
+
+                    b.ToTable("DeliveryReactions");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.MachineClient", b =>
@@ -595,6 +661,17 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Mandate");
 
                     b.Navigation("PrecursorDelivery");
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.DeliveryReaction", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.Delivery", "Delivery")
+                        .WithMany()
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Delivery");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
