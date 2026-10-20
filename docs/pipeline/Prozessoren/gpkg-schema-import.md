@@ -17,7 +17,7 @@ Ein GPKG Schema-Import Prozess muss unter `processes[X].implementation` den Wert
 
 Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
-- `modelFiles`: Input vom Typ `IPipelineFile[]` mit mindestens einer `*.ili`-Datei. Mehrere Modelldateien werden nacheinander in dieselbe GeoPackage-Datei importiert; beim erste fehlgeschlagene Import wird der Vorgang abgebrochen und keine weitere Modelldatei mehr importiert.
+- `modelFiles`: Input vom Typ `IPipelineFile[]` mit mindestens einer `*.ili`-Datei. Mehrere Modelldateien werden nacheinander in dieselbe GeoPackage-Datei importiert; beim ersten fehlgeschlagenen Import wird der Vorgang abgebrochen und keine weitere Modelldatei mehr importiert.
 - `dbFile`: Optionale bestehende GeoPackage-Datei vom Typ `IPipelineFile`, in die das Schema ergänzt wird. Ohne Angabe entsteht eine neue Datei.
 - `models`: Optionale Modellnamen vom Typ `string`, mit Semikolon getrennt (`--models`).
 - `defaultSrsCode`: Optionaler EPSG-Code vom Typ `int` (`--defaultSrsCode`).

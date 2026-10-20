@@ -28,5 +28,5 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert.
 
 - `ValidationSuccessful`: Wert vom Typ `bool`, `true` wenn die Daten valide sind.
-- `ErrorLog`, `XtfLog`: Text- und XTF-Log der Validierung vom Typ `IPipelineFile?`. Das `XtfLog` lässt sich wie bei der XTF Validierung an die [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md) weitergeben.
+- `ErrorLog`, `XtfLog`: Text- und XTF-Log der Validierung vom Typ `IPipelineFile`. Das `XtfLog` lässt sich wie bei der XTF Validierung an die [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md) weitergeben.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`.
