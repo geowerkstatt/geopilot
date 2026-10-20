@@ -592,6 +592,8 @@ delivery_processing:
   - `transfers[X].channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
   - `transfers[X].mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert.
 
+Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
+
 Eine Definition mit `channels` oder `delivery_processing` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 
 ### Konfiguration eines Kanals

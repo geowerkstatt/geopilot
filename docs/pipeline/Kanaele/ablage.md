@@ -70,7 +70,7 @@ delivery_processing:
 
 ## Ablauf
 
-- Jede Lieferung bekommt einen eigenen Ordner nach ihrer Id: `<Basisverzeichnis>/<Unterordner>/<Id der Lieferung>/`. Darin liegen nur die gelieferten Dateien, unter ihrem ursprünglichen Namen.
+- Jede Lieferung bekommt einen eigenen Ordner nach ihrer Id: `<Basisverzeichnis>/<Unterordner>/<Id der Lieferung>/`. Darin liegen nur die gelieferten Dateien, unter ihrem ursprünglichen Namen. Metadaten der Lieferung, etwa wer sie deklariert hat, legt die Ablage nicht ab.
 - Die Ablage schreibt zuerst in einen temporären Ordner `.<Id der Lieferung>.partial` daneben und benennt ihn erst am Ende um. Unter dem Namen der Lieferung liegt also nie etwas Halbes, und wer die Ablage liest, kann Ordner mit einem Punkt am Anfang überspringen.
 - Besteht der Ordner der Lieferung schon, gilt sie als abgelegt. Die Ablage überschreibt nichts.
 - Scheitert ein Versuch, räumt die Ablage ihren temporären Ordner weg, und der nächste Versuch beginnt von vorne. Stirbt die Instanz mitten in einem Versuch, räumt der nächste zuerst auf.
