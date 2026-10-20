@@ -191,10 +191,6 @@ export type Delivery = {
    * The deletion status of the delivery.
    */
   deleted: boolean;
-  /**
-   * Indicates whether the delivery can be deleted by the uploader.
-   */
-  canDelete?: boolean | null;
 };
 
 /**
@@ -390,6 +386,22 @@ export type Mandate = {
    * Data deliveries that have been declared fulfilling the mandate.
    */
   deliveries: Array<Delivery>;
+};
+
+/**
+ * Names a mandate without describing it, for answers that only point at one.
+ */
+export type MandateReference = {
+  /**
+   * The unique identifier of the mandate.
+   */
+  id: number;
+  /**
+   * The display name of the mandate.
+   */
+  name: {
+    [key: string]: string;
+  };
 };
 
 /**
@@ -1009,6 +1021,30 @@ export type UploadSettingsResponse = {
 };
 
 /**
+ * A delivery as the user who declared it sees it in the list of their deliveries. Of the mandate it carries no more
+ * than its id and name, because the configuration of a mandate belongs to the administrators.
+ */
+export type UploadedDelivery = {
+  /**
+   * The unique identifier of the delivery.
+   */
+  id: number;
+  /**
+   * The date the delivery was declared.
+   */
+  date: string;
+  mandate: MandateReference;
+  /**
+   * The comment of the user who declared the delivery.
+   */
+  comment: string;
+  /**
+   * Whether the user may still delete the delivery.
+   */
+  canDelete: boolean;
+};
+
+/**
  * A person that is allowed to view or declare deliveries.
  */
 export type User = {
@@ -1202,7 +1238,7 @@ export type GetApiV1DeliveryUploadsResponses = {
   /**
    * A list of deliveries uploaded by the user.
    */
-  200: Array<Delivery>;
+  200: Array<UploadedDelivery>;
 };
 
 export type GetApiV1DeliveryUploadsResponse = GetApiV1DeliveryUploadsResponses[keyof GetApiV1DeliveryUploadsResponses];

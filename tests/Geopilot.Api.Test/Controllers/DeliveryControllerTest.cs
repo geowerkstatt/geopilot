@@ -677,8 +677,7 @@ public class DeliveryControllerTest
         };
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
-        var delivery = new Delivery { Date = deliveryDate };
-        Assert.AreEqual(expected, deliveryController.IsDeleteAllowedForUploader(delivery, currentDate));
+        Assert.AreEqual(expected, deliveryController.IsDeleteAllowedForUploader(deliveryDate, currentDate));
     }
 
     [TestMethod]
@@ -706,10 +705,8 @@ public class DeliveryControllerTest
         };
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
-        var delivery = new Delivery { Date = deliveryDate };
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, restrictedDate));
-        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, allowedDate));
-        Assert.AreEqual(deliveryDateTimeKind, delivery.Date.Kind);
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(deliveryDate, restrictedDate));
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(deliveryDate, allowedDate));
     }
 
     [TestMethod]
@@ -724,9 +721,9 @@ public class DeliveryControllerTest
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
         // Midnight in Zurich is 23:00 UTC in winter, an hour before midnight UTC.
-        var delivery = new Delivery { Date = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc) };
-        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
+        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
     }
 
     [TestMethod]
@@ -734,8 +731,8 @@ public class DeliveryControllerTest
     {
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = false });
 
-        var delivery = new Delivery { Date = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc) };
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, delivery.Date.AddMinutes(-1)));
+        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, declaredAt.AddMinutes(-1)));
     }
 
     [TestMethod]
@@ -851,16 +848,39 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task GetUploadsReturnsDeliveriesOfUser()
     {
-        var user = context.Users.First(u => !u.IsAdmin);
+        var user = UserWithDeliveries();
         deliveryController.SetupTestUser(user);
 
         var response = (await deliveryController.GetUploads()) as ObjectResult;
 
-        var deliveries = Assert.IsInstanceOfType<List<Delivery>>(response?.Value);
-        CollectionAssert.AllItemsAreUnique(deliveries);
-        Assert.IsTrue(deliveries.All(d => d.DeclaringUserId == user.Id), "All deliveries should belong to the user.");
-        Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        var expected = context.Deliveries
+            .Include(d => d.Mandate)
+            .Where(d => d.DeclaringUserId == user.Id)
+            .AsEnumerable()
+            .Select(d => (d.Id, d.Date, d.Comment, Mandate: new MandateReference(d.Mandate.Id, d.Mandate.Name)))
+            .ToList();
+        Assert.IsNotEmpty(uploads);
+        CollectionAssert.AreEquivalent(expected, uploads.Select(u => (u.Id, u.Date, u.Comment, u.Mandate)).ToList());
     }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task GetUploadsReportsWhetherTheUploaderMayDelete(bool enabled)
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = enabled });
+        deliveryController.SetupTestUser(UserWithDeliveries());
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.IsNotEmpty(uploads);
+        Assert.IsTrue(uploads.All(upload => upload.CanDelete == enabled));
+    }
+
+    private User UserWithDeliveries()
+        => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
 
     private void AssertNotDeleted(Delivery delivery)
     {
