@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reference data mapping for the client tests: names one reference dataset for scope 449. -->
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
+  xmlns="http://www.interlis.ch/xtf/2.4/IliVRefData_V1_0">
+  <ili:headersection>
+    <ili:models>
+      <ili:model>IliVRefData_V1_0</ili:model>
+    </ili:models>
+    <ili:sender>geopilot</ili:sender>
+  </ili:headersection>
+  <ili:datasection>
+    <Mapping ili:bid="b7d4c1f2-5a3e-4e8b-9c6d-2f1a0e7b3c95">
+      <RefData ili:tid="r449">
+        <scope>449</scope>
+        <refdata>ilidata:REFDATA-449</refdata>
+      </RefData>
+    </Mapping>
+  </ili:datasection>
+</ili:transfer>

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
@@ -29,7 +30,7 @@ public class IlivalidatorClientIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        grpcChannel = PipelineProcessFactory.CreateIlitoolsWrapperChannel("http://localhost:5555");
         ilivalidatorClient = new IlivalidatorClient(grpcChannel, NullLogger<IlivalidatorClient>.Instance);
     }
 
@@ -247,6 +248,91 @@ public class IlivalidatorClientIntegrationTest
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithRefMappingFilePath()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_invalid_refmapping.log");
+        var xtfLogFile = GetTestPipelineFile("validation_invalid_refmapping.xtf");
+
+        // Like the meta config, the mapping is only accepted in the form ilidata:<DatasetId>. As with the plugin id,
+        // the rejection is also what proves that the field reaches the wrapper at all.
+        var args = new IlivalidatorArgs { RefMapping = "refmapping.xtf" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithScopeForAnOlderToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_scope_older_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_scope_older_version.xtf");
+
+        // The scope needs ilivalidator 1.15.0, so the wrapper rejects it for the predecessor the compose image
+        // offers. As with the plugin id, the rejection is also what proves that the field reaches the wrapper at all.
+        var args = new IlivalidatorArgs { Scope = "449", ToolVersion = "1.14.4" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithRefMappingFileForAnOlderToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var refMappingFile = GetTestPipelineFile("refmapping.xtf");
+        var logFile = GetTestPipelineFile("validation_refmapping_file_older_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_refmapping_file_older_version.xtf");
+
+        // Like the scope, the mapping file needs ilivalidator 1.15.0, so the wrapper rejects it for the predecessor the
+        // compose image offers. An image that does not know the file type rejects it as well, so only the message
+        // proves that the file arrived as a mapping.
+        var args = new IlivalidatorArgs { ToolVersion = "1.14.4" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, refMappingFile: refMappingFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+        Assert.Contains("REF_MAPPING_FILE", exception.Status.Detail, "Only the check for the mapping file names its type; an image without it refuses the type as invalid.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncThrowsOperationCanceledWhenCancelled()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var modelFile = GetTestPipelineFile("model.ili");
+        var logFile = GetTestPipelineFile("validation_cancelled.log");
+        var xtfLogFile = GetTestPipelineFile("validation_cancelled.xtf");
+
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR/models"] };
+
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.CancellationToken);
+
+        // Lands while the call is still in flight, so the cancellation has to come back through the gRPC call.
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: cancellation.Token);
+        });
     }
 
     private async Task DeleteIfExistsAsync(PipelineFile file)

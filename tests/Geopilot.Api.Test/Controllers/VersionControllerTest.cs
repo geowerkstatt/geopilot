@@ -3,7 +3,7 @@
 [TestClass]
 public class VersionControllerTest
 {
-    private const string AppVersion = "3.1";
+    private const string AppVersion = "3.2";
 
     [TestMethod]
     public void GetVersion()

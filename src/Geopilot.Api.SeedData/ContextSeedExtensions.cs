@@ -34,6 +34,7 @@ public static class ContextSeedExtensions
         context.SeedDeliveries();
         context.SeedAssets();
         context.AddOrganisationsToDefaultUsers();
+        context.AddOrganisationToPublicMandate();
 
         transaction.Commit();
     }
@@ -130,6 +131,7 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
             .RuleFor(o => o.IsPublic, f => false)
             .RuleFor(o => o.AllowDelivery, f => true)
+            .RuleFor(o => o.StacAccess, f => StacAccess.AdminsOnly)
             .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }))
 
             // Derived from the row index, because the key is unique in the database and a random word
@@ -160,6 +162,7 @@ public static class ContextSeedExtensions
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,
+            StacAccess = StacAccess.Public,
         });
 
         context.SaveChanges();
@@ -268,6 +271,19 @@ public static class ContextSeedExtensions
         var user = context.Users.Single(user => user.Email == "user@geopilot.ch");
         var userOrganistions = context.Organisations.OrderBy(o => o.Id).Take(2);
         user.Organisations.AddRange(userOrganistions);
+
+        context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Gives the public mandate the organisation both default users belong to, so the dev stack shows both of its
+    /// sides: anyone validates against it, only members deliver. Runs after the deliveries are seeded, which pick
+    /// their mandates at random and would otherwise come out differently.
+    /// </summary>
+    private static void AddOrganisationToPublicMandate(this Context context)
+    {
+        var publicMandate = context.Mandates.Include(m => m.Organisations).Single(m => m.IsPublic);
+        publicMandate.Organisations.Add(context.Organisations.OrderBy(o => o.Id).Skip(1).First());
 
         context.SaveChanges();
     }

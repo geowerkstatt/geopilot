@@ -10,7 +10,9 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Key">The unique key that addresses the mandate in an automated delivery, if one is configured.</param>
 /// <param name="Name">The display name of the mandate.</param>
 /// <param name="Description">The description of the mandate.</param>
-/// <param name="AllowDelivery">Indicates whether delivery is allowed for this mandate.</param>
+/// <param name="AllowDelivery">Indicates whether the caller may deliver to this mandate: it allows deliveries and
+/// the caller belongs to one of its organisations. A public mandate is listed for everyone, but delivers for its
+/// members only.</param>
 /// <param name="EvaluatePrecursorDelivery">Defines how <see cref="Delivery.PrecursorDelivery"/> is evaluated.</param>
 /// <param name="EvaluatePartial">Defines how <see cref="Delivery.Partial"/> is evaluated.</param>
 /// <param name="EvaluateComment">Defines how <see cref="Delivery.Comment"/> is evaluated.</param>

@@ -22,6 +22,7 @@ public class ProcessingJobCleanupServiceTest
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<ISubmissionStore> submissionStoreMock;
+    private JobLifecycle lifecycle;
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private Context context;
     private string tempAssetRoot;
@@ -65,9 +66,12 @@ public class ProcessingJobCleanupServiceTest
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
+        lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, scopeFactoryMock.Object, optionsMock.Object);
+
         service = new ProcessingJobCleanupService(
             jobStoreMock.Object,
             submissionStoreMock.Object,
+            lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
             loggerMock.Object,
@@ -161,6 +165,7 @@ public class ProcessingJobCleanupServiceTest
         using var serviceWithoutRetention = new ProcessingJobCleanupService(
             jobStoreMock.Object,
             submissionStoreMock.Object,
+            lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
             loggerMock.Object,
@@ -223,14 +228,7 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var oldJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
-        {
-            State = ProcessingState.Success,
-        };
+        var oldJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-JobRetentionHours - 1));
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
         jobStoreMock.Setup(s => s.RemoveJob(jobId)).Returns(true);
@@ -256,14 +254,7 @@ public class ProcessingJobCleanupServiceTest
         // The job has been submitted as a delivery; the asset directory must survive cleanup.
         SeedDelivery(jobId);
 
-        var oldJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
-        {
-            State = ProcessingState.Success,
-        };
+        var oldJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-JobRetentionHours - 1));
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
         jobStoreMock.Setup(s => s.RemoveJob(jobId)).Returns(true);
@@ -282,11 +273,7 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)));
+        var partlyExpiredJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)));
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
 
@@ -304,11 +291,7 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = new ProcessingJob(
-            jobId,
-            Guid.NewGuid(),
-            null,
-            DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
+        var partlyExpiredJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
 
@@ -321,27 +304,46 @@ public class ProcessingJobCleanupServiceTest
     }
 
     [TestMethod]
-    public async Task RunCleanupReleasesTheUploadOfARetiredJob()
+    public async Task RunCleanupKeepsAJobThatWaitedLongBeforeItsRun()
+    {
+        var jobId = Guid.NewGuid();
+        var (_, downloadDir, visualizationDir, _) = CreateJobDirectories(jobId);
+
+        // Created before the job retention ran out, but the run only just finished: downloads, visualizations and
+        // the job itself all count from the end of the run.
+        var lateJob = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
+        {
+            State = ProcessingState.Success,
+            FinishedAt = DateTime.UtcNow,
+        };
+
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(lateJob);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(downloadDir), "Downloads must stay for the full retention after the run ended.");
+        Assert.IsTrue(Directory.Exists(visualizationDir), "Visualizations must stay for the full retention after the run ended.");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "The job retention counts from the end of the run too.");
+    }
+
+    [TestMethod]
+    public async Task RunCleanupDoesNotReleaseTheUploadOfARetiredJob()
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         CreateJobDirectories(jobId);
 
-        var oldJob = new ProcessingJob(
-            jobId,
-            uploadId,
-            null,
-            DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
-        {
-            State = ProcessingState.Success,
-        };
+        var oldJob = FinishedJob(jobId, uploadId, ProcessingState.Cancelled, DateTime.UtcNow.AddHours(-JobRetentionHours - 1));
 
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
         jobStoreMock.Setup(s => s.RemoveJob(jobId)).Returns(true);
 
         await service.RunCleanupAsync();
 
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        // Every other upload went when its job ended; a cancelled run keeps its upload until the upload session
+        // expires, which takes longer than the job retention.
+        jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -350,15 +352,7 @@ public class ProcessingJobCleanupServiceTest
         // A job that produced no assets and whose pipeline directory was already disposed leaves no
         // directory behind, so the job store is the only place the cleanup can find it.
         var jobId = Guid.NewGuid();
-        var uploadId = Guid.NewGuid();
-        var oldJob = new ProcessingJob(
-            jobId,
-            uploadId,
-            null,
-            DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
-        {
-            State = ProcessingState.Success,
-        };
+        var oldJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-JobRetentionHours - 1));
 
         jobStoreMock.Setup(s => s.GetJobIds()).Returns(new[] { jobId });
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
@@ -367,7 +361,6 @@ public class ProcessingJobCleanupServiceTest
         await service.RunCleanupAsync();
 
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -376,7 +369,7 @@ public class ProcessingJobCleanupServiceTest
     public async Task RunCleanupLeavesAStuckJobAlone(ProcessingState state)
     {
         // Past its retention but not finished: preflight or the pipeline is hanging. Retiring it would
-        // delete the uploaded blobs, the only remaining copy, from under a run that may yet continue.
+        // delete its working directory and drop the job from under a run that may yet continue.
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
@@ -395,14 +388,14 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never, "the upload is the only copy left and the run may still need it");
-        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "disposing the pipeline would pull its working directory away mid-run");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "retiring would drop the job and its working directory mid-run");
         Assert.IsTrue(Directory.Exists(assetDir));
         Assert.IsTrue(Directory.Exists(pipelineDir));
 
-        // Downloads and visualizations still age out on their own, shorter retentions.
-        Assert.IsFalse(Directory.Exists(downloadDir));
-        Assert.IsFalse(Directory.Exists(visualizationDir));
+        // Their retentions count from the end of the run, so an unfinished job keeps its downloads and
+        // visualizations too.
+        Assert.IsTrue(Directory.Exists(downloadDir));
+        Assert.IsTrue(Directory.Exists(visualizationDir));
     }
 
     [TestMethod]
@@ -468,7 +461,7 @@ public class ProcessingJobCleanupServiceTest
         var stagedDir = Path.Combine(tempAssetStagingRoot, jobId.ToString());
         Directory.CreateDirectory(stagedDir);
 
-        var recentJob = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow) { State = ProcessingState.Success };
+        var recentJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow);
         jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(recentJob);
 
         await service.RunCleanupAsync();
@@ -519,4 +512,11 @@ public class ProcessingJobCleanupServiceTest
         });
         context.SaveChanges();
     }
+
+    private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state, DateTime finishedAt) =>
+        new(jobId, uploadId, null, finishedAt)
+        {
+            State = state,
+            FinishedAt = finishedAt,
+        };
 }

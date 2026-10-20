@@ -8,6 +8,7 @@ using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
 using System.Threading.Channels;
@@ -67,10 +68,13 @@ public class UploadPollingTest
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+
         backgroundService = new PreflightBackgroundService(
             preflightChannel.Reader,
             scopeFactoryMock.Object,
-            new Mock<ILogger<PreflightBackgroundService>>().Object);
+            new Mock<ILogger<PreflightBackgroundService>>().Object,
+            lifecycle);
     }
 
     [TestCleanup]
@@ -142,27 +146,6 @@ public class UploadPollingTest
         orchestrationServiceMock
             .Setup(x => x.ReleaseUploadAsync(uploadId))
             .Returns(Task.CompletedTask);
-
-        var request = await preflightChannel.Reader.ReadAsync();
-        await backgroundService.ProcessRequestAsync(request);
-
-        var polledJob = processingService.GetJob(jobId);
-
-        Assert.IsNotNull(polledJob);
-        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
-    }
-
-    [TestMethod]
-    public async Task PollReturnsFailedEvenWhenCleanupFails()
-    {
-        var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
-
-        orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
-            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.ThreatDetected, "Threat detected."));
-        orchestrationServiceMock
-            .Setup(x => x.ReleaseUploadAsync(uploadId))
-            .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
 
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);

@@ -17,10 +17,11 @@ public interface IMandateService
     /// <summary>
     /// Gets all mandates, filtered by user and upload.
     /// </summary>
-    /// <param name="user">Only mandates this user can make deliveries for are returned.</param>
+    /// <param name="user">Only mandates this user can process uploads for are returned, and
+    /// <see cref="MandateSummary.AllowDelivery"/> tells whether the user may also deliver to them.</param>
     /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned. Pass
     /// <see langword="null"/> to skip that filter, for a caller that has not uploaded anything yet.</param>
-    /// <returns>List of <see cref="MandateSummary"/> deliverable by the user for the upload.</returns>
+    /// <returns>List of <see cref="MandateSummary"/> available to the user for the upload.</returns>
     Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid? uploadId);
 
     /// <summary>
@@ -30,7 +31,7 @@ public interface IMandateService
     Task<List<string>> GetMandateKeysAsync();
 
     /// <summary>
-    /// Retrieves the mandate with the specified id, if the specified declarer is allowed to access it.
+    /// Retrieves the mandate with the specified id, if the specified declarer may process uploads for it.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
     /// <param name="declarer">The user or machine client that tries to access the mandate. If null, the caller is
@@ -39,13 +40,23 @@ public interface IMandateService
     Task<Mandate?> GetMandateForDeclarerAsync(int mandateId, Declarer? declarer);
 
     /// <summary>
-    /// Retrieves the mandate with the specified key, if the specified declarer is allowed to access it.
+    /// Retrieves the mandate with the specified id, if the specified declarer may deliver to it, which takes a
+    /// member of one of its organisations even when the mandate is public. Whether the mandate allows deliveries
+    /// at all is not checked here.
+    /// </summary>
+    /// <param name="mandateId">The id of the mandate to retrieve.</param>
+    /// <param name="declarer">The user or machine client that tries to deliver.</param>
+    /// <returns>The <see cref="Mandate"/> if found and open to the declarer; otherwise, null.</returns>
+    Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Declarer declarer);
+
+    /// <summary>
+    /// Retrieves the mandate with the specified key, if the specified declarer may deliver to it (see
+    /// <see cref="GetMandateForDeliveryAsync"/>).
     /// </summary>
     /// <param name="key">The unique key of the mandate. Compared exactly, including case.</param>
-    /// <param name="declarer">The user or machine client that tries to access the mandate. If null, the caller is
-    /// considered unauthenticated and reaches public mandates only.</param>
-    /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateByKeyAsync(string key, Declarer? declarer);
+    /// <param name="declarer">The user or machine client that tries to deliver.</param>
+    /// <returns>The <see cref="Mandate"/> if found and open to the declarer; otherwise, null.</returns>
+    Task<Mandate?> GetMandateByKeyAsync(string key, Declarer declarer);
 
     /// <summary>
     /// Checks whether the mandate can take a delivery, and if not, what stands in the way.

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Geopilot.Pipeline.Test.Ilitools;
 
 /// <summary>
-/// Integration tests against the model repository the <c>interlis-models</c> service of the compose file serves from
+/// Integration tests against the model repository the <c>ilitools-wrapper</c> of the compose file offers from
 /// <c>TestData/XtfErrorVisualization/ili-repository</c>. Its models are self contained and its profile is indexed in
 /// its own <c>ilidata.xml</c>, so these tests need no public repository and cover what the wrapper tests cannot: a
 /// validation that actually runs to a verdict, and a profile resolved from a repository.
@@ -21,7 +22,7 @@ namespace Geopilot.Pipeline.Test.Ilitools;
 [DoNotParallelize]
 public class IlivalidatorRepositoryIntegrationTest
 {
-    private const string ModelRepository = "http://interlis-models/";
+    private const string ModelRepository = "%REPOSITORIES/xtf-error-visualization";
     private const string ExternalObjectsMarker = "assume unknown external objects";
 
     public TestContext TestContext { get; set; }
@@ -32,7 +33,7 @@ public class IlivalidatorRepositoryIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        grpcChannel = PipelineProcessFactory.CreateIlitoolsWrapperChannel("http://localhost:5555");
         ilivalidatorClient = new IlivalidatorClient(grpcChannel, NullLogger<IlivalidatorClient>.Instance);
     }
 

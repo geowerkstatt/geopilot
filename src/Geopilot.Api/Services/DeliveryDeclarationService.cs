@@ -46,7 +46,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
         }
 
-        if (job.Pipeline is null || !job.Pipeline.State.IsDeliverable())
+        if (!job.State.IsDeliverable())
         {
             logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
@@ -75,8 +75,8 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         var user = declarer.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
         var client = declarer.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
 
-        // Do not reuse the mandate returned from GetMandateForDeclarerAsync, because it is not tracked and has no includes.
-        var hasMandatePermission = await mandateService.GetMandateForDeclarerAsync(job.MandateId.Value, declarer) != null;
+        // Do not reuse the mandate returned from GetMandateForDeliveryAsync, because it is not tracked and has no includes.
+        var hasMandatePermission = await mandateService.GetMandateForDeliveryAsync(job.MandateId.Value, declarer) != null;
         var mandate = hasMandatePermission
             ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
             : null;
