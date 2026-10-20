@@ -56,4 +56,4 @@ Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter 
 
 ## Kanal
 
-Was eine Reaktion ausführt, etwa die Ablage. Jeder seiner Werte kommt von genau einer Stelle: vom Betrieb (`Pipeline:ChannelConfigs`), aus dem Satz (`config`) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
+Was eine Reaktion ausführt, etwa die Ablage. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.

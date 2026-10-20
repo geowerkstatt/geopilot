@@ -8,7 +8,7 @@ public class DeliveryChannelFactoryTest
 {
     private const string TargetChannel = "Geopilot.Pipeline.Test.Channels.TargetChannel";
 
-    private static readonly Dictionary<string, Parameterization> HostConfigs = new()
+    private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
         [TargetChannel] = new Parameterization { ["target"] = "/drop" },
     };
@@ -16,21 +16,21 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateAcceptsAChannelWhoseValuesAreAllProvided()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         Assert.IsEmpty(factory.Validate(TargetChannel, null, ["folder"]));
     }
 
     [TestMethod]
-    public void ValidateAcceptsAMandateValueTheSetFixes()
+    public void ValidateAcceptsAMandateValueTheDefinitionSets()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         Assert.IsEmpty(factory.Validate(TargetChannel, new Parameterization { ["folder"] = "fixed" }, []));
     }
 
     [TestMethod]
-    public void ValidateAcceptsAHostValueTheSetProvidesInstead()
+    public void ValidateAcceptsABaseValueTheDefinitionProvidesInstead()
     {
         var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>());
 
@@ -38,7 +38,7 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    public void ValidateLeavesMissingValuesUncheckedWithoutAHostLayer()
+    public void ValidateLeavesMissingValuesUncheckedWithoutABaseConfiguration()
     {
         var factory = new DeliveryChannelFactory(null);
 
@@ -48,7 +48,7 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateRejectsAnUnknownImplementation()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.Missing", null, []));
         Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.Missing> is unknown.", error);
@@ -57,7 +57,7 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateRejectsATypeThatIsNoChannel()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.NoChannel", null, []));
         Assert.AreEqual("<Geopilot.Pipeline.Test.Channels.NoChannel> is not a delivery channel.", error);
@@ -66,18 +66,18 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateRejectsAChannelWithTwoConstructors()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.TwoConstructorsChannel", null, []));
         Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.TwoConstructorsChannel> has 2 public constructors. A Channel must have exactly one public constructor.", error);
     }
 
     [TestMethod]
-    [DataRow("timeoutSeconds", DisplayName = "Host value")]
+    [DataRow("timeoutSeconds", DisplayName = "Unmarked parameter")]
     [DataRow("unknown", DisplayName = "No parameter at all")]
     public void ValidateRejectsAMandateKeyTheChannelDoesNotMark(string key)
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate(TargetChannel, null, ["folder", key]));
         Assert.AreEqual($"Channel <{TargetChannel}>: the mandate value '{key}' is not a constructor parameter marked [MandateValue].", error);
@@ -86,16 +86,16 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateRejectsAConfigKeyNoParameterTakes()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate(TargetChannel, new Parameterization { ["subfoldr"] = "typo" }, ["folder"]));
-        Assert.AreEqual($"Channel <{TargetChannel}>: the config key 'subfoldr' is not a constructor parameter.", error);
+        Assert.AreEqual($"Channel <{TargetChannel}>: the default_config key 'subfoldr' is not a constructor parameter.", error);
     }
 
     [TestMethod]
     public void ValidateRejectsAConfigValueThatDoesNotConvert()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate(TargetChannel, new Parameterization { ["timeoutSeconds"] = "soon" }, ["folder"]));
         Assert.AreEqual("Channel initialization: The configured value <\"soon\"> for parameter <timeoutSeconds> cannot be converted to type <Int32?>.", error);
@@ -104,14 +104,14 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void ValidateRejectsARequiredMandateValueNobodyProvides()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var error = Assert.ContainsSingle(factory.Validate(TargetChannel, null, []));
-        Assert.AreEqual($"Channel <{TargetChannel}>: the parameter 'folder' has no value. Set it in config or declare it in mandate_config.", error);
+        Assert.AreEqual($"Channel <{TargetChannel}>: the parameter 'folder' has no value. Set it in default_config or declare it in mandate_config.", error);
     }
 
     [TestMethod]
-    public void ValidateRejectsAMissingHostValue()
+    public void ValidateRejectsAMissingBaseValue()
     {
         var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>());
 
@@ -120,7 +120,7 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    public void ValidateRejectsAHostValueThatDoesNotConvert()
+    public void ValidateRejectsABaseValueThatDoesNotConvert()
     {
         var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>
         {
@@ -132,26 +132,18 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    [DataRow(true, true, false, "Pipeline:ChannelConfigs and config", DisplayName = "Host and set")]
-    [DataRow(true, false, true, "Pipeline:ChannelConfigs and mandate_config", DisplayName = "Host and mandate")]
-    [DataRow(false, true, true, "config and mandate_config", DisplayName = "Set and mandate")]
-    public void ValidateRejectsAKeySetInTwoPlaces(bool host, bool set, bool mandate, string places)
+    public void ValidateRejectsAMandateValueTheDefinitionSets()
     {
-        var hostValues = new Parameterization { ["target"] = "/drop" };
-        if (host)
-            hostValues["folder"] = "host";
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
-        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization> { [TargetChannel] = hostValues });
-        var config = set ? new Parameterization { ["folder"] = "set" } : null;
-
-        var error = Assert.ContainsSingle(factory.Validate(TargetChannel, config, mandate ? ["folder"] : []));
-        Assert.AreEqual($"Channel <{TargetChannel}>: the key 'folder' is set in {places}. A key belongs to exactly one of Pipeline:ChannelConfigs, config and mandate_config.", error);
+        var error = Assert.ContainsSingle(factory.Validate(TargetChannel, new Parameterization { ["folder"] = "fixed" }, ["folder"]));
+        Assert.AreEqual($"Channel <{TargetChannel}>: the mandate value 'folder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.", error);
     }
 
     [TestMethod]
-    public void CreateBindsHostAndMandateValues()
+    public void CreateBindsBaseAndMandateValues()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var channel = factory.Create(TargetChannel, null, new Parameterization
         {
@@ -167,9 +159,9 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    public void CreateBindsTheValuesOfTheSet()
+    public void CreateBindsTheValuesOfTheDefinition()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var channel = factory.Create(TargetChannel, new Parameterization { ["folder"] = "fixed", ["timeoutSeconds"] = "30" }, null);
 
@@ -189,9 +181,9 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    public void CreatePrefersTheHostOverTheSet()
+    public void CreatePrefersTheBaseConfigurationOverTheDefinition()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var channel = factory.Create(TargetChannel, new Parameterization { ["folder"] = "fixed", ["target"] = "/elsewhere" }, null);
 
@@ -201,7 +193,7 @@ public class DeliveryChannelFactoryTest
     [TestMethod]
     public void CreateRefusesAMissingRequiredValue()
     {
-        var factory = new DeliveryChannelFactory(HostConfigs);
+        var factory = new DeliveryChannelFactory(BaseConfigs);
 
         var exception = Assert.ThrowsExactly<InvalidOperationException>(() => factory.Create(TargetChannel, null, null));
         Assert.AreEqual("Channel initialization: No suitable parameter found for parameter of type <String> and name <folder>. Parameter is not nullable, cannot initialize channel.", exception.Message);
