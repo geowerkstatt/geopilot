@@ -179,6 +179,56 @@ public class DeliveryProcessingValidationTest
         Assert.IsTrue(result.IsValid, result.ErrorMessage);
     }
 
+    [TestMethod]
+    public void AcceptsASubfolderTheSetFixes()
+    {
+        var result = Factory(FixedSubfolderSet()).ValidateDefinition();
+
+        Assert.IsTrue(result.IsValid, result.ErrorMessage);
+    }
+
+    [TestMethod]
+    public void RejectsAKeyTheSetFixesAndTheMandateSupplies()
+    {
+        var sets = $$"""
+            delivery_processing:
+              - id: ablage
+                transfers:
+                  - id: ablage
+                    implementation: {{FileDrop}}
+                    config:
+                      subfolder: kanton-a
+                    mandate_config:
+                      - key: subfolder
+                        display_name:
+                          de: Unterordner
+            """;
+
+        AssertInvalid(Factory(sets), $"delivery processing ablage, reaction ablage, error: Channel <{FileDrop}>: the key 'subfolder' is set in config and mandate_config.");
+    }
+
+    [TestMethod]
+    public void RejectsAKeyTheSetFixesAndTheHostSets()
+    {
+        var sets = FixedSubfolderSet().Replace("subfolder: kanton-a", "baseDirectory: /elsewhere", StringComparison.Ordinal);
+        var factory = Factory(sets, new Dictionary<string, Parameterization>
+        {
+            [FileDrop] = new Parameterization { ["baseDirectory"] = "/drop", ["subfolder"] = "kanton-a" },
+        });
+
+        AssertInvalid(factory, $"delivery processing ablage, reaction ablage, error: Channel <{FileDrop}>: the key 'baseDirectory' is set in Pipeline:ChannelConfigs and config.");
+    }
+
+    private static string FixedSubfolderSet() => $$"""
+        delivery_processing:
+          - id: ablage
+            transfers:
+              - id: ablage
+                implementation: {{FileDrop}}
+                config:
+                  subfolder: kanton-a
+        """;
+
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
     {
         var result = factory.ValidateDefinition();

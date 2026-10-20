@@ -171,15 +171,15 @@ public class PipelineFactory : IPipelineFactory
     }
 
     /// <summary>
-    /// Checks the channel of every reaction against its declared mandate values and, with a host layer, its host
-    /// values, without constructing a channel.
+    /// Checks the channel of every reaction against the values of its set, its declared mandate values and, with a
+    /// host layer, its host values, without constructing a channel.
     /// </summary>
     private List<string> ValidateDeliveryProcessing()
     {
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
         return (PipelineProcessConfig.DeliveryProcessing ?? [])
             .SelectMany(set => set.Transfers.SelectMany(reaction => channelFactory
-                .Validate(reaction.Implementation, reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
+                .Validate(reaction.Implementation, reaction.Config, reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
                 .Select(error => $"delivery processing {set.Id}, reaction {reaction.Id}, error: {error}")))
             .ToList();
     }

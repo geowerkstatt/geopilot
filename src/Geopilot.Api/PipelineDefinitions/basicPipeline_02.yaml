@@ -928,6 +928,12 @@ delivery_processing:
     transfers:
       - id: ablage
         implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+        config:
+          subfolder: entwicklung
+  - id: ablage_pro_mandat
+    transfers:
+      - id: ablage_pro_mandat
+        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
         mandate_config:
           - key: subfolder
             display_name:
