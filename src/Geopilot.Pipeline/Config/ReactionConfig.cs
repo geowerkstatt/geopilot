@@ -5,8 +5,8 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// One reaction of a <see cref="DeliveryProcessingConfig"/>: the channel that runs it and the values the mandate
-/// supplies to that channel.
+/// One reaction of a <see cref="DeliveryProcessingConfig"/>: the channel that runs it, the values the set fixes for
+/// that channel and the values the mandate supplies.
 /// </summary>
 public class ReactionConfig
 {
@@ -29,6 +29,13 @@ public class ReactionConfig
     [YamlMember(Alias = "implementation")]
     [Required(AllowEmptyStrings = false, ErrorMessage = "Reaction Implementation is required.")]
     public required string Implementation { get; set; }
+
+    /// <summary>
+    /// The values the set fixes for the channel, such as a topic. A key set here is set neither by the host nor by
+    /// the mandate.
+    /// </summary>
+    [YamlMember(Alias = "config")]
+    public Parameterization? Config { get; set; }
 
     /// <summary>
     /// The values a mandate supplies to the channel. Only parameters the channel marks as mandate values qualify.
