@@ -809,17 +809,22 @@ pipelines:
           - property: StatusMessage
             actions:
               - StatusMessage
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+    default_config:
+      subfolder: entwicklung
+  - id: ablage_pro_mandat
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
 delivery_processing:
   - id: ablage
     transfers:
       - id: ablage
-        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
-        config:
-          subfolder: entwicklung
+        channel_id: ablage
   - id: ablage_pro_mandat
     transfers:
       - id: ablage_pro_mandat
-        implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+        channel_id: ablage_pro_mandat
         mandate_config:
           - key: subfolder
             display_name:
