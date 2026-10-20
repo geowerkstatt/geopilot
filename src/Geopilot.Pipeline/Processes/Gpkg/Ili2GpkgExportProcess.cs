@@ -77,13 +77,12 @@ internal class Ili2GpkgExportProcess : Ili2GpkgProcessBase
         string? baskets,
         string? dataset,
         string? exportModels,
-        string? transferFormat,
+        Ili2GpkgTransferFormat? transferFormat,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbFile);
 
         logger.LogInformation("Starting data export.");
-        var exportFormat = GetTransferFormatFromString(transferFormat);
 
         var args = ili2GpkgArgs with
         {
@@ -92,10 +91,10 @@ internal class Ili2GpkgExportProcess : Ili2GpkgProcessBase
             Baskets = IlitoolsHelper.SplitConfiguredList(baskets),
             Dataset = dataset,
             ExportModels = IlitoolsHelper.SplitConfiguredList(exportModels),
-            TransferFormat = exportFormat,
+            TransferFormat = transferFormat,
         };
 
-        var fileExtension = exportFormat switch
+        var fileExtension = transferFormat switch
         {
             Ili2GpkgTransferFormat.Xtf or null => "xtf",
             Ili2GpkgTransferFormat.Itf => "itf",

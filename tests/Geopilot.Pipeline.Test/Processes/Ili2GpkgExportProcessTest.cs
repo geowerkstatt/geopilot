@@ -125,18 +125,18 @@ public class Ili2GpkgExportProcessTest
     }
 
     [TestMethod]
-    [DataRow(null, null, "data.xtf")]
-    [DataRow("xtf", Ili2GpkgTransferFormat.Xtf, "data.xtf")]
-    [DataRow("itf", Ili2GpkgTransferFormat.Itf, "data.itf")]
-    [DataRow("gml", Ili2GpkgTransferFormat.Gml, "data.gml")]
-    [DataRow("gml2", Ili2GpkgTransferFormat.Gml20, "data.gml")]
-    public async Task WritesTheTransferFileInTheRequestedFormat(string? transferFormat, Ili2GpkgTransferFormat? expectedFormat, string expectedFileName)
+    [DataRow(null, "data.xtf")]
+    [DataRow(Ili2GpkgTransferFormat.Xtf, "data.xtf")]
+    [DataRow(Ili2GpkgTransferFormat.Itf, "data.itf")]
+    [DataRow(Ili2GpkgTransferFormat.Gml, "data.gml")]
+    [DataRow(Ili2GpkgTransferFormat.Gml20, "data.gml")]
+    public async Task WritesTheTransferFileInTheRequestedFormat(Ili2GpkgTransferFormat? transferFormat, string expectedFileName)
     {
         var process = CreateProcess();
 
         var result = await process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, exportModels: null, transferFormat, CancellationToken.None);
 
-        Assert.AreEqual(expectedFormat, calls.Single().Args.TransferFormat);
+        Assert.AreEqual(transferFormat, calls.Single().Args.TransferFormat);
         Assert.AreEqual(expectedFileName, result.TransferFile.Single().OriginalFileName);
     }
 
@@ -145,7 +145,7 @@ public class Ili2GpkgExportProcessTest
     {
         var process = CreateProcess();
 
-        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, exportModels: null, transferFormat: "gpkg", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, exportModels: null, transferFormat: (Ili2GpkgTransferFormat)999, CancellationToken.None));
 
         Assert.HasCount(0, calls);
     }

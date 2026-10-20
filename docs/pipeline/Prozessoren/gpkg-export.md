@@ -21,7 +21,7 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 - `dbFile`: Die zu exportierende GeoPackage-Datei vom Typ `IPipelineFile`, Pflicht.
 - `models`, `topics`, `baskets`, `dataset`, `exportModels`: Optionale Werte vom Typ `string`, je mit Semikolon getrennt. Sie grenzen ein, was exportiert wird, bzw. in welchem Modell (`--exportModels`).
-- `transferFormat`: Optionales Format vom Typ `string`: `xtf` (Voreinstellung), `itf`, `gml` oder `gml2`.
+- `transferFormat`: Optionales Format vom Typ `string`: `xtf` (Voreinstellung), `itf`, `gml` oder `gml20`.
 
 ## Output
 

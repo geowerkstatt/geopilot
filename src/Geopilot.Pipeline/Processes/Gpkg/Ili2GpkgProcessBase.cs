@@ -51,17 +51,4 @@ internal abstract class Ili2GpkgProcessBase(
 
         return null;
     }
-
-    protected static Ili2GpkgTransferFormat? GetTransferFormatFromString(string? transferFormat)
-    {
-        return transferFormat?.ToLowerInvariant() switch
-        {
-            "xtf" => Ili2GpkgTransferFormat.Xtf,
-            "itf" => Ili2GpkgTransferFormat.Itf,
-            "gml" => Ili2GpkgTransferFormat.Gml,
-            "gml2" => Ili2GpkgTransferFormat.Gml20,
-            null => null,
-            _ => throw new ArgumentException("Transfer format must be either 'xtf' (default), 'itf', 'gml', or 'gml2'.", nameof(transferFormat)),
-        };
-    }
 }
