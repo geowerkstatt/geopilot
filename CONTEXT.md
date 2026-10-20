@@ -60,4 +60,4 @@ Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter 
 
 ## Kanal
 
-Was eine Reaktion ausführt, etwa die Ablage. Seine Werte kommen vom Betrieb (`Pipeline:ChannelConfigs`), nur die Parameter mit `[MandateValue]` vom Mandat. Im Code: `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
+Was eine Reaktion ausführt, etwa die Ablage. Jeder seiner Werte kommt von genau einer Stelle: vom Betrieb (`Pipeline:ChannelConfigs`), aus dem Satz (`config`) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
