@@ -87,11 +87,11 @@ internal class Ili2GpkgExportProcess : Ili2GpkgProcessBase
 
         var args = ili2GpkgArgs with
         {
-            Models = models?.Split(';'),
-            Topics = topics?.Split(';'),
-            Baskets = baskets?.Split(';'),
+            Models = IlitoolsHelper.SplitConfiguredList(models),
+            Topics = IlitoolsHelper.SplitConfiguredList(topics),
+            Baskets = IlitoolsHelper.SplitConfiguredList(baskets),
             Dataset = dataset,
-            ExportModels = exportModels?.Split(';'),
+            ExportModels = IlitoolsHelper.SplitConfiguredList(exportModels),
             TransferFormat = exportFormat,
         };
 

@@ -37,6 +37,39 @@ internal static class IlitoolsHelper
     private const string IlidataPrefix = "ilidata:";
 
     /// <summary>
+    /// Splits a semicolon separated list, dropping blanks around the entries and empty entries. Returns null if
+    /// nothing is left, so the tool keeps its own default. A single scalar value is what makes such a parameter
+    /// usable in the appsettings base configuration, where a pipeline definition cannot override it and only scalars
+    /// are carried. For the repositories the separator is the one the tool itself uses for <c>--modeldir</c> and the
+    /// wrapper rejects an entry containing it; a plugin id or a model name cannot contain it either. So nothing is
+    /// lost by splitting here.
+    /// </summary>
+    internal static string[]? SplitConfiguredList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var entries = value.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return entries.Length > 0 ? entries : null;
+    }
+
+    /// <summary>
+    /// Turns a configured dataset id into the <c>ilidata:</c> reference the tool expects. An existing prefix is kept.
+    /// Returns null for a blank value.
+    /// </summary>
+    internal static string? ToIlidataReference(string? datasetId)
+    {
+        datasetId = datasetId?.Trim();
+        if (string.IsNullOrEmpty(datasetId))
+            return null;
+
+        // The tool resolves the profile through the repository index, so the configured value is a dataset id.
+        return datasetId.StartsWith(IlidataPrefix, StringComparison.OrdinalIgnoreCase)
+            ? datasetId
+            : IlidataPrefix + datasetId;
+    }
+
+    /// <summary>
     /// Throws if the log of <paramref name="tool"/> shows that the run is not a verdict about the data: the
     /// <paramref name="metaConfig"/> or <paramref name="validConfig"/> it was given (<c>ilidata:</c> references,
     /// null if none) could not be resolved, or a check was skipped.

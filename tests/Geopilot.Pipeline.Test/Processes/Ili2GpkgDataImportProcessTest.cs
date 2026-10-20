@@ -193,6 +193,18 @@ public class Ili2GpkgDataImportProcessTest
     }
 
     [TestMethod]
+    public async Task PassesOnlyTheModelNamesOfABlankOrEmptyEntryList()
+    {
+        var process = CreateProcess();
+
+        await process.RunAsync([CreateTransferFile()], dbFile: null, models: " ModelA ; ;ModelB;", defaultSrsCode: null, dataset: null, CancellationToken.None);
+        CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, calls.Last().Args.Models?.ToArray());
+
+        await process.RunAsync([CreateTransferFile()], dbFile: null, models: " ", defaultSrsCode: null, dataset: null, CancellationToken.None);
+        Assert.IsNull(calls.Last().Args.Models);
+    }
+
+    [TestMethod]
     public async Task PassesTheConfiguredStringConfigValues()
     {
         var process = CreateProcess(metaConfig: "ilidata:metaconfig", modelDirs: "https://models.example.com/;%XTF_DIR/models", toolVersion: "5.2.0", pluginIds: "geow-interlis-functions;ngk-so");

@@ -57,7 +57,7 @@ internal class Ili2GpkgValidatorProcess : Ili2GpkgProcessBase
 
         ili2GpkgArgs = CreateCommonArgs() with
         {
-            ValidConfig = ToIlidataReference(validConfig),
+            ValidConfig = IlitoolsHelper.ToIlidataReference(validConfig),
             DisableAreaValidation = disableAreaValidation ?? false,
             ForceTypeValidation = forceTypeValidation ?? false,
         };
@@ -78,9 +78,9 @@ internal class Ili2GpkgValidatorProcess : Ili2GpkgProcessBase
 
         var args = ili2GpkgArgs with
         {
-            Models = models?.Split(';'),
-            Topics = topics?.Split(';'),
-            Baskets = baskets?.Split(';'),
+            Models = IlitoolsHelper.SplitConfiguredList(models),
+            Topics = IlitoolsHelper.SplitConfiguredList(topics),
+            Baskets = IlitoolsHelper.SplitConfiguredList(baskets),
             Dataset = dataset,
         };
 

@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Ilitools;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
@@ -95,7 +96,7 @@ internal class Ili2GpkgSchemaImportProcess : Ili2GpkgProcessBase
 
         var args = ili2GpkgArgs with
         {
-            Models = models?.Split(';'),
+            Models = IlitoolsHelper.SplitConfiguredList(models),
             DefaultSrsCode = defaultSrsCode,
         };
 

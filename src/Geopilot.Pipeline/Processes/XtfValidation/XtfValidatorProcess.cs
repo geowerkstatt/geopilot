@@ -11,8 +11,6 @@ namespace Geopilot.Pipeline.Processes.XtfValidation;
 /// </summary>
 internal class XtfValidatorProcess
 {
-    private const string MetaConfigPrefix = "ilidata:";
-
     private static readonly LocalizedText SuccessStatusMessage = new Dictionary<string, string>
     {
         { "de", "Die Validierung war erfolgreich." },
@@ -52,10 +50,10 @@ internal class XtfValidatorProcess
         this.modelRepository = modelRepository;
         this.validatorArgs = new IlivalidatorArgs
         {
-            ModelDirs = SplitConfiguredList(modelDirs),
-            MetaConfig = BuildMetaConfig(validationProfile),
+            ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
+            MetaConfig = IlitoolsHelper.ToIlidataReference(validationProfile),
             AllObjectsAccessible = allObjectsAccessible ?? true,
-            PluginIds = SplitConfiguredList(pluginIds),
+            PluginIds = IlitoolsHelper.SplitConfiguredList(pluginIds),
             ToolVersion = string.IsNullOrWhiteSpace(toolVersion) ? null : toolVersion.Trim(),
         };
 
@@ -107,34 +105,5 @@ internal class XtfValidatorProcess
             ErrorLog = errorLog,
             XtfLog = xtfLog,
         };
-    }
-
-    /// <summary>
-    /// Splits a configured list on the semicolon. A single scalar value is what makes such a parameter usable in the
-    /// appsettings base configuration, where a pipeline definition cannot override it and only scalars are carried.
-    /// For the repositories the separator is the one the tool itself uses for <c>--modeldir</c> and the wrapper
-    /// rejects an entry containing it; a plugin id cannot contain it either, because it has to match a folder name
-    /// the wrapper offers. So nothing is lost by splitting here.
-    /// </summary>
-    private static string[]? SplitConfiguredList(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return null;
-
-        var entries = value
-            .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-        return entries.Length > 0 ? entries : null;
-    }
-
-    private static string? BuildMetaConfig(string? validationProfile)
-    {
-        if (string.IsNullOrWhiteSpace(validationProfile))
-            return null;
-
-        // The tool resolves the profile through the repository index, so the configured value is a dataset id.
-        return validationProfile.StartsWith(MetaConfigPrefix, StringComparison.OrdinalIgnoreCase)
-            ? validationProfile
-            : MetaConfigPrefix + validationProfile;
     }
 }

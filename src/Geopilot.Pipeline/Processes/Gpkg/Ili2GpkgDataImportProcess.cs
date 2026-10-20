@@ -125,7 +125,7 @@ internal class Ili2GpkgDataImportProcess : Ili2GpkgProcessBase
 
         var args = ili2GpkgArgs with
         {
-            Models = models?.Split(';'),
+            Models = IlitoolsHelper.SplitConfiguredList(models),
             DefaultSrsCode = defaultSrsCode,
             Dataset = dataset,
             TransferFormat = transferFormat,
