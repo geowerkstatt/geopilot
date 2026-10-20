@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
                     .PipelineTempDirectory(directoryProvider.PipelineDirectory)
                     .ResourcesDirectory(directoryProvider.ResourcesDirectory)
                     .ProcessBaseConfigs(pipelinePluginOptions.ProcessConfigs)
+                    .ChannelBaseConfigs(pipelinePluginOptions.ChannelConfigs)
                     .Build();
 
             return pipelineFactory;
