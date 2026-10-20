@@ -163,8 +163,7 @@ builder.Services.AddOptions<ProcessingOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.EnsureShutdownTimeoutCoversDrainWindow();
-builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
-builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
+builder.Services.AddPipelineOptions(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.AddOptions<DeliveryOptions>()
