@@ -23,4 +23,11 @@ public class PipelineOptions
     /// <remarks>Each entry in the dictionary represents a process, where the key is the process name and the
     /// value is a <see cref="Parameterization"/> for that process.</remarks>
     public Dictionary<string, Parameterization> ProcessConfigs { get; set; } = new Dictionary<string, Parameterization>();
+
+    /// <summary>
+    /// Gets or sets the host values of the delivery channels, keyed by channel implementation: every parameter a
+    /// channel does not take from the mandate, such as a base directory or credentials. Kept apart from
+    /// <see cref="ProcessConfigs"/>, so they never go into the definition snapshot of a run.
+    /// </summary>
+    public Dictionary<string, Parameterization> ChannelConfigs { get; set; } = new Dictionary<string, Parameterization>();
 }
