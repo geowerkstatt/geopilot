@@ -7,7 +7,14 @@ namespace Geopilot.Pipeline.Test.Channels;
 [TestClass]
 public class FileDropChannelTest
 {
-    private static readonly DeliveryInfo Delivery = new(42, Guid.NewGuid(), 7, new DateTime(2026, 10, 20, 8, 0, 0, DateTimeKind.Utc));
+    private static readonly DeliveryInfo Delivery = new()
+    {
+        Id = 42,
+        JobId = Guid.NewGuid(),
+        DeclaredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
+        Mandate = new MandateInfo { Id = 7, Name = new Dictionary<string, string> { ["de"] = "Mandat A" } },
+        Declarer = new DeclarerInfo { Kind = DeclarerKind.User, Name = "Lieferant", Email = "lieferant@example.com" },
+    };
 
     private string baseDirectory;
     private string mandateDirectory;
