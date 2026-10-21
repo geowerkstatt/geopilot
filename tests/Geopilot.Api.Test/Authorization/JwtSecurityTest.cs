@@ -330,6 +330,34 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
+    public async Task StacBrowserIsOpenWithoutToken()
+    {
+        using var request = CreateRequest("GET", "/browser/");
+        var response = await client.SendAsync(request);
+
+        // The test app has no stac-browser upstream, so the proxy answers 502; what matters is no 401 and no redirect home.
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, "The STAC browser must be reachable without a token.");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, "The STAC browser must be reachable without a token.");
+        Assert.AreNotEqual("/", response.Headers.Location?.OriginalString, "The STAC browser must not send anonymous visitors home.");
+    }
+
+    [TestMethod]
+    public async Task StacShowsAdminOnlyCollectionToAdminsOnly()
+    {
+        using var adminRequest = CreateRequest("GET", "/api/stac/collections/coll_1", JwtTestTokenBuilder.CreateValidAdminToken());
+        using var anonymousRequest = CreateRequest("GET", "/api/stac/collections/coll_1");
+        using var unknownRequest = CreateRequest("GET", "/api/stac/collections/coll_999999");
+
+        var adminResponse = await client.SendAsync(adminRequest);
+        var anonymousResponse = await client.SendAsync(anonymousRequest);
+        var unknownResponse = await client.SendAsync(unknownRequest);
+
+        Assert.AreEqual(HttpStatusCode.OK, adminResponse.StatusCode);
+        Assert.AreNotEqual(HttpStatusCode.OK, anonymousResponse.StatusCode);
+        Assert.AreEqual(unknownResponse.StatusCode, anonymousResponse.StatusCode);
+    }
+
+    [TestMethod]
     public void EndpointDiscoveryFindsEndpoints()
     {
         var allEndpoints = EndpointDiscovery.GetProtectedEndpoints()

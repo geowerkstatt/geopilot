@@ -1,0 +1,50 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Nomenklatur_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+    VIEW TOPIC Nomenklatur_Validierung = 
+    DEPENDS ON DMAV_Nomenklatur_V1_1.Nomenklatur;
+    
+        VIEW v_Flurname
+            PROJECTION OF DMAV_Nomenklatur_V1_1.Nomenklatur.Flurname;
+        =
+            ALL OF Flurname;
+
+            !!@ category = warning
+            !!@ name = CH070951
+            !!@ message="(CH070951) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_de="(CH070951) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_fr="(CH070951) Le périmètre doit être identique au périmètre de référence des biens-fonds (tolérance 2 mm)";
+            !!@ message_it="(CH070951) Il perimetro deve corrispondere con quello dei beni immobili (Tolleranza 2 mm)";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Nomenklatur_Validierung.v_Flurname.CH070951)
+            SET CONSTRAINT CH070951: WHERE DEFINED(Entstehung): (
+                    DMAVTYM_Topologie_V1_0.isGeometrySpatiallyEqual(ALL, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft), "DEFINED(Grundstueck->Entstehung) AND NOT(DEFINED(Grundstueck->Untergang))"), >>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft->Geometrie, 0.002)
+            );
+
+        END v_Flurname;
+
+    END Nomenklatur_Validierung;
+
+END DMAV_V1_1_Nomenklatur_Validierung.

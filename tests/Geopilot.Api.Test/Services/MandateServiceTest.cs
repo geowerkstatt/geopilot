@@ -217,7 +217,65 @@ public class MandateServiceTest
 
         var result = await mandateService.GetMandateForDeclarerAsync(publicCsvMandate.Id, Declarer.ForClient(client.Id));
 
-        Assert.IsNotNull(result, "A public mandate takes deliveries from anyone, a machine included.");
+        Assert.IsNotNull(result, "Anyone may process against a public mandate, a machine included.");
+    }
+
+    [TestMethod]
+    public async Task GetMandateForDeliveryReturnsAPublicMandateToAMemberOfItsOrganisation()
+    {
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForUser(editUser.Id));
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(publicCsvMandate.Id, result.Id);
+    }
+
+    [TestMethod]
+    public async Task GetMandateForDeliveryRefusesAPublicMandateToAUserOutsideItsOrganisations()
+    {
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        context.SaveChanges();
+
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForUser(user.Id));
+
+        Assert.IsNull(result, "Being public opens a mandate for processing, not for deliveries.");
+    }
+
+    [TestMethod]
+    [DataRow(true, DisplayName = "Member of the mandate's organisation")]
+    [DataRow(false, DisplayName = "Member of no organisation")]
+    public async Task GetMandateForDeliveryAdmitsAClientOnlyThroughItsOrganisation(bool memberOfOrganisation)
+    {
+        var client = AddMachineClient(memberOfOrganisation);
+
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForClient(client.Id));
+
+        Assert.AreEqual(memberOfOrganisation, result is not null);
+    }
+
+    [TestMethod]
+    public async Task GetMandateByKeyHidesAPublicMandateFromAClientOutsideItsOrganisations()
+    {
+        publicCsvMandate.Key = "SOMBERSPORK";
+        context.SaveChanges();
+        var client = AddMachineClient(memberOfOrganisation: false);
+
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Declarer.ForClient(client.Id)), "A key addresses a delivery, which a public mandate takes from its members only.");
+    }
+
+    [TestMethod]
+    public async Task GetMandateSummariesOffersTheDeliveryToMembersOnly()
+    {
+        var outsider = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        context.SaveChanges();
+
+        var forMember = await mandateService.GetMandateSummariesAsync(editUser, null);
+        var forOutsider = await mandateService.GetMandateSummariesAsync(outsider, null);
+        var forAnonymous = await mandateService.GetMandateSummariesAsync(null, null);
+
+        Assert.IsTrue(forMember.Single(m => m.Id == publicCsvMandate.Id).AllowDelivery);
+        Assert.IsFalse(forMember.Single(m => m.Id == noDeliveryMandate.Id).AllowDelivery, "A member still cannot deliver to a mandate that takes no deliveries.");
+        Assert.IsFalse(forOutsider.Single(m => m.Id == publicCsvMandate.Id).AllowDelivery, "The public mandate is listed for processing, but not offered for delivery.");
+        Assert.IsFalse(forAnonymous.Single(m => m.Id == publicCsvMandate.Id).AllowDelivery);
     }
 
     [TestMethod]

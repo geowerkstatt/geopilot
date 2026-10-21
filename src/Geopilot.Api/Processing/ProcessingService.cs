@@ -55,9 +55,10 @@ public class ProcessingService : IProcessingService
         }
         catch
         {
-            // Without the record there is no job: remove it again (disposing the pipeline) instead of
+            // Without the record there is no job: remove it again and dispose its pipeline instead of
             // leaving a pending job that preflight would happily run unaccounted.
             jobStore.RemoveJob(job.Id);
+            pipeline.Dispose();
             throw;
         }
 

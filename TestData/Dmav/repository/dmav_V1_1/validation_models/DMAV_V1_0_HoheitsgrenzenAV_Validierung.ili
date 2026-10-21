@@ -1,0 +1,106 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_0_HoheitsgrenzenAV_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+IMPORTS Gemeinden95_V1_0;
+
+    VIEW TOPIC HoheitsgrenzenAV_Validierung = 
+    DEPENDS ON DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV,Gemeinden95_V1_0.Gemeinden;
+
+        VIEW v_Gemeinde
+            PROJECTION OF DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Gemeinde;
+        =
+            ALL OF Gemeinde;
+
+            !!@ name = CH112352
+            !!@ message="(CH112352) Unbekannte oder falsche Gemeinde";
+            !!@ message_de="(CH112352) Unbekannte oder falsche Gemeinde";
+            !!@ message_fr="(CH112352) Commune inconnue ou fausse";
+            !!@ message_it="(CH112352) Il comune è sconosciuto o errato";
+            !! Kategorie: modellübergreifend zu neuem Modell
+            !! Umsetzung Phase 2;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.HoheitsgrenzenAV_Validierung.v_Gemeinde.CH112352)
+            MANDATORY CONSTRAINT CH112352: (
+                INTERLIS.objectCount(ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>Gemeinden95_V1_0.Gemeinden.Gemeinde), "BFSNr == {BFSNummer} AND Name == {Name}")) == 1
+            );   
+
+        END v_Gemeinde;
+
+        VIEW v_Gemeindegrenze
+            PROJECTION OF DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Gemeindegrenze;
+        =
+            ALL OF Gemeindegrenze;
+
+            !!@ category = warning
+            !!@ name = CH113051
+            !!@ message="(CH113051) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_de="(CH113051) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_fr="(CH113051) Le périmètre doit être identique au périmètre de référence des biens-fonds (tolérance 2 mm)";
+            !!@ message_it="(CH113051) Il perimetro deve coincidere con il perimetro di riferimento del bene immobile (Tolleranza 2 mm)";
+            !! AGI SH: Failcase umgesetzt;
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            SET CONSTRAINT CH113051: WHERE DEFINED(Entstehung) AND NOT(DEFINED(Untergang)): (
+                    DMAVTYM_Topologie_V1_0.isGeometrySpatiallyEqual(ALL, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft), "DEFINED(Grundstueck->Entstehung) AND NOT(DEFINED(Grundstueck->Untergang))"), >>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft->Geometrie, 0.002)
+            );
+        
+        END v_Gemeindegrenze;
+
+        VIEW v_Bezirksgrenzabschnitt
+            PROJECTION OF DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Bezirksgrenzabschnitt;
+        =
+            ALL OF Bezirksgrenzabschnitt;
+
+            !!@ name = CH120153
+            !!@ message="(CH120153) Grenzverlauf der Bezirksgrenze muss identisch mit Gemeindegrenze sein";
+            !!@ message_de="(CH120153) Grenzverlauf der Bezirksgrenze muss identisch mit Gemeindegrenze sein";
+            !!@ message_fr="(CH120153) Le tracé de la limite de district doit être identique au tracé de la limite communale";
+            !!@ message_it="(CH120153) L'andamento dei confini distrettuali deve corrispondere con quelli comunali";
+            !! Umsetzung Phase 1;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.HoheitsgrenzenAV_Validierung.v_Bezirksgrenzabschnitt.CH120153)
+            MANDATORY CONSTRAINT CH120153: (
+                DMAVTYM_Topologie_V1_0.coversWithTolerance(ObjectPool_V1_0.allObjects(>DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Gemeindegrenze), >>DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Gemeindegrenze->Geometrie, THIS, >>Geometrie, 0.002)
+            );
+
+        END v_Bezirksgrenzabschnitt;
+
+        VIEW v_Kantonsgrenzabschnitt
+            PROJECTION OF DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Kantonsgrenzabschnitt;
+        =
+            ALL OF Kantonsgrenzabschnitt;
+
+            !!@ name = CH130153
+            !!@ message="(CH130153) Grenzverlauf der Kantonsgrenze muss identisch mit Bezirksgrenze sein";
+            !!@ message_de="(CH130153) Grenzverlauf der Kantonsgrenze muss identisch mit Bezirksgrenze sein";
+            !!@ message_fr="(CH130153) Le tracé de la limite du canton doit être identique au tracé de la limite de district";
+            !!@ message_it="(CH130153) L'andamento del confine cantonale deve corrispondere con quelli comunali";
+            !! AGI SH: Failcase umgesetzt;
+            !! Umsetzung Phase 1;
+            MANDATORY CONSTRAINT CH130153: (
+                DMAVTYM_Topologie_V1_0.coversWithTolerance(ObjectPool_V1_0.allObjects(>DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Bezirksgrenzabschnitt), >>DMAV_HoheitsgrenzenAV_V1_0.HoheitsgrenzenAV.Bezirksgrenzabschnitt->Geometrie, THIS, >>Geometrie, 0.002)
+            );
+
+        END v_Kantonsgrenzabschnitt;
+
+    END HoheitsgrenzenAV_Validierung;
+
+END DMAV_V1_0_HoheitsgrenzenAV_Validierung.

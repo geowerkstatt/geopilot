@@ -1,0 +1,173 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Grundstuecke_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+     VIEW TOPIC Grundstuecke_Validierung = 
+    DEPENDS ON DMAV_Grundstuecke_V1_1.Grundstuecke;
+  
+        VIEW v_Grundstueck
+            PROJECTION OF DMAV_Grundstuecke_V1_1.Grundstuecke.Grundstueck;
+        =
+            ALL OF Grundstueck;
+
+            !!@ name = CH085554
+            !!@ message="(CH085554) EGRID darf nicht mit der Zahl 0 beginnen";            
+            !!@ message_de="(CH085554) EGRID darf nicht mit der Zahl 0 beginnen";
+            !!@ message_fr="(CH085554) L'EGRID ne doit pas commencer par un 0 (zéro)";
+            !!@ message_it="(CH085554) L'EGRID non deve comincare con uno 0 (zero)";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH085554: (
+                substring(EGRID,0,1) != "0" 
+            ); 
+
+            !!@ name = CH085952
+            !!@ message="(CH085952) Summe der Teilflaechen aus Flaechenmass ist ungleich Gesamtflaechenmass";
+            !!@ message_de="(CH085952) Summe der Teilflaechen aus Flaechenmass ist ungleich Gesamtflaechenmass";
+            !!@ message_fr="(CH085952) La somme des parties de surface inscrite sous Superficie n'est pas égale à la donnée correspondante sous SuperficieTotale";
+            !!@ message_it="(CH085952) La somma delle superfici delle parti di Bene_immobile/DSSP/Miniera non corrisponde alla superficie totale del fondo";
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Grundstuecke_Validierung.v_Grundstueck.CH085952)
+            MANDATORY CONSTRAINT CH085952: 
+                Gesamtflaechenmass == Math_V2_1.add(Math_V2_1.add(Elements_V1_0.coalesceN(Math_V2_1.sum("THIS->Liegenschaft->Flaechenmass"),0),Elements_V1_0.coalesceN(Math_V2_1.sum("THIS->SelbstaendigesDauerndesRecht->Flaechenmass"),0)),Elements_V1_0.coalesceN(Math_V2_1.sum("THIS->Bergwerk->Flaechenmass"),0)
+            );
+
+            !!@ name = CH085551
+            !!@ message="(CH085551) EGRID Prüfziffer stimmt nicht";
+            !!@ message_de="(CH085551) EGRID Prüfziffer stimmt nicht";
+            !!@ message_fr="(CH085551) Le caractère de contrôle EGRID est erroné";
+            !!@ message_it="(CH085551) La cifra di controllo EGRID è errata";
+            !! Umsetzung Phase 1;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Grundstuecke_Validierung.v_Grundstueck.CH085551)
+            MANDATORY CONSTRAINT CH085551: (
+                Math_V2_1.toNumeric(substring(EGRID, 12, 14)) == (97 - Math_V2_1.mod(Math_V2_1.toNumeric(substring(EGRID, 2, 12)), 97))
+            );
+
+        END v_Grundstueck;
+
+        VIEW v_Liegenschaft
+            PROJECTION OF DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft;
+        =
+            ALL OF Liegenschaft;
+
+            !!@ category = warning
+            !!@ name = CH086951
+            !!@ message="(CH086951) Punkt muss in LFP3 oder Grenzpunkt vorkommen, ausser bei fiktiven Grundstuecken";
+            !!@ message_de="(CH086951) Punkt muss in LFP3 oder Grenzpunkt vorkommen, ausser bei fiktiven Grundstuecken";
+            !!@ message_fr="(CH086951) Le point doit figurer dans le PFP3 ou le point_limite, sauf pour les immeubles fictifs.";
+            !!@ message_it="(CH086951) Il punto deve comparire in PFP3 o in point_limite, ad eccezione degli edifici fittizi.";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Grundstuecke_Validierung.v_Liegenschaft_CH086951)
+            MANDATORY CONSTRAINT CH086951: (
+                NOT(Grundstueck->Fiktiv) => (DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, Elements_V1_0.concat(
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt), "Geometrie"),
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.allObjects(>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3), "Geometrie")), UNDEFINED))
+                );
+
+            !!@ name = CH086852
+            !!@ message="(CH086852) Bei Grundstueck mit istVollstaendigkeit=true und mit nur 1 Objekt in Liegenschaft muss NummerTeilgrundstueck leer sein";
+            !!@ message_de="(CH086852) Bei Grundstueck mit istVollstaendigkeit=true und mit nur 1 Objekt in Liegenschaft muss NummerTeilgrundstueck leer sein";
+            !!@ message_fr="(CH086852) Pour un immeuble dont l'attribut Integralite=complet, et formé d'un seul objet dans la table Bien_fonds, l'attribut PartieNumeroImmeuble doit être vide";
+            !!@ message_it="(CH086852) Per i fondi con integralità = si, e un solo oggetto in Bene_immobile, numero_parte_fondo deve restare vuoto";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH086852: (
+                (Grundstueck->IstVollstaendig AND INTERLIS.objectCount(THIS->Liegenschaft) == 1) => NOT(DEFINED(THIS->Liegenschaft->NummerTeilgrundstueck))
+            );
+
+            !!@ name = CH086851
+            !!@ message="(CH086851) NummerTeilgrundstueck muss innerhalb des gleichen Grundstuecks eindeutig sein";
+            !!@ message_de="(CH086851) NummerTeilgrundstueck muss innerhalb des gleichen Grundstuecks eindeutig sein";
+            !!@ message_fr="(CH086851) L'attribut PartieNumeroImmeubledoit être univoque pour un même immeuble";
+            !!@ message_it="(CH086851) Il NumeroParteFondo deve essere univoco all'interno dello stesso fondo";
+            !! AGI SH: Failcase umgesetzt;
+            UNIQUE CH086851:  WHERE DEFINED(NummerTeilgrundstueck): NummerTeilgrundstueck, Grundstueck->Nummer, Grundstueck->NBIdent;
+
+        END v_Liegenschaft;
+
+        VIEW v_SelbstaendigesDauerndesRecht
+            PROJECTION OF DMAV_Grundstuecke_V1_1.Grundstuecke.SelbstaendigesDauerndesRecht;
+        =
+            ALL OF SelbstaendigesDauerndesRecht;
+
+            !!@ name = CH087251
+            !!@ message="(CH087251) NummerTeilgrundstueck muss innerhalb des gleichen Grundstuecks eindeutig sein";
+            !!@ message_de="(CH087251) NummerTeilgrundstueck muss innerhalb des gleichen Grundstuecks eindeutig sein";
+            !!@ message_fr="(CH087251) L'attribut PartieNumeroImmeubledoit être univoque pour un même immeuble";
+            !!@ message_it="(CH087251) Il NumeroParteFondo deve essere univoco all'interno dello stesso fondo";
+            !! AGI SH: Failcase umgesetzt;
+            UNIQUE CH087251:  WHERE DEFINED(NummerTeilgrundstueck): NummerTeilgrundstueck, Grundstueck->Nummer, Grundstueck->NBIdent;
+
+            !!@ name = CH087252
+            !!@ message="(CH087252) Bei Grundstueck mit IstVollstaendig=true und mit nur 1 Objekt in SelbstaendigDauerndesRecht muss NummerTeilgrundstueck leer sein";
+            !!@ message_de="(CH087252) Bei Grundstueck mit IstVollstaendig=true und mit nur 1 Objekt in SelbstaendigDauerndesRecht muss NummerTeilgrundstueck leer sein";
+            !!@ message_fr="(CH087252) Pour un immeuble dont l'attribut EstComplete=true, et formé d'un seul objet dans la table droit_distinct_permanent, l'attribut PartieNumeroImmeuble doit être vide";
+            !!@ message_it="(CH087252) Per i fondi con integralità=true, e un solo oggetto in DPSSP, numero_parte_fondo deve restare vuoto";
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Grundstuecke_Validierung.v_Grundstueck.CH087252)
+            MANDATORY CONSTRAINT CH087252: (
+                Grundstueck->IstVollstaendig AND INTERLIS.objectCount(THIS->SelbstaendigesDauerndesRecht) == 1) => NOT(DEFINED(THIS->SelbstaendigesDauerndesRecht->NummerTeilgrundstueck)
+            );
+
+            !!@ name = CH087351
+            !!@ message="(CH087351) Fehlender oder unzulässiger Stützpunkt";
+            !!@ message_de="(CH087351) Fehlender oder unzulässiger Stützpunkt";
+            !!@ message_fr="(CH087351) Il manque un point d'appui, ou bien le point d'appui est erroné";
+            !!@ message_it="(CH087351) La definizione del confine passa per un punto mancante o errato";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            MANDATORY CONSTRAINT CH087351: (
+                NOT(Grundstueck->Fiktiv) => (DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, Elements_V1_0.concat(Elements_V1_0.concat(Elements_V1_0.concat(
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt), "Geometrie"),
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.allObjects(>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3), "Geometrie")),
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>KGKCGC_FPDS2_V1_1.FPDS2.FixpunktVersion),"NOT(DEFINED(UntergegangenAm))"), "Geometrie")),
+                                                Elements_V1_0.valuesOfPathAnyStructure(ObjectPool_V1_0.allObjects(>FixpunkteLV_V1_0.FixpunkteLV.LFP1), "Geometrie")), UNDEFINED))
+                );
+
+        END v_SelbstaendigesDauerndesRecht;
+
+        VIEW v_Bergwerk
+            PROJECTION OF DMAV_Grundstuecke_V1_1.Grundstuecke.Bergwerk;
+        =
+            ALL OF Bergwerk;
+
+            !!@ name = CH087651
+            !!@ message="(CH087651) NummerTeilgrundstueck muss innerhalb des gleichen Grundstücks eindeutig sein";
+            !!@ message_de="(CH087651) NummerTeilgrundstueck muss innerhalb des gleichen Grundstücks eindeutig sein";
+            !!@ message_fr="(CH087651) PartieNumeroImmeuble doit être univoque à l'intérieur du même immeuble";
+            !!@ message_it="(CH087651) Il NumeroParteFondo deve essere univoco all'interno dello stesso fondo";
+            !! AGI SH: Failcase umgesetzt;
+            UNIQUE CH087651: WHERE DEFINED(NummerTeilgrundstueck): NummerTeilgrundstueck, Grundstueck->Nummer, Grundstueck->NBIdent;
+
+            !!@ name = CH087652
+            !!@ message="(CH087652) Bei Grundstueck mit istVollstaendig=true und mit nur 1 Objekt in Bergwerk muss NummerTeilgrundstueck leer sein";
+            !!@ message_de="(CH087652) Bei Grundstueck mit istVollstaendig=true und mit nur 1 Objekt in Bergwerk muss NummerTeilgrundstueck leer sein";
+            !!@ message_fr="(CH087652) Pour un immeuble dont l'attribut EstComplete=true, et formé d'un seul objet dans la table Mine, l'attribut PartieNumeroImmeuble doit être vide";
+            !!@ message_it="(CH087652) Per i fondi con integralità = si, e un solo oggetto in miniera, numero_parte_fondo deve restare vuoto";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH087652: (
+                Grundstueck->IstVollstaendig AND INTERLIS.objectCount(THIS->Bergwerk) == 1) => NOT(DEFINED(THIS->Bergwerk->NummerTeilgrundstueck)
+                );
+
+        END v_Bergwerk;
+
+    END Grundstuecke_Validierung;
+
+END DMAV_V1_1_Grundstuecke_Validierung.

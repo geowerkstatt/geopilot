@@ -90,7 +90,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     }
 
     /// <inheritdoc/>
-    public async Task<ScanResult> RunPreflightChecksAsync(Guid uploadId)
+    public async Task<ScanResult> RunPreflightChecksAsync(Guid uploadId, CancellationToken cancellationToken = default)
     {
         var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
@@ -123,7 +123,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
         }
 
         var keys = upload.Files.Select(f => f.StorageKey).ToList();
-        var scanResult = await scanService.CheckFilesAsync(keys);
+        var scanResult = await scanService.CheckFilesAsync(keys, cancellationToken);
 
         if (!scanResult.IsClean)
         {

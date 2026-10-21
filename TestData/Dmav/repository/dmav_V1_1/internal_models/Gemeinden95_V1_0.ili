@@ -1,0 +1,17 @@
+INTERLIS 2.4;
+
+MODEL Gemeinden95_V1_0 (de) 
+AT "https://geowerkstatt.ch/" 
+VERSION "2025-12-02" =
+
+    TOPIC Gemeinden = 
+
+        CLASS Gemeinde =
+            Name: TEXT*50;
+            BFSNr: 1 .. 9999;
+            Kanton: TEXT*2;
+        END Gemeinde;
+
+    END Gemeinden;
+
+END Gemeinden95_V1_0.

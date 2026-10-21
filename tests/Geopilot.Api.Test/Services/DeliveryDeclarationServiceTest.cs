@@ -4,7 +4,6 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -59,7 +58,7 @@ public class DeliveryDeclarationServiceTest
 
         var declarer = Declarer.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.GetMandateForDeclarerAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(m => m.GetMandateForDeliveryAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
         var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), declarer, CancellationToken.None);
@@ -74,14 +73,9 @@ public class DeliveryDeclarationServiceTest
     private Guid SetupDeliverableJob(int mandateId)
     {
         var jobId = Guid.NewGuid();
-        var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-        pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-
         processingServiceMock
             .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { Pipeline = pipelineMock.Object });
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success });
         return jobId;
     }
 }

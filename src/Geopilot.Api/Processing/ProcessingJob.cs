@@ -23,4 +23,11 @@ public record class ProcessingJob(
     /// The lifecycle state of the job.
     /// </summary>
     public ProcessingState State { get; init; } = ProcessingState.Pending;
+
+    /// <summary>
+    /// When the job reached its terminal state, or <see langword="null"/> while it is pending or running. The
+    /// retention of its downloads and visualizations counts from here, so a job that waited long in the queue
+    /// keeps them for the full window.
+    /// </summary>
+    public DateTime? FinishedAt { get; init; }
 }
