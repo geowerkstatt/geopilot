@@ -10,8 +10,10 @@ public class XtfMatcherProcessTest
     private const string RoadsExdm2ienAltPrefixXtf = "TestData/UploadFiles/RoadsExdm2ien_altPrefix.xtf";
     private const string RoadsExdm2ienDefaultNsXtf = "TestData/UploadFiles/RoadsExdm2ien_defaultNs.xtf";
     private const string IseltwaldGwpBe13Xtf = "TestData/UploadFiles/iseltwald_gwp_be13_1.xtf";
+    private const string Interlis1Itf = "TestData/Ilitools/transfer_interlis1.itf";
     private const string RoadsExdm2ienModel = "roadsexdm2ien";
     private const string IseltwaldGwpBe13Model = "gwp_bern_13_1";
+    private const string Interlis1Model = "simplemodel1";
 
     private static IPipelineFile[] FileList(params string[] fileNames) =>
         fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToArray();
@@ -214,6 +216,44 @@ public class XtfMatcherProcessTest
     {
         var process = new XtfMatcherProcess(null, new HashSet<string>() { "SomeOtherModel" }, null);
         var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        Assert.HasCount(0, result.XtfFiles);
+        Assert.HasCount(1, result.UnmatchedFiles);
+    }
+
+    [TestMethod]
+    public async Task IliModelFilterInterlis1MatchesModelFromModlLine()
+    {
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { Interlis1Model }, null);
+        var files = FileListWithPath((Interlis1Itf, "transfer_interlis1.ITF"), (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        Assert.HasCount(1, result.XtfFiles);
+        Assert.AreEqual("transfer_interlis1.ITF", result.XtfFiles[0].OriginalFileName);
+        Assert.HasCount(1, result.UnmatchedFiles);
+    }
+
+    [TestMethod]
+    public async Task IliModelFilterInterlis1OtherModelReturnsEmpty()
+    {
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
+        var files = FileListWithPath((Interlis1Itf, "transfer_interlis1.itf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        Assert.HasCount(0, result.XtfFiles);
+        Assert.HasCount(1, result.UnmatchedFiles);
+    }
+
+    [TestMethod]
+    public async Task IliModelFilterItfExtensionWithXtfContentReturnsEmpty()
+    {
+        // The extension decides the format, as it does for the validation, so XML content in an .itf file is no ITF header.
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
+        var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.itf"));
 
         var result = await process.RunAsync(files, CancellationToken.None);
 
