@@ -72,14 +72,18 @@ public class XtfDiffVisualizationProcessTest
     }
 
     [TestMethod]
-    public async Task DrawsAnObjectWithSeveralLocationsAtItsFirst()
+    public async Task DrawsTheLocationsOfAnObjectAsOneCollection()
     {
         // A changed geometry is its own location, so an object can have several per state. An empty one counts as none.
         var map = (await VisualizeAsync("severalLocations.json")).Map;
 
         Assert.IsNotNull(map);
-        CollectionAssert.AreEqual(new[] { ("building", OldBuilding) }, Features(map.Layers[1]));
-        CollectionAssert.AreEqual(new[] { ("building", NewBuilding) }, Features(map.Layers[2]));
+        CollectionAssert.AreEqual(
+            new[] { ("building", $"GEOMETRYCOLLECTION ({OldBuilding}, POINT(2600005 1200005))") },
+            Features(map.Layers[1]));
+        CollectionAssert.AreEqual(
+            new[] { ("building", $"GEOMETRYCOLLECTION ({NewBuilding}, POINT(2600006 1200005))") },
+            Features(map.Layers[2]));
     }
 
     [TestMethod]
