@@ -65,31 +65,42 @@ public class PipelineFactory : IPipelineFactory
     public IReadOnlyList<ReactionSetConfig> ReactionSets => PipelineProcessConfig.ReactionSets ?? [];
 
     /// <inheritdoc />
+    public IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveTransfers(string reactionSetId)
+    {
+        var set = ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
+            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
+        var channels = PipelineProcessConfig.Channels ?? [];
+
+        return set.Transfers
+            .Select(reaction =>
+            {
+                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+                return (reaction.Id, channel.Implementation, MergeChannelConfig(channel, reaction));
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values)
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        var set = ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
-            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
-        var channels = PipelineProcessConfig.Channels ?? [];
-
         var errors = new List<string>();
-        foreach (var reaction in set.Transfers)
+        foreach (var transfer in ResolveTransfers(reactionSetId))
         {
-            var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
             try
             {
-                channelFactory.Create(channel.Implementation, MergeChannelConfig(channel, reaction), values.GetValueOrDefault(reaction.Id));
+                channelFactory.Create(transfer.Implementation, transfer.Config, values.GetValueOrDefault(transfer.ReactionId));
             }
             catch (InvalidOperationException ex)
             {
-                errors.Add($"reaction {reaction.Id}: {ex.Message}");
+                errors.Add($"reaction {transfer.ReactionId}: {ex.Message}");
             }
             catch (TargetInvocationException ex)
             {
                 // The constructor of the channel refused a value, such as a subfolder outside the base directory.
-                errors.Add($"reaction {reaction.Id}: {(ex.InnerException ?? ex).Message}");
+                errors.Add($"reaction {transfer.ReactionId}: {(ex.InnerException ?? ex).Message}");
             }
         }
 
