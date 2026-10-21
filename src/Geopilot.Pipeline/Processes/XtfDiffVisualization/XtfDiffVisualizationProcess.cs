@@ -97,17 +97,38 @@ internal class XtfDiffVisualizationProcess
 
     private static List<MapFeature> BuildFeatures(IReadOnlyList<DiffEntry> entries, Func<DiffEntry, string?> locationOf)
     {
-        // shortcut: one feature per object and state, because the map knows a feature id once per layer, drawn at the first
-        // location of the object; a further one, a changed geometry in a structure for example, is only in the table
-        var features = new List<MapFeature>();
-        var drawnObjectIds = new HashSet<string>(StringComparer.Ordinal);
+        // The map knows a feature id once per layer, so the locations of an object form one feature per state.
+        var locationsByObjectId = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var firstChanges = new List<DiffChange>();
         foreach (var entry in entries)
         {
             var location = locationOf(entry);
-            if (!string.IsNullOrWhiteSpace(location) && drawnObjectIds.Add(entry.Change.ObjectId))
-                features.Add(new MapFeature { Id = entry.Change.ObjectId, Geom = location, Info = entry.Change.InterlisName });
+            if (string.IsNullOrWhiteSpace(location))
+                continue;
+
+            if (!locationsByObjectId.TryGetValue(entry.Change.ObjectId, out var locations))
+            {
+                locations = [];
+                locationsByObjectId.Add(entry.Change.ObjectId, locations);
+                firstChanges.Add(entry.Change);
+            }
+
+            if (!locations.Contains(location, StringComparer.Ordinal))
+                locations.Add(location);
         }
 
-        return features;
+        return firstChanges
+            .Select(change => new MapFeature
+            {
+                Id = change.ObjectId,
+                Geom = CombineLocations(locationsByObjectId[change.ObjectId]),
+                Info = change.InterlisName,
+            })
+            .ToList();
     }
+
+    // One location as it is, several as a GEOMETRYCOLLECTION, the way the tool writes an object with several geometry
+    // attributes. A changed geometry in a structure, for example, then shows beside the geometry of the object.
+    private static string CombineLocations(List<string> locations) =>
+        locations.Count == 1 ? locations[0] : $"GEOMETRYCOLLECTION ({string.Join(", ", locations)})";
 }
