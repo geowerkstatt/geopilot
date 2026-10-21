@@ -1,9 +1,11 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
+using Geopilot.Pipeline.Validation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Pipeline.Test;
 
@@ -329,6 +331,20 @@ public class DeliveryProcessingValidationTest
         AssertInvalid(
             Factory(FileDropChannel + FileDropSet("ablage", "ablage"), BaseConfigsWithSubfolder),
             CollisionOrigin + " and declared as a mandate value in the pipeline definition ('delivery_processing[id=ablage].transfers[id=ablage].mandate_config[key=subfolder]')." + CollisionRemedy);
+    }
+
+    [TestMethod]
+    public void UniqueReactionIdsAcceptsNoSets()
+    {
+        Assert.IsNull(new UniqueReactionIdsAttribute().GetValidationResult(null, new ValidationContext(new object())));
+    }
+
+    [TestMethod]
+    public void UniqueReactionIdsRejectsAValueOfAnotherType()
+    {
+        var result = new UniqueReactionIdsAttribute().GetValidationResult("no sets", new ValidationContext(new object()));
+
+        Assert.AreEqual("validation object is not of type IEnumerable<DeliveryProcessingConfig>", result?.ErrorMessage);
     }
 
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
