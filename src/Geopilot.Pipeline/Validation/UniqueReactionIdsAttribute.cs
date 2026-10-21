@@ -12,8 +12,11 @@ internal sealed class UniqueReactionIdsAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        if (value is not IEnumerable<DeliveryProcessingConfig> sets)
+        if (value is null)
             return ValidationResult.Success;
+
+        if (value is not IEnumerable<DeliveryProcessingConfig> sets)
+            return new ValidationResult("validation object is not of type IEnumerable<DeliveryProcessingConfig>");
 
         var duplicates = sets
             .SelectMany(set => set.Transfers ?? [])
