@@ -155,14 +155,14 @@ public class PipelineFactory : IPipelineFactory
             }
         }
 
-        var reactionErrors = ValidateDeliveryProcessing();
+        var reactionErrors = ValidateReactionSets();
         if (processErrors.Count > 0 || reactionErrors.Count > 0)
         {
             var sections = new List<string>();
             if (processErrors.Count > 0)
                 sections.Add($"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, processErrors)}");
             if (reactionErrors.Count > 0)
-                sections.Add($"Invalid delivery processing found:{Environment.NewLine}{string.Join(Environment.NewLine, reactionErrors)}");
+                sections.Add($"Invalid reaction sets found:{Environment.NewLine}{string.Join(Environment.NewLine, reactionErrors)}");
 
             return new PipelineDefinitionValidationResult(string.Join(Environment.NewLine, sections));
         }
@@ -174,18 +174,18 @@ public class PipelineFactory : IPipelineFactory
     /// Checks the channel of every reaction against its default configuration with the reaction's overwrites, the
     /// declared mandate values and, with a base configuration, the base values, without constructing a channel.
     /// </summary>
-    private List<string> ValidateDeliveryProcessing()
+    private List<string> ValidateReactionSets()
     {
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
         var channels = PipelineProcessConfig.Channels ?? [];
-        return (PipelineProcessConfig.DeliveryProcessing ?? [])
+        return (PipelineProcessConfig.ReactionSets ?? [])
             .SelectMany(set => set.Transfers.SelectMany(reaction =>
             {
                 // The definition validation has already rejected a reaction without a defined channel.
                 var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
                 return channelFactory
                     .Validate(channel.Implementation, MergeChannelConfig(channel, reaction), reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
-                    .Select(error => $"delivery processing {set.Id}, reaction {reaction.Id}, channel {channel.Id}, error: {error}");
+                    .Select(error => $"reaction set {set.Id}, reaction {reaction.Id}, channel {channel.Id}, error: {error}");
             }))
             .ToList();
     }

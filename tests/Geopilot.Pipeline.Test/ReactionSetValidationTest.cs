@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Geopilot.Pipeline.Test;
 
 [TestClass]
-public class DeliveryProcessingValidationTest
+public class ReactionSetValidationTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
@@ -51,7 +51,7 @@ public class DeliveryProcessingValidationTest
         """;
 
     private const string PlainSet = """
-        delivery_processing:
+        reaction_sets:
           - id: ablage
             transfers:
               - id: ablage
@@ -59,7 +59,7 @@ public class DeliveryProcessingValidationTest
         """;
 
     private const string OverwritingSet = """
-        delivery_processing:
+        reaction_sets:
           - id: ablage
             transfers:
               - id: ablage
@@ -148,7 +148,7 @@ public class DeliveryProcessingValidationTest
     public void RejectsAReactionWithoutChannel()
     {
         var sets = """
-            delivery_processing:
+            reaction_sets:
               - id: ablage
                 transfers:
                   - id: ablage
@@ -178,19 +178,19 @@ public class DeliveryProcessingValidationTest
     {
         var sets = FileDropSet("ablage", "ablage") + FileDropSet("ablage_zwei", "ablage", withHeader: false);
 
-        AssertInvalid(Factory(FileDropChannel + sets), "PipelineProcessConfig: The reaction id 'ablage' is used more than once. Reaction ids must be unique across all sets of delivery_processing.");
+        AssertInvalid(Factory(FileDropChannel + sets), "PipelineProcessConfig: The reaction id 'ablage' is used more than once. Reaction ids must be unique across all reaction sets.");
     }
 
     [TestMethod]
     public void RejectsASetWithoutTransfers()
     {
         var sets = """
-            delivery_processing:
+            reaction_sets:
               - id: ablage
                 transfers: []
             """;
 
-        AssertInvalid(Factory(sets), "DeliveryProcessingConfig (Transfers): At least one Transfer is required.");
+        AssertInvalid(Factory(sets), "ReactionSetConfig (Transfers): At least one Transfer is required.");
     }
 
     [TestMethod]
@@ -206,7 +206,7 @@ public class DeliveryProcessingValidationTest
     public void RejectsAMandateKeyDeclaredTwice()
     {
         var sets = """
-            delivery_processing:
+            reaction_sets:
               - id: ablage
                 transfers:
                   - id: ablage
@@ -227,7 +227,7 @@ public class DeliveryProcessingValidationTest
     public void RejectsAMandateKeyWithoutDisplayName()
     {
         var sets = """
-            delivery_processing:
+            reaction_sets:
               - id: ablage
                 transfers:
                   - id: ablage
@@ -244,7 +244,7 @@ public class DeliveryProcessingValidationTest
     {
         var channels = FileDropChannel.Replace(FileDrop, "Geopilot.Pipeline.Channels.Missing", StringComparison.Ordinal);
 
-        AssertInvalid(Factory(channels + FileDropSet("ablage", "ablage")), "delivery processing ablage, reaction ablage, channel ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
+        AssertInvalid(Factory(channels + FileDropSet("ablage", "ablage")), "reaction set ablage, reaction ablage, channel ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
     }
 
     [TestMethod]
@@ -252,7 +252,7 @@ public class DeliveryProcessingValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannel + FileDropSet("ablage", "ablage", mandateKey: "baseDirectory")),
-            $"delivery processing ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
+            $"reaction set ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
     }
 
     [TestMethod]
@@ -260,7 +260,7 @@ public class DeliveryProcessingValidationTest
     {
         var factory = Factory(FileDropChannel + FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>());
 
-        AssertInvalid(factory, "delivery processing ablage, reaction ablage, channel ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
+        AssertInvalid(factory, "reaction set ablage, reaction ablage, channel ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
     }
 
     [TestMethod]
@@ -297,7 +297,7 @@ public class DeliveryProcessingValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannel + OverwritingSet),
-            "PipelineProcessConfig: Reaction 'ablage' in delivery processing 'ablage' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
+            "PipelineProcessConfig: Reaction 'ablage' in reaction set 'ablage' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
     }
 
     [TestMethod]
@@ -305,7 +305,7 @@ public class DeliveryProcessingValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannelWithSubfolder + FileDropSet("ablage", "ablage")),
-            $"delivery processing ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'subfolder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.");
+            $"reaction set ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'subfolder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.");
     }
 
     [TestMethod]
@@ -322,7 +322,7 @@ public class DeliveryProcessingValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannelWithSubfolder + OverwritingSet, BaseConfigsWithSubfolder),
-            CollisionOrigin + " and overwritten in the pipeline definition ('delivery_processing[id=ablage].transfers[id=ablage].channel_config_overwrites.subfolder')." + CollisionRemedy);
+            CollisionOrigin + " and overwritten in the pipeline definition ('reaction_sets[id=ablage].transfers[id=ablage].channel_config_overwrites.subfolder')." + CollisionRemedy);
     }
 
     [TestMethod]
@@ -330,7 +330,7 @@ public class DeliveryProcessingValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannel + FileDropSet("ablage", "ablage"), BaseConfigsWithSubfolder),
-            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('delivery_processing[id=ablage].transfers[id=ablage].mandate_config[key=subfolder]')." + CollisionRemedy);
+            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('reaction_sets[id=ablage].transfers[id=ablage].mandate_config[key=subfolder]')." + CollisionRemedy);
     }
 
     [TestMethod]
@@ -344,7 +344,7 @@ public class DeliveryProcessingValidationTest
     {
         var result = new UniqueReactionIdsAttribute().GetValidationResult("no sets", new ValidationContext(new object()));
 
-        Assert.AreEqual("validation object is not of type IEnumerable<DeliveryProcessingConfig>", result?.ErrorMessage);
+        Assert.AreEqual("validation object is not of type IEnumerable<ReactionSetConfig>", result?.ErrorMessage);
     }
 
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
@@ -356,7 +356,7 @@ public class DeliveryProcessingValidationTest
     }
 
     private static string FileDropSet(string setId, string reactionId, string channelId = "ablage", string mandateKey = "subfolder", bool withHeader = true)
-        => (withHeader ? "delivery_processing:\n" : string.Empty) + $$"""
+        => (withHeader ? "reaction_sets:\n" : string.Empty) + $$"""
               - id: {{setId}}
                 transfers:
                   - id: "{{reactionId}}"

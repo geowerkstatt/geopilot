@@ -17,11 +17,11 @@ internal static class ChannelConfigCollision
 
     internal static string InReactionOverwrite(string implementation, string setId, string reactionId, string key) =>
         $"{Preamble(implementation, key)} and overwritten in the pipeline definition " +
-        $"('delivery_processing[id={setId}].transfers[id={reactionId}].channel_config_overwrites.{key}'). {Remedy}";
+        $"('reaction_sets[id={setId}].transfers[id={reactionId}].channel_config_overwrites.{key}'). {Remedy}";
 
     internal static string InMandateConfig(string implementation, string setId, string reactionId, string key) =>
         $"{Preamble(implementation, key)} and declared as a mandate value in the pipeline definition " +
-        $"('delivery_processing[id={setId}].transfers[id={reactionId}].mandate_config[key={key}]'). {Remedy}";
+        $"('reaction_sets[id={setId}].transfers[id={reactionId}].mandate_config[key={key}]'). {Remedy}";
 
     private static string Preamble(string implementation, string key) =>
         $"Channel configuration collision for implementation '{implementation}': the key '{key}' is set " +

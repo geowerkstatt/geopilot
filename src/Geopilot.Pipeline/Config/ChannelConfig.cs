@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// A channel the reactions of <c>delivery_processing</c> reference by its id, as steps reference a
+/// A channel the reactions of <c>reaction_sets</c> reference by its id, as steps reference a
 /// <see cref="ProcessConfig"/>: its implementation and the configuration every reaction on it starts from.
 /// </summary>
 public class ChannelConfig

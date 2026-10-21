@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Geopilot.Pipeline.Validation;
 
 /// <summary>
-/// Requires every reaction of <c>delivery_processing</c> to reference a channel defined under <c>channels</c>, as
+/// Requires every reaction of <c>reaction_sets</c> to reference a channel defined under <c>channels</c>, as
 /// <see cref="ValidProcessReferenceAttribute"/> does for the steps and their processes.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
@@ -18,7 +18,7 @@ internal sealed class ValidChannelReferenceAttribute : ValidationAttribute
         }
 
         var channelIds = (pipelineProcessConfig.Channels ?? []).Select(channel => channel.Id).ToHashSet(StringComparer.Ordinal);
-        var missingChannelReferences = (pipelineProcessConfig.DeliveryProcessing ?? [])
+        var missingChannelReferences = (pipelineProcessConfig.ReactionSets ?? [])
             .SelectMany(set => set.Transfers ?? [])
             .Select(reaction => reaction.ChannelId)
             .Where(channelId => !string.IsNullOrEmpty(channelId) && !channelIds.Contains(channelId))

@@ -19,7 +19,7 @@ internal sealed class NoUndefinedChannelConfigOverwriteAttribute : ValidationAtt
         }
 
         var errorMessages = new List<string>();
-        foreach (var set in pipelineProcessConfig.DeliveryProcessing ?? [])
+        foreach (var set in pipelineProcessConfig.ReactionSets ?? [])
         {
             foreach (var reaction in set.Transfers ?? [])
             {
@@ -30,7 +30,7 @@ internal sealed class NoUndefinedChannelConfigOverwriteAttribute : ValidationAtt
                 var defaultConfig = channel.DefaultConfig ?? new Parameterization();
                 errorMessages.AddRange(reaction.ChannelConfigOverwrites.Keys
                     .Where(key => !defaultConfig.ContainsKey(key))
-                    .Select(key => $"Reaction '{reaction.Id}' in delivery processing '{set.Id}' is trying to overwrite channel config parameter '{key}' which is not defined in the default config."));
+                    .Select(key => $"Reaction '{reaction.Id}' in reaction set '{set.Id}' is trying to overwrite channel config parameter '{key}' which is not defined in the default config."));
             }
         }
 
