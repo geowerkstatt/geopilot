@@ -39,7 +39,7 @@ channels:
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
     default_config:
       subfolder: allgemein
-delivery_processing:
+reaction_sets:
   - id: ablage_kanton_a
     transfers:
       - id: ablage_kanton_a
@@ -54,7 +54,7 @@ oder der Satz verlangt ihn vom Mandat, und jedes Mandat trägt seinen eigenen ei
 channels:
   - id: ablage_pro_mandat
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
-delivery_processing:
+reaction_sets:
   - id: ablage_pro_mandat
     transfers:
       - id: ablage_pro_mandat

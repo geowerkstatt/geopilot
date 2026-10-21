@@ -60,7 +60,7 @@ internal sealed class NoChannelBaseConfigOverwriteAttribute : ValidationAttribut
         PipelineProcessConfig pipelineProcessConfig,
         IReadOnlyDictionary<string, Parameterization> baseConfigs)
     {
-        foreach (var set in pipelineProcessConfig.DeliveryProcessing ?? [])
+        foreach (var set in pipelineProcessConfig.ReactionSets ?? [])
         {
             foreach (var reaction in set.Transfers ?? [])
             {
