@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using System.Threading.Channels;
 
@@ -31,9 +32,12 @@ public interface IProcessingJobStore
     IReadOnlyCollection<Guid> GetJobIds();
 
     /// <summary>
-    /// Creates and stores a new <see cref="ProcessingJob"/> for the specified upload.
+    /// Creates and stores a new <see cref="ProcessingJob"/> for the specified upload. An upload has at most one
+    /// active job: two runs on the same files would release the upload from under each other, and the processing
+    /// queue relies on it for its bound. Once that job has ended, the upload can be started again.
     /// </summary>
     /// <param name="uploadId">The upload whose files the job processes.</param>
+    /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>
     ProcessingJob CreateJob(Guid uploadId);
 
     /// <summary>

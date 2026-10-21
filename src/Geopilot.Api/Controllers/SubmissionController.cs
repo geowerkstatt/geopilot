@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
@@ -98,7 +99,7 @@ public class SubmissionController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No mandate with the given key is accessible, or the upload does not exist.")]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate cannot take a delivery.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate cannot take a delivery, or the upload is still being processed by an earlier attempt.")]
     public async Task<IActionResult> Create(SubmissionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -164,7 +165,16 @@ public class SubmissionController : ControllerBase
 
         // Started on the request thread: the execution protocol classifies the client from the current request,
         // and without it every machine delivery would be recorded as coming from an unknown client.
-        var job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer);
+        ProcessingJob job;
+        try
+        {
+            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer);
+        }
+        catch (JobAlreadyActiveException)
+        {
+            logger.LogInformation("A machine delivery was refused because upload <{UploadId}> is still being processed.", request.UploadId);
+            return Conflict($"Upload <{request.UploadId}> is still being processed by an earlier attempt. Poll that attempt instead of submitting the upload again.");
+        }
 
         // The stored key is the one the mandate carries, not the one the request spelled: both routes echo the
         // same value back, whatever whitespace the caller sent.

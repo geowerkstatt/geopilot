@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
@@ -59,6 +60,7 @@ public class ProcessingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status202Accepted, "The job was created and queued for background preflight and processing.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/upload.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The upload with the specified uploadId cannot be found.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "A job for the upload is still pending or running. Retry once it has ended.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> StartJobAsync([FromBody] StartJobRequest startJobRequest)
     {
@@ -87,6 +89,11 @@ public class ProcessingController : ControllerBase
         {
             logger.LogTrace(ex, "Starting job for upload <{UploadId}> failed.", startJobRequest.UploadId);
             return Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (JobAlreadyActiveException ex)
+        {
+            logger.LogInformation("Starting job for upload <{UploadId}> refused: a job for it is still active.", startJobRequest.UploadId);
+            return Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
         }
         catch (Exception ex)
         {

@@ -1,7 +1,4 @@
-﻿using Geopilot.Api.Models;
-using Geopilot.Api.Services;
-using Geopilot.Pipeline;
-using System.Threading.Channels;
+﻿using Geopilot.Api.Services;
 
 namespace Geopilot.Api.Processing;
 
@@ -13,21 +10,17 @@ public class ProcessingService : IProcessingService
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
     private readonly IMandateService mandateService;
-    private readonly IPipelineFactory pipelineFactory;
-    private readonly IPipelineRunRecorder runRecorder;
-    private readonly ChannelWriter<PreflightRequest> preflightQueue;
+    private readonly JobLifecycle lifecycle;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingService"/> class.
     /// </summary>
-    public ProcessingService(IProcessingJobStore jobStore, IUploadStore uploadStore, IMandateService mandateService, IPipelineFactory pipelineFactory, IPipelineRunRecorder runRecorder, ChannelWriter<PreflightRequest> preflightQueue)
+    public ProcessingService(IProcessingJobStore jobStore, IUploadStore uploadStore, IMandateService mandateService, JobLifecycle lifecycle)
     {
         this.jobStore = jobStore;
         this.uploadStore = uploadStore;
         this.mandateService = mandateService;
-        this.pipelineFactory = pipelineFactory;
-        this.runRecorder = runRecorder;
-        this.preflightQueue = preflightQueue;
+        this.lifecycle = lifecycle;
     }
 
     /// <inheritdoc/>
@@ -40,31 +33,7 @@ public class ProcessingService : IProcessingService
         if (mandate?.PipelineId == null)
             throw new InvalidOperationException($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.");
 
-        var job = jobStore.CreateJob(uploadId);
-
-        // Instantiate the pipeline up front (without files) and attach it to the job, so the status response
-        // can render the pipeline's steps while preflight runs. The pipeline is started once preflight passes.
-        var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, job.Id);
-        var jobWithPipeline = jobStore.AttachPipeline(job.Id, pipeline, mandateId);
-
-        try
-        {
-            // Deliberately hard: accepting a job is a promise, and we make none we cannot account for.
-            // The record must exist before anything can crash the job (see IPipelineRunRecorder).
-            await runRecorder.RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload);
-        }
-        catch
-        {
-            // Without the record there is no job: remove it again and dispose its pipeline instead of
-            // leaving a pending job that preflight would happily run unaccounted.
-            jobStore.RemoveJob(job.Id);
-            pipeline.Dispose();
-            throw;
-        }
-
-        await preflightQueue.WriteAsync(new PreflightRequest(job.Id, uploadId));
-
-        return jobStore.GetJob(job.Id)!;
+        return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, declarer);
     }
 
     /// <inheritdoc/>

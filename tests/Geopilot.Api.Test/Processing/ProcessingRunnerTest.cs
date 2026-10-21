@@ -1058,7 +1058,7 @@ public class ProcessingRunnerTest
 
         // The real lifecycle, not a mock: it resolves the recorder, the orchestration and the completion handler
         // from the same scope factory, so the runner's tests still see every consequence of a run.
-        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, scopeFactory, options);
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, Mock.Of<IPipelineFactory>(), Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactory, options);
         return new ProcessingRunner(Mock.Of<ILogger<ProcessingRunner>>(), jobStore, lifecycle, scopeFactory, options);
     }
 

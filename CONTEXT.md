@@ -4,7 +4,7 @@ Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs, so wie sie in Iss
 
 ## Job
 
-Alles, was geopilot zur Verarbeitung eines Uploads mit einem Mandat im Speicher hält: Zustand, Pipeline und den Verweis auf den Upload. Ein Job entsteht beim Start und lebt bis zu seinem Retirement. Im Code: `ProcessingJob`.
+Alles, was geopilot zur Verarbeitung eines Uploads mit einem Mandat im Speicher hält: Zustand, Pipeline und den Verweis auf den Upload. Ein Job entsteht beim Start und lebt bis zu seinem Retirement. Pro Upload ist höchstens ein Job aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis dieser Job endet. Scheitert der Start, bleibt kein Job zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
 
 ## Lauf
 

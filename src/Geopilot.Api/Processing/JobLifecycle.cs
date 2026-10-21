@@ -1,21 +1,26 @@
-﻿using Geopilot.Api.Services;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Models;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
+using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// The only writer of a processing job's state. Callers report what happened to a job (its preflight passed or
-/// failed, its run finished, its retention ran out) and the lifecycle carries out every consequence: the state
-/// change, the execution protocol, the disposal of the pipeline, the release of the upload and the machine
-/// delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what follows every event
-/// happens without asking. Starting a job is not part of it yet.
+/// The only writer of a processing job's state. Callers report what happened to a job (it was started, its
+/// preflight passed or failed, its run finished, its retention ran out) and the lifecycle carries out every
+/// consequence: the state change, the execution protocol, the disposal of the pipeline, the release of the upload
+/// and the machine delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what follows
+/// every event happens without asking.
 /// </summary>
 public class JobLifecycle
 {
     private readonly ILogger<JobLifecycle> logger;
     private readonly IProcessingJobStore jobStore;
+    private readonly IPipelineFactory pipelineFactory;
+    private readonly ChannelWriter<PreflightRequest> preflightQueue;
     private readonly ProcessingOptions processingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
 
@@ -25,6 +30,8 @@ public class JobLifecycle
     public JobLifecycle(
         ILogger<JobLifecycle> logger,
         IProcessingJobStore jobStore,
+        IPipelineFactory pipelineFactory,
+        ChannelWriter<PreflightRequest> preflightQueue,
         IServiceScopeFactory serviceScopeFactory,
         IOptions<ProcessingOptions> processingOptions)
     {
@@ -32,8 +39,59 @@ public class JobLifecycle
 
         this.logger = logger;
         this.jobStore = jobStore;
+        this.pipelineFactory = pipelineFactory;
+        this.preflightQueue = preflightQueue;
         this.serviceScopeFactory = serviceScopeFactory;
         this.processingOptions = processingOptions.Value;
+    }
+
+    /// <summary>
+    /// Starts a job for an upload against a mandate the caller has checked: creates the job, instantiates and
+    /// attaches its pipeline, records the start in the execution protocol and hands the job to the preflight. A
+    /// start that fails once the job exists leaves no job behind: it is removed again and its pipeline disposed,
+    /// while the upload stays for another start.
+    /// </summary>
+    /// <param name="upload">The upload whose files the job processes.</param>
+    /// <param name="mandate">The mandate the upload is processed against.</param>
+    /// <param name="pipelineId">The pipeline of the mandate, which the caller has checked to be set.</param>
+    /// <param name="declarer">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
+    /// <returns>The pending job with its pipeline attached.</returns>
+    /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running. Nothing
+    /// was created then.</exception>
+    /// <remarks>
+    /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
+    /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
+    /// </remarks>
+    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        ArgumentNullException.ThrowIfNull(mandate);
+
+        var job = jobStore.CreateJob(upload.Id);
+        IPipeline? pipeline = null;
+        ProcessingJob jobWithPipeline;
+        try
+        {
+            // Instantiated up front (without files), so the status response can render the pipeline's steps
+            // while preflight runs. The pipeline is started once preflight passes.
+            pipeline = pipelineFactory.CreatePipeline(pipelineId, job.Id);
+            jobWithPipeline = jobStore.AttachPipeline(job.Id, pipeline, mandate.Id);
+
+            // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
+            // can crash the job.
+            using var scope = serviceScopeFactory.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>()
+                .RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload);
+        }
+        catch
+        {
+            jobStore.RemoveJob(job.Id);
+            DisposePipeline(job.Id, pipeline);
+            throw;
+        }
+
+        await preflightQueue.WriteAsync(new PreflightRequest(job.Id, upload.Id));
+        return jobWithPipeline;
     }
 
     /// <summary>

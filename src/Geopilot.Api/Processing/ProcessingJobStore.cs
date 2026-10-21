@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
@@ -20,6 +21,9 @@ public class ProcessingJobStore : IProcessingJobStore
 {
     private readonly ConcurrentDictionary<Guid, ProcessingJob> jobs = new();
 
+    // Makes checking for an active job of the upload and adding the new one a single step.
+    private readonly object createLock = new();
+
     // Unbounded on purpose: every queued job still holds its upload, so Upload:MaxActiveJobs already caps the queue
     // at initiation, with a clear answer to the client, and a bounded channel would only make enqueueing block.
     private readonly Channel<ProcessingWorkItem> processingQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
@@ -36,14 +40,26 @@ public class ProcessingJobStore : IProcessingJobStore
     /// <inheritdoc/>
     public ProcessingJob CreateJob(Guid uploadId)
     {
-        var newJob = new ProcessingJob(
-            Id: Guid.NewGuid(),
-            UploadId: uploadId,
-            MandateId: null,
-            CreatedAt: DateTime.UtcNow);
+        // State changes happen outside the lock, which is safe: they only ever make a job less active, so only
+        // two starts at once could admit a second active job.
+        // shortcut: one lock and a scan over all jobs, index them by upload if their number ever gets large.
+        lock (createLock)
+        {
+            // A job counts as ended once its terminal state is set, but its upload is only released after the
+            // declaration and the protocol. A start in between is accepted and then fails in its preflight; after a
+            // cancelled run, the one case where a restart makes sense, nothing is released.
+            if (jobs.Values.Any(job => job.UploadId == uploadId && !IsTerminal(job.State)))
+                throw new JobAlreadyActiveException(uploadId);
 
-        jobs[newJob.Id] = newJob;
-        return newJob;
+            var newJob = new ProcessingJob(
+                Id: Guid.NewGuid(),
+                UploadId: uploadId,
+                MandateId: null,
+                CreatedAt: DateTime.UtcNow);
+
+            jobs[newJob.Id] = newJob;
+            return newJob;
+        }
     }
 
     /// <inheritdoc/>

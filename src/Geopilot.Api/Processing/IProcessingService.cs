@@ -1,9 +1,11 @@
-﻿using Geopilot.Api.Services;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Services;
 
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Handles the business logic for processing jobs and delegates job storage to an <see cref="IProcessingJobStore"/>.
+/// Handles the business logic for processing jobs: checks what a start may use and hands the start to
+/// <see cref="JobLifecycle"/>, which writes the job. Reads jobs from the <see cref="IProcessingJobStore"/>.
 /// </summary>
 public interface IProcessingService
 {
@@ -15,6 +17,7 @@ public interface IProcessingService
     /// <param name="declarer">The user or machine client starting the job, or <see langword="null"/> for an anonymous public mandate.</param>
     /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists.</exception>
     /// <exception cref="InvalidOperationException">If the job could not be started with the given mandate.</exception>
+    /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>
     Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer);
 
     /// <summary>

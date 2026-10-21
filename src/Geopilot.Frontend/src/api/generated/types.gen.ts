@@ -1822,6 +1822,10 @@ export type PostApiV2ProcessingErrors = {
    */
   404: ProblemDetails;
   /**
+   * A job for the upload is still pending or running. Retry once it has ended.
+   */
+  409: ProblemDetails;
+  /**
    * The server encountered an unexpected error while starting the job.
    */
   500: ProblemDetails;
@@ -1956,7 +1960,7 @@ export type PostApiV1SubmissionErrors = {
    */
   404: unknown;
   /**
-   * The mandate cannot take a delivery.
+   * The mandate cannot take a delivery, or the upload is still being processed by an earlier attempt.
    */
   409: unknown;
 };
