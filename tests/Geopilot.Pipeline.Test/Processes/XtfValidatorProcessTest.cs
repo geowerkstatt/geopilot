@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Processes.XtfValidation;
+﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -51,13 +52,14 @@ public class XtfValidatorProcessTest
     public async Task ThrowsWhenTheProfileCannotBeResolved()
     {
         // The tool exits like a failed validation, so only its log tells the two apart.
-        var log = $"Info: dataFile <file1.xtf>\nError: {XtfValidatorProcess.MetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
+        var log = $"Info: dataFile <file1.xtf>\nError: {IlitoolsHelper.IlivalidatorMetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
         var process = CreateProcess("PROFILE-A", "https://models.example.com/", success: false, logContent: log);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
 
         Assert.Contains("ilidata:PROFILE-A", exception.Message);
         Assert.Contains("https://models.example.com/", exception.Message);
+        Assert.Contains("validationProfile", exception.Message, "The message should name the setting to fix.");
     }
 
     [TestMethod]
@@ -97,7 +99,7 @@ public class XtfValidatorProcessTest
         // The dangerous shape: the tool reports success although it never evaluated the constraint, which is what
         // a missing plugin looks like. A green result for a check that did not run must not reach the delivery.
         var log = "Info: validate mandatory constraint Model.Topic.Class.Constraint1...\n"
-            + $"Warning: line 12: Model.Topic.Class: tid 1: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+            + $"Warning: line 12: Model.Topic.Class: tid 1: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {IlitoolsHelper.CheckNotEvaluatedMarker}.\n";
         var process = CreateProcess(null, null, success: true, logContent: log, pluginIds: "geow-interlis-functions");
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
@@ -110,7 +112,7 @@ public class XtfValidatorProcessTest
     {
         // The likelier misconfiguration: nobody configured the plugin the model needs. Reported the same way,
         // because the result says just as little about that check.
-        var log = $"Warning: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var log = $"Warning: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {IlitoolsHelper.CheckNotEvaluatedMarker}.\n";
         var process = CreateProcess(null, null, success: true, logContent: log);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
@@ -124,7 +126,7 @@ public class XtfValidatorProcessTest
         // The tool words the skip once per constraint type and twice generically, so the marker is the common
         // substring and not one message. A set constraint is one of the wordings that a search for
         // MandatoryConstraint would miss.
-        var log = $"Warning: Function in set constraint Model.Topic.Class.Constraint2 {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var log = $"Warning: Function in set constraint Model.Topic.Class.Constraint2 {IlitoolsHelper.CheckNotEvaluatedMarker}.\n";
         var process = CreateProcess(null, null, success: true, logContent: log);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
