@@ -46,7 +46,7 @@ public class DeliveryControllerTest
 
         // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
         // moved into it, and mocking it here would leave those rules untested.
-        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object);
         authorizationServiceMock = new Mock<IAuthorizationService>();
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
