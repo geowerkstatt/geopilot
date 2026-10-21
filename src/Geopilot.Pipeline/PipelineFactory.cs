@@ -3,6 +3,7 @@ using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -59,6 +60,41 @@ public class PipelineFactory : IPipelineFactory
 
     /// <inheritdoc />
     public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
+
+    /// <inheritdoc />
+    public IReadOnlyList<ReactionSetConfig> ReactionSets => PipelineProcessConfig.ReactionSets ?? [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        var set = ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
+            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channels = PipelineProcessConfig.Channels ?? [];
+
+        var errors = new List<string>();
+        foreach (var reaction in set.Transfers)
+        {
+            var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+            try
+            {
+                channelFactory.Create(channel.Implementation, MergeChannelConfig(channel, reaction), values.GetValueOrDefault(reaction.Id));
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add($"reaction {reaction.Id}: {ex.Message}");
+            }
+            catch (TargetInvocationException ex)
+            {
+                // The constructor of the channel refused a value, such as a subfolder outside the base directory.
+                errors.Add($"reaction {reaction.Id}: {(ex.InnerException ?? ex).Message}");
+            }
+        }
+
+        return errors;
+    }
 
     /// <inheritdoc />
     public IPipeline CreatePipeline(string id, Guid jobId)

@@ -272,6 +272,24 @@ public class Context : DbContext
             .HasDefaultValueSql("jsonb_build_object()")
             .HasConversion(localizedTextConverter, localizedTextComparer);
 
+        // Null only in a request that leaves the values out, which the controller resolves before saving; a new
+        // mandate saved without them gets the default.
+        var reactionSetValuesConverter = new ValueConverter<Dictionary<string, Dictionary<string, JsonElement>>?, string>(
+            values => JsonSerializer.Serialize(values, (JsonSerializerOptions?)null),
+            json => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(json, (JsonSerializerOptions?)null));
+
+        var reactionSetValuesComparer = new ValueComparer<Dictionary<string, Dictionary<string, JsonElement>>?>(
+            (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+            values => JsonSerializer.Serialize(values, (JsonSerializerOptions?)null).GetHashCode(StringComparison.Ordinal),
+            values => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(JsonSerializer.Serialize(values, (JsonSerializerOptions?)null), (JsonSerializerOptions?)null));
+
+        modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.ReactionSetValues)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_object()")
+            .HasConversion(reactionSetValuesConverter, reactionSetValuesComparer)
+            .IsRequired();
+
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
         // text so the tables stay readable in SQL and reordering an enum cannot reinterpret history.
         modelBuilder.Entity<PipelineRun>(run =>
