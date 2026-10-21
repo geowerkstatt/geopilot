@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NetTopologySuite.Geometries;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers
 {
@@ -19,6 +20,7 @@ namespace Geopilot.Api.Controllers
         private Mock<ILogger<MandateController>> loggerMock;
         private Mock<IMandateService> mandateServiceMock;
         private Mock<IPipelineService> pipelineServiceMock;
+        private Mock<IReactionSetValidator> reactionSetValidatorMock;
         private Context context;
         private MandateController mandateController;
         private User editUser;
@@ -40,6 +42,13 @@ namespace Geopilot.Api.Controllers
             context = AssemblyInitialize.DbFixture.GetTestContext();
 
             pipelineServiceMock = new Mock<IPipelineService>();
+
+            // Accepts everything and keeps the values as they are, unless a test says otherwise.
+            reactionSetValidatorMock = new Mock<IReactionSetValidator>();
+            reactionSetValidatorMock
+                .Setup(validator => validator.Check(It.IsAny<string?>(), It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()))
+                .Returns((string? _, IReadOnlyDictionary<string, Dictionary<string, JsonElement>> values) =>
+                    new ReactionSetCheck(values.ToDictionary(entry => entry.Key, entry => entry.Value), null, []));
 
             mandateController = CreateController(machineDeliveryEnabled: true);
 
@@ -489,6 +498,92 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task CreateMandateStoresTheReactionSetTheValidatorKeeps()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+            var sent = NewMandateWithKey(pipelineId, null);
+            sent.ReactionSetId = "ablage";
+            sent.ReactionSetValues = ReactionSetValues("ablage", "subfolder", "kanton-a");
+            sent.ReactionSetValues["ablage"]["unknown"] = JsonSerializer.SerializeToElement("not declared");
+            reactionSetValidatorMock
+                .Setup(validator => validator.Check("ablage", It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()))
+                .Returns(new ReactionSetCheck(ReactionSetValues("ablage", "subfolder", "kanton-a"), null, []));
+
+            var result = await mandateController.Create(sent);
+
+            ActionResultAssert.IsCreated(result);
+            var created = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.AreEqual("ablage", created.ReactionSetId);
+            Assert.AreEqual(Json(ReactionSetValues("ablage", "subfolder", "kanton-a")), Json(created.ReactionSetValues));
+        }
+
+        [TestMethod]
+        public async Task CreateMandateRejectsAReactionSetTheValidatorRefuses()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+            var sent = NewMandateWithKey(pipelineId, null);
+            sent.ReactionSetId = "unbekannt";
+            sent.ReactionSetValues = [];
+            reactionSetValidatorMock
+                .Setup(validator => validator.Check("unbekannt", It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()))
+                .Returns(new ReactionSetCheck([], "Reaction set <unbekannt> does not exist.", []));
+
+            var result = await mandateController.Create(sent);
+
+            var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
+            Assert.AreEqual("Reaction set <unbekannt> does not exist.", badRequest.Value);
+        }
+
+        [TestMethod]
+        public async Task EditMandateKeepsTheReactionSetWhenTheValuesAreLeftOut()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+
+            // A client that does not know reaction sets sends neither field.
+            toEdit.ReactionSetId = null;
+            toEdit.ReactionSetValues = null;
+            var result = await mandateController.Edit(toEdit);
+
+            var updated = ActionResultAssert.IsOkObjectResult<Mandate>(result);
+            Assert.AreEqual("ablage", updated.ReactionSetId);
+            Assert.AreEqual(Json(ReactionSetValues("ablage", "subfolder", "kanton-a")), Json(updated.ReactionSetValues));
+        }
+
+        [TestMethod]
+        public async Task EditMandateRemovesTheReactionSet()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+
+            toEdit.ReactionSetId = null;
+            toEdit.ReactionSetValues = [];
+            var result = await mandateController.Edit(toEdit);
+
+            var updated = ActionResultAssert.IsOkObjectResult<Mandate>(result);
+            Assert.IsNull(updated.ReactionSetId);
+            Assert.IsNotNull(updated.ReactionSetValues);
+            Assert.IsEmpty(updated.ReactionSetValues);
+        }
+
+        [TestMethod]
+        public async Task EditMandateRejectsAReactionSetTheValidatorRefuses()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+            reactionSetValidatorMock
+                .Setup(validator => validator.Check("ablage", It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()))
+                .Returns(new ReactionSetCheck([], null, ["reaction ablage: The subfolder is not valid.", "reaction meldung: No recipients."]));
+
+            toEdit.ReactionSetValues = ReactionSetValues("ablage", "subfolder", "../anderswo");
+            var result = await mandateController.Edit(toEdit);
+
+            var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
+            Assert.AreEqual("reaction ablage: The subfolder is not valid. reaction meldung: No recipients.", badRequest.Value);
+        }
+
+        [TestMethod]
         public async Task GetKeysReturnsTheKeysInUse()
         {
             mandateServiceMock.Setup(s => s.GetMandateKeysAsync()).ReturnsAsync(new List<string> { "GRUMPYFALCON", "SOMBERSPORK" });
@@ -520,6 +615,7 @@ namespace Geopilot.Api.Controllers
                 context,
                 mandateServiceMock.Object,
                 pipelineServiceMock.Object,
+                reactionSetValidatorMock.Object,
                 Options.Create(new MachineDeliveryOptions { Enabled = machineDeliveryEnabled }));
 
         private void SetupPipelineStub(string pipelineId)
@@ -536,6 +632,25 @@ namespace Geopilot.Api.Controllers
             };
             pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
         }
+
+        private async Task<Mandate> CreateMandateWithReactionSet()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+            var sent = NewMandateWithKey(pipelineId, null);
+            sent.ReactionSetId = "ablage";
+            sent.ReactionSetValues = ReactionSetValues("ablage", "subfolder", "kanton-a");
+
+            var created = Assert.IsInstanceOfType<Mandate>((await mandateController.Create(sent) as CreatedResult)?.Value);
+            created.SetCoordinateListFromPolygon();
+            return created;
+        }
+
+        private static Dictionary<string, Dictionary<string, JsonElement>> ReactionSetValues(string reactionId, string key, string text)
+            => new() { [reactionId] = new Dictionary<string, JsonElement> { [key] = JsonSerializer.SerializeToElement(text) } };
+
+        private static string Json(object? value) => JsonSerializer.Serialize(value);
 
         private Mandate NewMandateWithKey(string pipelineId, string? key) => new()
         {
