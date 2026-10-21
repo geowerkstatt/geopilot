@@ -262,6 +262,16 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("PipelineId")
                         .HasColumnType("varchar(128)");
 
+                    b.Property<string>("ReactionSetId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("ReactionSetValues")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_object()");
+
                     b.Property<Geometry>("SpatialExtent")
                         .IsRequired()
                         .HasColumnType("geometry");
