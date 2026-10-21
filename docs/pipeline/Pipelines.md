@@ -192,8 +192,8 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
-- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `delivery_processing` verwendet werden können, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
-- `delivery_processing`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
+- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
+- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
 
 ## Validierungen
 
@@ -219,7 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
-- Die Kanäle unter `channels` und die Sätze unter `delivery_processing` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
+- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -561,13 +561,13 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `delivery_processing`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
 
 ```yaml
 channels:
   - id: ablage
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
-delivery_processing:
+reaction_sets:
   - id: ablage
     transfers:
       - id: ablage
@@ -585,8 +585,8 @@ delivery_processing:
   - `channels[X].id`: Die eindeutige ID des Kanals, welche in den Reaktionen referenziert werden kann.
   - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
   - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
-- `delivery_processing[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
-- `delivery_processing[X].transfers`: Die Lieferungs-Schritte des Satzes, mindestens einer. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben.
+- `reaction_sets[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
+- `reaction_sets[X].transfers`: Die Lieferungs-Schritte des Satzes, mindestens einer. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben.
   - `transfers[X].id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein und folgt denselben Regeln wie die Id des Satzes.
   - `transfers[X].channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
   - `transfers[X].channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
@@ -594,7 +594,7 @@ delivery_processing:
 
 Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
 
-Eine Definition mit `channels` oder `delivery_processing` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
+Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 
 ### Konfiguration eines Kanals
 
@@ -614,7 +614,7 @@ channels:
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
     default_config:
       subfolder: allgemein
-delivery_processing:
+reaction_sets:
   - id: ablage_kanton_a
     transfers:
       - id: ablage_kanton_a
