@@ -132,6 +132,15 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
+    public void ValidateRejectsAMandateValueThatIsNoText()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.CountChannel", null, ["count"]));
+        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.CountChannel>: the parameter 'count' is marked [MandateValue] but takes Int32. A mandate value is a text (string) or a list of texts (IReadOnlyList<string>).", error);
+    }
+
+    [TestMethod]
     public void ValidateRejectsAMandateValueTheDefinitionSets()
     {
         var factory = new DeliveryChannelFactory(BaseConfigs);
@@ -239,4 +248,15 @@ internal sealed class TwoConstructorsChannel : IDeliveryChannel
 
 internal sealed class NoChannel
 {
+}
+
+internal sealed class CountChannel : IDeliveryChannel
+{
+    public CountChannel([MandateValue] int count)
+    {
+        _ = count;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
 }
