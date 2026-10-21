@@ -7,14 +7,14 @@ namespace Geopilot.Pipeline.Config;
 /// A named set of reactions that run once a delivery can no longer be withdrawn (ADR 0015). A mandate chooses one set
 /// by its id and fills the values the set asks of it.
 /// </summary>
-public class DeliveryProcessingConfig
+public class ReactionSetConfig
 {
     /// <summary>
     /// The id of the set, which a mandate refers to.
     /// </summary>
     [YamlMember(Alias = "id")]
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Delivery Processing ID is required.")]
-    [RegularExpression(ReactionConfig.IdPattern, ErrorMessage = "A delivery processing id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Reaction Set ID is required.")]
+    [RegularExpression(ReactionConfig.IdPattern, ErrorMessage = "A reaction set id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.")]
     public required string Id { get; set; }
 
     /// <summary>

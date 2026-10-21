@@ -5,7 +5,7 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// One reaction of a <see cref="DeliveryProcessingConfig"/>: the channel that runs it, how the reaction overwrites the
+/// One reaction of a <see cref="ReactionSetConfig"/>: the channel that runs it, how the reaction overwrites the
 /// channel's default configuration and the values the mandate supplies.
 /// </summary>
 public class ReactionConfig
