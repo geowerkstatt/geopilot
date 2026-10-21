@@ -1,5 +1,7 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -42,6 +44,58 @@ public static class WebApplicationExtensions
                 options.DeleteRestrictInterval,
                 options.TimeZone.Id);
         }
+    }
+
+    /// <summary>
+    /// Checks the reaction set every mandate chose, once the database is migrated. A set the definition no
+    /// longer has and a delete window that never closes stop the start, because both are fixed in the configuration.
+    /// Values a channel refuses only warn, because a mandate can only be corrected while the application runs.
+    /// </summary>
+    public static void ValidateMandateReactionSets(this WebApplication app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+
+        using var scope = app.Services.CreateScope();
+        var errors = CheckMandateReactionSets(
+            scope.ServiceProvider.GetRequiredService<Context>(),
+            scope.ServiceProvider.GetRequiredService<IReactionSetValidator>(),
+            app.Logger);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
+        }
+    }
+
+    /// <summary>
+    /// Returns what stops the start in the reaction sets of the mandates, and logs the values the channels
+    /// refuse as warnings.
+    /// </summary>
+    internal static IReadOnlyList<string> CheckMandateReactionSets(Context context, IReactionSetValidator validator, ILogger logger)
+    {
+        var mandates = context.Mandates
+            .AsNoTracking()
+            .Where(mandate => mandate.ReactionSetId != null)
+            .Select(mandate => new { mandate.Id, mandate.ReactionSetId, mandate.ReactionSetValues })
+            .ToList();
+
+        var errors = new List<string>();
+        foreach (var mandate in mandates)
+        {
+            var check = validator.Check(mandate.ReactionSetId, mandate.ReactionSetValues ?? []);
+            if (check.SetError is not null)
+                errors.Add($"Mandate {mandate.Id}: {check.SetError}");
+
+            foreach (var valueError in check.ValueErrors)
+            {
+                logger.LogWarning(
+                    "Mandate {MandateId} supplies values its reaction set {ReactionSetId} refuses: {Error}",
+                    mandate.Id,
+                    mandate.ReactionSetId,
+                    valueError);
+            }
+        }
+
+        return errors;
     }
 
     /// <summary>
