@@ -180,6 +180,7 @@ public class UploadPollingTest
         uploadStore.CreateUpload(uploadId, uploadedFiles);
 
         mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.IsDeclarableAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(true);
 
         // The start instantiates the pipeline up front (without files) and attaches it to the job. On a preflight
         // failure the job lifecycle disposes the attached pipeline, so allow Dispose on the strict mock.

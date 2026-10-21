@@ -30,4 +30,11 @@ public record class ProcessingJob(
     /// keeps them for the full window.
     /// </summary>
     public DateTime? FinishedAt { get; init; }
+
+    /// <summary>
+    /// Whether the run can ever become a delivery: whoever started it is a member of an organisation of the mandate,
+    /// and the mandate accepts deliveries. Decided once when the job starts; a run nobody can declare is not staged,
+    /// and its delivery is refused. Declaring still checks the mandate on its own.
+    /// </summary>
+    public bool IsDeclarable { get; init; }
 }

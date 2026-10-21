@@ -37,8 +37,9 @@ public interface IProcessingJobStore
     /// queue relies on it for its bound. Once that job has ended, the upload can be started again.
     /// </summary>
     /// <param name="uploadId">The upload whose files the job processes.</param>
+    /// <param name="isDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>
-    ProcessingJob CreateJob(Guid uploadId);
+    ProcessingJob CreateJob(Guid uploadId, bool isDeclarable);
 
     /// <summary>
     /// Marks the job as failed (e.g. a preflight failure before a pipeline could be created) and reports

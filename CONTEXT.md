@@ -26,6 +26,10 @@ Das Löschen der hochgeladenen Dateien eines Jobs aus dem Upload-Speicher. Ob si
 
 Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetention` vergangen ist: der Eintrag im Speicher sowie seine Downloads, Visualisierungen, Arbeits- und Staging-Verzeichnisse. Deklarierte Lieferungen und der Lauf im Protokoll bleiben erhalten. Den Upload gibt das Retirement nicht frei, der ist dann schon freigegeben oder wird bis zum Ablauf seiner Session behalten. Im Code: `ProcessingJobCleanupService`, für den Job selbst `JobLifecycle.Retire`.
 
+## Deklarierbar
+
+Ob aus einem Lauf je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Lauf, den niemand deklarieren kann, staged der Runner nicht, und seine Deklaration wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.IsDeclarable`, entschieden in `MandateService.IsDeclarableAsync`.
+
 ## Versuch
 
 Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung deklariert oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: `Submission`.

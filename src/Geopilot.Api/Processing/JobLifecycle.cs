@@ -55,6 +55,7 @@ public class JobLifecycle
     /// <param name="mandate">The mandate the upload is processed against.</param>
     /// <param name="pipelineId">The pipeline of the mandate, which the caller has checked to be set.</param>
     /// <param name="declarer">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
+    /// <param name="isDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
     /// <returns>The pending job with its pipeline attached.</returns>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running. Nothing
     /// was created then.</exception>
@@ -62,12 +63,12 @@ public class JobLifecycle
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
     /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
     /// </remarks>
-    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer)
+    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer, bool isDeclarable)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(mandate);
 
-        var job = jobStore.CreateJob(upload.Id);
+        var job = jobStore.CreateJob(upload.Id, isDeclarable);
         IPipeline? pipeline = null;
         ProcessingJob jobWithPipeline;
         try

@@ -33,7 +33,8 @@ public class ProcessingService : IProcessingService
         if (mandate?.PipelineId == null)
             throw new InvalidOperationException($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.");
 
-        return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, declarer);
+        var isDeclarable = await mandateService.IsDeclarableAsync(mandateId, declarer);
+        return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, declarer, isDeclarable);
     }
 
     /// <inheritdoc/>

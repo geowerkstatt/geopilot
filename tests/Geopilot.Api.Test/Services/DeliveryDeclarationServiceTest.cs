@@ -70,12 +70,23 @@ public class DeliveryDeclarationServiceTest
         Assert.AreEqual("SILENTHARBOR", delivery.DeclarerName, "The client's name is what the catalog shows as the deliverer.");
     }
 
-    private Guid SetupDeliverableJob(int mandateId)
+    [TestMethod]
+    public async Task RefusesARunNobodyCanDeclare()
+    {
+        var jobId = SetupDeliverableJob(mandateId: 1, isDeclarable: false);
+
+        var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), Declarer.ForUser(1), CancellationToken.None);
+
+        // Refused before the declarer or the mandate is looked at: the strict mocks would fail on any further call.
+        Assert.AreEqual(DeliveryDeclarationStatus.JobNotDeliverable, result.Status);
+    }
+
+    private Guid SetupDeliverableJob(int mandateId, bool isDeclarable = true)
     {
         var jobId = Guid.NewGuid();
         processingServiceMock
             .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success });
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success, IsDeclarable = isDeclarable });
         return jobId;
     }
 }

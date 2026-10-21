@@ -89,6 +89,30 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task CreateFailsForARunNobodyCanDeclare()
+    {
+        // A member of the mandate asks to declare a run that nobody can declare, such as an anonymous one on a
+        // public mandate. Being a member now does not make up for who started it.
+        var (user, publicMandate) = SetupMandateWithUserOrganisation(new Mandate
+        {
+            Name = TestHelpers.Localized(nameof(CreateFailsForARunNobodyCanDeclare)),
+            IsPublic = true,
+            AllowDelivery = true,
+        });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(publicMandate.Id, isDeclarable: false);
+        var deliveriesCount = context.Deliveries.Count();
+
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
+
+        context.ChangeTracker.Clear();
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
+        Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
+    }
+
+    [TestMethod]
     public async Task CreateFailsJobNotFound()
     {
         var guid = Guid.NewGuid();
@@ -509,7 +533,7 @@ public class DeliveryControllerTest
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success, bool isDeclarable = true)
     {
         var guid = Guid.NewGuid();
 
@@ -524,6 +548,7 @@ public class DeliveryControllerTest
         {
             Pipeline = pipelineMock.Object,
             State = jobState,
+            IsDeclarable = isDeclarable,
         };
 
         processingServiceMock

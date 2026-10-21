@@ -102,11 +102,12 @@ public class JobLifecycleTest
         var upload = await CreateUploadAsync();
         var pipeline = SetupPipeline();
 
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, Declarer.ForUser(user.Id));
+        var job = await StartJobAsync(upload, Declarer.ForUser(user.Id));
 
         Assert.AreEqual(ProcessingState.Pending, job.State);
         Assert.AreSame(pipeline.Object, job.Pipeline);
         Assert.AreEqual(mandate.Id, job.MandateId);
+        Assert.IsTrue(job.IsDeclarable);
         Assert.AreEqual(job, jobStore.GetJob(job.Id));
 
         Assert.IsTrue(preflightQueue.Reader.TryRead(out var request), "The preflight must be asked to check the job.");
@@ -127,13 +128,13 @@ public class JobLifecycleTest
             .Setup(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()))
             .Throws(new InvalidOperationException("A processor could not be instantiated."));
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => StartJobAsync(upload));
 
         AssertStartLeftNoJob(upload.Id);
 
         // The upload is still there for another start.
         SetupPipeline();
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var job = await StartJobAsync(upload);
         Assert.AreEqual(ProcessingState.Pending, job.State);
     }
 
@@ -146,7 +147,7 @@ public class JobLifecycleTest
             .Setup(f => f.GetDefinitionSnapshotJson(PipelineId))
             .Throws(new InvalidOperationException("The definition snapshot could not be read."));
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => StartJobAsync(upload));
 
         AssertStartLeftNoJob(upload.Id);
         pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline of a job that never started must not leak.");
@@ -162,7 +163,7 @@ public class JobLifecycleTest
         Assert.IsNotNull(upload);
         Assert.IsTrue(preflightQueue.Reader.TryRead(out _));
 
-        await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => StartJobAsync(upload));
 
         Assert.HasCount(1, jobStore.GetJobIds());
         Assert.AreEqual(firstState, jobStore.GetJob(firstId)!.State);
@@ -180,7 +181,7 @@ public class JobLifecycleTest
         Assert.IsNotNull(upload, "A cancelled run keeps its upload for another start.");
 
         SetupPipeline();
-        var second = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var second = await StartJobAsync(upload);
 
         Assert.AreNotEqual(jobId, second.Id);
         Assert.AreEqual(ProcessingState.Pending, second.State);
@@ -223,6 +224,18 @@ public class JobLifecycleTest
         Assert.AreEqual(ProcessingState.Success, (await ReadRunAsync(jobId)).TerminalState);
         AssertUploadKept(uploadId, false);
         pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunFinishedReleasesTheUploadOfARunNobodyCanDeclare()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(isDeclarable: false);
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        // Nothing was staged for it, so its upload goes at the end of the run like that of any deliverable one.
+        Assert.AreEqual(ProcessingState.Success, jobStore.GetJob(jobId)!.State);
+        AssertUploadKept(uploadId, false);
     }
 
     [TestMethod]
@@ -350,17 +363,20 @@ public class JobLifecycleTest
     /// Starts a job for a real upload through the lifecycle itself. With <paramref name="passPreflight"/> the job
     /// goes on to Running as well.
     /// </summary>
-    private async Task<(Guid JobId, Guid UploadId, Mock<IPipeline> Pipeline)> CreateJobAsync(bool passPreflight = true)
+    private async Task<(Guid JobId, Guid UploadId, Mock<IPipeline> Pipeline)> CreateJobAsync(bool passPreflight = true, bool isDeclarable = true)
     {
         var upload = await CreateUploadAsync();
         var pipeline = SetupPipeline();
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var job = await StartJobAsync(upload, isDeclarable: isDeclarable);
 
         if (passPreflight)
             await lifecycle.PreflightPassedAsync(job.Id, new ScanResult(true), []);
 
         return (job.Id, upload.Id, pipeline);
     }
+
+    private Task<ProcessingJob> StartJobAsync(UploadInfo upload, Declarer? declarer = null, bool isDeclarable = true)
+        => lifecycle.StartAsync(upload, mandate, PipelineId, declarer, isDeclarable);
 
     private async Task<UploadInfo> CreateUploadAsync()
     {

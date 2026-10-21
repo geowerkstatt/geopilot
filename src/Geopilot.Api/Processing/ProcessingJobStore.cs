@@ -38,7 +38,7 @@ public class ProcessingJobStore : IProcessingJobStore
     public IReadOnlyCollection<Guid> GetJobIds() => jobs.Keys.ToList();
 
     /// <inheritdoc/>
-    public ProcessingJob CreateJob(Guid uploadId)
+    public ProcessingJob CreateJob(Guid uploadId, bool isDeclarable)
     {
         // State changes happen outside the lock, which is safe: they only ever make a job less active, so only
         // two starts at once could admit a second active job.
@@ -55,7 +55,10 @@ public class ProcessingJobStore : IProcessingJobStore
                 Id: Guid.NewGuid(),
                 UploadId: uploadId,
                 MandateId: null,
-                CreatedAt: DateTime.UtcNow);
+                CreatedAt: DateTime.UtcNow)
+            {
+                IsDeclarable = isDeclarable,
+            };
 
             jobs[newJob.Id] = newJob;
             return newJob;
@@ -114,7 +117,7 @@ public class ProcessingJobStore : IProcessingJobStore
             });
 
         // A job left in Running without a work item would never run and never end, so a refused write must surface.
-        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files)))
+        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files, updatedJob.IsDeclarable)))
             throw new InvalidOperationException($"Job <{jobId}> could not be queued for processing.");
 
         return updatedJob;

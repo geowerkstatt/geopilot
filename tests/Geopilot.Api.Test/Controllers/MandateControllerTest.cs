@@ -568,6 +568,7 @@ namespace Geopilot.Api.Controllers
             var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
             {
                 State = ProcessingState.Success,
+                IsDeclarable = true,
             };
 
             processingServiceMock

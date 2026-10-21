@@ -100,12 +100,12 @@ public class ProcessingRunner : BackgroundService
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
-                // Stage the delivery payload only when the run is deliverable, by the same rule the declaration
-                // applies to the job state (DeliveryDeclarationService). The job only turns deliverable once
-                // RunFinishedAsync below sets its state, so a declaration never promotes a partial staging. It
-                // goes to the staging store, not the asset store: the asset directory holds deliveries only, and
-                // declaring one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
-                if (pipeline.State.IsDeliverable())
+                // Stage the delivery payload only when the run is deliverable and somebody can declare it, by the
+                // same rules the declaration applies to the job (DeliveryDeclarationService). The job only turns
+                // deliverable once RunFinishedAsync below sets its state, so a declaration never promotes a partial
+                // staging. It goes to the staging store, not the asset store: the asset directory holds deliveries
+                // only, and declaring one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
+                if (pipeline.State.IsDeliverable() && workItem.IsDeclarable)
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
                 outcome = new RunOutcome.Completed(pipeline.State);

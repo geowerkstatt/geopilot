@@ -709,7 +709,7 @@ public class ProcessingRunnerTest
         var store = new ProcessingJobStore();
         var gate = new TaskCompletionSource();
 
-        var job = store.CreateJob(Guid.NewGuid());
+        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: true);
         createdJobIds.Add(job.Id);
 
         var jobTimeout = TimeSpan.FromSeconds(2);
@@ -836,6 +836,26 @@ public class ProcessingRunnerTest
         Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
         Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "No delivery may be staged when delivery is restricted.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task DeliveryFilesAreNotStagedWhenNobodyCanDeclareTheRun()
+    {
+        var jobId = NewJob();
+        var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline, isDeclarable: false);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        // The run itself still succeeds: whether it is kept as a delivery depends on who started it, not on the data.
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.IsEmpty(step.DeliveryFiles);
+        Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "A run nobody can declare must not be kept as a delivery.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -973,7 +993,7 @@ public class ProcessingRunnerTest
 
         foreach (var gate in gates)
         {
-            var job = store.CreateJob(Guid.NewGuid());
+            var job = store.CreateJob(Guid.NewGuid(), isDeclarable: true);
             createdJobIds.Add(job.Id);
             var pipeline = BuildPipeline(job.Id, BuildBlockingStep("step_1", gate.Task));
             pipelines.Add(pipeline);
@@ -1069,7 +1089,7 @@ public class ProcessingRunnerTest
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerAwaitingShutdown(IPipeline pipeline, TimeSpan shutdownDrainTimeout = default)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>(), IsDeclarable: true));
 
         var store = new Mock<IProcessingJobStore>();
         store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
@@ -1081,10 +1101,10 @@ public class ProcessingRunnerTest
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state, FinishedAt = DateTime.UtcNow };
 
-    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null)
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null, bool isDeclarable = true)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>()));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>(), isDeclarable));
         channel.Writer.Complete();
 
         var store = new Mock<IProcessingJobStore>();
