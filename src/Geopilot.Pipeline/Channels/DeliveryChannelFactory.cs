@@ -28,7 +28,8 @@ internal sealed class DeliveryChannelFactory
     /// <summary>
     /// Checks a reaction without constructing its channel: the implementation is a channel with one public
     /// constructor, every key of the definition is a parameter, every declared mandate key a parameter marked as
-    /// mandate value that the definition does not set, every value converts to its parameter, and, with a base
+    /// mandate value that the definition does not set, every parameter marked as mandate value takes a text or a list
+    /// of texts, every value converts to its parameter, and, with a base
     /// configuration, every parameter that needs a value gets one. A key the base configuration pins is the concern
     /// of the definition validation.
     /// </summary>
@@ -66,6 +67,9 @@ internal sealed class DeliveryChannelFactory
             .Concat(mandateKeys
                 .Where(config.ContainsKey)
                 .Select(key => $"Channel <{implementation}>: the mandate value '{key}' is already set in default_config. A value comes either from the pipeline definition or from the mandate."))
+            .Concat(parameters
+                .Where(parameter => IsMandateValue(parameter) && !IsTextOrTextList(parameter.ParameterType))
+                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [MandateValue] but takes {parameter.ParameterType.Name}. A mandate value is a text (string) or a list of texts (IReadOnlyList<string>)."))
             .ToList();
 
         foreach (var parameter in parameters)
@@ -137,6 +141,9 @@ internal sealed class DeliveryChannelFactory
     }
 
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
+
+    // The administration offers a text field or a list of texts for a mandate value, nothing else.
+    private static bool IsTextOrTextList(Type type) => type == typeof(string) || type == typeof(IReadOnlyList<string>);
 
     private static object? Bind(ParameterInfo parameter, params Parameterization[] places)
     {

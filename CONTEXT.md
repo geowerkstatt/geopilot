@@ -56,7 +56,7 @@ Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz d
 
 ## Satz
 
-Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt. Im Code: `ReactionSetConfig`.
+Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
 
 ## Kanal
 

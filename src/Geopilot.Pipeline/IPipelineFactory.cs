@@ -13,6 +13,21 @@ public interface IPipelineFactory
     List<PipelineConfig> Pipelines { get; }
 
     /// <summary>
+    /// Gets the reaction sets of the definition, empty when it has none.
+    /// </summary>
+    IReadOnlyList<ReactionSetConfig> ReactionSets { get; }
+
+    /// <summary>
+    /// Checks the values a mandate supplies to the reactions of a set by constructing the channel of each reaction
+    /// with them and discarding it again. Values for keys the set does not declare are the caller's to drop.
+    /// </summary>
+    /// <param name="reactionSetId">The id of the set.</param>
+    /// <param name="values">The values per reaction id.</param>
+    /// <returns>One message per reaction whose channel refuses its values, empty when all accept them.</returns>
+    /// <exception cref="InvalidOperationException">No set with the specified id exists.</exception>
+    IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values);
+
+    /// <summary>
     /// Creates a pipeline instance with the specified id.
     /// </summary>
     /// <param name="id">The id of the pipeline to be created.</param>
