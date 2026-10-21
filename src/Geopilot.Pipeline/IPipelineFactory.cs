@@ -18,6 +18,16 @@ public interface IPipelineFactory
     IReadOnlyList<ReactionSetConfig> ReactionSets { get; }
 
     /// <summary>
+    /// Resolves the transfers of a set: per reaction its id, the implementation of its channel and the configuration
+    /// the pipeline definition gives it, which is the default configuration of the channel with the reaction's
+    /// overwrites. The base configuration is not part of it.
+    /// </summary>
+    /// <param name="reactionSetId">The id of the set.</param>
+    /// <returns>The transfers of the set.</returns>
+    /// <exception cref="InvalidOperationException">No set with the specified id exists.</exception>
+    IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveTransfers(string reactionSetId);
+
+    /// <summary>
     /// Checks the values a mandate supplies to the reactions of a set by constructing the channel of each reaction
     /// with them and discarding it again. Values for keys the set does not declare are the caller's to drop.
     /// </summary>

@@ -347,6 +347,32 @@ public class ReactionSetValidationTest
         Assert.AreEqual("validation object is not of type IEnumerable<ReactionSetConfig>", result?.ErrorMessage);
     }
 
+    [TestMethod]
+    public void ResolvesATransferWithTheDefaultConfiguration()
+    {
+        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + PlainSet).ResolveTransfers("ablage"));
+
+        Assert.AreEqual("ablage", transfer.ReactionId);
+        Assert.AreEqual(FileDrop, transfer.Implementation);
+        Assert.AreEqual("allgemein", transfer.Config["subfolder"]);
+    }
+
+    [TestMethod]
+    public void ResolvesATransferWithTheOverwrittenConfiguration()
+    {
+        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + OverwritingSet).ResolveTransfers("ablage"));
+
+        Assert.AreEqual("kanton-a", transfer.Config["subfolder"]);
+    }
+
+    [TestMethod]
+    public void RefusesToResolveAnUnknownSet()
+    {
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(() => Factory(FileDropChannelWithSubfolder + PlainSet).ResolveTransfers("unbekannt"));
+
+        Assert.AreEqual("Reaction set <unbekannt> does not exist.", exception.Message);
+    }
+
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
     {
         var result = factory.ValidateDefinition();

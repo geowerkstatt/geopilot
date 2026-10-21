@@ -1,9 +1,12 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Pipeline;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
+using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -15,6 +18,8 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
     private readonly IProcessingService processingService;
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
+    private readonly IPipelineFactory pipelineFactory;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryDeclarationService"/> class.
@@ -24,13 +29,17 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         Context context,
         IProcessingService processingService,
         IMandateService mandateService,
-        IAssetHandler assetHandler)
+        IAssetHandler assetHandler,
+        IPipelineFactory pipelineFactory,
+        IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
         this.mandateService = mandateService;
         this.assetHandler = assetHandler;
+        this.pipelineFactory = pipelineFactory;
+        this.deliveryOptions = deliveryOptions;
     }
 
     /// <inheritdoc/>
@@ -128,7 +137,9 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.NoAssets, Message: $"No assets found for job with id <{jobId}>.");
         }
 
+        var transfers = CreateTransfers(delivery, mandate);
         var entityEntry = context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(transfers);
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -137,6 +148,11 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         {
             // Another caller declared the same job between the check above and this write. The unique index is
             // what actually keeps a job to one delivery; the check only spares the common case a failed insert.
+            foreach (var transfer in transfers)
+            {
+                context.Entry(transfer).State = EntityState.Detached;
+            }
+
             context.Entry(delivery).State = EntityState.Detached;
             logger.LogInformation("Job with id <{JobId}> was delivered by another caller while this delivery was being written.", jobId);
             return new DeliveryDeclarationResult(
@@ -147,6 +163,34 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
 
         logger.LogInformation("Declaration for job with id <{JobId}> created.", jobId);
         return new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, entityEntry.Entity.Id);
+    }
+
+    /// <summary>
+    /// Creates the transfers of the set the mandate chose. They wait until the uploader can no longer delete the
+    /// delivery, and keep the configuration of the set and the values of the mandate as they are at the declaration.
+    /// </summary>
+    private List<DeliveryReaction> CreateTransfers(Delivery delivery, Mandate mandate)
+    {
+        if (mandate.ReactionSetId is null)
+            return [];
+
+        // The start refuses a mandate with a set while the window never closes, so the window always ends.
+        var holdEnd = deliveryOptions.Value.GetDeleteWindowEnd(delivery.Date)
+            ?? throw new InvalidOperationException($"Mandate <{mandate.Id}> chose a reaction set while the delete window never closes.");
+        var mandateValues = mandate.ReactionSetValues ?? [];
+
+        return pipelineFactory.ResolveTransfers(mandate.ReactionSetId)
+            .Select(transfer => new DeliveryReaction
+            {
+                Delivery = delivery,
+                ReactionId = transfer.ReactionId,
+                Kind = ReactionKind.Transfer,
+                Implementation = transfer.Implementation,
+                Config = JsonSerializer.Serialize(new ReactionSnapshot(transfer.Config, mandateValues.GetValueOrDefault(transfer.ReactionId) ?? [])),
+                State = ReactionState.Pending,
+                NextAttemptAt = holdEnd,
+            })
+            .ToList();
     }
 
     private static bool IsJobConflict(DbUpdateException exception)
