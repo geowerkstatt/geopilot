@@ -28,6 +28,7 @@ public class UploadPollingTest
     private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
+    private Mock<IPipelineRunRecorder> runRecorderMock;
     private Context context;
 
     [TestInitialize]
@@ -44,7 +45,7 @@ public class UploadPollingTest
         uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
-        var runRecorderMock = new Mock<IPipelineRunRecorder>();
+        runRecorderMock = new Mock<IPipelineRunRecorder>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
@@ -86,6 +87,22 @@ public class UploadPollingTest
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
+    }
+
+    [TestMethod]
+    public async Task StartRecordsWhoStartedTheJob()
+    {
+        var (jobId, uploadId, mandate, user) = await CreateAndStartJobAsync();
+
+        // Through the real service, so a declarer lost on the way to the lifecycle shows here: the execution
+        // protocol would no longer name who started a run.
+        runRecorderMock.Verify(
+            r => r.RecordJobStartedAsync(
+                It.Is<ProcessingJob>(job => job.Id == jobId),
+                mandate,
+                Declarer.ForUser(user.Id),
+                It.Is<UploadInfo>(upload => upload.Id == uploadId)),
+            Times.Once);
     }
 
     [TestMethod]

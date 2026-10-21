@@ -153,17 +153,19 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
-    public async Task StartRefusesASecondJobForTheSameUpload()
+    [DataRow(false, ProcessingState.Pending, DisplayName = "First job still in its preflight")]
+    [DataRow(true, ProcessingState.Running, DisplayName = "First job running")]
+    public async Task StartRefusesASecondJobForTheSameUpload(bool passPreflight, ProcessingState firstState)
     {
-        var upload = await CreateUploadAsync();
-        var pipeline = SetupPipeline();
-        var first = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var (firstId, uploadId, pipeline) = await CreateJobAsync(passPreflight);
+        var upload = uploadStore.GetUpload(uploadId);
+        Assert.IsNotNull(upload);
         Assert.IsTrue(preflightQueue.Reader.TryRead(out _));
 
         await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
 
         Assert.HasCount(1, jobStore.GetJobIds());
-        Assert.AreEqual(ProcessingState.Pending, jobStore.GetJob(first.Id)!.State);
+        Assert.AreEqual(firstState, jobStore.GetJob(firstId)!.State);
         Assert.IsFalse(preflightQueue.Reader.TryRead(out _), "The refused start must not reach the preflight.");
         pipelineFactory.Verify(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Never, "The refusal must leave the active job alone.");

@@ -45,6 +45,9 @@ public class ProcessingJobStore : IProcessingJobStore
         // shortcut: one lock and a scan over all jobs, index them by upload if their number ever gets large.
         lock (createLock)
         {
+            // A job counts as ended once its terminal state is set, but its upload is only released after the
+            // declaration and the protocol. A start in between is accepted and then fails in its preflight; after a
+            // cancelled run, the one case where a restart makes sense, nothing is released.
             if (jobs.Values.Any(job => job.UploadId == uploadId && !IsTerminal(job.State)))
                 throw new JobAlreadyActiveException(uploadId);
 
