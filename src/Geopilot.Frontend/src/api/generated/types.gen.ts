@@ -1965,7 +1965,7 @@ export type PostApiV1SubmissionErrors = {
   409: unknown;
 };
 
-export type PostApiV1SubmissionError =PostApiV1SubmissionErrors[keyof PostApiV1SubmissionErrors];
+export type PostApiV1SubmissionError = PostApiV1SubmissionErrors[keyof PostApiV1SubmissionErrors];
 
 export type PostApiV1SubmissionResponses = {
   /**
