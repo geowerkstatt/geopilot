@@ -47,7 +47,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfError` und
         },
         {
           "features": [
-            { "errorId": "e0", "geom": "POINT(2600000 1200000)", "info": "Fehlerbeschreibung" }
+            { "id": "e0", "geom": "POINT(2600000 1200000)", "info": "Fehlerbeschreibung" }
           ]
         }
       ]
@@ -81,8 +81,8 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfError` und
 
 - `data.map` und `data.tree` erscheinen nur, wenn die jeweilige Ansicht via `include` erzeugt wurde. `data.filterBy` erscheint nur, wenn ein Baum erzeugt wurde.
 - `map.layers` werden in Reihenfolge gezeichnet. Ein Layer ist entweder ein WMTS-Layer (`wmts` = Capabilities-URL, optional `layerIds`) oder ein Feature-Layer (`features`). `title` (lokalisiert) ist optional. Ein Layer kann zudem einen Copyright-Vermerk tragen: `attribution` (Daten-Owner bzw. Anzeigetext) und optional `attributionUrl` (Link-Ziel); das Frontend zeigt ihn mit lokalisiertem "©"-Präfix unten links an.
-- Pro `features`-Eintrag: `geom` als WKT (z.B. `POINT(...)`), `errorId` als stabile Fehler-ID, `info` als Anzeigetext.
+- Pro `features`-Eintrag: `geom` als WKT (z.B. `POINT(...)`), `id` als stabile Fehler-ID, `info` als Anzeigetext.
 - `tree.items` ist eine flache Liste; jedes Element ist ein Fehler und wird zum Blatt des Baums. Pro Element sind die Felder explizit: `severity` (`error` oder `warning`, daraus leitet das Frontend Icon und Farbe ab) und `message` sind immer vorhanden; `id` (stabile Fehler-ID), `errorType` (die klassifizierte Fehlerkategorie als `LocalizedText`, serialisiert als Objekt je Sprache), `tid`, `model`, `topic`, `class`, `line` (Zahl) und `coordinates` (vorformatierter String `"C1, C2"`) erscheinen nur, wenn der Fehler sie trägt (`model`, `topic` und `class` immer zusammen). Als Blatt-Text zeigt das Frontend `tid`, ersatzweise `message`.
 - `tree.groupBy` sind die Felder, nach denen das Frontend die Items zur Hierarchie gruppiert (äusserste Ebene zuerst); eine leere Liste ergibt eine flache Liste. `data.filterBy` sind die im Frontend als Filter angebotenen Felder; der Filter wirkt auf Karte und Baum. Feld-Werte werden als camelCase-Strings serialisiert (`errorType`, `model`, `topic`, `class`).
-- `id` des Tree-Items und `errorId` des Map-Features sind identisch; daran verknüpft das Frontend Karte und Baum (Cross-Select).
+- `id` des Tree-Items und `id` des Map-Features sind identisch; daran verknüpft das Frontend Karte und Baum (Cross-Select).
 

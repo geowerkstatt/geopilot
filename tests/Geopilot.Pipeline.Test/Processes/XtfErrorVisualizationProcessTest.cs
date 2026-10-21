@@ -53,9 +53,9 @@ public class XtfErrorVisualizationProcessTest
             Assert.IsNotEmpty(feature.Info);
         }
 
-        // Every feature carries an errorId.
-        var featureIds = features.Select(f => f.ErrorId).ToList();
-        Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
+        // Every feature carries the id of its error.
+        var featureIds = features.Select(f => f.Id).ToList();
+        Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an id");
 
         // Tree carries the grouping keys; the composite root carries the filter keys (the filter spans map + tree).
         Assert.IsEmpty(config.Tree.GroupBy, "no grouping (flat list) unless groupBy is configured");

@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Visualization;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
@@ -23,9 +24,7 @@ internal class XtfErrorVisualizationProcess
 
     private readonly bool includeMap;
     private readonly bool includeTree;
-    private readonly string baseMapWmtsCapabilitiesUrl;
-    private readonly string baseMapAttribution;
-    private readonly string baseMapAttributionUrl;
+    private readonly MapLayer baseMapLayer;
     private readonly IReadOnlyList<TreeField> groupBy;
     private readonly IReadOnlyList<TreeField> filterBy;
 
@@ -45,15 +44,7 @@ internal class XtfErrorVisualizationProcess
             : null;
         includeMap = selected?.Contains(IncludeMap) ?? true;
         includeTree = selected?.Contains(IncludeTree) ?? true;
-        this.baseMapWmtsCapabilitiesUrl = string.IsNullOrWhiteSpace(baseMapWmtsCapabilitiesUrl)
-            ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
-            : baseMapWmtsCapabilitiesUrl;
-        this.baseMapAttribution = string.IsNullOrWhiteSpace(baseMapAttribution)
-            ? MapVisualizationBuilder.DefaultBaseMapAttribution
-            : baseMapAttribution;
-        this.baseMapAttributionUrl = string.IsNullOrWhiteSpace(baseMapAttributionUrl)
-            ? MapVisualizationBuilder.DefaultBaseMapAttributionUrl
-            : baseMapAttributionUrl;
+        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl);
         this.groupBy = groupBy ?? [];
         this.filterBy = filterBy ?? [];
     }
@@ -74,7 +65,7 @@ internal class XtfErrorVisualizationProcess
 
         var config = new XtfErrorVisualizationConfig
         {
-            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl) : null,
+            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapLayer) : null,
             Tree = includeTree
                 ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
                 : null,

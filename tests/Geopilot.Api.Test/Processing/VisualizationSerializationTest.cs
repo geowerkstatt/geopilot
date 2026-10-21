@@ -1,5 +1,7 @@
 ﻿using Geopilot.Api.Processing;
+using Geopilot.Pipeline.Processes.XtfDiffVisualization;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using System.Text.Json;
 
@@ -55,6 +57,65 @@ public class VisualizationSerializationTest
             "{\"severity\":\"warning\",\"message\":\"Some warning\"}]," +
             "\"groupBy\":[\"model\",\"topic\",\"class\"]}," +
             "\"filterBy\":[\"class\",\"errorType\"]}}";
+        Assert.AreEqual(expected, json);
+    }
+
+    [TestMethod]
+    public void SerializesXtfDiffVisualizationWireFormat()
+    {
+        var config = new XtfDiffVisualizationConfig
+        {
+            Map = new MapVisualizationConfig
+            {
+                Layers =
+                [
+                    new MapLayer
+                    {
+                        Title = new Dictionary<string, string> { ["de"] = "Vorher" },
+                        Style = MapLayerStyle.Old,
+                        Features = [new MapFeature { Id = "building", Geom = "POINT(2600000 1200000)", Info = "Model.Topic.Class" }],
+                    },
+                ],
+            },
+            Table = new TableVisualizationConfig
+            {
+                Changes =
+                [
+                    new DiffChange
+                    {
+                        Id = "c0",
+                        ObjectId = "building",
+                        ChangeType = DiffChangeType.Changed,
+                        ValueType = DiffValueType.Attribute,
+                        InterlisName = "Model.Topic.Class",
+                        AttributePath = "EGID",
+                        OldValue = "190001",
+                        NewValue = "190002",
+                    },
+                    new DiffChange
+                    {
+                        Id = "c1",
+                        ObjectId = "point",
+                        ChangeType = DiffChangeType.Added,
+                        ValueType = DiffValueType.Object,
+                        InterlisName = "Model.Topic.Point",
+                    },
+                ],
+            },
+        };
+
+        var json = JsonSerializer.Serialize(config.ToVisualization(), ProcessingRunner.VisualizationJsonOptions);
+
+        // The exact wire format the frontend types mirror: camelCase properties and enum values, null fields omitted.
+        var expected =
+            "{\"type\":\"xtfDiff\",\"data\":{" +
+            "\"map\":{\"layers\":[{\"title\":{\"de\":\"Vorher\"}," +
+            "\"features\":[{\"id\":\"building\",\"geom\":\"POINT(2600000 1200000)\",\"info\":\"Model.Topic.Class\"}]," +
+            "\"style\":\"old\"}]}," +
+            "\"table\":{\"changes\":[" +
+            "{\"id\":\"c0\",\"objectId\":\"building\",\"changeType\":\"changed\",\"valueType\":\"attribute\"," +
+            "\"interlisName\":\"Model.Topic.Class\",\"attributePath\":\"EGID\",\"oldValue\":\"190001\",\"newValue\":\"190002\"}," +
+            "{\"id\":\"c1\",\"objectId\":\"point\",\"changeType\":\"added\",\"valueType\":\"object\",\"interlisName\":\"Model.Topic.Point\"}]}}}";
         Assert.AreEqual(expected, json);
     }
 }

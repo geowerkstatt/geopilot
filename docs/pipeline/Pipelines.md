@@ -569,3 +569,4 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)
 - [XTF Fehlervisualisierung](Prozessoren/xtf-fehlervisualisierung.md)
+- [XTF Diff Visualisierung](Prozessoren/xtf-diff-visualisierung.md)
