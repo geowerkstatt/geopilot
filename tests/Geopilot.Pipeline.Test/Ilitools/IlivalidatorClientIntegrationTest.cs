@@ -133,7 +133,7 @@ public class IlivalidatorClientIntegrationTest
         // XtfValidatorProcess turns this line into an error of its own, because the tool exits like a failed
         // validation. If a tool update rewords it, this assertion is what says so.
         var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
-        Assert.Contains(XtfValidatorProcess.MetaConfigNotFoundMarker, log);
+        Assert.Contains(IlitoolsHelper.IlivalidatorMetaConfigNotFoundMarker, log);
         Assert.Contains("DOESNOTEXIST", log);
     }
 
