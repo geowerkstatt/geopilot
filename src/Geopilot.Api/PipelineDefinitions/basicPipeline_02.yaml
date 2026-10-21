@@ -56,6 +56,12 @@ processes:
         - new
   - id: xtf_diff
     implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
+  - id: gpkg_data_import
+    implementation: Geopilot.Pipeline.Processes.Gpkg.Ili2GpkgDataImportProcess
+    default_config:
+      doSchemaImport: true
+      createBasketCol: true
+
 pipelines:
   - id: ili_validation
     display_name:
@@ -738,3 +744,68 @@ pipelines:
           - property: Log
             actions:
               - Download
+  - id: gpkg_data_import
+    display_name:
+      en: GPKG Data Import
+      de: GPKG-Datenimport
+      it: Importazione dati GPKG
+      fr: Importation de données GPKG
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: Analyzing uploaded files
+          de: Hochgeladene Dateien werden analysiert
+          it: Analisi dei file caricati
+          fr: Analyse des fichiers téléversés
+        process_id: xtf_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: at-least-one-xtf-required
+                expression: "Length([xtf_matching.XtfFiles]) < 1"
+                message:
+                  de: "Es muss mindestens eine XTF-Datei hochgeladen werden."
+                  en: "At least one XTF file must be uploaded."
+                  fr: "Au moins un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato almeno un file XTF."
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: data_import
+        display_name:
+          en: Importing XTF data into GPKG
+          de: XTF-Daten in GPKG importieren
+          it: Importazione dei dati XTF in GPKG
+          fr: Importation des données XTF dans GPKG
+        process_id: gpkg_data_import
+        conditions:
+          post:
+            fail_conditions:
+              - id: not-successful
+                expression: "[data_import.Success] == false"
+                message:
+                  de: "Der Daten-Import war nicht erfolgreich."
+                  en: "The data import was not successful."
+                  fr: "L'importation des données n'a pas réussi."
+                  it: "L'importazione dei dati non è riuscita."
+        input:
+          transferFiles: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: DbFile
+            actions:
+              - Download
+              - Delivery
+          - property: ErrorLog
+            actions:
+              - Download
+              - Delivery
+          - property: XtfLog
+            actions:
+              - Download
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage

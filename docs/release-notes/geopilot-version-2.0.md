@@ -66,6 +66,11 @@ geopilot unterstützt neu neben der Validierung von INTERLIS-Transferdateien auc
 * XtfValidatorProcess (basierend auf ilivalidator)
 * ZipPackageProcess
 * UnzipProcess
+* Ili2GpkgSchemaImportProcess
+* Ili2GpkgDataImportProcess
+* Ili2GpkgUpdateProcess
+* Ili2GpkgExportProcess
+* Ili2GpkgValidatorProcess
 
 Eine detaillierte Beschreibung der Prozessoren befindet sich unter [Dokumentation geopilot Prozessoren](../pipeline/Pipelines.md#prozesse).
 
