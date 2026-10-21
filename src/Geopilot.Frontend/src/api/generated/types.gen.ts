@@ -372,6 +372,21 @@ export type Mandate = {
    */
   pipelineId?: string | null;
   /**
+   * The id of the reaction set the mandate chose in the pipeline definition, or null
+   * for none. The set decides what happens to a delivery once the uploader can no longer delete it.
+   */
+  reactionSetId?: string | null;
+  /**
+   * The values the mandate supplies to the reactions of its set, per reaction id and key: a text or a list of texts.
+   * A request that leaves them out keeps the stored set and values; to remove the set, send no set and an empty
+   * object.
+   */
+  reactionSetValues?: {
+    [key: string]: {
+      [key: string]: unknown;
+    };
+  } | null;
+  /**
    * The coordinates representing the spatial extent of the mandate.
    */
   coordinates: Array<Coordinate>;

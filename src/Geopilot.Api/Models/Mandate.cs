@@ -2,6 +2,7 @@
 using NetTopologySuite.Geometries;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Models;
@@ -65,6 +66,21 @@ public class Mandate
     /// </summary>
     [Column(TypeName = "varchar(128)")]
     public string? PipelineId { get; set; }
+
+    /// <summary>
+    /// The id of the reaction set the mandate chose in the pipeline definition, or <see langword="null"/>
+    /// for none. The set decides what happens to a delivery once the uploader can no longer delete it.
+    /// </summary>
+    [Column(TypeName = "varchar(128)")]
+    [MaxLength(128)]
+    public string? ReactionSetId { get; set; }
+
+    /// <summary>
+    /// The values the mandate supplies to the reactions of its set, per reaction id and key: a text or a list of texts.
+    /// A request that leaves them out keeps the stored set and values; to remove the set, send no set and an empty
+    /// object.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, JsonElement>>? ReactionSetValues { get; set; }
 
     /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.

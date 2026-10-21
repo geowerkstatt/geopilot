@@ -195,6 +195,7 @@ builder.Services.AddSingleton<IUploadStore, UploadStore>();
 builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
+builder.Services.AddTransient<IReactionSetValidator, ReactionSetValidator>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
@@ -299,6 +300,7 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
 app.LogDeleteWindowTimeZone();
+app.ValidateMandateReactionSets();
 
 if (accessTokenFormat == AccessTokenFormat.Opaque)
 {

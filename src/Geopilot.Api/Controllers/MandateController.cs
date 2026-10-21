@@ -23,6 +23,7 @@ public class MandateController : ControllerBase
     private readonly Context context;
     private readonly IMandateService mandateService;
     private readonly IPipelineService pipelineService;
+    private readonly IReactionSetValidator reactionSetValidator;
     private readonly MachineDeliveryOptions machineDeliveryOptions;
 
     /// <summary>
@@ -32,12 +33,14 @@ public class MandateController : ControllerBase
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="mandateService">The mandate service providing mandate filtering and retrieval.</param>
     /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
+    /// <param name="reactionSetValidator">Checks the reaction set a mandate chooses and its values.</param>
     /// <param name="machineDeliveryOptions">The machine delivery settings, which decide whether a mandate carries a key.</param>
     public MandateController(
         ILogger<MandateController> logger,
         Context context,
         IMandateService mandateService,
         IPipelineService pipelineService,
+        IReactionSetValidator reactionSetValidator,
         IOptions<MachineDeliveryOptions> machineDeliveryOptions)
     {
         ArgumentNullException.ThrowIfNull(machineDeliveryOptions);
@@ -46,6 +49,7 @@ public class MandateController : ControllerBase
         this.context = context;
         this.mandateService = mandateService;
         this.pipelineService = pipelineService;
+        this.reactionSetValidator = reactionSetValidator;
         this.machineDeliveryOptions = machineDeliveryOptions.Value;
     }
 
@@ -181,6 +185,12 @@ public class MandateController : ControllerBase
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
+            var reactionSet = reactionSetValidator.Check(mandate.ReactionSetId, mandate.ReactionSetValues ?? []);
+            if (!reactionSet.IsValid)
+                return BadRequest(DescribeProblems(reactionSet));
+
+            ApplyReactionSet(mandate, reactionSet);
+
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
             mandate.Organisations = await context.Organisations
                 .Where(o => organisationIds.Contains(o.Id))
@@ -245,6 +255,21 @@ public class MandateController : ControllerBase
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
+            if (mandate.ReactionSetValues is null)
+            {
+                // A client that does not know reaction sets sends no values, the form included until it shows them.
+                mandate.ReactionSetId = existingMandate.ReactionSetId;
+                mandate.ReactionSetValues = existingMandate.ReactionSetValues;
+            }
+            else
+            {
+                var reactionSet = reactionSetValidator.Check(mandate.ReactionSetId, mandate.ReactionSetValues);
+                if (!reactionSet.IsValid)
+                    return BadRequest(DescribeProblems(reactionSet));
+
+                ApplyReactionSet(mandate, reactionSet);
+            }
+
             ApplyKey(mandate, existingMandate.Key);
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
@@ -282,6 +307,18 @@ public class MandateController : ControllerBase
             return Problem(e.Message);
         }
     }
+
+    /// <summary>
+    /// Saves the checked set with the values it declares, and no set for a blank id.
+    /// </summary>
+    private static void ApplyReactionSet(Mandate mandate, ReactionSetCheck reactionSet)
+    {
+        mandate.ReactionSetId = string.IsNullOrWhiteSpace(mandate.ReactionSetId) ? null : mandate.ReactionSetId;
+        mandate.ReactionSetValues = reactionSet.Values;
+    }
+
+    private static string DescribeProblems(ReactionSetCheck reactionSet)
+        => reactionSet.SetError ?? string.Join(" ", reactionSet.ValueErrors);
 
     private bool IsValidPipeline(string? pipelineId)
     {
