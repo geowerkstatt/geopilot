@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 namespace Geopilot.Pipeline.Validation;
 
 /// <summary>
-/// Requires reaction ids to be unique across all sets of <c>delivery_processing</c>, not only within one. A mandate
-/// that later chooses several sets then never gets two reactions with the same id.
+/// Requires reaction ids to be unique across all <c>reaction_sets</c>, not only within one set. A mandate that later
+/// chooses several sets then never gets two reactions with the same id.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 internal sealed class UniqueReactionIdsAttribute : ValidationAttribute
@@ -15,8 +15,8 @@ internal sealed class UniqueReactionIdsAttribute : ValidationAttribute
         if (value is null)
             return ValidationResult.Success;
 
-        if (value is not IEnumerable<DeliveryProcessingConfig> sets)
-            return new ValidationResult("validation object is not of type IEnumerable<DeliveryProcessingConfig>");
+        if (value is not IEnumerable<ReactionSetConfig> sets)
+            return new ValidationResult("validation object is not of type IEnumerable<ReactionSetConfig>");
 
         var duplicates = sets
             .SelectMany(set => set.Transfers ?? [])
@@ -27,6 +27,6 @@ internal sealed class UniqueReactionIdsAttribute : ValidationAttribute
 
         return duplicates.Count == 0
             ? ValidationResult.Success
-            : new ValidationResult($"{string.Join(" ", duplicates)} Reaction ids must be unique across all sets of delivery_processing.");
+            : new ValidationResult($"{string.Join(" ", duplicates)} Reaction ids must be unique across all reaction sets.");
     }
 }

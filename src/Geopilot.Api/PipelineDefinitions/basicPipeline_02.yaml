@@ -930,7 +930,7 @@ channels:
       subfolder: entwicklung
   - id: ablage_pro_mandat
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
-delivery_processing:
+reaction_sets:
   - id: ablage
     transfers:
       - id: ablage
