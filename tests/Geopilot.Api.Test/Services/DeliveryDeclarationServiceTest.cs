@@ -78,7 +78,7 @@ public class DeliveryDeclarationServiceTest
         var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), Declarer.ForUser(1), CancellationToken.None);
 
         // Refused before the declarer or the mandate is looked at: the strict mocks would fail on any further call.
-        Assert.AreEqual(DeliveryDeclarationStatus.JobNotDeliverable, result.Status);
+        Assert.AreEqual(DeliveryDeclarationStatus.JobNotDeclarable, result.Status);
     }
 
     private Guid SetupDeliverableJob(int mandateId, bool isDeclarable = true)

@@ -102,6 +102,7 @@
 
 ### Fixed
 
+- A machine delivery is declared even when its run ends before the attempt is fully registered, which a very short run could manage until now, leaving the attempt in `processing` until its job was retired. An attempt whose delivery the client declared itself after geopilot could not now reports `delivered` with that delivery, instead of staying `failed`.
 - A processing run that nobody can declare, because it was started anonymously, by someone outside the organisations of its mandate, or on a mandate that takes no deliveries, is no longer kept as a delivery: its delivery files are not staged, and `POST api/v1/delivery` refuses its job with `400`, whoever asks. Until now such a run was staged until `Processing:JobRetention` had passed, and a member of the mandate could declare the job of an anonymous run.
 - A start whose pipeline cannot be instantiated no longer leaves a pending job behind that never runs and that the cleanup reports as stuck on every run. The start is refused as before.
 - The XTF matcher can filter INTERLIS 1 transfer files by model: with `iliModels` set, an `.itf` file now matches by the model named in its `MODL` header line. Before, it never matched and was always sorted out, so a pipeline could not check the model of an INTERLIS 1 delivery.

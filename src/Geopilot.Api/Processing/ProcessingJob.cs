@@ -37,4 +37,16 @@ public record class ProcessingJob(
     /// and its delivery is refused. Declaring still checks the mandate on its own.
     /// </summary>
     public bool IsDeclarable { get; init; }
+
+    /// <summary>
+    /// The wish expressed at the start that geopilot declares the delivery itself, or <see langword="null"/> for a
+    /// job whose delivery is declared by hand, if at all. Only a machine delivery attempt carries one.
+    /// </summary>
+    public DeliveryIntent? DeliveryIntent { get; init; }
+
+    /// <summary>
+    /// Why geopilot could not declare the delivery of its <see cref="DeliveryIntent"/>, although the run allowed it.
+    /// Whether a delivery exists is not kept here: the delivery itself is the record of that.
+    /// </summary>
+    public string? DeclarationFailure { get; init; }
 }

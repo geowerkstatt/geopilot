@@ -2,7 +2,7 @@
 
 /// <summary>
 /// The outcome of a delivery declaration. Deliberately not an HTTP result: the declaration runs both from a
-/// controller and from the processing runner, and those report a failure in different ways.
+/// controller and from the job lifecycle, and those report a failure in different ways.
 /// </summary>
 /// <param name="Status">What happened.</param>
 /// <param name="DeliveryId">The delivery of the job: the one just created for <see cref="DeliveryDeclarationStatus.Created"/>,
@@ -29,6 +29,10 @@ public enum DeliveryDeclarationStatus
 
     /// <summary>The job has not completed, or its run does not allow a delivery.</summary>
     JobNotDeliverable,
+
+    /// <summary>Nobody can declare the job's run: whoever started it may not deliver to its mandate, or the mandate takes no
+    /// deliveries (see <see cref="Processing.ProcessingJob.IsDeclarable"/>).</summary>
+    JobNotDeclarable,
 
     /// <summary>The job was started without a mandate and can therefore not be delivered.</summary>
     JobWithoutMandate,

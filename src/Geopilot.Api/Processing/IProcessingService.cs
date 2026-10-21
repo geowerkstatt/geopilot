@@ -15,10 +15,14 @@ public interface IProcessingService
     /// <param name="uploadId">The id of the upload whose files should be processed.</param>
     /// <param name="mandateId">The mandate selecting the pipeline to run.</param>
     /// <param name="declarer">The user or machine client starting the job, or <see langword="null"/> for an anonymous public mandate.</param>
-    /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists.</exception>
+    /// <param name="deliveryFields">The delivery fields of a machine delivery, whose delivery geopilot then declares
+    /// itself once the run allows it; <see langword="null"/> for a start whose delivery is declared by hand, if at
+    /// all. Requires a <paramref name="declarer"/>.</param>
+    /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists, or
+    /// <paramref name="deliveryFields"/> come without a <paramref name="declarer"/>.</exception>
     /// <exception cref="InvalidOperationException">If the job could not be started with the given mandate.</exception>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>
-    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer);
+    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer, DeliveryFields? deliveryFields);
 
     /// <summary>
     /// Gets the processing job.

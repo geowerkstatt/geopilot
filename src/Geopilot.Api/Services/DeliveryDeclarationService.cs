@@ -46,12 +46,18 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
         }
 
+        if (!job.State.IsDeliverable())
+        {
+            logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
+            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
+        }
+
         // Whether anybody can declare the run was decided when it started: an anonymous run or one on a mandate that
         // takes no deliveries stays undeclarable, whoever asks now.
-        if (!job.State.IsDeliverable() || !job.IsDeclarable)
+        if (!job.IsDeclarable)
         {
-            logger.LogTrace("Job with id <{JobId}> is not completed, delivery is not allowed, or nobody can declare it.", jobId);
-            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed, delivery is not allowed, or nobody can declare it.");
+            logger.LogTrace("Job with id <{JobId}> cannot be declared by anybody.", jobId);
+            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeclarable, Message: $"Job with id <{jobId}> cannot become a delivery: whoever started it may not deliver to its mandate, or the mandate takes no deliveries.");
         }
 
         if (job.MandateId == null)

@@ -93,6 +93,7 @@ public class DeliveryController : ControllerBase
                 return NotFound(result.Message);
 
             case DeliveryDeclarationStatus.JobNotDeliverable:
+            case DeliveryDeclarationStatus.JobNotDeclarable:
             case DeliveryDeclarationStatus.JobWithoutMandate:
                 return BadRequest(result.Message);
 

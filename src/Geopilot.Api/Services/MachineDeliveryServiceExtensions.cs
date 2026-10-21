@@ -1,16 +1,14 @@
-﻿using Geopilot.Api.Processing;
-
-namespace Geopilot.Api.Services;
+﻿namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Registers what machine based delivery needs: the bookkeeping of the attempts, and, only where the
-/// installation offers the capability, the handler that declares their deliveries once a run finishes.
+/// Registers what machine based delivery needs. Its attempts are processing jobs with a delivery intent, which the
+/// job lifecycle declares once their run allows it, so the options are all that is left to register.
 /// </summary>
 public static class MachineDeliveryServiceExtensions
 {
     /// <summary>
-    /// Registers the machine delivery services on <paramref name="builder"/>. The capability is read here, in
-    /// the builder phase, because it also decides whether the resources are routed at all.
+    /// Registers the machine delivery options on <paramref name="builder"/>. The capability is read here, in the
+    /// builder phase, because it also decides whether the resources are routed at all.
     /// </summary>
     /// <returns>Whether this installation offers machine based delivery.</returns>
     public static bool AddMachineDelivery(this WebApplicationBuilder builder)
@@ -18,14 +16,6 @@ public static class MachineDeliveryServiceExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.Services.Configure<MachineDeliveryOptions>(builder.Configuration.GetSection(MachineDeliveryOptions.SectionName));
-        builder.Services.AddSingleton<ISubmissionStore, SubmissionStore>();
-
-        var enabled = builder.Configuration.GetValue($"{MachineDeliveryOptions.SectionName}:{nameof(MachineDeliveryOptions.Enabled)}", false);
-        if (enabled)
-        {
-            builder.Services.AddTransient<IJobCompletionHandler, MachineDeliveryCompletionHandler>();
-        }
-
-        return enabled;
+        return builder.Configuration.GetValue($"{MachineDeliveryOptions.SectionName}:{nameof(MachineDeliveryOptions.Enabled)}", false);
     }
 }
