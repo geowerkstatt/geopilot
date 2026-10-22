@@ -145,7 +145,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
 
         // The user belongs to no organisation of the mandate, which being public does not make up for.
-        SetupGetMandateForUser(addedMandate.Entity.Id, user.Entity, returnNull: true);
+        SetupDeclarable(addedMandate.Entity.Id, user.Entity, isDeclarable: false);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
@@ -877,9 +877,14 @@ public class DeliveryControllerTest
     private (User User, Mandate Mandate) SetupMandateWithUserOrganisation(Mandate mandate)
     {
         var (user, createdMandate) = context.AddMandateWithUserOrganisation(mandate);
-        SetupGetMandateForUser(createdMandate.Id, user);
+
+        // A member, so the rule comes down to whether the mandate takes deliveries.
+        SetupDeclarable(createdMandate.Id, user, createdMandate.AllowDelivery);
         return (user, createdMandate);
     }
+
+    private void SetupDeclarable(int mandateId, User user, bool isDeclarable)
+        => mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateId, Declarer.ForUser(user.Id))).ReturnsAsync(isDeclarable);
 
     private void SetupGetMandateForUser(int mandateId, User user, bool returnNull = false)
     {

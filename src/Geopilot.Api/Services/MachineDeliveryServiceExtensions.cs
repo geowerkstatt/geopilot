@@ -1,8 +1,7 @@
 ﻿namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Registers what machine based delivery needs. Its attempts are processing jobs with a delivery intent, which the
-/// job lifecycle declares once their run allows it, so the options are all that is left to register.
+/// Registers the machine delivery options.
 /// </summary>
 public static class MachineDeliveryServiceExtensions
 {

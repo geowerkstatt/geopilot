@@ -12,7 +12,8 @@ namespace Geopilot.Api.Test.Services;
 
 /// <summary>
 /// The declaration rules are covered through <see cref="Controllers.DeliveryControllerTest"/>, which wires the
-/// service up for real but only ever declares as a user. What is checked here is the other declarer.
+/// service up for real but only ever declares as a user and mocks the mandate rules. What is checked here is the
+/// other declarer, and who may declare against the real mandate rules.
 /// </summary>
 [TestClass]
 public class DeliveryDeclarationServiceTest
@@ -58,7 +59,7 @@ public class DeliveryDeclarationServiceTest
 
         var declarer = Declarer.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.GetMandateForDeliveryAsync(mandate.Id, declarer)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
         var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), declarer, CancellationToken.None);
@@ -79,6 +80,41 @@ public class DeliveryDeclarationServiceTest
 
         // Refused before the declarer or the mandate is looked at: the strict mocks would fail on any further call.
         Assert.AreEqual(DeliveryDeclarationStatus.JobNotDeclarable, result.Status);
+    }
+
+    [TestMethod]
+    [DataRow(true, true, DeliveryDeclarationStatus.Created, DisplayName = "A member, on a mandate that takes deliveries")]
+    [DataRow(false, true, DeliveryDeclarationStatus.MandateNotDeliverable, DisplayName = "Someone outside its organisations, on a public mandate")]
+    [DataRow(true, false, DeliveryDeclarationStatus.MandateNotDeliverable, DisplayName = "A member, on a mandate that stopped taking deliveries")]
+    public async Task DeclaresOnlyForACallerWhoMayDeliverNow(bool callerIsMember, bool allowDelivery, DeliveryDeclarationStatus expected)
+    {
+        var (member, mandate) = context.AddMandateWithUserOrganisation(new Mandate
+        {
+            Name = TestHelpers.Localized(nameof(DeclaresOnlyForACallerWhoMayDeliverNow)),
+            IsPublic = true,
+            AllowDelivery = allowDelivery,
+            EvaluateComment = FieldEvaluationType.NotEvaluated,
+            EvaluatePartial = FieldEvaluationType.NotEvaluated,
+            EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+        });
+        var caller = callerIsMember ? member : context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        context.SaveChanges();
+
+        // Declarable at its start, so only who asks now and what the mandate allows now decide.
+        var jobId = SetupDeliverableJob(mandate.Id);
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+
+        // The real mandate rules rather than a mock of one lookup, so this holds whichever lookup the declaration uses.
+        var declaringService = new DeliveryDeclarationService(
+            Mock.Of<ILogger<DeliveryDeclarationService>>(),
+            context,
+            processingServiceMock.Object,
+            new MandateService(context, Mock.Of<IUploadStore>(), Mock.Of<IPipelineService>()),
+            assetHandlerMock.Object);
+
+        var result = await declaringService.DeclareAsync(jobId, new DeliveryFields(null, null, null), Declarer.ForUser(caller.Id), CancellationToken.None);
+
+        Assert.AreEqual(expected, result.Status);
     }
 
     private Guid SetupDeliverableJob(int mandateId, bool isDeclarable = true)

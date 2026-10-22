@@ -232,7 +232,6 @@ public class JobLifecycle
                     break;
 
                 case DeliveryDeclarationStatus.AlreadyDeclared:
-                    // The caller declared the delivery itself before this ran. It exists, so the attempt adopts it.
                     logger.LogInformation("Job <{JobId}> was already delivered as <{DeliveryId}>, so the attempt adopts it.", jobId, result.DeliveryId);
                     break;
 

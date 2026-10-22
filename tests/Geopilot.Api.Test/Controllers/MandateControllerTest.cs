@@ -584,7 +584,7 @@ namespace Geopilot.Api.Controllers
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
             var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object);
             deliveryController.SetupTestUser(editUser);
-            mandateServiceMock.Setup(s => s.GetMandateForDeliveryAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
+            mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(true);
 
             var request = new DeliveryRequest
             {
