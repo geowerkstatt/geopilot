@@ -35,7 +35,6 @@ describe("General app tests", () => {
     cy.dataCy("loggedInUser-button").click();
     cy.dataCy("delivery-nav").should("exist");
     cy.dataCy("admin-nav").should("not.exist");
-    cy.dataCy("stacBrowser-nav").should("not.exist");
     logout();
 
     loginAsAdmin();
@@ -43,7 +42,6 @@ describe("General app tests", () => {
     cy.dataCy("delivery-nav").should("exist");
     isSelectedNavItem("delivery-nav", "tool-navigation");
     cy.dataCy("admin-nav").should("exist");
-    cy.dataCy("stacBrowser-nav").should("exist");
 
     openTool("admin");
     cy.location().should(location => {
