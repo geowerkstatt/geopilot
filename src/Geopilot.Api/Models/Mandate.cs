@@ -77,8 +77,6 @@ public class Mandate
 
     /// <summary>
     /// The values the mandate supplies to the reactions of its set, per reaction id and key: a text or a list of texts.
-    /// A request that leaves them out keeps the stored set and values; to remove the set, send no set and an empty
-    /// object.
     /// </summary>
     public Dictionary<string, Dictionary<string, JsonElement>>? ReactionSetValues { get; set; }
 
