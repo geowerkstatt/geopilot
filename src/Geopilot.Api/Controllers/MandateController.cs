@@ -227,6 +227,10 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Asynchronously updates the <paramref name="mandate"/> specified.
     /// </summary>
+    /// <remarks>
+    /// A request without <c>reactionSetValues</c> keeps the stored reaction set and its values. To remove the reaction
+    /// set, send <c>reactionSetId</c> as <see langword="null"/> and <c>reactionSetValues</c> as an empty object.
+    /// </remarks>
     /// <param name="mandate">The mandate to update.</param>
     [HttpPut]
     [Authorize(Policy = GeopilotPolicies.Admin)]
