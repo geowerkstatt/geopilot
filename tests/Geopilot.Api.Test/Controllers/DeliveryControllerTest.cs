@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Globalization;
@@ -29,6 +31,7 @@ public class DeliveryControllerTest
     private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private Mock<IAuthorizationService> authorizationServiceMock;
+    private Mock<IPipelineRunRecorder> recorderMock;
     private DeliveryController deliveryController;
     private Context context;
 
@@ -51,7 +54,9 @@ public class DeliveryControllerTest
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
             .ReturnsAsync(AuthorizationResult.Failed());
-        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object);
+        recorderMock = new Mock<IPipelineRunRecorder>();
+        var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object);
     }
 
     [TestCleanup]
@@ -562,6 +567,34 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task DeleteEndsTheOpenReactionsAndRecordsHowFarTheyGot()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        deliveryController.SetupTestUser(admin);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(NewReaction(delivery, "ablage", ReactionState.Pending), NewReaction(delivery, "meldung", ReactionState.Done));
+        context.SaveChanges();
+        assetHandlerMock.Setup(h => h.DeleteJobAssets(delivery.JobId));
+
+        Assert.IsInstanceOfType<OkResult>(await deliveryController.Delete(delivery.Id));
+
+        var states = context.DeliveryReactions
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == delivery.Id)
+            .ToDictionary(r => r.ReactionId, r => r.State);
+        Assert.AreEqual(ReactionState.Deleted, states["ablage"]);
+        Assert.AreEqual(ReactionState.Done, states["meldung"], "a reaction that already forwarded the delivery stays done.");
+        recorderMock.Verify(
+            recorder => recorder.RecordDeliveryDeletedAsync(
+                delivery.Id,
+                It.Is<IReadOnlyList<DeliveryReaction>>(reactions => reactions.Count == 2 && reactions.Any(r => r.ReactionId == "ablage" && r.State == ReactionState.Deleted)),
+                admin.Id),
+            Times.Once);
+    }
+
+    [TestMethod]
     public async Task DeleteAsUploader()
     {
         var user = context.Users.First(u => !u.IsAdmin);
@@ -886,6 +919,16 @@ public class DeliveryControllerTest
 
     private User UserWithDeliveries()
         => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
+
+    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state) => new()
+    {
+        Delivery = delivery,
+        ReactionId = reactionId,
+        Kind = ReactionKind.Transfer,
+        Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+        State = state,
+        NextAttemptAt = DateTime.UtcNow,
+    };
 
     private void AssertNotDeleted(Delivery delivery)
     {
