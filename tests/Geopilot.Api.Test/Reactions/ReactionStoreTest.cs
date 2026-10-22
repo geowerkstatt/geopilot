@@ -249,6 +249,47 @@ public class ReactionStoreTest
         Assert.AreEqual(ReactionState.Running, (await ReloadAsync(claimed)).State);
     }
 
+    [TestMethod]
+    public async Task MarkDeletedEndsTheOpenReactionsOfADeletedDelivery()
+    {
+        var waiting = AddReaction("waiting", nextAttemptAt: dbNow.AddMinutes(1));
+        var running = AddReaction("running", state: ReactionState.Running, attempts: 1, lockedUntil: dbNow.AddMinutes(10));
+        var forwarded = AddReaction("forwarded", state: ReactionState.Done, attempts: 1);
+        var failed = AddReaction("failed", state: ReactionState.Error, attempts: 3);
+        var elsewhere = AddReaction("elsewhere", nextAttemptAt: dbNow.AddMinutes(1), of: AddDelivery());
+        delivery.Deleted = true;
+        await context.SaveChangesAsync();
+
+        var reactions = await store.MarkDeletedAsync(context, delivery.Id, CancellationToken.None);
+
+        CollectionAssert.AreEquivalent(new[] { "waiting", "running", "forwarded", "failed" }, reactions.Select(r => r.ReactionId).ToArray());
+        Assert.AreEqual(ReactionState.Deleted, reactions.Single(r => r.ReactionId == "waiting").State, "the reactions come back as the deletion left them.");
+        foreach (var ended in new[] { waiting, running })
+        {
+            var stored = await ReloadAsync(ended);
+            Assert.AreEqual(ReactionState.Deleted, stored.State);
+            Assert.AreEqual(dbNow, stored.FinishedAt);
+            Assert.AreEqual("The delivery was deleted.", stored.Message);
+            Assert.IsNull(stored.LockedUntil);
+            Assert.IsNull(stored.ClaimToken);
+        }
+
+        Assert.AreEqual(ReactionState.Done, (await ReloadAsync(forwarded)).State);
+        Assert.AreEqual(ReactionState.Error, (await ReloadAsync(failed)).State);
+        Assert.AreEqual(ReactionState.Pending, (await ReloadAsync(elsewhere)).State);
+    }
+
+    [TestMethod]
+    public async Task CompleteRefusesTheAttemptOfADeletedDelivery()
+    {
+        AddReaction(nextAttemptAt: dbNow.AddMinutes(-1));
+        var claimed = await ClaimAsync();
+        delivery.Deleted = true;
+        await context.SaveChangesAsync();
+
+        Assert.IsNull(await store.CompleteAsync(context, claimed, "Delivered to the target.", CancellationToken.None));
+    }
+
     private static DeliveryReaction LostAttemptOf(DeliveryReaction claimed)
         => new() { Id = claimed.Id, Attempts = claimed.Attempts, ClaimToken = Guid.NewGuid() };
 

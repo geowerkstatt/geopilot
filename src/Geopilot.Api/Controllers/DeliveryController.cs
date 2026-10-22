@@ -2,6 +2,8 @@
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,13 +29,17 @@ public class DeliveryController : ControllerBase
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
     private readonly IAuthorizationService authorizationService;
+    private readonly ReactionStore reactionStore;
+    private readonly IPipelineRunRecorder pipelineRunRecorder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder)
     {
         this.authorizationService = authorizationService;
+        this.reactionStore = reactionStore;
+        this.pipelineRunRecorder = pipelineRunRecorder;
         this.logger = logger;
         this.context = context;
         this.deliveryDeclarationService = deliveryDeclarationService;
@@ -235,6 +241,7 @@ public class DeliveryController : ControllerBase
             delivery.Assets.ForEach(a => a.Deleted = true);
             await context.SaveChangesAsync();
 
+            await EndReactionsAsync(delivery.Id, user.Id);
             assetHandler.DeleteJobAssets(delivery.JobId);
 
             logger.LogInformation("Deleting of delivery with id <{DeliveryId}> successful.", deliveryId);
@@ -292,6 +299,25 @@ public class DeliveryController : ControllerBase
     private async Task<bool> MayDownloadAsync(Asset asset) =>
         asset.Delivery?.Mandate?.StacAccess == StacAccess.Public
         || (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
+
+    /// <summary>
+    /// Ends the open reactions of a deleted delivery and records in the protocol how far each had got. The delivery is
+    /// deleted already and the reactions of a deleted delivery never run again, so a failure here only warns.
+    /// </summary>
+    private async Task EndReactionsAsync(int deliveryId, int userId)
+    {
+        try
+        {
+            // shortcut: does not wait for a running attempt. Its report is refused, and what its channel has written
+            // already stays at the target (ADR 0015, Nachtrag: Löschen während einer laufenden Reaktion).
+            var reactions = await reactionStore.MarkDeletedAsync(context, deliveryId, CancellationToken.None);
+            await pipelineRunRecorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Ending the reactions of the deleted delivery <{DeliveryId}> failed.", deliveryId);
+        }
+    }
 
     internal bool IsDeleteAllowedForUploader(DateTime declaredAt, DateTime? utcNow = null)
     {
