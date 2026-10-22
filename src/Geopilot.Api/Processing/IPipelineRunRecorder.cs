@@ -83,4 +83,13 @@ public interface IPipelineRunRecorder
     /// <param name="state">The state the reaction is in now, or <see langword="null"/> when the attempt no longer held it.</param>
     /// <param name="message">What the channel reported, or why the attempt failed.</param>
     Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message);
+
+    /// <summary>
+    /// Writes one row per reaction of a deleted delivery with the state the deletion left it in, so the protocol
+    /// shows which reactions had forwarded the delivery by then, and who deleted it. Soft.
+    /// </summary>
+    /// <param name="deliveryId">The deleted delivery.</param>
+    /// <param name="reactions">The reactions of the delivery after the deletion.</param>
+    /// <param name="userId">The user who deleted the delivery.</param>
+    Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId);
 }

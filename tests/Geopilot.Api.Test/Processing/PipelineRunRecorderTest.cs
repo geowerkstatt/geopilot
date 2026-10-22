@@ -392,9 +392,38 @@ public class PipelineRunRecorderTest
 
         await recorder.RecordReactionAttemptStartedAsync(reaction);
         await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, "Delivered to the target.");
+        await recorder.RecordDeliveryDeletedAsync(withoutRun.Id, [reaction], user.Id);
 
         Assert.IsFalse(await context.PipelineRunReactionEvents.AnyAsync(e => e.DeliveryId == withoutRun.Id), "soft writes without a run record must be skipped, not fail.");
     }
+
+    [TestMethod]
+    public async Task DeliveryDeletedWritesARowPerReactionWithWhoDeleted()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var forwarded = ReactionAfterDeletion(delivery, "ablage", ReactionState.Done, "Delivered to the target.");
+        var dropped = ReactionAfterDeletion(delivery, "meldung", ReactionState.Deleted, "The delivery was deleted.");
+
+        await recorder.RecordDeliveryDeletedAsync(delivery.Id, [forwarded, dropped], user.Id);
+
+        var rows = await context.PipelineRunReactionEvents.Where(e => e.PipelineRunId == run.Id).OrderBy(e => e.Id).ToListAsync();
+        Assert.HasCount(2, rows);
+        Assert.IsTrue(rows.All(row => row.Event == ReactionEvent.Deletion && row.UserId == user.Id && row.Attempt is null && row.FinishedAt is null));
+        Assert.AreEqual("ablage", rows[0].ReactionId);
+        Assert.AreEqual(ReactionState.Done, rows[0].State, "a reaction done before the deletion shows the delivery was forwarded.");
+        Assert.AreEqual("Delivered to the target.", rows[0].Message);
+        Assert.AreEqual(ReactionState.Deleted, rows[1].State);
+    }
+
+    private static DeliveryReaction ReactionAfterDeletion(Delivery delivery, string reactionId, ReactionState state, string message) => new()
+    {
+        DeliveryId = delivery.Id,
+        ReactionId = reactionId,
+        Kind = ReactionKind.Transfer,
+        Implementation = FileDrop,
+        State = state,
+        Message = message,
+    };
 
     private static DeliveryReaction ClaimedReaction(Delivery delivery, int attempt = 1) => new()
     {

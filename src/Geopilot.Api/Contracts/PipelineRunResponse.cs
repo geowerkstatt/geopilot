@@ -138,7 +138,7 @@ public record PipelineRunArtifactResponse(
 /// <param name="FinishedAt">When the attempt reported back (UTC).</param>
 /// <param name="State">The state of the reaction afterwards, or <see langword="null"/> when the attempt no longer held its reaction once it reported.</param>
 /// <param name="Message">What the channel reported, or why the attempt failed.</param>
-/// <param name="UserId">The administrator who caused the event, or <see langword="null"/> when the application did.</param>
+/// <param name="UserId">The user who caused the event, such as the one who deleted the delivery, or <see langword="null"/> when the application did.</param>
 public record PipelineRunReactionEventResponse(
     int DeliveryId,
     string ReactionId,

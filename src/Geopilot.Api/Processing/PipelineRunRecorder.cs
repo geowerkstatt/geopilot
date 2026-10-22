@@ -301,6 +301,43 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
     }
 
+    /// <inheritdoc/>
+    public async Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+    {
+        ArgumentNullException.ThrowIfNull(reactions);
+        if (reactions.Count == 0)
+            return;
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(deliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(deliveryId);
+                return;
+            }
+
+            var deletedAt = DateTime.UtcNow;
+            context.PipelineRunReactionEvents.AddRange(reactions.Select(reaction => new PipelineRunReactionEvent
+            {
+                PipelineRunId = runId,
+                DeliveryId = deliveryId,
+                ReactionId = reaction.ReactionId,
+                ReactionKind = reaction.Kind,
+                Implementation = reaction.Implementation,
+                Event = ReactionEvent.Deletion,
+                OccurredAt = deletedAt,
+                State = reaction.State,
+                Message = reaction.Message,
+                UserId = userId,
+            }));
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            LogReactionWriteFailed(deliveryId, ex);
+        }
+    }
+
     /// <summary>
     /// Finds the run a delivery comes from, also for a deleted delivery: the protocol outlives it.
     /// </summary>
@@ -447,5 +484,5 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         logger.LogWarning("No run record exists for delivery <{DeliveryId}>; skipping the protocol write.", deliveryId);
 
     private void LogReactionWriteFailed(int deliveryId, Exception exception) =>
-        logger.LogWarning(exception, "Writing the execution protocol for delivery <{DeliveryId}> failed; the attempt continues.", deliveryId);
+        logger.LogWarning(exception, "Writing the execution protocol for delivery <{DeliveryId}> failed.", deliveryId);
 }

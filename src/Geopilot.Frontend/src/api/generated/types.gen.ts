@@ -583,7 +583,7 @@ export type PipelineRunReactionEventResponse = {
    */
   message?: string | null;
   /**
-   * The administrator who caused the event, or null when the application did.
+   * The user who caused the event, such as the one who deleted the delivery, or null when the application did.
    */
   userId?: number | null;
 };
@@ -800,7 +800,7 @@ export type ProcessingState = (typeof ProcessingState)[keyof typeof ProcessingSt
 /**
  * What happened to a reaction, as the execution protocol records it. Persisted as text.
  */
-export const ReactionEvent = { Attempt: "attempt" } as const;
+export const ReactionEvent = { Attempt: "attempt", Deletion: "deletion" } as const;
 
 /**
  * What happened to a reaction, as the execution protocol records it. Persisted as text.
@@ -826,6 +826,7 @@ export const ReactionState = {
   Running: "running",
   Error: "error",
   Done: "done",
+  Deleted: "deleted",
 } as const;
 
 /**

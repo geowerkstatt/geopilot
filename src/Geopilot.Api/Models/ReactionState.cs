@@ -25,4 +25,9 @@ public enum ReactionState
     /// Succeeded.
     /// </summary>
     Done,
+
+    /// <summary>
+    /// Its delivery was deleted before the reaction was done; it never runs again.
+    /// </summary>
+    Deleted,
 }

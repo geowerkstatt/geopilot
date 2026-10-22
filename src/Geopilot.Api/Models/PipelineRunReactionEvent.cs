@@ -1,9 +1,9 @@
 ﻿namespace Geopilot.Api.Models;
 
 /// <summary>
-/// Something that happened to a reaction of the delivery a run produced: an attempt through its channel. Kept in the
-/// protocol of the run, so how a delivery was forwarded stays answerable after its reactions are gone. Holds no personal
-/// data of the declarer and no values of the mandate.
+/// Something that happened to a reaction of the delivery a run produced: an attempt through its channel, or the
+/// deletion of the delivery. Kept in the protocol of the run, so how a delivery was forwarded stays answerable after
+/// its reactions are gone. Holds no personal data of the declarer and no values of the mandate.
 /// </summary>
 public class PipelineRunReactionEvent
 {
@@ -72,7 +72,8 @@ public class PipelineRunReactionEvent
     public string? Message { get; set; }
 
     /// <summary>
-    /// The administrator who caused the event, or <see langword="null"/> when the application did.
+    /// The user who caused the event, such as the one who deleted the delivery, or <see langword="null"/> when the
+    /// application did.
     /// </summary>
     public int? UserId { get; set; }
 }
