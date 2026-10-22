@@ -178,6 +178,11 @@ public class Context : DbContext
     public DbSet<PipelineRunArtifact> PipelineRunArtifacts { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="PipelineRunReactionEvent"/> records.
+    /// </summary>
+    public DbSet<PipelineRunReactionEvent> PipelineRunReactionEvents { get; set; }
+
+    /// <summary>
     /// Gets the <see cref="PipelineRun"/> entity with all includes.
     /// </summary>
     public IQueryable<PipelineRun> PipelineRunsWithIncludes
@@ -189,7 +194,8 @@ public class Context : DbContext
                 .Include(r => r.Steps)
                 .ThenInclude(s => s.Conditions)
                 .Include(r => r.Steps)
-                .ThenInclude(s => s.Artifacts);
+                .ThenInclude(s => s.Artifacts)
+                .Include(r => r.ReactionEvents);
         }
     }
 
@@ -323,6 +329,18 @@ public class Context : DbContext
 
             run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
             run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
+            run.HasMany(r => r.ReactionEvents).WithOne().HasForeignKey(e => e.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PipelineRunReactionEvent>(reactionEvent =>
+        {
+            reactionEvent.Property(e => e.ReactionId).HasMaxLength(128);
+            reactionEvent.Property(e => e.ReactionKind).HasConversion<string>();
+            reactionEvent.Property(e => e.Event).HasConversion<string>();
+            reactionEvent.Property(e => e.State).HasConversion<string>();
+
+            // Restrict like the user of the run: users are only ever soft-deleted.
+            reactionEvent.HasOne<User>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PipelineRunStep>(step =>

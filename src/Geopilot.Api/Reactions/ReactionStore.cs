@@ -157,6 +157,8 @@ public class ReactionStore
         return updated == 1;
     }
 
+    // shortcut: one update without the ids of the reactions, so the execution protocol keeps their last attempt as
+    // running. Select the ids first once the protocol has to record the giving up itself.
     private Task<int> GiveUpLostLastAttemptsAsync(Context context, CancellationToken cancellationToken)
     {
         var maxAttempts = options.MaxAttempts;

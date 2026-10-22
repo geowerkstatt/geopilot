@@ -137,4 +137,9 @@ public class PipelineRun
     /// The per-step records of the run.
     /// </summary>
     public List<PipelineRunStep> Steps { get; set; } = new();
+
+    /// <summary>
+    /// What happened to the reactions of the delivery the run produced.
+    /// </summary>
+    public List<PipelineRunReactionEvent> ReactionEvents { get; set; } = new();
 }

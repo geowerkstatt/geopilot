@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
@@ -30,6 +31,7 @@ public class ReactionWorkerTest
     private DeliveryReactionOptions reactionOptions;
     private PipelineOptions pipelineOptions;
     private Mock<ILogger<ReactionWorker>> loggerMock;
+    private Mock<IPipelineRunRecorder> recorderMock;
     private User user;
     private Delivery delivery;
 
@@ -46,6 +48,7 @@ public class ReactionWorkerTest
         reactionOptions = new DeliveryReactionOptions { RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)] };
         pipelineOptions = new PipelineOptions { Definition = "pipeline.yaml" };
         loggerMock = new Mock<ILogger<ReactionWorker>>();
+        recorderMock = new Mock<IPipelineRunRecorder>();
 
         user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Erika Muster", Email = "erika.muster@example.com" }).Entity;
         delivery = AddDelivery(declaringUser: user);
@@ -82,6 +85,18 @@ public class ReactionWorkerTest
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Done, stored.State);
         Assert.AreEqual("Delivered to the target.", stored.Message);
+    }
+
+    [TestMethod]
+    public async Task RunNextRecordsTheAttemptInTheProtocol()
+    {
+        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered))));
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptStartedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id && claimed.Attempts == 1)), Times.Once);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id), ReactionState.Done, "Delivered to the target."), Times.Once);
     }
 
     [TestMethod]
@@ -332,6 +347,7 @@ public class ReactionWorkerTest
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(provider => provider.GetService(typeof(Context))).Returns(context);
         serviceProviderMock.Setup(provider => provider.GetService(typeof(IAssetFileStore))).Returns(assetStore);
+        serviceProviderMock.Setup(provider => provider.GetService(typeof(IPipelineRunRecorder))).Returns(recorderMock.Object);
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(scope => scope.ServiceProvider).Returns(serviceProviderMock.Object);
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();

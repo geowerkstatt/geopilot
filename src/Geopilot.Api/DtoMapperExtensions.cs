@@ -215,6 +215,22 @@ internal static class DtoMapperExtensions
             run.Steps
                 .OrderBy(step => step.Order)
                 .Select(step => step.ToResponse())
+                .ToList(),
+            run.ReactionEvents
+                .OrderBy(reactionEvent => reactionEvent.OccurredAt)
+                .ThenBy(reactionEvent => reactionEvent.Id)
+                .Select(reactionEvent => new PipelineRunReactionEventResponse(
+                    reactionEvent.DeliveryId,
+                    reactionEvent.ReactionId,
+                    reactionEvent.ReactionKind,
+                    reactionEvent.Implementation,
+                    reactionEvent.Event,
+                    reactionEvent.Attempt,
+                    reactionEvent.OccurredAt,
+                    reactionEvent.FinishedAt,
+                    reactionEvent.State,
+                    reactionEvent.Message,
+                    reactionEvent.UserId))
                 .ToList());
     }
 

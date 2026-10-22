@@ -546,6 +546,49 @@ export type PipelineRunFileResponse = {
 };
 
 /**
+ * Something that happened to a reaction of the delivery the run produced. An attempt with the state
+ * Geopilot.Api.Models.ReactionState.Running and no Geopilot.Api.Contracts.PipelineRunReactionEventResponse.FinishedAt whose instance has stopped never reported back:
+ * its outcome is unknown.
+ */
+export type PipelineRunReactionEventResponse = {
+  /**
+   * The id of the delivery the reaction belongs to.
+   */
+  deliveryId: number;
+  /**
+   * The id of the reaction in its set.
+   */
+  reactionId: string;
+  reactionKind: ReactionKind;
+  /**
+   * The channel that runs the reaction.
+   */
+  implementation: string;
+  event: ReactionEvent;
+  /**
+   * The number of the attempt.
+   */
+  attempt?: number | null;
+  /**
+   * When it happened (UTC); for an attempt, when it started.
+   */
+  occurredAt: string;
+  /**
+   * When the attempt reported back (UTC).
+   */
+  finishedAt?: string | null;
+  state?: ReactionState;
+  /**
+   * What the channel reported, or why the attempt failed.
+   */
+  message?: string | null;
+  /**
+   * The administrator who caused the event, or null when the application did.
+   */
+  userId?: number | null;
+};
+
+/**
  * The execution protocol of one processing job: what ran, on which definition version, for whom, and how
  * it ended. A Geopilot.Api.Contracts.PipelineRunResponse.TerminalState of null means the outcome is unknown, the
  * instance died while the job ran. The definition snapshot itself is served by its own endpoint.
@@ -614,6 +657,10 @@ export type PipelineRunResponse = {
    * The per-step records, in pipeline order.
    */
   steps: Array<PipelineRunStepResponse>;
+  /**
+   * What happened to the reactions of the delivery the run produced, in the order it happened.
+   */
+  reactionEvents: Array<PipelineRunReactionEventResponse>;
 };
 
 /**
@@ -749,6 +796,43 @@ export const ProcessingState = {
 } as const;
 
 export type ProcessingState = (typeof ProcessingState)[keyof typeof ProcessingState];
+
+/**
+ * What happened to a reaction, as the execution protocol records it. Persisted as text.
+ */
+export const ReactionEvent = { Attempt: "attempt" } as const;
+
+/**
+ * What happened to a reaction, as the execution protocol records it. Persisted as text.
+ */
+export type ReactionEvent = (typeof ReactionEvent)[keyof typeof ReactionEvent];
+
+/**
+ * Whether a Geopilot.Api.Models.DeliveryReaction forwards the delivery or only reports on it.
+ */
+export const ReactionKind = { Transfer: "transfer", Notification: "notification" } as const;
+
+/**
+ * Whether a Geopilot.Api.Models.DeliveryReaction forwards the delivery or only reports on it.
+ */
+export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+
+/**
+ * The state of a Geopilot.Api.Models.DeliveryReaction. Deliberately not `StepState`: it describes forwarding a delivery,
+ * not processing it.
+ */
+export const ReactionState = {
+  Pending: "pending",
+  Running: "running",
+  Error: "error",
+  Done: "done",
+} as const;
+
+/**
+ * The state of a Geopilot.Api.Models.DeliveryReaction. Deliberately not `StepState`: it describes forwarding a delivery,
+ * not processing it.
+ */
+export type ReactionState = (typeof ReactionState)[keyof typeof ReactionState];
 
 /**
  * The outcome of the malware scan of a run's uploaded files. Persisted as text.
