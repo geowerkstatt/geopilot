@@ -1,12 +1,10 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
-using Geopilot.Api.Reactions;
 using Geopilot.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
-using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -180,7 +178,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
                 ReactionId = transfer.ReactionId,
                 Kind = ReactionKind.Transfer,
                 Implementation = transfer.Implementation,
-                Config = JsonSerializer.Serialize(new ReactionSnapshot(transfer.Config, mandateValues.GetValueOrDefault(transfer.ReactionId) ?? [])),
+                Config = new ReactionSnapshot(transfer.Config, mandateValues.GetValueOrDefault(transfer.ReactionId) ?? []),
                 State = ReactionState.Pending,
                 NextAttemptAt = holdEnd,
             })
