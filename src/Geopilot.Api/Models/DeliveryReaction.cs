@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Models;
+﻿using Geopilot.Pipeline.Config;
+
+namespace Geopilot.Api.Models;
 
 /// <summary>
 /// A reaction to a <see cref="Delivery"/> once it can no longer be withdrawn (ADR 0015): a transfer that forwards it,
@@ -37,10 +39,10 @@ public class DeliveryReaction
     public string Implementation { get; set; } = string.Empty;
 
     /// <summary>
-    /// The configuration of the channel as JSON, as the set and the mandate defined it when the delivery was declared.
-    /// Never holds credentials: every attempt reads those from the host.
+    /// The configuration of the channel as the set and the mandate defined it when the delivery was declared, stored
+    /// as JSON. Never holds credentials: every attempt reads those from the base configuration.
     /// </summary>
-    public string Config { get; set; } = "{}";
+    public ReactionSnapshot Config { get; set; } = new(new Parameterization(), []);
 
     /// <summary>
     /// The state of the reaction.
