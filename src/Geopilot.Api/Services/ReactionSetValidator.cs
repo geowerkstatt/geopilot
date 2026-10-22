@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Reactions;
+using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -38,7 +39,7 @@ internal sealed class ReactionSetValidator : IReactionSetValidator
         }
 
         var declaredValues = DeclaredValues(set, values);
-        var valueErrors = pipelineFactory.ValidateMandateValues(set.Id, declaredValues.ToDictionary(entry => entry.Key, entry => ToParameterization(entry.Value)));
+        var valueErrors = pipelineFactory.ValidateMandateValues(set.Id, declaredValues.ToDictionary(entry => entry.Key, entry => entry.Value.ToParameterization()));
         return new ReactionSetCheck(declaredValues, null, valueErrors);
     }
 
@@ -60,16 +61,5 @@ internal sealed class ReactionSetValidator : IReactionSetValidator
         }
 
         return declaredValues;
-    }
-
-    private static Parameterization ToParameterization(Dictionary<string, JsonElement> values)
-    {
-        var parameterization = new Parameterization();
-        foreach (var (key, value) in values)
-        {
-            parameterization[key] = value;
-        }
-
-        return parameterization;
     }
 }
