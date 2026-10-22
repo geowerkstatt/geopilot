@@ -27,6 +27,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="FailureReason">Why the run failed or was cancelled, when known.</param>
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
+/// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
 public record PipelineRunResponse(
     Guid JobId,
     string PipelineId,
@@ -45,7 +46,8 @@ public record PipelineRunResponse(
     DateTime? TerminalAt,
     string? FailureReason,
     List<PipelineRunFileResponse> Files,
-    List<PipelineRunStepResponse> Steps);
+    List<PipelineRunStepResponse> Steps,
+    List<PipelineRunReactionEventResponse> ReactionEvents);
 
 /// <summary>
 /// One uploaded file of the run.
@@ -120,3 +122,32 @@ public record PipelineRunArtifactResponse(
     string OriginalFileName,
     string PersistedFileName,
     bool? FromUpload);
+
+/// <summary>
+/// Something that happened to a reaction of the delivery the run produced. An attempt with the state
+/// <see cref="ReactionState.Running"/> and no <see cref="FinishedAt"/> whose instance has stopped never reported back:
+/// its outcome is unknown.
+/// </summary>
+/// <param name="DeliveryId">The id of the delivery the reaction belongs to.</param>
+/// <param name="ReactionId">The id of the reaction in its set.</param>
+/// <param name="ReactionKind">Whether the reaction forwards the delivery or reports on it.</param>
+/// <param name="Implementation">The channel that runs the reaction.</param>
+/// <param name="Event">What happened.</param>
+/// <param name="Attempt">The number of the attempt.</param>
+/// <param name="OccurredAt">When it happened (UTC); for an attempt, when it started.</param>
+/// <param name="FinishedAt">When the attempt reported back (UTC).</param>
+/// <param name="State">The state of the reaction afterwards, or <see langword="null"/> when the attempt no longer held its reaction once it reported.</param>
+/// <param name="Message">What the channel reported, or why the attempt failed.</param>
+/// <param name="UserId">The administrator who caused the event, or <see langword="null"/> when the application did.</param>
+public record PipelineRunReactionEventResponse(
+    int DeliveryId,
+    string ReactionId,
+    ReactionKind ReactionKind,
+    string Implementation,
+    ReactionEvent Event,
+    int? Attempt,
+    DateTime OccurredAt,
+    DateTime? FinishedAt,
+    ReactionState? State,
+    string? Message,
+    int? UserId);
