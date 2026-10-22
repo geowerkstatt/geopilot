@@ -44,7 +44,7 @@ Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst 
 
 ## Reaktion
 
-Was auf eine Lieferung folgt, sobald sie nicht mehr zurückgezogen werden kann (ADR 0015). Ein Lieferungs-Schritt gibt sie weiter: Sind alle ihre Lieferungs-Schritte `Done` oder hat sie keine, ist sie weitergegeben. Eine begleitende Reaktion berichtet über sie, sobald sie weitergegeben ist, und ändert ihren Zustand nie. Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Im Code: `DeliveryReaction` mit `ReactionKind.Transfer` oder `ReactionKind.Notification`, geholt über `ReactionStore`.
+Was auf eine Lieferung folgt, sobald sie nicht mehr zurückgezogen werden kann (ADR 0015). Ein Lieferungs-Schritt gibt sie weiter: Sind alle ihre Lieferungs-Schritte `Done` oder hat sie keine, ist sie weitergegeben. Eine begleitende Reaktion berichtet über sie, sobald sie weitergegeben ist, und ändert ihren Zustand nie. Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction` mit `ReactionKind.Transfer` oder `ReactionKind.Notification`, geholt über `ReactionStore`.
 
 ## Hold
 
