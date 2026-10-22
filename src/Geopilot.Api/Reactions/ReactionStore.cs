@@ -22,6 +22,8 @@ public class ReactionStore
 
     private const string LastAttemptLostMessage = "The last attempt did not report back before its lock ran out.";
 
+    private const string DeliveryDeletedMessage = "The delivery was deleted.";
+
     private readonly DeliveryReactionOptions options;
     private readonly ILogger<ReactionStore> logger;
 
@@ -138,6 +140,32 @@ public class ReactionStore
     }
 
     /// <summary>
+    /// Ends the reactions of a deleted delivery that are not finished yet. A running attempt is not waited for: its
+    /// report is refused, because its reaction no longer belongs to it.
+    /// </summary>
+    /// <returns>All reactions of the delivery, in the state the deletion left them.</returns>
+    public async Task<IReadOnlyList<DeliveryReaction>> MarkDeletedAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        await OfDelivery(context, deliveryId)
+            .Where(r => r.State == ReactionState.Pending || r.State == ReactionState.Running)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(r => r.State, ReactionState.Deleted)
+                    .SetProperty(r => r.FinishedAt, r => DateTime.UtcNow)
+                    .SetProperty(r => r.LockedUntil, (DateTime?)null)
+                    .SetProperty(r => r.ClaimToken, (Guid?)null)
+                    .SetProperty(r => r.Message, DeliveryDeletedMessage),
+                cancellationToken);
+
+        return await OfDelivery(context, deliveryId)
+            .AsNoTracking()
+            .OrderBy(r => r.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Claims one reaction if it is still claimable. Every condition sits in the update itself, so when two instances
     /// claim the same reaction, the second one finds it claimed once the first commits.
     /// </summary>
@@ -185,6 +213,10 @@ public class ReactionStore
                 || !context.DeliveryReactions.Any(transfer =>
                     transfer.DeliveryId == r.DeliveryId && transfer.Kind == ReactionKind.Transfer && transfer.State != ReactionState.Done)));
     }
+
+    // The delivery is deleted by then, which the query filter would hide.
+    private static IQueryable<DeliveryReaction> OfDelivery(Context context, int deliveryId)
+        => context.DeliveryReactions.IgnoreQueryFilters().Where(r => r.DeliveryId == deliveryId);
 
     private static IQueryable<DeliveryReaction> HeldBy(Context context, DeliveryReaction reaction)
         => context.DeliveryReactions.Where(r => r.Id == reaction.Id && r.State == ReactionState.Running && r.ClaimToken == reaction.ClaimToken);

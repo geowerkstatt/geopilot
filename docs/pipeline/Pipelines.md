@@ -596,6 +596,8 @@ Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten
 
 Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Deklaration fest. Eine spätere Änderung am Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
 
+Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel; das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
+
 Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 
 ### Konfiguration eines Kanals
