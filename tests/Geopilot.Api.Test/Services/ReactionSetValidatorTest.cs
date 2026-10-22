@@ -10,6 +10,7 @@ namespace Geopilot.Api.Services;
 public class ReactionSetValidatorTest
 {
     private const string SetId = "ablage_pro_mandat";
+    private const string ReactionId = "weitergabe";
 
     private static readonly ReactionSetConfig Set = new()
     {
@@ -18,7 +19,7 @@ public class ReactionSetValidatorTest
         [
             new ReactionConfig
             {
-                Id = SetId,
+                Id = ReactionId,
                 ChannelId = "ablage",
                 MandateConfig = [new MandateConfigEntry { Key = "subfolder", DisplayName = new Dictionary<string, string> { ["de"] = "Unterordner" } }],
             },
@@ -44,7 +45,7 @@ public class ReactionSetValidatorTest
     [TestMethod]
     public void CheckAcceptsNoSetAndDropsAllValues()
     {
-        var check = Validator().Check(null, Values(SetId, "subfolder", "kanton-a"));
+        var check = Validator().Check(null, Values(ReactionId, "subfolder", "kanton-a"));
 
         Assert.IsTrue(check.IsValid);
         Assert.IsEmpty(check.Values);
@@ -54,7 +55,7 @@ public class ReactionSetValidatorTest
     [TestMethod]
     public void CheckRejectsAnUnknownSet()
     {
-        var check = Validator().Check("unbekannt", Values(SetId, "subfolder", "kanton-a"));
+        var check = Validator().Check("unbekannt", Values(ReactionId, "subfolder", "kanton-a"));
 
         Assert.IsFalse(check.IsValid);
         Assert.AreEqual("Reaction set <unbekannt> does not exist.", check.SetError);
@@ -65,7 +66,7 @@ public class ReactionSetValidatorTest
     {
         deliveryOptions = new DeliveryOptions { UploaderDeleteEnabled = true };
 
-        var check = Validator().Check(SetId, Values(SetId, "subfolder", "kanton-a"));
+        var check = Validator().Check(SetId, Values(ReactionId, "subfolder", "kanton-a"));
 
         Assert.IsFalse(check.IsValid);
         Assert.AreEqual(
@@ -81,17 +82,17 @@ public class ReactionSetValidatorTest
             .Setup(factory => factory.ValidateMandateValues(SetId, It.IsAny<IReadOnlyDictionary<string, Parameterization>>()))
             .Callback<string, IReadOnlyDictionary<string, Parameterization>>((_, values) => checkedValues = values)
             .Returns([]);
-        var values = Values(SetId, "subfolder", "kanton-a");
-        values[SetId]["unknown"] = JsonSerializer.SerializeToElement("not declared");
+        var values = Values(ReactionId, "subfolder", "kanton-a");
+        values[ReactionId]["unknown"] = JsonSerializer.SerializeToElement("not declared");
         values["other_reaction"] = new Dictionary<string, JsonElement> { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-b") };
 
         var check = Validator().Check(SetId, values);
 
         Assert.IsTrue(check.IsValid);
-        Assert.AreEqual(Json(Values(SetId, "subfolder", "kanton-a")), Json(check.Values));
+        Assert.AreEqual(Json(Values(ReactionId, "subfolder", "kanton-a")), Json(check.Values));
         Assert.IsNotNull(checkedValues);
         var checkedReaction = Assert.ContainsSingle(checkedValues);
-        Assert.AreEqual(SetId, checkedReaction.Key);
+        Assert.AreEqual(ReactionId, checkedReaction.Key);
         CollectionAssert.AreEqual(new[] { "subfolder" }, checkedReaction.Value.Keys.ToArray());
     }
 
@@ -100,13 +101,13 @@ public class ReactionSetValidatorTest
     {
         pipelineFactoryMock
             .Setup(factory => factory.ValidateMandateValues(SetId, It.IsAny<IReadOnlyDictionary<string, Parameterization>>()))
-            .Returns([$"reaction {SetId}: The subfolder is not valid."]);
+            .Returns([$"reaction {ReactionId}: The subfolder is not valid."]);
 
-        var check = Validator().Check(SetId, Values(SetId, "subfolder", "../anderswo"));
+        var check = Validator().Check(SetId, Values(ReactionId, "subfolder", "../anderswo"));
 
         Assert.IsFalse(check.IsValid);
         Assert.IsNull(check.SetError);
-        CollectionAssert.AreEqual(new[] { $"reaction {SetId}: The subfolder is not valid." }, check.ValueErrors.ToArray());
+        CollectionAssert.AreEqual(new[] { $"reaction {ReactionId}: The subfolder is not valid." }, check.ValueErrors.ToArray());
     }
 
     private static Dictionary<string, Dictionary<string, JsonElement>> Values(string reactionId, string key, string text)

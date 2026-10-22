@@ -50,19 +50,20 @@ public class ReactionSetValidationTest
 
         """;
 
+    // Set, reaction and channel carry different ids, so a message that names the wrong one fails the test.
     private const string PlainSet = """
         reaction_sets:
-          - id: ablage
+          - id: kanton_a
             transfers:
-              - id: ablage
+              - id: weitergabe
                 channel_id: ablage
         """;
 
     private const string OverwritingSet = """
         reaction_sets:
-          - id: ablage
+          - id: kanton_a
             transfers:
-              - id: ablage
+              - id: weitergabe
                 channel_id: ablage
                 channel_config_overwrites:
                   subfolder: kanton-a
@@ -244,23 +245,23 @@ public class ReactionSetValidationTest
     {
         var channels = FileDropChannel.Replace(FileDrop, "Geopilot.Pipeline.Channels.Missing", StringComparison.Ordinal);
 
-        AssertInvalid(Factory(channels + FileDropSet("ablage", "ablage")), "reaction set ablage, reaction ablage, channel ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
+        AssertInvalid(Factory(channels + FileDropSet("kanton_a", "weitergabe")), "reaction set kanton_a, reaction weitergabe, channel ablage, error: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.");
     }
 
     [TestMethod]
     public void RejectsAMandateKeyTheChannelDoesNotMark()
     {
         AssertInvalid(
-            Factory(FileDropChannel + FileDropSet("ablage", "ablage", mandateKey: "baseDirectory")),
-            $"reaction set ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
+            Factory(FileDropChannel + FileDropSet("kanton_a", "weitergabe", mandateKey: "baseDirectory")),
+            $"reaction set kanton_a, reaction weitergabe, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
     }
 
     [TestMethod]
     public void RequiresTheBaseValuesWithABaseConfiguration()
     {
-        var factory = Factory(FileDropChannel + FileDropSet("ablage", "ablage"), new Dictionary<string, Parameterization>());
+        var factory = Factory(FileDropChannel + FileDropSet("kanton_a", "weitergabe"), new Dictionary<string, Parameterization>());
 
-        AssertInvalid(factory, "reaction set ablage, reaction ablage, channel ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
+        AssertInvalid(factory, "reaction set kanton_a, reaction weitergabe, channel ablage, error: Channel initialization: No suitable parameter found for parameter of type <String> and name <baseDirectory>.");
     }
 
     [TestMethod]
@@ -297,15 +298,15 @@ public class ReactionSetValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannel + OverwritingSet),
-            "PipelineProcessConfig: Reaction 'ablage' in reaction set 'ablage' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
+            "PipelineProcessConfig: Reaction 'weitergabe' in reaction set 'kanton_a' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
     }
 
     [TestMethod]
     public void RejectsAMandateValueTheDefaultConfigSets()
     {
         AssertInvalid(
-            Factory(FileDropChannelWithSubfolder + FileDropSet("ablage", "ablage")),
-            $"reaction set ablage, reaction ablage, channel ablage, error: Channel <{FileDrop}>: the mandate value 'subfolder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.");
+            Factory(FileDropChannelWithSubfolder + FileDropSet("kanton_a", "weitergabe")),
+            $"reaction set kanton_a, reaction weitergabe, channel ablage, error: Channel <{FileDrop}>: the mandate value 'subfolder' is already set in default_config. A value comes either from the pipeline definition or from the mandate.");
     }
 
     [TestMethod]
@@ -322,15 +323,15 @@ public class ReactionSetValidationTest
     {
         AssertInvalid(
             Factory(FileDropChannelWithSubfolder + OverwritingSet, BaseConfigsWithSubfolder),
-            CollisionOrigin + " and overwritten in the pipeline definition ('reaction_sets[id=ablage].transfers[id=ablage].channel_config_overwrites.subfolder')." + CollisionRemedy);
+            CollisionOrigin + " and overwritten in the pipeline definition ('reaction_sets[id=kanton_a].transfers[id=weitergabe].channel_config_overwrites.subfolder')." + CollisionRemedy);
     }
 
     [TestMethod]
     public void RejectsAMandateValueTheBaseConfigurationSets()
     {
         AssertInvalid(
-            Factory(FileDropChannel + FileDropSet("ablage", "ablage"), BaseConfigsWithSubfolder),
-            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('reaction_sets[id=ablage].transfers[id=ablage].mandate_config[key=subfolder]')." + CollisionRemedy);
+            Factory(FileDropChannel + FileDropSet("kanton_a", "weitergabe"), BaseConfigsWithSubfolder),
+            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('reaction_sets[id=kanton_a].transfers[id=weitergabe].mandate_config[key=subfolder]')." + CollisionRemedy);
     }
 
     [TestMethod]
@@ -350,9 +351,9 @@ public class ReactionSetValidationTest
     [TestMethod]
     public void ResolvesATransferWithTheDefaultConfiguration()
     {
-        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + PlainSet).ResolveTransfers("ablage"));
+        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + PlainSet).ResolveTransfers("kanton_a"));
 
-        Assert.AreEqual("ablage", transfer.ReactionId);
+        Assert.AreEqual("weitergabe", transfer.ReactionId);
         Assert.AreEqual(FileDrop, transfer.Implementation);
         Assert.AreEqual("allgemein", transfer.Config["subfolder"]);
     }
@@ -360,7 +361,7 @@ public class ReactionSetValidationTest
     [TestMethod]
     public void ResolvesATransferWithTheOverwrittenConfiguration()
     {
-        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + OverwritingSet).ResolveTransfers("ablage"));
+        var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + OverwritingSet).ResolveTransfers("kanton_a"));
 
         Assert.AreEqual("kanton-a", transfer.Config["subfolder"]);
     }
