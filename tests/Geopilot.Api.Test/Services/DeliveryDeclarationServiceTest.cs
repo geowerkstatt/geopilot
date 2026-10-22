@@ -149,9 +149,8 @@ public class DeliveryDeclarationServiceTest
         Assert.AreEqual(FileDrop, reaction.Implementation);
         Assert.AreEqual(delivery.Date.AddHours(1), reaction.NextAttemptAt, "The transfer waits until the uploader can no longer delete the delivery.");
 
-        using var snapshot = JsonDocument.Parse(reaction.Config);
-        Assert.AreEqual("copy", snapshot.RootElement.GetProperty("config").GetProperty("mode").GetString());
-        Assert.AreEqual("kanton-a", snapshot.RootElement.GetProperty("mandate").GetProperty("subfolder").GetString());
+        Assert.AreEqual("copy", reaction.Config.Config["mode"]?.ToString());
+        Assert.AreEqual("kanton-a", reaction.Config.Mandate["subfolder"].GetString());
     }
 
     [TestMethod]

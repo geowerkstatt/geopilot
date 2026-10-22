@@ -1,9 +1,8 @@
-﻿using Geopilot.Api.Models;
-using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Geopilot.Api.Reactions;
+namespace Geopilot.Api.Models;
 
 /// <summary>
 /// What a reaction keeps from its set when the delivery is declared, stored as <see cref="DeliveryReaction.Config"/>,
@@ -16,4 +15,11 @@ namespace Geopilot.Api.Reactions;
 /// <param name="Mandate">The values the mandate supplies to the reaction.</param>
 public sealed record ReactionSnapshot(
     [property: JsonPropertyName("config")] Parameterization Config,
-    [property: JsonPropertyName("mandate")] Dictionary<string, JsonElement> Mandate);
+    [property: JsonPropertyName("mandate")] Dictionary<string, JsonElement> Mandate)
+{
+    /// <summary>
+    /// Reads a snapshot back from the JSON it is stored as.
+    /// </summary>
+    internal static ReactionSnapshot FromJson(string json)
+        => JsonSerializer.Deserialize<ReactionSnapshot>(json) ?? throw new InvalidOperationException("A stored reaction snapshot is never null.");
+}
