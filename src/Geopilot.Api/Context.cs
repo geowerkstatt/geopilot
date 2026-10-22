@@ -230,6 +230,16 @@ public class Context : DbContext
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
 
+        // The snapshot holds dictionaries, so the comparer compares the JSON, as for the reaction set values of a mandate.
+        var reactionSnapshotConverter = new ValueConverter<ReactionSnapshot, string>(
+            snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null),
+            json => ReactionSnapshot.FromJson(json));
+
+        var reactionSnapshotComparer = new ValueComparer<ReactionSnapshot>(
+            (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+            snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null).GetHashCode(StringComparison.Ordinal),
+            snapshot => ReactionSnapshot.FromJson(JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null)));
+
         modelBuilder.Entity<DeliveryReaction>(reaction =>
         {
             // The reactions of a deleted delivery are never claimed, listed or reset again.
@@ -243,7 +253,7 @@ public class Context : DbContext
             reaction.Property(r => r.ReactionId).HasMaxLength(128);
             reaction.Property(r => r.Kind).HasConversion<string>().HasMaxLength(12);
             reaction.Property(r => r.State).HasConversion<string>().HasMaxLength(12);
-            reaction.Property(r => r.Config).HasColumnType("jsonb");
+            reaction.Property(r => r.Config).HasColumnType("jsonb").HasConversion(reactionSnapshotConverter, reactionSnapshotComparer);
         });
 
         var localizedTextConverter = new ValueConverter<LocalizedText, string>(
