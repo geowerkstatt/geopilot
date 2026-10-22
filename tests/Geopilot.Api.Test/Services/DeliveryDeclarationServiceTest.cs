@@ -132,18 +132,18 @@ public class DeliveryDeclarationServiceTest
     public async Task CreatesTheTransfersOfTheChosenSetOnHold()
     {
         var mandate = AddMandate(nameof(CreatesTheTransfersOfTheChosenSetOnHold));
-        mandate.ReactionSetId = "ablage";
-        mandate.ReactionSetValues = new() { ["ablage"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-a") } };
+        mandate.ReactionSetId = "ablage_pro_mandat";
+        mandate.ReactionSetValues = new() { ["weitergabe"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-a") } };
         context.SaveChanges();
         pipelineFactoryMock
-            .Setup(factory => factory.ResolveTransfers("ablage"))
-            .Returns([("ablage", FileDrop, new Parameterization { ["mode"] = "copy" })]);
+            .Setup(factory => factory.ResolveTransfers("ablage_pro_mandat"))
+            .Returns([("weitergabe", FileDrop, new Parameterization { ["mode"] = "copy" })]);
 
         var deliveryId = await DeclareAsync(mandate);
 
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         var reaction = Assert.ContainsSingle(context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList());
-        Assert.AreEqual("ablage", reaction.ReactionId);
+        Assert.AreEqual("weitergabe", reaction.ReactionId);
         Assert.AreEqual(ReactionKind.Transfer, reaction.Kind);
         Assert.AreEqual(ReactionState.Pending, reaction.State);
         Assert.AreEqual(FileDrop, reaction.Implementation);
