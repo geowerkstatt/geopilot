@@ -213,6 +213,9 @@ export const geopilotTheme = createTheme({
           "&:hover": {
             boxShadow: "none",
           },
+          "&.MuiButton-contained": {
+            color: themePalette.primary.contrast,
+          },
           "&.MuiButton-outlined": {
             backgroundColor: themePalette.primary.contrast,
           },
@@ -400,7 +403,7 @@ export const geopilotTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          padding: themeSpacing(2),
+          padding: themeSpacing(3),
         },
       },
     },
