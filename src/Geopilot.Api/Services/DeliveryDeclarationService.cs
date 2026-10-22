@@ -52,8 +52,8 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
         }
 
-        // Whether anybody can declare the run was decided when it started: an anonymous run or one on a mandate that
-        // takes no deliveries stays undeclarable, whoever asks now.
+        // Whether anybody can declare the run was decided when it started: a run started anonymously, by a non-member
+        // or on a mandate that takes no deliveries stays undeclarable, whoever asks now.
         if (!job.IsDeclarable)
         {
             logger.LogTrace("Job with id <{JobId}> cannot be declared by anybody.", jobId);

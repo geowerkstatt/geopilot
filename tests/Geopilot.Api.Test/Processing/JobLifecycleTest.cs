@@ -127,7 +127,6 @@ public class JobLifecycleTest
         Assert.AreEqual(ProcessingState.Pending, job.State);
         Assert.AreSame(pipeline.Object, job.Pipeline);
         Assert.AreEqual(mandate.Id, job.MandateId);
-        Assert.IsTrue(job.IsDeclarable);
         Assert.IsNull(job.DeliveryIntent, "Without delivery fields the delivery is declared by hand, if at all.");
         Assert.AreEqual(job, jobStore.GetJob(job.Id));
 
@@ -139,6 +138,21 @@ public class JobLifecycleTest
         Assert.AreEqual(declarer.UserId, run.UserId, "The protocol must name who started the job.");
         AssertUploadKept(upload.Id, true);
         pipeline.Verify(p => p.Dispose(), Times.Never, "The run still needs the pipeline.");
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable)
+    {
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+
+        var job = await StartJobAsync(upload, declarer, isDeclarable);
+
+        // Both values, because a value fixed on the way to the job would pass with true alone.
+        Assert.AreEqual(isDeclarable, job.IsDeclarable);
+        Assert.AreEqual(isDeclarable, jobStore.GetJob(job.Id)!.IsDeclarable);
     }
 
     [TestMethod]

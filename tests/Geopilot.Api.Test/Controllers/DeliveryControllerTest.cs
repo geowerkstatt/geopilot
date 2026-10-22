@@ -92,8 +92,9 @@ public class DeliveryControllerTest
     public async Task CreateFailsForARunNobodyCanDeclare()
     {
         // A member of the mandate asks to declare a run that nobody can declare, such as an anonymous one on a
-        // public mandate. Being a member now does not make up for who started it.
-        var (user, publicMandate) = SetupMandateWithUserOrganisation(new Mandate
+        // public mandate. Being a member now does not make up for who started it. The refusal comes before the
+        // declarer's membership is looked up, so no lookup is set up for it.
+        var (user, publicMandate) = context.AddMandateWithUserOrganisation(new Mandate
         {
             Name = TestHelpers.Localized(nameof(CreateFailsForARunNobodyCanDeclare)),
             IsPublic = true,
