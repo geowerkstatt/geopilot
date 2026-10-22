@@ -7,6 +7,7 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Ilitools;
@@ -170,6 +171,10 @@ builder.Services.AddOptions<DeliveryOptions>()
     .BindConfiguration("Delivery")
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<DeliveryReactionOptions>()
+    .BindConfiguration(DeliveryReactionOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
@@ -179,8 +184,11 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// Hosted services stop in reverse registration order, so registering the runner ahead of the upload services
-// stops the preflight first: nothing is queued any more once the runner stops reading.
+// Hosted services stop in reverse registration order. The reaction worker comes first, so it stops after the runner
+// has drained and still forwards a delivery declared meanwhile; the runner comes ahead of the upload services, so the
+// preflight stops first and nothing is queued any more once the runner stops reading.
+builder.Services.AddSingleton<ReactionStore>();
+builder.Services.AddHostedService<ReactionWorker>();
 builder.Services.AddHostedService<ProcessingRunner>();
 var uploadBackend = builder.AddUploadServices();
 
