@@ -13,6 +13,8 @@ namespace Geopilot.Api.Test.Processing;
 [TestClass]
 public class PipelineRunRecorderTest
 {
+    private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
+
     private Context context;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Mock<IUploadStorage> uploadStorageMock;
@@ -312,6 +314,108 @@ public class PipelineRunRecorderTest
         await recorder.RecordPreflightFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a run record must be skipped, not fail.");
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptStartedWritesARunningRowToTheRunOfTheDelivery()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var reaction = ClaimedReaction(delivery, attempt: 2);
+
+        await recorder.RecordReactionAttemptStartedAsync(reaction);
+
+        var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
+        Assert.AreEqual(delivery.Id, row.DeliveryId);
+        Assert.AreEqual("weitergabe", row.ReactionId);
+        Assert.AreEqual(ReactionKind.Transfer, row.ReactionKind);
+        Assert.AreEqual(FileDrop, row.Implementation);
+        Assert.AreEqual(ReactionEvent.Attempt, row.Event);
+        Assert.AreEqual(2, row.Attempt);
+        Assert.AreEqual(reaction.LastAttemptAt, row.OccurredAt);
+        Assert.AreEqual(ReactionState.Running, row.State);
+        Assert.IsNull(row.FinishedAt);
+        Assert.IsNull(row.Message);
+        Assert.IsNull(row.UserId);
+    }
+
+    [TestMethod]
+    [DataRow(ReactionState.Done, DisplayName = "Delivered")]
+    [DataRow(ReactionState.Pending, DisplayName = "Failed, tries again")]
+    [DataRow(null, DisplayName = "No longer held its reaction")]
+    public async Task ReactionAttemptFinishedCompletesTheRowOfTheAttempt(ReactionState? state)
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var reaction = ClaimedReaction(delivery);
+        await recorder.RecordReactionAttemptStartedAsync(reaction);
+
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, "What the channel reported.");
+
+        var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
+        Assert.AreEqual(state, row.State);
+        Assert.AreEqual("What the channel reported.", row.Message);
+        Assert.IsNotNull(row.FinishedAt);
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptFinishedWritesTheRowLateWhenItsStartIsMissing()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var reaction = ClaimedReaction(delivery);
+
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, "Delivered to the target.");
+
+        var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
+        Assert.AreEqual(reaction.LastAttemptAt, row.OccurredAt);
+        Assert.AreEqual(ReactionState.Done, row.State);
+        Assert.IsNotNull(row.FinishedAt);
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptIsRecordedForADeletedDelivery()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        delivery.Deleted = true;
+        await context.SaveChangesAsync();
+
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery));
+
+        Assert.IsTrue(await context.PipelineRunReactionEvents.AnyAsync(e => e.PipelineRunId == run.Id), "the protocol outlives the deletion of the delivery.");
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptsWithoutRunRecordDoNotThrow()
+    {
+        var withoutRun = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
+        context.Deliveries.Add(withoutRun);
+        await context.SaveChangesAsync();
+        var reaction = ClaimedReaction(withoutRun);
+
+        await recorder.RecordReactionAttemptStartedAsync(reaction);
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, "Delivered to the target.");
+
+        Assert.IsFalse(await context.PipelineRunReactionEvents.AnyAsync(e => e.DeliveryId == withoutRun.Id), "soft writes without a run record must be skipped, not fail.");
+    }
+
+    private static DeliveryReaction ClaimedReaction(Delivery delivery, int attempt = 1) => new()
+    {
+        DeliveryId = delivery.Id,
+        ReactionId = "weitergabe",
+        Kind = ReactionKind.Transfer,
+        Implementation = FileDrop,
+        State = ReactionState.Running,
+        Attempts = attempt,
+        LastAttemptAt = new DateTime(2026, 10, 22, 8, 30, 0, DateTimeKind.Utc),
+        ClaimToken = Guid.NewGuid(),
+    };
+
+    private async Task<(PipelineRun Run, Delivery Delivery)> SeedRunWithDeliveryAsync()
+    {
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        var delivery = new Delivery { JobId = job.Id, Mandate = mandate, DeclaringUser = user };
+        context.Deliveries.Add(delivery);
+        await context.SaveChangesAsync();
+        return (await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id), delivery);
     }
 
     private async Task<ClientKind> ClassifyAsync(HttpContext? httpContext)

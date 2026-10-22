@@ -58,6 +58,25 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetReturnsTheReactionEventsInTheOrderTheyHappened()
+    {
+        var run = SeedRun();
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        CollectionAssert.AreEqual(new int?[] { 1, 2 }, response.ReactionEvents.Select(reactionEvent => reactionEvent.Attempt).ToArray());
+        var first = response.ReactionEvents[0];
+        Assert.AreEqual(42, first.DeliveryId);
+        Assert.AreEqual("weitergabe", first.ReactionId);
+        Assert.AreEqual(ReactionKind.Transfer, first.ReactionKind);
+        Assert.AreEqual(ReactionEvent.Attempt, first.Event);
+        Assert.AreEqual(ReactionState.Pending, first.State);
+        Assert.AreEqual("The target is not reachable.", first.Message);
+        Assert.IsNotNull(first.FinishedAt);
+        Assert.IsNull(first.UserId);
+    }
+
+    [TestMethod]
     public async Task GetReturnsNotFoundForUnknownJob()
     {
         ActionResultAssert.IsNotFound(await controller.Get(Guid.NewGuid()));
@@ -138,10 +157,30 @@ public sealed class PipelineRunControllerTest
                     State = StepState.Success,
                 },
             },
+            ReactionEvents = new List<PipelineRunReactionEvent>
+            {
+                // Inserted out of order on purpose; the response must order by when it happened.
+                ReactionAttempt(2, DateTime.UtcNow.AddMinutes(-1), ReactionState.Done, "Delivered to the target."),
+                ReactionAttempt(1, DateTime.UtcNow.AddMinutes(-3), ReactionState.Pending, "The target is not reachable."),
+            },
         };
 
         context.PipelineRuns.Add(run);
         context.SaveChanges();
         return run;
     }
+
+    private static PipelineRunReactionEvent ReactionAttempt(int attempt, DateTime startedAt, ReactionState state, string message) => new()
+    {
+        DeliveryId = 42,
+        ReactionId = "weitergabe",
+        ReactionKind = ReactionKind.Transfer,
+        Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+        Event = ReactionEvent.Attempt,
+        Attempt = attempt,
+        OccurredAt = startedAt,
+        FinishedAt = startedAt.AddSeconds(5),
+        State = state,
+        Message = message,
+    };
 }
