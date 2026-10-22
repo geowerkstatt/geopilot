@@ -7,7 +7,13 @@ import { UserFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
-import { FormAutocomplete, FormCheckbox, FormContainer, FormInput } from "../../../components/form/form.ts";
+import {
+  FormAutocomplete,
+  FormCheckbox,
+  FormContainer,
+  FormContainerHalfWidth,
+  FormInput,
+} from "../../../components/form/form.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -83,25 +89,29 @@ const UserDetail = () => {
         prepareDataForSave={prepareUserForSave}>
         <GeopilotBox>
           <Typography variant={"h3"} sx={{ margin: 0 }}>
-            {t("description")}
+            {t("general")}
           </Typography>
           <FormContainer>
             <FormInput fieldName={"fullName"} label={"name"} value={editableUser?.fullName} disabled={true} />
             <FormInput fieldName={"email"} label={"email"} value={editableUser?.email} disabled={true} />
           </FormContainer>
           <FormContainer>
-            <FormCheckbox
-              fieldName={"isAdmin"}
-              label={"isAdmin"}
-              checked={editableUser?.isAdmin ?? false}
-              disabled={isOwnUser}
-            />
-            <FormCheckbox
-              fieldName={"isActive"}
-              label={"active"}
-              checked={editableUser?.state === UserState.Active}
-              disabled={isOwnUser}
-            />
+            <FormContainerHalfWidth>
+              <FormCheckbox
+                fieldName={"isAdmin"}
+                label={"isAdmin"}
+                checked={editableUser?.isAdmin ?? false}
+                disabled={isOwnUser}
+              />
+            </FormContainerHalfWidth>
+            <FormContainerHalfWidth>
+              <FormCheckbox
+                fieldName={"isActive"}
+                label={"isActive"}
+                checked={editableUser?.state === UserState.Active}
+                disabled={isOwnUser}
+              />
+            </FormContainerHalfWidth>
           </FormContainer>
           <FormContainer>
             <FormAutocomplete<Organisation>
