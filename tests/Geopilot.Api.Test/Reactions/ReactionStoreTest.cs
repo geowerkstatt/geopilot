@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Geopilot.Api.Reactions;
 
@@ -10,6 +12,7 @@ public class ReactionStoreTest
     private static readonly TimeSpan TimeLimit = TimeSpan.FromMinutes(10);
 
     private Context context;
+    private Mock<ILogger<ReactionStore>> loggerMock;
     private ReactionStore store;
     private DateTime dbNow;
     private Delivery delivery;
@@ -18,13 +21,16 @@ public class ReactionStoreTest
     public async Task Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
+        loggerMock = new Mock<ILogger<ReactionStore>>();
 
         // Two waits between attempts make three attempts.
-        store = new ReactionStore(Options.Create(new DeliveryReactionOptions
-        {
-            RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)],
-            TimeLimit = TimeLimit,
-        }));
+        store = new ReactionStore(
+            Options.Create(new DeliveryReactionOptions
+            {
+                RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)],
+                TimeLimit = TimeLimit,
+            }),
+            loggerMock.Object);
 
         // now() stands still within the test transaction, so every time the store writes has to equal this one.
         dbNow = await context.Database.SqlQuery<DateTime>($"SELECT now() AS \"Value\"").SingleAsync();
@@ -99,6 +105,9 @@ public class ReactionStoreTest
         Assert.IsNull(stored.LockedUntil);
         Assert.IsNull(stored.ClaimToken);
         Assert.IsFalse(string.IsNullOrWhiteSpace(stored.Message));
+        loggerMock.Verify(
+            logger => logger.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [TestMethod]
@@ -159,7 +168,7 @@ public class ReactionStoreTest
         AddReaction(nextAttemptAt: dbNow.AddMinutes(-1));
         var claimed = await ClaimAsync();
 
-        Assert.IsTrue(await store.CompleteAsync(context, claimed, "Stored in mandate-a/42.", CancellationToken.None));
+        Assert.AreEqual(ReactionState.Done, await store.CompleteAsync(context, claimed, "Stored in mandate-a/42.", CancellationToken.None));
 
         var stored = await ReloadAsync(claimed);
         Assert.AreEqual(ReactionState.Done, stored.State);
@@ -175,7 +184,7 @@ public class ReactionStoreTest
         AddReaction(nextAttemptAt: dbNow.AddMinutes(-1));
         var claimed = await ClaimAsync();
 
-        Assert.IsFalse(await store.CompleteAsync(context, LostAttemptOf(claimed), null, CancellationToken.None));
+        Assert.IsNull(await store.CompleteAsync(context, LostAttemptOf(claimed), null, CancellationToken.None));
 
         Assert.AreEqual(ReactionState.Running, (await ReloadAsync(claimed)).State);
     }
@@ -188,7 +197,7 @@ public class ReactionStoreTest
         AddReaction(attempts: previousAttempts, nextAttemptAt: dbNow.AddMinutes(-1));
         var claimed = await ClaimAsync();
 
-        Assert.IsTrue(await store.FailAsync(context, claimed, "The target is not reachable.", CancellationToken.None));
+        Assert.AreEqual(ReactionState.Pending, await store.FailAsync(context, claimed, "The target is not reachable.", CancellationToken.None));
 
         var stored = await ReloadAsync(claimed);
         Assert.AreEqual(ReactionState.Pending, stored.State);
@@ -207,7 +216,7 @@ public class ReactionStoreTest
         var startedAt = dbNow.AddSeconds(-startedSecondsAgo);
         var running = AddReaction(state: ReactionState.Running, attempts: 1, lockedUntil: dbNow.AddMinutes(10), lastAttemptAt: startedAt);
 
-        Assert.IsTrue(await store.FailAsync(context, running, "The target is not reachable.", CancellationToken.None));
+        Assert.AreEqual(ReactionState.Pending, await store.FailAsync(context, running, "The target is not reachable.", CancellationToken.None));
 
         Assert.AreEqual(startedAt.AddMinutes(1), (await ReloadAsync(running)).NextAttemptAt);
     }
@@ -218,7 +227,7 @@ public class ReactionStoreTest
         AddReaction(attempts: 2, nextAttemptAt: dbNow.AddMinutes(-1));
         var claimed = await ClaimAsync();
 
-        Assert.IsTrue(await store.FailAsync(context, claimed, "The target is not reachable.", CancellationToken.None));
+        Assert.AreEqual(ReactionState.Error, await store.FailAsync(context, claimed, "The target is not reachable.", CancellationToken.None));
 
         var stored = await ReloadAsync(claimed);
         Assert.AreEqual(3, stored.Attempts);
@@ -235,7 +244,7 @@ public class ReactionStoreTest
         AddReaction(nextAttemptAt: dbNow.AddMinutes(-1));
         var claimed = await ClaimAsync();
 
-        Assert.IsFalse(await store.FailAsync(context, LostAttemptOf(claimed), "Too late.", CancellationToken.None));
+        Assert.IsNull(await store.FailAsync(context, LostAttemptOf(claimed), "Too late.", CancellationToken.None));
 
         Assert.AreEqual(ReactionState.Running, (await ReloadAsync(claimed)).State);
     }

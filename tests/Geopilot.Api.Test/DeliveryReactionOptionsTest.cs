@@ -52,6 +52,17 @@ public class DeliveryReactionOptionsTest
     }
 
     [TestMethod]
+    [DataRow("00:00:00")]
+    [DataRow("-00:00:15")]
+    public void ValidateRejectsPollIntervalThatIsNotPositive(string pollInterval)
+    {
+        var options = new DeliveryReactionOptions { PollInterval = TimeSpan.Parse(pollInterval, CultureInfo.InvariantCulture) };
+
+        var result = Assert.ContainsSingle(Validate(options));
+        CollectionAssert.AreEqual(new[] { nameof(DeliveryReactionOptions.PollInterval) }, result.MemberNames.ToArray());
+    }
+
+    [TestMethod]
     public void ValidateRejectsRetryDelayThatIsNotPositive()
     {
         var options = new DeliveryReactionOptions { RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.Zero] };

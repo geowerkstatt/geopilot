@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Reactions;
@@ -14,7 +15,7 @@ public class ReactionStoreConcurrencyTest
         "Database=geopilot-reaction-store-test",
         StringComparison.Ordinal);
 
-    private static readonly ReactionStore Store = new(Options.Create(new DeliveryReactionOptions()));
+    private static readonly ReactionStore Store = new(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
 
     [ClassInitialize]
     public static void CreateDatabase(TestContext testContext)

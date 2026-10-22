@@ -52,7 +52,7 @@ Die Zeit, in der eine Reaktion noch nicht fällig ist, weil der Lieferant die Li
 
 ## Zustellversuch
 
-Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz die Reaktion holt, und hält sie bis zum Zeitlimit plus eine Minute; meldet er sich bis dahin nicht zurück, übernimmt eine andere Instanz. Nach einem misslungenen Zustellversuch startet der nächste um den Abstand aus `Delivery:Reactions:RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort; nach dem letzten steht die Reaktion auf `Error`. Läuft die App durch, steht damit fest, wann eine Reaktion spätestens endet. Ein Ausfall der App verschiebt das Ende um seine Dauer, ohne dass ein Zustellversuch verloren geht. Im Code: `DeliveryReaction.Attempts`, `ReactionStore.ClaimNextAsync`.
+Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz die Reaktion holt, und hält sie bis zum Zeitlimit plus eine Minute; meldet er sich bis dahin nicht zurück, übernimmt eine andere Instanz. Nach einem misslungenen Zustellversuch startet der nächste um den Abstand aus `Delivery:Reactions:RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort; nach dem letzten steht die Reaktion auf `Error`. Läuft die App durch, steht damit fest, wann eine Reaktion spätestens endet. Ein Ausfall der App verschiebt das Ende um seine Dauer, ohne dass ein Zustellversuch verloren geht. Unterbricht ein Stopp der Anwendung einen Zustellversuch, trägt sie ihn als misslungen ein, und er zählt mit. Im Code: `DeliveryReaction.Attempts`, `ReactionStore.ClaimNextAsync`, ausgeführt von `ReactionWorker`.
 
 ## Satz
 
