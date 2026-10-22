@@ -13,6 +13,7 @@ public class MandateValuesValidationTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
     private const string SetId = "ablage_pro_mandat";
+    private const string ReactionId = "weitergabe";
 
     private const string Definition = $$"""
         processes:
@@ -35,7 +36,7 @@ public class MandateValuesValidationTest
         reaction_sets:
           - id: {{SetId}}
             transfers:
-              - id: {{SetId}}
+              - id: {{ReactionId}}
                 channel_id: ablage
                 mandate_config:
                   - key: subfolder
@@ -83,7 +84,7 @@ public class MandateValuesValidationTest
     {
         var error = Assert.ContainsSingle(Factory().ValidateMandateValues(SetId, new Dictionary<string, Parameterization>()));
 
-        Assert.AreEqual($"reaction {SetId}: Channel initialization: No suitable parameter found for parameter of type <String> and name <subfolder>. Parameter is not nullable, cannot initialize channel.", error);
+        Assert.AreEqual($"reaction {ReactionId}: Channel initialization: No suitable parameter found for parameter of type <String> and name <subfolder>. Parameter is not nullable, cannot initialize channel.", error);
     }
 
     [TestMethod]
@@ -91,7 +92,7 @@ public class MandateValuesValidationTest
     {
         var error = Assert.ContainsSingle(Factory().ValidateMandateValues(SetId, Values("\"../anderswo\"")));
 
-        Assert.AreEqual($"reaction {SetId}: The subfolder <../anderswo> is not a relative path without '..'. (Parameter 'subfolder')", error);
+        Assert.AreEqual($"reaction {ReactionId}: The subfolder <../anderswo> is not a relative path without '..'. (Parameter 'subfolder')", error);
     }
 
     [TestMethod]
@@ -99,7 +100,7 @@ public class MandateValuesValidationTest
     {
         var error = Assert.ContainsSingle(Factory().ValidateMandateValues(SetId, Values("[\"kanton-a\", \"kanton-b\"]")));
 
-        StringAssert.StartsWith(error, $"reaction {SetId}: Channel initialization: The configured value");
+        StringAssert.StartsWith(error, $"reaction {ReactionId}: Channel initialization: The configured value");
         StringAssert.EndsWith(error, "for parameter <subfolder> cannot be converted to type <String>.");
     }
 
@@ -112,7 +113,7 @@ public class MandateValuesValidationTest
     }
 
     private static Dictionary<string, Parameterization> Values(string subfolderJson)
-        => new() { [SetId] = new Parameterization { ["subfolder"] = JsonSerializer.Deserialize<JsonElement>(subfolderJson) } };
+        => new() { [ReactionId] = new Parameterization { ["subfolder"] = JsonSerializer.Deserialize<JsonElement>(subfolderJson) } };
 
     private PipelineFactory Factory()
         => PipelineFactory
