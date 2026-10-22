@@ -240,6 +240,95 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
     }
 
+    /// <inheritdoc/>
+    public async Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction)
+    {
+        ArgumentNullException.ThrowIfNull(reaction);
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(reaction.DeliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(reaction.DeliveryId);
+                return;
+            }
+
+            context.PipelineRunReactionEvents.Add(NewAttemptRow(runId, reaction));
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            LogReactionWriteFailed(reaction.DeliveryId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message)
+    {
+        ArgumentNullException.ThrowIfNull(reaction);
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(reaction.DeliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(reaction.DeliveryId);
+                return;
+            }
+
+            var row = await context.PipelineRunReactionEvents
+                .Where(e => e.PipelineRunId == runId
+                    && e.DeliveryId == reaction.DeliveryId
+                    && e.ReactionId == reaction.ReactionId
+                    && e.Event == ReactionEvent.Attempt
+                    && e.Attempt == reaction.Attempts)
+                .OrderByDescending(e => e.Id)
+                .FirstOrDefaultAsync();
+            if (row is null)
+            {
+                logger.LogWarning("No row exists for attempt {Attempt} of the reaction <{ReactionId}> of delivery <{DeliveryId}>; creating it late.", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId);
+                row = NewAttemptRow(runId, reaction);
+                context.PipelineRunReactionEvents.Add(row);
+            }
+
+            row.FinishedAt = DateTime.UtcNow;
+            row.State = state;
+            row.Message = message;
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            LogReactionWriteFailed(reaction.DeliveryId, ex);
+        }
+    }
+
+    /// <summary>
+    /// Finds the run a delivery comes from, also for a deleted delivery: the protocol outlives it.
+    /// </summary>
+    private Task<int?> FindRunOfDeliveryAsync(int deliveryId)
+    {
+        return context.Deliveries
+            .IgnoreQueryFilters()
+            .Where(delivery => delivery.Id == deliveryId)
+            .Join(context.PipelineRuns, delivery => delivery.JobId, run => run.JobId, (delivery, run) => (int?)run.Id)
+            .SingleOrDefaultAsync();
+    }
+
+    private static PipelineRunReactionEvent NewAttemptRow(int runId, DeliveryReaction reaction)
+    {
+        return new PipelineRunReactionEvent
+        {
+            PipelineRunId = runId,
+            DeliveryId = reaction.DeliveryId,
+            ReactionId = reaction.ReactionId,
+            ReactionKind = reaction.Kind,
+            Implementation = reaction.Implementation,
+            Event = ReactionEvent.Attempt,
+            Attempt = reaction.Attempts,
+            OccurredAt = reaction.LastAttemptAt ?? DateTime.UtcNow,
+            State = ReactionState.Running,
+        };
+    }
+
     /// <summary>
     /// Creates and tracks a step row outside the start record. Step rows are pre-created with the start
     /// record, so having to create one late is an anomaly worth noticing (e.g. a definition change between
@@ -353,4 +442,10 @@ public class PipelineRunRecorder : IPipelineRunRecorder
 
     private void LogWriteFailed(Guid jobId, Exception exception) =>
         logger.LogWarning(exception, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
+
+    private void LogRunOfDeliveryMissing(int deliveryId) =>
+        logger.LogWarning("No run record exists for delivery <{DeliveryId}>; skipping the protocol write.", deliveryId);
+
+    private void LogReactionWriteFailed(int deliveryId, Exception exception) =>
+        logger.LogWarning(exception, "Writing the execution protocol for delivery <{DeliveryId}> failed; the attempt continues.", deliveryId);
 }

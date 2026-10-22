@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Microsoft.EntityFrameworkCore;
@@ -88,6 +89,8 @@ public class ReactionWorker : BackgroundService
         if (reaction is null)
             return false;
 
+        var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+        await recorder.RecordReactionAttemptStartedAsync(reaction);
         var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, stoppingToken);
 
         // Reported even while the application stops, so an interrupted attempt does not hold its reaction until its
@@ -95,6 +98,7 @@ public class ReactionWorker : BackgroundService
         var state = result.Delivered
             ? await store.CompleteAsync(context, reaction, result.Message, CancellationToken.None)
             : await store.FailAsync(context, reaction, result.Message, CancellationToken.None);
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, result.Message);
         LogOutcome(reaction, result.Message, state);
         return true;
     }
