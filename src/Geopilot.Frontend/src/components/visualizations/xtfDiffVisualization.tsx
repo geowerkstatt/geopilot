@@ -97,10 +97,13 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
 
   // Filter result for the map: the objects still listed (undefined = no filter = show all).
   const visibleObjectIds = hasActiveFilters ? listedObjectIds : undefined;
-  // An object the filter hides stays selected but shows as selected only once it is listed again.
+  // An object the filter hides stays selected but shows as selected only once it is visible again.
   const highlightedObjectIds = useMemo<ReadonlySet<string>>(
-    () => new Set(selectedObjectId && listedObjectIds.has(selectedObjectId) ? [selectedObjectId] : []),
-    [selectedObjectId, listedObjectIds],
+    () =>
+      new Set(
+        selectedObjectId && (!visibleObjectIds || visibleObjectIds.has(selectedObjectId)) ? [selectedObjectId] : [],
+      ),
+    [selectedObjectId, visibleObjectIds],
   );
 
   useEffect(() => {
@@ -110,12 +113,12 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     element?.focus({ preventScroll: true });
   }, [revealRequest]);
 
-  /** Expands a listed object, selects it and scrolls to it with the focus on it. */
+  /** Selects an object and, when it is listed, expands it and scrolls to it with the focus on it. */
   const revealObject = useCallback(
     (objectId: string) => {
+      setSelectedObjectId(objectId);
       if (!listedObjectIds.has(objectId)) return;
       setExpandedObjectIds(previous => new Set(previous).add(objectId));
-      setSelectedObjectId(objectId);
       setRevealRequest(previous => ({ objectId, token: (previous?.token ?? 0) + 1 }));
     },
     [listedObjectIds],
