@@ -33,7 +33,7 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
     cy.intercept("GET", VISUALIZATION_URL, { statusCode: 200, body: transform(fixture) });
   });
   const visualizationStep = {
-    ...processingStep("diff_visualization", "Diff Visualization", "success"),
+    ...processingStep("diff_visualization", "Change Visualization", "success"),
     visualizations: [{ originalFileName: "diff.json", url: VISUALIZATION_URL }],
   };
   runMockedProcessingJob(
