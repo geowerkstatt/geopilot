@@ -100,11 +100,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
     </Typography>
   );
   const objectId = (
-    <Typography
-      variant="body2"
-      noWrap
-      // The page grows to fit unbreakable text; contained, the id is cut with an ellipsis instead.
-      sx={{ color: "text.secondary", fontFamily: "monospace", minWidth: 0, contain: "inline-size" }}>
+    <Typography variant="body2" noWrap sx={{ color: "text.secondary", fontFamily: "monospace", minWidth: 0 }}>
       {object.objectId}
     </Typography>
   );
@@ -168,8 +164,9 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
             />
           )}
         </Stack>
-        {/* Narrow, the id goes on its own line along the left border and the summary is left out. */}
-        {layout === "narrow" && <Box sx={{ pl: 1, pb: 0.5 }}>{objectId}</Box>}
+        {/* Narrow, the id goes on its own line below the change icon, contained like the line above, and the summary is
+            left out. */}
+        {layout === "narrow" && <Box sx={{ pl: TOGGLE_WIDTH + 1, pb: 0.5, contain: "inline-size" }}>{objectId}</Box>}
       </Stack>
       {expandable && expanded && (
         <Box sx={{ pl: TOGGLE_WIDTH + 1, pr: 1.5, pb: 0.5 }}>
