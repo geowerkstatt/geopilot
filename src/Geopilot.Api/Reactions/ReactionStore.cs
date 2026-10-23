@@ -166,6 +166,46 @@ public class ReactionStore
     }
 
     /// <summary>
+    /// Resets the reactions of a delivery that gave up: each gets all its attempts again and is due at once. Reactions
+    /// in any other state stay as they are, and so do the reactions of a deleted delivery.
+    /// </summary>
+    /// <returns>The reactions this call reset, in the state the reset left them.</returns>
+    public async Task<IReadOnlyList<DeliveryReaction>> ResetFailedAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var failedIds = await context.DeliveryReactions
+            .Where(r => r.DeliveryId == deliveryId && r.State == ReactionState.Error)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        // One row at a time and only while it is still failed, so of two resets at once each reaction counts for one.
+        var resetIds = new List<int>();
+        foreach (var id in failedIds)
+        {
+            var updated = await context.DeliveryReactions
+                .Where(r => r.Id == id && r.State == ReactionState.Error)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(r => r.State, ReactionState.Pending)
+                        .SetProperty(r => r.Attempts, 0)
+                        .SetProperty(r => r.NextAttemptAt, r => DateTime.UtcNow)
+                        .SetProperty(r => r.LastAttemptAt, (DateTime?)null)
+                        .SetProperty(r => r.FinishedAt, (DateTime?)null)
+                        .SetProperty(r => r.Message, (string?)null),
+                    cancellationToken);
+            if (updated == 1)
+                resetIds.Add(id);
+        }
+
+        return await context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => resetIds.Contains(r.Id))
+            .OrderBy(r => r.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Claims one reaction if it is still claimable. Every condition sits in the update itself, so when two instances
     /// claim the same reaction, the second one finds it claimed once the first commits.
     /// </summary>
