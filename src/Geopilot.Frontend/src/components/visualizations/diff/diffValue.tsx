@@ -41,7 +41,7 @@ export const DiffValueText: FC<DiffValueTextProps> = ({ segments, side, monospac
   }, [segments, expanded]);
 
   return (
-    <Stack sx={{ minWidth: 0, alignItems: "flex-start" }}>
+    <Stack sx={{ gap: 0, minWidth: 0, alignItems: "flex-start" }}>
       <Typography
         ref={textRef}
         variant="body2"
