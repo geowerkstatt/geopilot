@@ -55,7 +55,11 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
   return (
     <FormControlLabel
       sx={{
+        alignItems: "flex-start",
         [`& .${formControlLabelClasses.label}`]: {
+          // Matches the 9px padding MUI gives the checkbox, so a wrapping label keeps the box beside its first line.
+          // The wrapping label brings 4px of its own.
+          pt: wrapLabel ? 0.625 : 1.125,
           opacity: 1,
           ...(size === "small" && { fontSize: px2rem(14) }),
           ...(truncateLabel && { minWidth: 0 }),

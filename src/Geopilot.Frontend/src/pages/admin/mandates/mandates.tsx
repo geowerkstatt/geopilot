@@ -107,7 +107,7 @@ const Mandates = () => {
     },
     {
       field: "isPublic",
-      headerName: t("public"),
+      headerName: t("publiclyProcessable"),
       width: 160,
       type: "boolean",
     },

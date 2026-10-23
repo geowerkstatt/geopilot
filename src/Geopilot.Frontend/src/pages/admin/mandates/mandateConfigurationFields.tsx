@@ -1,18 +1,17 @@
 import { FC, useEffect, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
-import { Organisation, PipelineSummary, StacAccess } from "../../../api/generated";
+import { Organisation, PipelineSummary } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormAutocomplete,
   FormCheckbox,
   FormChipInput,
+  FormColumnHalfWidth,
   FormContainer,
   FormContainerHalfWidth,
   FormInput,
-  FormSelect,
 } from "../../../components/form/form.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
@@ -41,7 +40,6 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
   const { fetchApi } = useFetch();
   const { trigger } = useFormContext();
   const { machineDeliveryEnabled } = useCapabilities();
-  const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
   const [usedKeys, setUsedKeys] = useState<string[]>();
 
   useEffect(() => {
@@ -71,53 +69,9 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   return (
     <>
-      {machineDeliveryEnabled && (
-        <FormContainer>
-          <FormInput
-            label="mandateKey"
-            fieldName="key"
-            value={mandate?.key ?? ""}
-            helperText={t("mandateKeyHelperText")}
-            validate={validateUniqueKey}
-          />
-        </FormContainer>
-      )}
       <FormContainer>
-        <FormContainerHalfWidth>
+        <FormColumnHalfWidth>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
-        </FormContainerHalfWidth>
-        <FormContainerHalfWidth>
-          <FormChipInput
-            fieldName={"fileTypes"}
-            label={"fileTypes"}
-            placeholder={"fileTypesPlaceholder"}
-            required={true}
-            selected={mandate?.fileTypes}
-            parse={parseFileType}
-            errorMessage="invalidFileExtension"
-          />
-        </FormContainerHalfWidth>
-      </FormContainer>
-      <FormContainer sx={{ alignItems: "center" }}>
-        <FormContainerHalfWidth>
-          <FormSelect
-            fieldName={"stacAccess"}
-            label={"stacAccess"}
-            required={true}
-            selected={mandate?.stacAccess}
-            values={[
-              { key: 0, value: StacAccess.AdminsOnly, name: t("stacAccessAdminsOnly") },
-              { key: 1, value: StacAccess.Public, name: t("stacAccessPublic") },
-            ]}
-          />
-        </FormContainerHalfWidth>
-        <FormContainerHalfWidth sx={{ alignItems: "center" }}>
-          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-        </FormContainerHalfWidth>
-      </FormContainer>
-      <FormContainer>
-        <FormContainerHalfWidth>
           <FormAutocomplete<Organisation>
             fieldName={"organisations"}
             label={"eligibleOrganisations"}
@@ -130,9 +84,38 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
               detailText: `${org.name} (ID: ${org.id})`,
             })}
           />
-        </FormContainerHalfWidth>
-        <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
+        </FormColumnHalfWidth>
+        <FormColumnHalfWidth>
+          <FormChipInput
+            fieldName={"fileTypes"}
+            label={"fileTypes"}
+            placeholder={"fileTypesPlaceholder"}
+            required={true}
+            selected={mandate?.fileTypes}
+            parse={parseFileType}
+            errorMessage="invalidFileExtension"
+          />
+        </FormColumnHalfWidth>
       </FormContainer>
+      <FormContainer>
+        <FormContainerHalfWidth>
+          <FormCheckbox fieldName={"isPublic"} label={"allowPublicProcessing"} checked={mandate?.isPublic ?? false} />
+        </FormContainerHalfWidth>
+        <FormContainerHalfWidth>
+          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
+        </FormContainerHalfWidth>
+      </FormContainer>
+      {machineDeliveryEnabled && (
+        <FormContainer>
+          <FormInput
+            label="mandateKey"
+            fieldName="key"
+            value={mandate?.key ?? ""}
+            helperText={t("mandateKeyHelperText")}
+            validate={validateUniqueKey}
+          />
+        </FormContainer>
+      )}
     </>
   );
 };

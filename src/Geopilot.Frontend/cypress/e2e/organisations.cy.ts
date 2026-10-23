@@ -117,7 +117,7 @@ describe("Organisations tests", () => {
     hasError("name", true);
     cy.dataCy("save-button").should("be.disabled");
     // We have to click away to move the focus away from the error field. Else the error won't be cleared.
-    cy.contains("Description").click();
+    cy.contains("General").click();
 
     cy.dataCy("reset-button").click();
     hasError("name", false);
