@@ -99,7 +99,7 @@ pipelines:
       # was als Modell an die Validierung geht.
       - id: ili_matching
         display_name:
-          en: Model Matching
+          en: Model matching
           de: Modell Zuordnung
           fr: Correspondance des modèles
           it: Corrispondenza dei modelli
@@ -115,7 +115,7 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
           fr: XTF Validation
           it: XTF Validazione
@@ -156,7 +156,7 @@ pipelines:
               - StatusMessage
       - id: map_visualization
         display_name:
-          en: Map Visualization
+          en: Map visualization
           de: Kartenvisualisierung
           it: Visualizzazione cartografica
           fr: Visualisation cartographique
@@ -211,7 +211,7 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
           it: Validazione XTF
           fr: Validation XTF
@@ -252,7 +252,7 @@ pipelines:
       - id: error_tree
         display_name:
           de: XTF-Visualisierung
-          en: XTF-Visualization
+          en: XTF visualization
           it: Visualizzazione XTF
           fr: Visualisation XTF
         process_id: xtf_error_visualizer
@@ -277,7 +277,7 @@ pipelines:
               - StatusMessage
       - id: zip_packaging
         display_name:
-          en: ZIP Packaging
+          en: ZIP packaging
           de: ZIP Packet
           it: Creazione ZIP
           fr: Création ZIP
@@ -400,7 +400,7 @@ pipelines:
     steps:
       - id: zip_matching
         display_name:
-          en: Archive Matching
+          en: Archive matching
           de: Archiv Zuordnung
           fr: Correspondance de l'archive
           it: Corrispondenza dell'archivio
@@ -426,7 +426,7 @@ pipelines:
               - StatusMessage
       - id: unzip
         display_name:
-          en: Unzip Archive
+          en: Unzip archive
           de: Archiv entpacken
           fr: Décompresser l'archive
           it: Decomprimere l'archivio
@@ -449,7 +449,7 @@ pipelines:
               - StatusMessage
       - id: xtf_matching_upload
         display_name:
-          en: Upload XTF Matching
+          en: Upload XTF matching
           de: Upload XTF Zuordnung
           fr: Upload XTF Correspondance
           it: Upload XTF Corrispondenza
@@ -465,7 +465,7 @@ pipelines:
               - StatusMessage
       - id: xtf_matching_zip
         display_name:
-          en: ZIP XTF Matching
+          en: ZIP XTF matching
           de: ZIP XTF Zuordnung
           fr: ZIP XTF Correspondance
           it: ZIP XTF Corrispondenza
@@ -491,7 +491,7 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
           fr: XTF Validation
           it: XTF Validazione
