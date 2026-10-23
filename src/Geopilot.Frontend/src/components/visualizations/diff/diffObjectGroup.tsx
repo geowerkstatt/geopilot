@@ -30,7 +30,6 @@ interface DiffObjectSummaryProps {
   object: DiffObject;
 }
 
-/** What happened to the object in one line: added or deleted, or the properties it changed in, cut with an ellipsis. */
 const DiffObjectSummary: FC<DiffObjectSummaryProps> = ({ object }) => {
   const { t } = useTranslation();
   const items = summarize(object);
@@ -75,10 +74,6 @@ interface DiffObjectGroupProps {
   registerObject: (objectId: string, element: HTMLDivElement | null) => void;
 }
 
-/**
- * An object of the diff: a header with the class, the object id and a summary of what changed, and below it, when
- * expanded, each change with the value before and after. An object added or deleted as a whole has no details.
- */
 const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   object,
   expanded,
@@ -118,7 +113,6 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
       data-object-id={object.objectId}
       onMouseEnter={() => onHover(object.objectId)}
       onMouseLeave={() => onHover(null)}
-      // Hover and focus like a form field: the border turns primary, focused it is twice as wide.
       sx={{
         border: 1,
         borderColor: hovered ? "primary.main" : "primary.light",
@@ -130,12 +124,11 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
           boxShadow: theme => `inset 0 0 0 1px ${theme.palette.primary.main}`,
         },
       }}>
-      {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
+      {/* The header handles the click; the chevron has no handler of its own, so its keyboard click bubbles here. */}
       <Stack
         onClick={expandable ? toggle : undefined}
         sx={{ gap: 0, pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: layout === "wide" ? 40 : 36 }}>
-          {/* A fixed slot, so the change type icons line up with and without a toggle. */}
           <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
             {expandable && (
               <IconButton
@@ -148,7 +141,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
             )}
           </Stack>
           <DiffChangeTypeIcon changeType={object.kind} />
-          {/* The page grows to fit unbreakable text; contained, the line takes the width there is and cuts the rest. */}
+          {/* Without containment the page grows to fit this unbreakable text instead of cutting it. */}
           <Stack direction="row" sx={{ alignItems: "center", gap: 1.5, flex: 1, minWidth: 0, contain: "inline-size" }}>
             {className}
             {layout === "wide" && objectId}
@@ -167,8 +160,6 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
             />
           )}
         </Stack>
-        {/* Narrow, the id goes on its own line below the change icon, contained like the line above, and the summary is
-            left out. */}
         {layout === "narrow" && <Box sx={{ pl: TOGGLE_WIDTH + 1, pb: 0.5, contain: "inline-size" }}>{objectId}</Box>}
       </Stack>
       {expandable && expanded && (
@@ -207,5 +198,5 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   );
 };
 
-/** Memoized, so moving the pointer over the list renders only the objects whose hover state changes. */
+// Memoized: a hover change then renders only the two objects whose state flips.
 export const DiffObjectGroup = memo(DiffObjectGroupContent);

@@ -3,10 +3,8 @@ import { Box, Stack, Typography } from "@mui/material";
 import { Button } from "../../buttons";
 import { ValueSegment } from "./valueDiff";
 
-/** The lines a value shows before it needs "show more". */
 const CLAMPED_LINES = 4;
 
-/** Which side of a change a value stands on: the removed parts of the old one and the added parts of the new one are marked. */
 export type DiffSide = "old" | "new";
 
 const MARK_BACKGROUNDS: Record<DiffSide, string> = {
@@ -20,10 +18,7 @@ interface DiffValueTextProps {
   monospace?: boolean;
 }
 
-/**
- * A value with its changed parts marked. A value longer than four lines at the current width is cut, with a button
- * to show it in full; a shorter one shows in full without a button.
- */
+/** Offers "show more" only when the value actually overflows four lines at the current width. */
 export const DiffValueText: FC<DiffValueTextProps> = ({ segments, side, monospace = false }) => {
   const textRef = useRef<HTMLSpanElement>(null);
   const [expanded, setExpanded] = useState(false);

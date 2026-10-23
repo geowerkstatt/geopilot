@@ -1,4 +1,3 @@
-/** A piece of a value, marked when it differs from the value on the other side. */
 export interface ValueSegment {
   text: string;
   changed: boolean;
@@ -7,7 +6,6 @@ export interface ValueSegment {
 // Beyond this the token table gets too large to build while rendering; both values are then marked as a whole.
 const MAX_COMPARED_TOKEN_PAIRS = 250_000;
 
-/** Words and the whitespace between them, so whitespace never joins two words into one token. */
 const tokenize = (value: string): string[] => value.split(/(\s+)/).filter(token => token.length > 0);
 
 const isWhitespace = (token: string) => /^\s+$/.test(token);

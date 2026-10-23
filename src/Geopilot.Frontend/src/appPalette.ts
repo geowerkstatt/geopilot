@@ -75,7 +75,7 @@ export const themePalette = {
       highlight: "#0d47a1",
     },
   },
-  // The changes of a diff in its list, green and red for added and removed; orange and blue stay with the map states.
+  // Orange and blue are reserved for the map's old and new state.
   diff: {
     added: "#2E7D32",
     deleted: "#C62828",

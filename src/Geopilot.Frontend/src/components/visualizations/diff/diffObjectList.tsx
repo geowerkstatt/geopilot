@@ -13,11 +13,9 @@ interface DiffObjectListProps {
   objects: DiffObject[];
   /** The number of changes of the whole diff, before filtering. */
   totalChangeCount: number;
-  /** Whether a filter is active, which switches the count to "n of m". */
   filterActive: boolean;
   expandedObjectIds: ReadonlySet<string>;
   onToggleObject: (objectId: string) => void;
-  /** Expands or collapses the given objects together. */
   onExpandObjects: (objectIds: string[], expanded: boolean) => void;
   /** The objects under the pointer, here or on the map. */
   hoveredObjectIds: ReadonlySet<string>;
@@ -29,7 +27,6 @@ interface DiffObjectListProps {
   layout: DiffLayout;
 }
 
-/** The objects of the diff, one group each. */
 export const DiffObjectList: FC<DiffObjectListProps> = ({
   objects,
   totalChangeCount,
