@@ -253,6 +253,41 @@ public class MandateServiceTest
     }
 
     [TestMethod]
+    public async Task IsDeclarableForAMemberOnAMandateThatAcceptsDeliveries()
+    {
+        Assert.IsTrue(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, Declarer.ForUser(editUser.Id)));
+    }
+
+    [TestMethod]
+    public async Task IsDeclarableForAClientOfTheMandatesOrganisation()
+    {
+        var client = AddMachineClient(memberOfOrganisation: true);
+
+        Assert.IsTrue(await mandateService.IsDeclarableAsync(xtfMandate.Id, Declarer.ForClient(client.Id)));
+    }
+
+    [TestMethod]
+    public async Task IsNotDeclarableForAnAnonymousRunOnAPublicMandate()
+    {
+        Assert.IsFalse(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, null));
+    }
+
+    [TestMethod]
+    public async Task IsNotDeclarableForAUserOutsideTheOrganisationsOfAPublicMandate()
+    {
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        context.SaveChanges();
+
+        Assert.IsFalse(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, Declarer.ForUser(user.Id)), "Being public opens a mandate for processing, not for deliveries.");
+    }
+
+    [TestMethod]
+    public async Task IsNotDeclarableOnAMandateThatAcceptsNoDeliveries()
+    {
+        Assert.IsFalse(await mandateService.IsDeclarableAsync(noDeliveryMandate.Id, Declarer.ForUser(editUser.Id)));
+    }
+
+    [TestMethod]
     public async Task GetMandateByKeyHidesAPublicMandateFromAClientOutsideItsOrganisations()
     {
         publicCsvMandate.Key = "SOMBERSPORK";

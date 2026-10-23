@@ -66,7 +66,7 @@ public class ProcessingServiceTest
 
         var exception = await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, 1, null);
+            await processingService.StartJobAsync(uploadId, 1, null, null);
         });
 
         Assert.AreEqual("uploadId", exception.ParamName);
@@ -88,7 +88,7 @@ public class ProcessingServiceTest
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, declarer);
+            await processingService.StartJobAsync(uploadId, mandateId, declarer, null);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);
@@ -114,7 +114,7 @@ public class ProcessingServiceTest
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, declarer);
+            await processingService.StartJobAsync(uploadId, mandateId, declarer, null);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);

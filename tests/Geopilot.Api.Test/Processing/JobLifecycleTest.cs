@@ -18,6 +18,9 @@ public class JobLifecycleTest
 {
     private const string PipelineId = "pipe_a";
 
+    // One per test: mandate keys are unique, and the tests run in parallel.
+    private readonly string mandateKey = $"LIFECYCLE-{Guid.NewGuid()}";
+
     private Context context;
     private string uploadRoot;
     private DirectUploadStorage uploadStorage;
@@ -28,10 +31,24 @@ public class JobLifecycleTest
     private PipelineRunRecorder recorder;
     private ServiceProvider services;
     private Mandate mandate;
-    private Mock<IJobCompletionHandler> completionHandler;
+    private Declarer declarer;
+    private Mock<IDeliveryDeclarationService> declarationService;
     private JobLifecycle lifecycle;
 
-    // Outcome, state of the job and in the protocol, upload released, machine delivery declared, failure reason in the protocol.
+    private static readonly DeliveryFields Fields = new(PartialDelivery: null, PrecursorDeliveryId: null, Comment: "declared by geopilot");
+
+    // What geopilot's own declaration answers, and the failure the attempt then reports, if any.
+    public static IEnumerable<object?[]> DeclarationResults =>
+        [
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, DeliveryId: 42), null],
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.AlreadyDeclared, DeliveryId: 42, Message: "already delivered"), null],
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: "not deliverable"), null],
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeclarable, Message: "Nobody can declare it."), "Nobody can declare it."],
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.NoAssets, Message: "No assets found."), "No assets found."],
+            [new DeliveryDeclarationResult(DeliveryDeclarationStatus.FieldRulesViolated, FieldErrors: new Dictionary<string, string[]> { ["comment"] = ["Is required."] }), "The delivery details do not satisfy the mandate. comment: Is required."],
+        ];
+
+    // Outcome, state of the job and in the protocol, upload released, delivery declared by geopilot, failure reason in the protocol.
     public static IEnumerable<object?[]> RunOutcomes =>
         [
             [new RunOutcome.Completed(ProcessingState.Success), ProcessingState.Success, true, true, null],
@@ -63,13 +80,16 @@ public class JobLifecycleTest
         var orchestration = new UploadOrchestrationService(
             uploadStorage, Mock.Of<IUploadScanService>(), jobStore, uploadStore, AssemblyInitialize.TestDirectoryProvider, Options.Create(new UploadOptions()), Mock.Of<ILogger<UploadOrchestrationService>>());
 
-        // Registered as when machine delivery is enabled, so the tests see when a delivery is declared.
-        completionHandler = new Mock<IJobCompletionHandler>();
+        // Mocked, so the tests see when and for whom geopilot declares a delivery; declaring is tested on its own.
+        declarationService = new Mock<IDeliveryDeclarationService>();
+        declarationService
+            .Setup(d => d.DeclareAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Declarer>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, DeliveryId: 42));
 
         services = new ServiceCollection()
             .AddSingleton<IPipelineRunRecorder>(recorder)
             .AddSingleton<IUploadOrchestrationService>(orchestration)
-            .AddSingleton(completionHandler.Object)
+            .AddSingleton(declarationService.Object)
             .BuildServiceProvider();
 
         lifecycle = new JobLifecycle(
@@ -80,9 +100,11 @@ public class JobLifecycleTest
             services.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
 
-        mandate = new Mandate { Name = TestHelpers.Localized(nameof(JobLifecycleTest)), FileTypes = [".xtf"], PipelineId = PipelineId };
+        mandate = new Mandate { Name = TestHelpers.Localized(nameof(JobLifecycleTest)), Key = mandateKey, FileTypes = [".xtf"], PipelineId = PipelineId };
         context.Mandates.Add(mandate);
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
+        declarer = Declarer.ForUser(user.Id);
     }
 
     [TestCleanup]
@@ -97,16 +119,15 @@ public class JobLifecycleTest
     [TestMethod]
     public async Task StartCreatesAPendingJobAndHandsItToThePreflight()
     {
-        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
-        await context.SaveChangesAsync();
         var upload = await CreateUploadAsync();
         var pipeline = SetupPipeline();
 
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, Declarer.ForUser(user.Id));
+        var job = await StartJobAsync(upload, declarer);
 
         Assert.AreEqual(ProcessingState.Pending, job.State);
         Assert.AreSame(pipeline.Object, job.Pipeline);
         Assert.AreEqual(mandate.Id, job.MandateId);
+        Assert.IsNull(job.DeliveryIntent, "Without delivery fields the delivery is declared by hand, if at all.");
         Assert.AreEqual(job, jobStore.GetJob(job.Id));
 
         Assert.IsTrue(preflightQueue.Reader.TryRead(out var request), "The preflight must be asked to check the job.");
@@ -114,9 +135,47 @@ public class JobLifecycleTest
 
         var run = await ReadRunAsync(job.Id);
         Assert.IsNull(run.TerminalState);
-        Assert.AreEqual(user.Id, run.UserId, "The protocol must name who started the job.");
+        Assert.AreEqual(declarer.UserId, run.UserId, "The protocol must name who started the job.");
         AssertUploadKept(upload.Id, true);
         pipeline.Verify(p => p.Dispose(), Times.Never, "The run still needs the pipeline.");
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable)
+    {
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+
+        var job = await StartJobAsync(upload, declarer, isDeclarable);
+
+        // Both values, because a value fixed on the way to the job would pass with true alone.
+        Assert.AreEqual(isDeclarable, job.IsDeclarable);
+        Assert.AreEqual(isDeclarable, jobStore.GetJob(job.Id)!.IsDeclarable);
+    }
+
+    [TestMethod]
+    public async Task StartBindsTheDeliveryIntentToTheJob()
+    {
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+
+        var job = await StartJobAsync(upload, declarer, deliveryFields: Fields);
+
+        // Bound when the job is created, so no run can end before geopilot knows to declare its delivery.
+        Assert.AreEqual(new DeliveryIntent(declarer, mandateKey, Fields), job.DeliveryIntent);
+    }
+
+    [TestMethod]
+    public async Task StartRefusesADeliveryIntentWithoutADeclarer()
+    {
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => StartJobAsync(upload, startedBy: null, deliveryFields: Fields));
+
+        AssertStartLeftNoJob(upload.Id);
     }
 
     [TestMethod]
@@ -127,13 +186,13 @@ public class JobLifecycleTest
             .Setup(f => f.CreatePipeline(PipelineId, It.IsAny<Guid>()))
             .Throws(new InvalidOperationException("A processor could not be instantiated."));
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => StartJobAsync(upload));
 
         AssertStartLeftNoJob(upload.Id);
 
         // The upload is still there for another start.
         SetupPipeline();
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var job = await StartJobAsync(upload);
         Assert.AreEqual(ProcessingState.Pending, job.State);
     }
 
@@ -146,7 +205,7 @@ public class JobLifecycleTest
             .Setup(f => f.GetDefinitionSnapshotJson(PipelineId))
             .Throws(new InvalidOperationException("The definition snapshot could not be read."));
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => StartJobAsync(upload));
 
         AssertStartLeftNoJob(upload.Id);
         pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline of a job that never started must not leak.");
@@ -162,7 +221,7 @@ public class JobLifecycleTest
         Assert.IsNotNull(upload);
         Assert.IsTrue(preflightQueue.Reader.TryRead(out _));
 
-        await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => lifecycle.StartAsync(upload, mandate, PipelineId, null));
+        await Assert.ThrowsExactlyAsync<JobAlreadyActiveException>(() => StartJobAsync(upload));
 
         Assert.HasCount(1, jobStore.GetJobIds());
         Assert.AreEqual(firstState, jobStore.GetJob(firstId)!.State);
@@ -180,7 +239,7 @@ public class JobLifecycleTest
         Assert.IsNotNull(upload, "A cancelled run keeps its upload for another start.");
 
         SetupPipeline();
-        var second = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var second = await StartJobAsync(upload);
 
         Assert.AreNotEqual(jobId, second.Id);
         Assert.AreEqual(ProcessingState.Pending, second.State);
@@ -191,7 +250,7 @@ public class JobLifecycleTest
     [DynamicData(nameof(RunOutcomes))]
     public async Task RunFinishedCarriesOutTheConsequences(RunOutcome outcome, ProcessingState expectedState, bool uploadReleased, bool declared, string? expectedReason)
     {
-        var (jobId, uploadId, pipeline) = await CreateJobAsync();
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
 
         await lifecycle.RunFinishedAsync(pipeline.Object, outcome, CancellationToken.None);
 
@@ -199,7 +258,7 @@ public class JobLifecycleTest
         Assert.AreEqual(expectedState, job.State);
         Assert.IsNotNull(job.FinishedAt);
         AssertUploadKept(uploadId, !uploadReleased);
-        completionHandler.Verify(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()), declared ? Times.Once() : Times.Never());
+        declarationService.Verify(d => d.DeclareAsync(jobId, Fields, declarer, It.IsAny<CancellationToken>()), declared ? Times.Once() : Times.Never());
 
         var run = await ReadRunAsync(jobId);
         Assert.AreEqual(expectedState, run.TerminalState);
@@ -211,18 +270,62 @@ public class JobLifecycleTest
     [TestMethod]
     public async Task RunFinishedKeepsItsOutcomeWhenTheDeclarationThrows()
     {
-        var (jobId, uploadId, pipeline) = await CreateJobAsync();
-        completionHandler
-            .Setup(h => h.OnJobFinishedAsync(jobId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("completion exploded"));
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+        declarationService
+            .Setup(d => d.DeclareAsync(jobId, Fields, declarer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The database went away."));
 
         await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
 
         // A failing declaration is guarded on its own: the run stays successful and the consequences after it run.
-        Assert.AreEqual(ProcessingState.Success, jobStore.GetJob(jobId)!.State);
+        // The attempt learns of it, instead of reporting a delivery in progress until the job is retired.
+        var job = jobStore.GetJob(jobId)!;
+        Assert.AreEqual(ProcessingState.Success, job.State);
+        Assert.AreEqual("The delivery could not be declared because of an unexpected error.", job.DeclarationFailure);
         Assert.AreEqual(ProcessingState.Success, (await ReadRunAsync(jobId)).TerminalState);
         AssertUploadKept(uploadId, false);
         pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(DeclarationResults))]
+    public async Task RunFinishedRecordsWhyTheDeliveryCouldNotBeDeclared(DeliveryDeclarationResult result, string? expectedFailure)
+    {
+        var (jobId, _, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+        declarationService
+            .Setup(d => d.DeclareAsync(jobId, Fields, declarer, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        // A created or adopted delivery is its own record, and data that did not pass is a rejected attempt, not a
+        // failed declaration. Every other refusal is the one thing the caller of the attempt gets to read.
+        Assert.AreEqual(expectedFailure, jobStore.GetJob(jobId)!.DeclarationFailure);
+    }
+
+    [TestMethod]
+    public async Task RunFinishedDeclaresNothingWithoutADeliveryIntent()
+    {
+        var (_, _, pipeline) = await CreateJobAsync();
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        declarationService.Verify(
+            d => d.DeclareAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Declarer>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "A run started from the web interface is declared by hand, if at all.");
+    }
+
+    [TestMethod]
+    public async Task RunFinishedReleasesTheUploadOfARunNobodyCanDeclare()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(isDeclarable: false);
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        // Nothing was staged for it, so its upload goes at the end of the run like that of any deliverable one.
+        Assert.AreEqual(ProcessingState.Success, jobStore.GetJob(jobId)!.State);
+        AssertUploadKept(uploadId, false);
     }
 
     [TestMethod]
@@ -350,17 +453,22 @@ public class JobLifecycleTest
     /// Starts a job for a real upload through the lifecycle itself. With <paramref name="passPreflight"/> the job
     /// goes on to Running as well.
     /// </summary>
-    private async Task<(Guid JobId, Guid UploadId, Mock<IPipeline> Pipeline)> CreateJobAsync(bool passPreflight = true)
+    private async Task<(Guid JobId, Guid UploadId, Mock<IPipeline> Pipeline)> CreateJobAsync(bool passPreflight = true, bool isDeclarable = true, bool withDeliveryIntent = false)
     {
         var upload = await CreateUploadAsync();
         var pipeline = SetupPipeline();
-        var job = await lifecycle.StartAsync(upload, mandate, PipelineId, null);
+        var job = withDeliveryIntent
+            ? await StartJobAsync(upload, declarer, isDeclarable, Fields)
+            : await StartJobAsync(upload, isDeclarable: isDeclarable);
 
         if (passPreflight)
             await lifecycle.PreflightPassedAsync(job.Id, new ScanResult(true), []);
 
         return (job.Id, upload.Id, pipeline);
     }
+
+    private Task<ProcessingJob> StartJobAsync(UploadInfo upload, Declarer? startedBy = null, bool isDeclarable = true, DeliveryFields? deliveryFields = null)
+        => lifecycle.StartAsync(upload, mandate, PipelineId, startedBy, isDeclarable, deliveryFields);
 
     private async Task<UploadInfo> CreateUploadAsync()
     {

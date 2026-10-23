@@ -52,6 +52,14 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
         }
 
+        // Whether anybody can declare the run was decided when it started: a run started anonymously, by a non-member
+        // or on a mandate that takes no deliveries stays undeclarable, whoever asks now.
+        if (!job.IsDeclarable)
+        {
+            logger.LogTrace("Job with id <{JobId}> cannot be declared by anybody.", jobId);
+            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeclarable, Message: $"Job with id <{jobId}> cannot become a delivery: whoever started it may not deliver to its mandate, or the mandate takes no deliveries.");
+        }
+
         if (job.MandateId == null)
         {
             logger.LogTrace("Job with id <{JobId}> cannot be used to make a delivery.", jobId);
@@ -75,13 +83,11 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         var user = declarer.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
         var client = declarer.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
 
-        // Do not reuse the mandate returned from GetMandateForDeliveryAsync, because it is not tracked and has no includes.
-        var hasMandatePermission = await mandateService.GetMandateForDeliveryAsync(job.MandateId.Value, declarer) != null;
-        var mandate = hasMandatePermission
+        var mandate = await mandateService.IsDeclarableAsync(job.MandateId.Value, declarer)
             ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
             : null;
 
-        if (mandate is null || !mandate.AllowDelivery)
+        if (mandate is null)
         {
             logger.LogTrace("Mandate with id <{MandateId}> not found.", job.MandateId);
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.MandateNotDeliverable, Message: $"Mandate with id <{job.MandateId}> not found.");

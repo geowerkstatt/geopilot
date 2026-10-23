@@ -22,7 +22,6 @@ public class ProcessingJobCleanupServiceTest
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
-    private Mock<ISubmissionStore> submissionStoreMock;
     private JobLifecycle lifecycle;
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private Context context;
@@ -57,7 +56,6 @@ public class ProcessingJobCleanupServiceTest
 
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
-        submissionStoreMock = new Mock<ISubmissionStore>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
@@ -71,7 +69,6 @@ public class ProcessingJobCleanupServiceTest
 
         service = new ProcessingJobCleanupService(
             jobStoreMock.Object,
-            submissionStoreMock.Object,
             lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
@@ -165,7 +162,6 @@ public class ProcessingJobCleanupServiceTest
 
         using var serviceWithoutRetention = new ProcessingJobCleanupService(
             jobStoreMock.Object,
-            submissionStoreMock.Object,
             lifecycle,
             directoryProviderMock.Object,
             scopeFactoryMock.Object,
@@ -240,10 +236,6 @@ public class ProcessingJobCleanupServiceTest
         Assert.IsFalse(Directory.Exists(assetDir));
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
-        submissionStoreMock.Verify(
-            s => s.Remove(jobId),
-            Times.Once,
-            "A retired job takes its machine delivery attempt with it, otherwise the attempts accumulate for the life of the process.");
     }
 
     [TestMethod]
