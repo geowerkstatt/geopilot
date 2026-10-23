@@ -12,17 +12,14 @@ import { diffValueSegments, parseReferences, ValueSegment } from "./valueDiff";
 /** Wide: before and after side by side. Narrow (fullscreen panel, phone): one below the other. */
 export type DiffLayout = "wide" | "narrow";
 
-/** Whether the object a reference points to is listed, hidden by the filter, or not part of the diff at all. */
 export interface ReferenceTarget {
   state: "listed" | "filtered" | "absent";
-  /** The class of the referenced object, when it is part of the diff. */
   className?: string;
 }
 
 /** The grid of a change in the wide layout, shared with the column header of the expanded object. */
 export const WIDE_CHANGE_COLUMNS = `${px2rem(200)} minmax(0, 1fr) minmax(0, 1fr)`;
 
-/** The characters of an object id a reference shows; the full id is in its tooltip. */
 const SHORT_OID_LENGTH = 12;
 
 const REFERENCE_BACKGROUNDS: Record<DiffSide, string> = {
@@ -39,7 +36,6 @@ interface ReferenceChipProps {
   onReference: (oid: string) => void;
 }
 
-/** A referenced object; one that is listed is a link to it. */
 const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onReference }) => {
   const { t } = useTranslation();
   const shortOid = `…${oid.slice(-SHORT_OID_LENGTH)}`;
@@ -76,7 +72,6 @@ interface DiffChangeRowProps {
   onShowOnMap?: () => void;
 }
 
-/** One change of an object: the property and its value before and after, the changed parts marked. */
 export const DiffChangeRow: FC<DiffChangeRowProps> = ({
   change,
   layout,
@@ -159,7 +154,6 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
     return (
       <Stack data-cy="diff-change" data-change-id={change.id} sx={{ gap: 0.5, py: 1 }}>
         {attribute}
-        {/* Each label sits close to its value; the space separates before from after. */}
         <Stack sx={{ gap: 1.5, pl: 3.5, minWidth: 0 }}>
           {(["old", "new"] as const).map(side => (
             <Stack key={side} sx={{ gap: 0.5, minWidth: 0 }} data-cy={`diff-value-${side}`}>

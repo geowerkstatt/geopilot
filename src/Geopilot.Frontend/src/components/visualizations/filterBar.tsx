@@ -5,7 +5,6 @@ import { Button, IconButton } from "../buttons";
 import { FormAutocomplete } from "../form/formAutocomplete";
 import { SearchField } from "../searchField";
 
-/** The selected filter values per field. */
 export type FieldFilters<F extends string> = Partial<Record<F, string[]>>;
 
 /** A filterable field together with its label (translation key) and its distinct value options. */
