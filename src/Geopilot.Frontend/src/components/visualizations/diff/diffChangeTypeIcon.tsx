@@ -15,14 +15,14 @@ const ICONS = {
 const COLORS: Record<DiffChangeType, string> = {
   added: "diff.added",
   deleted: "diff.deleted",
-  changed: "primary.main",
+  changed: "text.secondary",
 };
 
 interface DiffChangeTypeIconProps {
   changeType: DiffChangeType;
 }
 
-/** The icon of a change type, in green, red or the primary colour, with the change type as its accessible name. */
+/** The icon of a change type, green for added, red for deleted, grey for changed, with the change type as its accessible name. */
 export const DiffChangeTypeIcon: FC<DiffChangeTypeIconProps> = ({ changeType }) => {
   const { t } = useTranslation();
   const Icon = ICONS[changeType];
