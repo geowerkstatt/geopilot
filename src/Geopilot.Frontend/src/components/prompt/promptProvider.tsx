@@ -6,12 +6,16 @@ import { PromptAction, PromptOptions, PromptProviderProps } from "./promptInterf
 export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
   const [prompt, setPrompt] = useState<PromptOptions | null>(null);
 
-  const showPrompt = useCallback((message: TranslationKey, actions: PromptAction[]) => {
-    setPrompt({
-      message: message,
-      actions: actions,
-    });
-  }, []);
+  const showPrompt = useCallback(
+    (message: TranslationKey, actions: PromptAction[], messageValues?: Record<string, string>) => {
+      setPrompt({
+        message: message,
+        messageValues: messageValues,
+        actions: actions,
+      });
+    },
+    [],
+  );
 
   const closePrompt = useCallback(() => {
     setPrompt(null);
@@ -22,6 +26,7 @@ export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
       value={{
         promptIsOpen: prompt?.message != null,
         message: prompt?.message,
+        messageValues: prompt?.messageValues,
         actions: prompt?.actions,
         showPrompt,
         closePrompt,
