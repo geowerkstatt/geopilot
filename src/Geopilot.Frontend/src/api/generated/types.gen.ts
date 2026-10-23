@@ -194,6 +194,39 @@ export type Delivery = {
 };
 
 /**
+ * How far a reaction to a delivery got.
+ */
+export type DeliveryReactionResponse = {
+  /**
+   * The id of the reaction in the reaction set of the mandate.
+   */
+  reactionId: string;
+  kind: ReactionKind;
+  state: ReactionState;
+  /**
+   * How many attempts the reaction has started. A reaction still on hold has none.
+   */
+  attempts: number;
+  /**
+   * When its next attempt is due, set only while it is Geopilot.Api.Models.ReactionState.Pending.
+   */
+  nextAttemptAt?: string | null;
+  /**
+   * When its last attempt started.
+   */
+  lastAttemptAt?: string | null;
+  /**
+   * When it ended as Geopilot.Api.Models.ReactionState.Done, Geopilot.Api.Models.ReactionState.Error or
+   * Geopilot.Api.Models.ReactionState.Deleted.
+   */
+  finishedAt?: string | null;
+  /**
+   * What its channel last reported, or why its last attempt failed.
+   */
+  message?: string | null;
+};
+
+/**
  * Request for transforming a validation to a delivery.
  */
 export type DeliveryRequest = {
@@ -213,6 +246,35 @@ export type DeliveryRequest = {
    * Optional. Comment to describe the delivery.
    */
   comment?: string | null;
+};
+
+/**
+ * A delivery as the administration lists it, with how far its reactions got. Of the mandate it carries no more than
+ * its id and name.
+ */
+export type DeliveryResponse = {
+  /**
+   * The unique identifier of the delivery.
+   */
+  id: number;
+  /**
+   * The date the delivery was declared.
+   */
+  date: string;
+  mandate: MandateReference;
+  /**
+   * Who declared the delivery, a person or a machine client.
+   */
+  declarerName: string;
+  /**
+   * The comment that came with the delivery.
+   */
+  comment: string;
+  forwardingState?: ReactionState;
+  /**
+   * The reactions of the delivery, in the order they were created.
+   */
+  reactions: Array<DeliveryReactionResponse>;
 };
 
 /**
@@ -800,7 +862,11 @@ export type ProcessingState = (typeof ProcessingState)[keyof typeof ProcessingSt
 /**
  * What happened to a reaction, as the execution protocol records it. Persisted as text.
  */
-export const ReactionEvent = { Attempt: "attempt", Deletion: "deletion" } as const;
+export const ReactionEvent = {
+  Attempt: "attempt",
+  Deletion: "deletion",
+  Reset: "reset",
+} as const;
 
 /**
  * What happened to a reaction, as the execution protocol records it. Persisted as text.
@@ -1246,7 +1312,7 @@ export type GetApiV1DeliveryResponses = {
   /**
    * A list of all deliveries.
    */
-  200: Array<Delivery>;
+  200: Array<DeliveryResponse>;
 };
 
 export type GetApiV1DeliveryResponse = GetApiV1DeliveryResponses[keyof GetApiV1DeliveryResponses];
@@ -1324,6 +1390,39 @@ export type GetApiV1DeliverySummaryResponses = {
 };
 
 export type GetApiV1DeliverySummaryResponse = GetApiV1DeliverySummaryResponses[keyof GetApiV1DeliverySummaryResponses];
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetData = {
+  body?: never;
+  path: {
+    /**
+     * The delivery whose failed reactions to reset.
+     */
+    deliveryId: number;
+  };
+  query?: never;
+  url: "/api/v1/Delivery/{deliveryId}/reactions/reset";
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetErrors = {
+  /**
+   * The delivery could not be found.
+   */
+  404: unknown;
+  /**
+   * No reaction of the delivery has failed.
+   */
+  409: unknown;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponses = {
+  /**
+   * The failed reactions of the delivery are due again.
+   */
+  204: void;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponse =
+  PostApiV1DeliveryByDeliveryIdReactionsResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsResetResponses];
 
 export type GetApiV1DeliveryUploadsData = {
   body?: never;

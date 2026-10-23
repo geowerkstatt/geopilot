@@ -401,8 +401,8 @@ public class PipelineRunRecorderTest
     public async Task DeliveryDeletedWritesARowPerReactionWithWhoDeleted()
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();
-        var forwarded = ReactionAfterDeletion(delivery, "ablage", ReactionState.Done, "Delivered to the target.");
-        var dropped = ReactionAfterDeletion(delivery, "meldung", ReactionState.Deleted, "The delivery was deleted.");
+        var forwarded = ReactionInState(delivery, "ablage", ReactionState.Done, "Delivered to the target.");
+        var dropped = ReactionInState(delivery, "meldung", ReactionState.Deleted, "The delivery was deleted.");
 
         await recorder.RecordDeliveryDeletedAsync(delivery.Id, [forwarded, dropped], user.Id);
 
@@ -415,7 +415,47 @@ public class PipelineRunRecorderTest
         Assert.AreEqual(ReactionState.Deleted, rows[1].State);
     }
 
-    private static DeliveryReaction ReactionAfterDeletion(Delivery delivery, string reactionId, ReactionState state, string message) => new()
+    [TestMethod]
+    public async Task ReactionsResetWritesARowPerReactionWithWhoReset()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+
+        await recorder.RecordReactionsResetAsync(delivery.Id, [ReactionInState(delivery, "ablage", ReactionState.Pending)], user.Id);
+
+        var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
+        Assert.AreEqual(ReactionEvent.Reset, row.Event);
+        Assert.AreEqual("ablage", row.ReactionId);
+        Assert.AreEqual(ReactionState.Pending, row.State);
+        Assert.AreEqual(user.Id, row.UserId);
+        Assert.IsNull(row.Attempt);
+        Assert.IsNull(row.FinishedAt);
+        Assert.IsNull(row.Message);
+    }
+
+    [TestMethod]
+    public async Task AnAttemptAfterAResetCompletesItsOwnRow()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var beforeReset = ClaimedReaction(delivery);
+        await recorder.RecordReactionAttemptStartedAsync(beforeReset);
+        await recorder.RecordReactionAttemptFinishedAsync(beforeReset, ReactionState.Error, "The base directory does not exist.");
+        await recorder.RecordReactionsResetAsync(delivery.Id, [ReactionInState(delivery, "weitergabe", ReactionState.Pending)], user.Id);
+        var afterReset = ClaimedReaction(delivery);
+        await recorder.RecordReactionAttemptStartedAsync(afterReset);
+
+        await recorder.RecordReactionAttemptFinishedAsync(afterReset, ReactionState.Done, "Delivered to the target.");
+
+        var attempts = await context.PipelineRunReactionEvents
+            .Where(e => e.PipelineRunId == run.Id && e.Event == ReactionEvent.Attempt)
+            .OrderBy(e => e.Id)
+            .ToListAsync();
+        Assert.HasCount(2, attempts);
+        Assert.IsTrue(attempts.All(attempt => attempt.Attempt == 1), "the attempts count from one again after a reset.");
+        Assert.AreEqual(ReactionState.Error, attempts[0].State, "the attempt before the reset keeps its outcome.");
+        Assert.AreEqual(ReactionState.Done, attempts[1].State);
+    }
+
+    private static DeliveryReaction ReactionInState(Delivery delivery, string reactionId, ReactionState state, string? message = null) => new()
     {
         DeliveryId = delivery.Id,
         ReactionId = reactionId,

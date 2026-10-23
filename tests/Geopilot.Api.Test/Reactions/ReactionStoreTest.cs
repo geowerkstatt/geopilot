@@ -290,6 +290,65 @@ public class ReactionStoreTest
         Assert.IsNull(await store.CompleteAsync(context, claimed, "Delivered to the target.", CancellationToken.None));
     }
 
+    [TestMethod]
+    public async Task ResetFailedGivesAFailedReactionAllItsAttemptsAgain()
+    {
+        var failed = AddReaction("failed", state: ReactionState.Error, attempts: 3, nextAttemptAt: dbNow.AddMinutes(-10));
+        failed.LastAttemptAt = dbNow.AddMinutes(-10);
+        failed.FinishedAt = dbNow.AddMinutes(-10);
+        failed.Message = "The base directory does not exist.";
+        await context.SaveChangesAsync();
+
+        var reset = await store.ResetFailedAsync(context, delivery.Id, CancellationToken.None);
+
+        Assert.AreEqual(ReactionState.Pending, Assert.ContainsSingle(reset).State, "the reactions come back as the reset left them.");
+        var stored = await ReloadAsync(failed);
+        Assert.AreEqual(ReactionState.Pending, stored.State);
+        Assert.AreEqual(0, stored.Attempts);
+        Assert.AreEqual(dbNow, stored.NextAttemptAt);
+        Assert.IsNull(stored.LastAttemptAt);
+        Assert.IsNull(stored.FinishedAt);
+        Assert.IsNull(stored.Message);
+        Assert.AreEqual(failed.Id, (await ClaimAsync()).Id, "a reset reaction is due at once.");
+    }
+
+    [TestMethod]
+    [DataRow(ReactionState.Pending)]
+    [DataRow(ReactionState.Running)]
+    [DataRow(ReactionState.Done)]
+    public async Task ResetFailedLeavesAReactionThatHasNotGivenUp(ReactionState state)
+    {
+        var reaction = AddReaction("other", state: state, attempts: 1, nextAttemptAt: dbNow.AddMinutes(1), lockedUntil: dbNow.AddMinutes(1));
+
+        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, CancellationToken.None));
+
+        var stored = await ReloadAsync(reaction);
+        Assert.AreEqual(state, stored.State);
+        Assert.AreEqual(1, stored.Attempts);
+    }
+
+    [TestMethod]
+    public async Task ResetFailedLeavesTheReactionsOfOtherDeliveries()
+    {
+        var elsewhere = AddReaction("elsewhere", state: ReactionState.Error, attempts: 3, of: AddDelivery());
+
+        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, CancellationToken.None));
+
+        Assert.AreEqual(ReactionState.Error, (await ReloadAsync(elsewhere)).State);
+    }
+
+    [TestMethod]
+    public async Task ResetFailedLeavesTheReactionsOfADeletedDelivery()
+    {
+        var failed = AddReaction("failed", state: ReactionState.Error, attempts: 3);
+        delivery.Deleted = true;
+        await context.SaveChangesAsync();
+
+        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, CancellationToken.None));
+
+        Assert.AreEqual(ReactionState.Error, (await ReloadAsync(failed)).State);
+    }
+
     private static DeliveryReaction LostAttemptOf(DeliveryReaction claimed)
         => new() { Id = claimed.Id, Attempts = claimed.Attempts, ClaimToken = Guid.NewGuid() };
 

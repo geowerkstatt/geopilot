@@ -302,7 +302,17 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+    public Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+        => RecordWhatAUserDidAsync(deliveryId, reactions, ReactionEvent.Deletion, userId);
+
+    /// <inheritdoc/>
+    public Task RecordReactionsResetAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+        => RecordWhatAUserDidAsync(deliveryId, reactions, ReactionEvent.Reset, userId);
+
+    /// <summary>
+    /// Writes one row per reaction for something a user did to them, with the state it left each reaction in.
+    /// </summary>
+    private async Task RecordWhatAUserDidAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, ReactionEvent reactionEvent, int userId)
     {
         ArgumentNullException.ThrowIfNull(reactions);
         if (reactions.Count == 0)
@@ -316,7 +326,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                 return;
             }
 
-            var deletedAt = DateTime.UtcNow;
+            var occurredAt = DateTime.UtcNow;
             context.PipelineRunReactionEvents.AddRange(reactions.Select(reaction => new PipelineRunReactionEvent
             {
                 PipelineRunId = runId,
@@ -324,8 +334,8 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                 ReactionId = reaction.ReactionId,
                 ReactionKind = reaction.Kind,
                 Implementation = reaction.Implementation,
-                Event = ReactionEvent.Deletion,
-                OccurredAt = deletedAt,
+                Event = reactionEvent,
+                OccurredAt = occurredAt,
                 State = reaction.State,
                 Message = reaction.Message,
                 UserId = userId,

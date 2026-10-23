@@ -4,7 +4,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { ApiError, LocalizedText } from "../../api/apiInterfaces";
-import { Delivery, UploadedDelivery } from "../../api/generated";
+import { DeliveryResponse, UploadedDelivery } from "../../api/generated";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "..//alert/alertContext";
@@ -37,8 +37,8 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { localized } = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
-    // Administrators get whole deliveries, a user gets their own uploads with whether each can still be deleted.
-    fetchApi<(Delivery | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    // Administrators get all deliveries with their reactions, users their own uploads and whether they may delete them.
+    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
         setDeliveries(
           response.map(d => ({

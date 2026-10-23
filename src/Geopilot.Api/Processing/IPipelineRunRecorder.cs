@@ -92,4 +92,13 @@ public interface IPipelineRunRecorder
     /// <param name="reactions">The reactions of the delivery after the deletion.</param>
     /// <param name="userId">The user who deleted the delivery.</param>
     Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId);
+
+    /// <summary>
+    /// Writes one row per reaction an administrator reset, and who reset it. The attempts after a reset count from one
+    /// again, while the rows of the attempts before it keep their outcome. Soft.
+    /// </summary>
+    /// <param name="deliveryId">The delivery whose reactions were reset.</param>
+    /// <param name="reactions">The reactions the reset made due again.</param>
+    /// <param name="userId">The administrator who reset them.</param>
+    Task RecordReactionsResetAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId);
 }

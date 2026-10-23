@@ -8,7 +8,7 @@ Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, d
 - Ein Hintergrunddienst sucht beim Start und danach alle `PollInterval` nach fälligen Reaktionen und führt sie aus, pro Instanz einen Zustellversuch nach dem anderen. Dauert ein Versuch lange, warten die übrigen so lange.
 - Gelingt ein Versuch, ist die Reaktion `Done`. Sind alle Lieferungs-Schritte einer Lieferung `Done`, ist sie weitergegeben, und erst dann erscheint sie im STAC-Katalog.
 - Misslingt ein Versuch, beginnt der nächste den Abstand aus `RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort. Ein Versuch, der länger als `TimeLimit` dauert, misslingt.
-- Nach dem letzten misslungenen Versuch steht die Reaktion auf `Error` und läuft nicht mehr von selbst. Eine Lieferung mit einem Lieferungs-Schritt in `Error` gilt nicht als weitergegeben.
+- Nach dem letzten misslungenen Versuch steht die Reaktion auf `Error` und läuft erst wieder, wenn ein Admin sie [zurücksetzt](#zurücksetzen). Eine Lieferung mit einem Lieferungs-Schritt in `Error` gilt nicht als weitergegeben.
 
 ## Konfiguration
 
@@ -55,6 +55,8 @@ Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangs
 
 ## Stand ablesen
 
+Die Liste der Lieferungen für Admins, `GET api/v1/delivery`, zeigt pro Lieferung ihre Reaktionen mit Zustand, Versuchen, nächstem Versuch und Meldung, dazu den zusammengefassten Zustand der Weitergabe (`forwardingState`): `Error` vor `Running` vor `Pending` vor `Done`. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters.
+
 Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
 
 Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWorker` und `Geopilot.Api.Reactions.ReactionStore`:
@@ -70,6 +72,10 @@ Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWo
 | Error | `Running the due delivery reactions failed.` | Der Dienst konnte die fälligen Reaktionen nicht holen, etwa weil die Datenbank nicht erreichbar war. Er versucht es beim nächsten `PollInterval` wieder. |
 
 Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede Lieferung, deren Weitergabe endgültig scheitert, und jedes Mal, wenn der Dienst die fälligen Reaktionen nicht holen kann.
+
+## Zurücksetzen
+
+Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück, über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
 
 ## Betrieb unter IIS
 
