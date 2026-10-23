@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Controllers;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,7 @@ public sealed class PipelineControllerTest
         };
         pipelineServiceMock.Setup(s => s.GetAvailablePipelines())
             .Returns(new List<PipelineConfig> { pipeline01, pipeline02 });
+        pipelineServiceMock.Setup(s => s.GetReactionSets()).Returns([]);
 
         var response = await controller.GetAvailablePipelines() as OkObjectResult;
         Assert.IsInstanceOfType<OkObjectResult>(response);
@@ -72,5 +74,23 @@ public sealed class PipelineControllerTest
 
         Assert.AreEqual("Pipeline2", availablePipeline2.Id, "pipeline 2 ID not as expected");
         Assert.AreEqual(LocalizedText.FromDictionary(new Dictionary<string, string>() { { "en", "pipeline 2" }, { "de", "Pipeline 2" } }), availablePipeline2.DisplayName, "pipeline 2 Display Name not as expected");
+    }
+
+    [TestMethod]
+    public async Task GetAvailablePipelinesListsTheReactionSetsWithTheValuesTheyAskTheMandateFor()
+    {
+        var set = new ReactionSetConfig { Id = "ablage_pro_mandat", DisplayName = new Dictionary<string, string> { ["de"] = "Ablage pro Mandat" }, Transfers = [] };
+        var field = new MandateField("weitergabe", "subfolder", new Dictionary<string, string> { ["de"] = "Unterordner" }, MandateValueType.Text, true);
+        pipelineServiceMock.Setup(s => s.GetAvailablePipelines()).Returns([]);
+        pipelineServiceMock.Setup(s => s.GetReactionSets()).Returns([set]);
+        pipelineServiceMock.Setup(s => s.DescribeMandateFields("ablage_pro_mandat")).Returns([field]);
+
+        var response = (await controller.GetAvailablePipelines() as OkObjectResult)?.Value as AvailablePipelinesResponse;
+
+        Assert.IsNotNull(response);
+        var reactionSet = Assert.ContainsSingle(response.ReactionSets);
+        Assert.AreEqual("ablage_pro_mandat", reactionSet.Id);
+        Assert.AreEqual("Ablage pro Mandat", reactionSet.DisplayName["de"]);
+        Assert.AreEqual(field, Assert.ContainsSingle(reactionSet.MandateFields));
     }
 }

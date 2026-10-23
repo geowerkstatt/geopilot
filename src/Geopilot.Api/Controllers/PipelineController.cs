@@ -30,16 +30,19 @@ public class PipelineController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves the list of available pipelines that can be used for processing files.
+    /// Retrieves the list of available pipelines that can be used for processing files, and the reaction sets a mandate
+    /// can choose with the values each asks the mandate for.
     /// </summary>
     /// <returns>An <see cref="IActionResult"/> containing an <see cref="AvailablePipelinesResponse"/> object with the available
     /// pipeline summaries. The response is returned with HTTP status code 200 (OK).</returns>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "The available pipelines.", typeof(AvailablePipelinesResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The available pipelines and reaction sets.", typeof(AvailablePipelinesResponse), "application/json")]
     public async Task<IActionResult> GetAvailablePipelines()
     {
-        var response = new AvailablePipelinesResponse(this.pipelineService.GetAvailablePipelines().Select(ToPipelineSumary));
+        var response = new AvailablePipelinesResponse(
+            this.pipelineService.GetAvailablePipelines().Select(ToPipelineSumary),
+            this.pipelineService.GetReactionSets().Select(set => new ReactionSetSummary(set.Id, set.DisplayName, pipelineService.DescribeMandateFields(set.Id))));
         return Ok(response);
     }
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.PipelineCore.Pipeline;
+using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
 namespace Geopilot.Pipeline.Config;
@@ -16,6 +17,13 @@ public class ReactionSetConfig
     [Required(AllowEmptyStrings = false, ErrorMessage = "Reaction Set ID is required.")]
     [RegularExpression(ReactionConfig.IdPattern, ErrorMessage = "A reaction set id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.")]
     public required string Id { get; set; }
+
+    /// <summary>
+    /// The name under which the administration offers the set to a mandate.
+    /// </summary>
+    [YamlMember(Alias = "display_name")]
+    [Required(ErrorMessage = "Reaction Set Display Name is required.")]
+    public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
     /// The reactions that forward the delivery. The delivery counts as forwarded once all of them are done.

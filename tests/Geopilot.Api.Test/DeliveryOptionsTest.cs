@@ -76,6 +76,21 @@ public class DeliveryOptionsTest
     }
 
     [TestMethod]
+    [DataRow(false, null, true, DisplayName = "Uploaders cannot delete")]
+    [DataRow(true, "02:00:00", true, DisplayName = "Window ends after a duration")]
+    [DataRow(true, null, false, DisplayName = "Window never ends")]
+    public void DeleteWindowClosesUnlessUploadersMayDeleteForever(bool uploaderDeleteEnabled, string? duration, bool expected)
+    {
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = uploaderDeleteEnabled,
+            DeleteDuration = duration == null ? null : TimeSpan.Parse(duration, CultureInfo.InvariantCulture),
+        };
+
+        Assert.AreEqual(expected, options.DeleteWindowCloses);
+    }
+
+    [TestMethod]
     [DataRow(null, null)]
     [DataRow("01:00:00", "")]
     [DataRow(null, "0 0 * * *")]
