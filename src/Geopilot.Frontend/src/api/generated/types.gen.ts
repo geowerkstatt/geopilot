@@ -68,6 +68,10 @@ export type AvailablePipelinesResponse = {
    * The list of available pipelines.
    */
   pipelines: Array<PipelineSummary>;
+  /**
+   * The reaction sets a mandate can choose, each with the values it asks the mandate for.
+   */
+  reactionSets: Array<ReactionSetSummary>;
 };
 
 /**
@@ -96,6 +100,11 @@ export type CapabilitiesResponse = {
    * Whether this installation offers machine based delivery.
    */
   machineDeliveryEnabled: boolean;
+  /**
+   * Whether a mandate can choose a reaction set, which needs a delete window of the
+   * uploaders that closes: the reactions only run once it has.
+   */
+  reactionSetsEnabled: boolean;
 };
 
 /**
@@ -463,6 +472,16 @@ export type Mandate = {
   deliveries: Array<Delivery>;
 };
 
+export type MandateField = {
+  reactionId: string;
+  key: string;
+  displayName: {
+    [key: string]: string;
+  };
+  type: MandateValueType;
+  required: boolean;
+};
+
 /**
  * Names a mandate without describing it, for answers that only point at one.
  */
@@ -513,6 +532,10 @@ export type MandateSummary = {
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
 };
+
+export const MandateValueType = { Text: "text", TextList: "textList" } as const;
+
+export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateValueType];
 
 /**
  * A company or group of users that may have a mandate for delivering data to the system owner.
@@ -882,6 +905,26 @@ export const ReactionKind = { Transfer: "transfer", Notification: "notification"
  * Whether a Geopilot.Api.Models.DeliveryReaction forwards the delivery or only reports on it.
  */
 export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+
+/**
+ * A reaction set as the form of a mandate offers it.
+ */
+export type ReactionSetSummary = {
+  /**
+   * The id of the set, which a mandate refers to.
+   */
+  id: string;
+  /**
+   * The localized name of the set.
+   */
+  displayName: {
+    [key: string]: string;
+  };
+  /**
+   * The values the set asks the mandate for, in the order the definition declares them.
+   */
+  mandateFields: Array<MandateField>;
+};
 
 /**
  * The state of a Geopilot.Api.Models.DeliveryReaction. Deliberately not `StepState`: it describes forwarding a delivery,
@@ -1953,7 +1996,7 @@ export type GetApiV1PipelineData = {
 
 export type GetApiV1PipelineResponses = {
   /**
-   * The available pipelines.
+   * The available pipelines and reaction sets.
    */
   200: AvailablePipelinesResponse;
 };

@@ -72,6 +72,12 @@ public class DeliveryOptions : IValidatableObject
         return new[] { durationEnd, intervalEnd }.Min();
     }
 
+    /// <summary>
+    /// Whether the window in which uploaders may delete a delivery closes. A mandate needs that to choose a reaction set,
+    /// because its reactions only run once the window has closed.
+    /// </summary>
+    public bool DeleteWindowCloses => GetDeleteWindowEnd(DateTime.UtcNow) is not null;
+
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
