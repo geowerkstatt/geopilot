@@ -16,7 +16,7 @@ internal class XtfDiffVisualizationProcess
         { "de", "Differenzvisualisierung erstellt" },
         { "fr", "Visualisation des différences créée" },
         { "it", "Visualizzazione delle differenze creata" },
-        { "en", "Diff visualization created" },
+        { "en", "Change visualization created" },
     };
 
     private static readonly Dictionary<string, string> OldLayerTitle = new()
