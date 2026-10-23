@@ -14,6 +14,7 @@ export interface FormSelectProps {
   label: TranslationKey;
   required?: boolean;
   disabled?: boolean;
+  helperText?: string;
   /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   selected?: number | string;
   values?: FormSelectValue[];
@@ -51,6 +52,7 @@ export const FormSelect: FC<FormSelectProps> = ({
   label,
   required,
   disabled,
+  helperText,
   selected,
   values,
   sx,
@@ -94,6 +96,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         select
         required={required ?? false}
         error={error ?? false}
+        helperText={helperText}
         sx={{ ...sx }}
         label={t(label)}
         value={selected ?? ""}
@@ -128,7 +131,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           required={required ?? false}
           error={getFormFieldError(fieldName, formState.errors)}
           helperText={
-            formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : undefined
+            formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : helperText
           }
           sx={{ ...sx }}
           label={t(label)}

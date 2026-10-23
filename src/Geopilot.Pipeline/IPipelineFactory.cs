@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Channels;
+using Geopilot.Pipeline.Config;
 
 namespace Geopilot.Pipeline;
 
@@ -36,6 +37,16 @@ public interface IPipelineFactory
     /// <returns>One message per reaction whose channel refuses its values, empty when all accept them.</returns>
     /// <exception cref="InvalidOperationException">No set with the specified id exists.</exception>
     IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values);
+
+    /// <summary>
+    /// Describes the values a set asks the mandate for, in the order its reactions and their <c>mandate_config</c>
+    /// declare them: the label from the definition, and from the channel whether a value is a text or a list of texts
+    /// and whether the mandate must supply it.
+    /// </summary>
+    /// <param name="reactionSetId">The id of the set.</param>
+    /// <returns>The values the set asks for, empty when it asks for none.</returns>
+    /// <exception cref="InvalidOperationException">No set with the specified id exists.</exception>
+    IReadOnlyList<MandateField> DescribeMandateFields(string reactionSetId);
 
     /// <summary>
     /// Creates a pipeline instance with the specified id.
