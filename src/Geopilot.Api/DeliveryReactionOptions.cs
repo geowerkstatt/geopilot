@@ -41,6 +41,11 @@ public class DeliveryReactionOptions : IValidatableObject
     public TimeSpan TimeLimit { get; set; } = TimeSpan.FromMinutes(30);
 
     /// <summary>
+    /// How often an instance looks for reactions that are due.
+    /// </summary>
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
     /// The waits between the attempts that apply.
     /// </summary>
     internal IReadOnlyList<TimeSpan> EffectiveRetryDelays => RetryDelays is { Count: > 0 } ? RetryDelays : DefaultRetryDelays;
@@ -56,6 +61,11 @@ public class DeliveryReactionOptions : IValidatableObject
         if (TimeLimit <= TimeSpan.Zero)
         {
             yield return new ValidationResult($"The time limit must be positive, but is {TimeLimit}.", [nameof(TimeLimit)]);
+        }
+
+        if (PollInterval <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult($"The poll interval must be positive, but is {PollInterval}.", [nameof(PollInterval)]);
         }
 
         if (RetryDelays?.Any(delay => delay <= TimeSpan.Zero) == true)

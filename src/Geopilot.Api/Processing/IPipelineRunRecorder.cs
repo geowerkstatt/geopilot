@@ -67,4 +67,29 @@ public interface IPipelineRunRecorder
     /// <param name="failureReason">Why the run failed or was cancelled, when known.</param>
     /// <param name="cancellationToken">Bounds the write; a cancelled write is logged like any other failed one.</param>
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes the row of an attempt of a reaction the moment an instance claims it, into the run its delivery comes
+    /// from, so an attempt whose instance stopped shows as running. Soft.
+    /// </summary>
+    /// <param name="reaction">The claimed reaction.</param>
+    Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction);
+
+    /// <summary>
+    /// Completes the row of an attempt with the state the reaction is in now and what the attempt reported, and
+    /// writes the row late when its start is missing. Soft.
+    /// </summary>
+    /// <param name="reaction">The reaction as it was claimed for the attempt.</param>
+    /// <param name="state">The state the reaction is in now, or <see langword="null"/> when the attempt no longer held it.</param>
+    /// <param name="message">What the channel reported, or why the attempt failed.</param>
+    Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message);
+
+    /// <summary>
+    /// Writes one row per reaction of a deleted delivery with the state the deletion left it in, so the protocol
+    /// shows which reactions had forwarded the delivery by then, and who deleted it. Soft.
+    /// </summary>
+    /// <param name="deliveryId">The deleted delivery.</param>
+    /// <param name="reactions">The reactions of the delivery after the deletion.</param>
+    /// <param name="userId">The user who deleted the delivery.</param>
+    Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId);
 }

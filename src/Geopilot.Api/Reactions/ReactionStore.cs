@@ -22,15 +22,19 @@ public class ReactionStore
 
     private const string LastAttemptLostMessage = "The last attempt did not report back before its lock ran out.";
 
+    private const string DeliveryDeletedMessage = "The delivery was deleted.";
+
     private readonly DeliveryReactionOptions options;
+    private readonly ILogger<ReactionStore> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReactionStore"/> class.
     /// </summary>
-    public ReactionStore(IOptions<DeliveryReactionOptions> options)
+    public ReactionStore(IOptions<DeliveryReactionOptions> options, ILogger<ReactionStore> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         this.options = options.Value;
+        this.logger = logger;
     }
 
     /// <summary>
@@ -42,7 +46,11 @@ public class ReactionStore
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        await GiveUpLostLastAttemptsAsync(context, cancellationToken);
+        var gaveUp = await GiveUpLostLastAttemptsAsync(context, cancellationToken);
+        if (gaveUp > 0)
+        {
+            logger.LogError("{Count} delivery reactions gave up because their last attempt did not report back before its lock ran out.", gaveUp);
+        }
 
         for (var round = 0; round < ClaimRounds; round++)
         {
@@ -72,8 +80,9 @@ public class ReactionStore
     /// <summary>
     /// Finishes the attempt of a claimed reaction as successful.
     /// </summary>
-    /// <returns><see langword="false"/> when the attempt no longer holds the reaction.</returns>
-    public async Task<bool> CompleteAsync(Context context, DeliveryReaction reaction, string? message, CancellationToken cancellationToken)
+    /// <returns><see cref="ReactionState.Done"/>, or <see langword="null"/> when the attempt no longer holds the
+    /// reaction.</returns>
+    public async Task<ReactionState?> CompleteAsync(Context context, DeliveryReaction reaction, string? message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(reaction);
@@ -86,15 +95,16 @@ public class ReactionStore
                 .SetProperty(r => r.ClaimToken, (Guid?)null)
                 .SetProperty(r => r.Message, message),
             cancellationToken);
-        return updated == 1;
+        return updated == 1 ? ReactionState.Done : null;
     }
 
     /// <summary>
     /// Finishes the attempt of a claimed reaction as failed. The next attempt is due its wait after the start of the
     /// failed one, at once if that has passed; after the last attempt the reaction gives up.
     /// </summary>
-    /// <returns><see langword="false"/> when the attempt no longer holds the reaction.</returns>
-    public async Task<bool> FailAsync(Context context, DeliveryReaction reaction, string message, CancellationToken cancellationToken)
+    /// <returns><see cref="ReactionState.Pending"/> when another attempt follows, <see cref="ReactionState.Error"/>
+    /// when the reaction gave up, or <see langword="null"/> when the attempt no longer holds the reaction.</returns>
+    public async Task<ReactionState?> FailAsync(Context context, DeliveryReaction reaction, string message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(reaction);
@@ -123,7 +133,36 @@ public class ReactionStore
                 }
             },
             cancellationToken);
-        return updated == 1;
+        if (updated != 1)
+            return null;
+
+        return gaveUp ? ReactionState.Error : ReactionState.Pending;
+    }
+
+    /// <summary>
+    /// Ends the reactions of a deleted delivery that are not finished yet. A running attempt is not waited for: its
+    /// report is refused, because its reaction no longer belongs to it.
+    /// </summary>
+    /// <returns>All reactions of the delivery, in the state the deletion left them.</returns>
+    public async Task<IReadOnlyList<DeliveryReaction>> MarkDeletedAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        await OfDelivery(context, deliveryId)
+            .Where(r => r.State == ReactionState.Pending || r.State == ReactionState.Running)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(r => r.State, ReactionState.Deleted)
+                    .SetProperty(r => r.FinishedAt, r => DateTime.UtcNow)
+                    .SetProperty(r => r.LockedUntil, (DateTime?)null)
+                    .SetProperty(r => r.ClaimToken, (Guid?)null)
+                    .SetProperty(r => r.Message, DeliveryDeletedMessage),
+                cancellationToken);
+
+        return await OfDelivery(context, deliveryId)
+            .AsNoTracking()
+            .OrderBy(r => r.Id)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -146,6 +185,8 @@ public class ReactionStore
         return updated == 1;
     }
 
+    // shortcut: one update without the ids of the reactions, so the execution protocol keeps their last attempt as
+    // running. Select the ids first once the protocol has to record the giving up itself.
     private Task<int> GiveUpLostLastAttemptsAsync(Context context, CancellationToken cancellationToken)
     {
         var maxAttempts = options.MaxAttempts;
@@ -165,13 +206,16 @@ public class ReactionStore
     private IQueryable<DeliveryReaction> Claimable(Context context)
     {
         var maxAttempts = options.MaxAttempts;
+        var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
         return context.DeliveryReactions.Where(r =>
             ((r.State == ReactionState.Pending && r.NextAttemptAt <= DateTime.UtcNow)
                 || (r.State == ReactionState.Running && r.LockedUntil < DateTime.UtcNow && r.Attempts < maxAttempts))
-            && (r.Kind == ReactionKind.Transfer
-                || !context.DeliveryReactions.Any(transfer =>
-                    transfer.DeliveryId == r.DeliveryId && transfer.Kind == ReactionKind.Transfer && transfer.State != ReactionState.Done)));
+            && (r.Kind == ReactionKind.Transfer || !unforwarded.Contains(r.DeliveryId)));
     }
+
+    // The delivery is deleted by then, which the query filter would hide.
+    private static IQueryable<DeliveryReaction> OfDelivery(Context context, int deliveryId)
+        => context.DeliveryReactions.IgnoreQueryFilters().Where(r => r.DeliveryId == deliveryId);
 
     private static IQueryable<DeliveryReaction> HeldBy(Context context, DeliveryReaction reaction)
         => context.DeliveryReactions.Where(r => r.Id == reaction.Id && r.State == ReactionState.Running && r.ClaimToken == reaction.ClaimToken);

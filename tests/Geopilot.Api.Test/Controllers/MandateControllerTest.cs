@@ -2,11 +2,13 @@
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NetTopologySuite.Geometries;
@@ -696,7 +698,8 @@ namespace Geopilot.Api.Controllers
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()));
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object);
+            var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IPipelineRunRecorder>());
             deliveryController.SetupTestUser(editUser);
             mandateServiceMock.Setup(s => s.GetMandateForDeliveryAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 

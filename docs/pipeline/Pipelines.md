@@ -561,7 +561,7 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
 
 ```yaml
 channels:
@@ -595,6 +595,10 @@ reaction_sets:
 Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
 
 Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Deklaration fest. Eine spätere Änderung am Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
+
+Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Weil die Lieferungs-Schritte erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet einer mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Lieferungs-Schritte erscheint gleich nach der Abgabe.
+
+Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel; das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
 
 Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 

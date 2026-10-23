@@ -16,12 +16,15 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, die Prozessor-Implementierung samt Assembly und Version, Fehlermeldung bei Abbruch, Statusmeldung, sowie die **Auswertung jeder geprüften Condition** (`PipelineRunConditions`): Ausdruck, optionale stabile Kennung (`id` in der Definition), die referenzierten Werte und ob sie zutraf. Auch nicht zutreffende Auswertungen werden festgehalten, damit "geprüft und nicht zugetroffen" von "nie geprüft" unterscheidbar bleibt. Die Namen der erzeugten Artefakte (Downloads, Visualisierungen, Lieferdateien) stehen in `PipelineRunArtifacts`.
 
+Wird die Lieferung eines Laufs weitergegeben (siehe [Weitergabe nach dem Abschluss](pipeline/Pipelines.md#weitergabe-nach-dem-abschluss)), steht jeder Zustellversuch ihrer Reaktionen in `PipelineRunReactionEvents`: die Lieferung, die Id der Reaktion im Satz, ob die Reaktion die Lieferung weitergibt oder begleitet, der Kanal, die Nummer des Versuchs, Beginn und Ende, der Zustand der Reaktion danach und die Meldung des Kanals. Personendaten des Lieferanten und Werte des Mandats stehen nicht darin; die Meldung kann den Zielpfad enthalten. Wird die Lieferung gelöscht, kommt pro Reaktion eine Zeile `Deletion` dazu, mit dem Benutzer, der gelöscht hat, und dem Zustand der Reaktion danach: `Done` hatte die Lieferung schon weitergegeben, `Error` war schon endgültig gescheitert, `Deleted` endete mit der Löschung. Die Spalte `UserId` nennt nur, wer ein Ereignis ausgelöst hat: Einen Zustellversuch führt die Applikation aus, dort bleibt sie leer. Wer die Lieferung deklariert hat, steht an der Lieferung (`DeclaringUserId` oder `DeclaringClientId`), wer den Lauf gestartet hat, am Lauf.
+
 ## Schreibzeitpunkte und Verlässlichkeit
 
 - **Beim Job-Start, hart:** Kann der Startdatensatz nicht geschrieben werden, wird der Job nicht angenommen und der Aufrufer erhält einen Fehler statt einer Bestätigung. Eine angenommene Lieferung ohne Protokoll gibt es nicht.
 - **Danach weich:** Schreibfehler während des Laufs brechen die Pipeline nicht ab, sie werden als Warnung geloggt.
 - Alle Schritt-Zeilen werden mit dem Startdatensatz als `Pending` angelegt, beim Erreichen auf `Running` gesetzt und beim Abschluss aktualisiert. Ein unterbrochener Lauf zeigt so das volle Bild: erledigte Schritte tragen ihren Endzustand, der laufende steht auf `Running`, und ein Schritt, der `Pending` geblieben ist, wurde nie erreicht.
 - **Ein Lauf ohne Terminal-Status bedeutet "Ausgang unbekannt":** die Instanz ist während des Laufs gestorben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, ein harter Abbruch hinterlässt keinen Terminal-Status. Beides ist zählbar und macht messbar, wie oft Neustarts laufende Jobs treffen (Re-Evaluations-Trigger von ADR 0010).
+- Ein Zustellversuch wird angelegt, sobald eine Instanz ihn beginnt, mit dem Zustand `Running`, und bei seiner Rückmeldung abgeschlossen. Steht ein Versuch ohne Ende auf `Running`, während keine Instanz ihn mehr ausführt, ist sein Ausgang unbekannt, wie bei einem Lauf ohne Terminal-Status. So bleibt auch der letzte Versuch einer Reaktion stehen, die aufgegeben wurde, weil er sich nie zurückmeldete: Das Aufgeben selbst hält das Protokoll nicht fest. Ein leerer Zustand heisst, dass der Versuch seine Reaktion bei der Rückmeldung nicht mehr hielt; was er getan hat, sagt die Meldung.
 
 ## Wo ist der Preflight?
 
@@ -47,7 +50,7 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen, die Modell-Repositori
 
 Administratoren können das Protokoll über die API lesen:
 
-- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten, Condition-Auswertungen und Artefaktnamen.
+- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten, Condition-Auswertungen, Artefaktnamen und den Zustellversuchen der Reaktionen (`reactionEvents`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
 Für Auswertungen über mehrere Läufe ist SQL das Werkzeug. Beispiele:
@@ -74,6 +77,12 @@ SELECT count(*) FROM "PipelineRuns" WHERE "TerminalState" IS NULL AND "StartedAt
 SELECT "PipelineId", "Definition", count(*), min("StartedAt"), max("StartedAt")
 FROM "PipelineRuns"
 GROUP BY "PipelineId", "Definition";
+
+-- Wie wurde Delivery X weitergegeben?
+SELECT e."ReactionId", e."Attempt", e."OccurredAt", e."FinishedAt", e."State", e."Message"
+FROM "PipelineRunReactionEvents" e
+WHERE e."DeliveryId" = 42
+ORDER BY e."OccurredAt", e."Id";
 ```
 
 ## Aufbewahrung
