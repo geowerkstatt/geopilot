@@ -5,6 +5,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { DiffChangeType } from "../../../api/apiInterfaces";
+import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
@@ -100,7 +101,11 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
     </Typography>
   );
   const objectId = (
-    <Typography variant="body2" noWrap sx={{ color: "text.secondary", fontFamily: "monospace", minWidth: 0 }}>
+    <Typography
+      variant="body2"
+      noWrap
+      // The page grows to fit unbreakable text; contained, the id is cut with an ellipsis instead.
+      sx={{ color: "text.secondary", fontFamily: "monospace", minWidth: 0, contain: "inline-size" }}>
       {object.objectId}
     </Typography>
   );
@@ -127,48 +132,48 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
       }}>
       {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
       <Stack
-        direction="row"
         onClick={expandable ? onToggle : undefined}
-        sx={{ alignItems: "center", gap: 1, minHeight: 48, pr: 0.5, cursor: expandable ? "pointer" : undefined }}>
-        {/* A fixed slot, so the change type icons line up with and without a toggle. */}
-        <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
-          {expandable && (
+        sx={{ pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: 40 }}>
+          {/* A fixed slot, so the change type icons line up with and without a toggle. */}
+          <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
+            {expandable && (
+              <IconButton
+                size="small"
+                label={expanded ? "diffCollapseObject" : "diffExpandObject"}
+                icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                aria-expanded={expanded}
+                data-cy="diff-object-toggle"
+              />
+            )}
+          </Stack>
+          <DiffChangeTypeIcon changeType={object.kind} />
+          {/* The page grows to fit unbreakable text; contained, the line takes the width there is and cuts the rest. */}
+          <Stack
+            direction="row"
+            sx={{ alignItems: "baseline", gap: 1.5, flex: 1, minWidth: 0, contain: "inline-size" }}>
+            {className}
+            {layout === "wide" && objectId}
+            {layout === "wide" && <DiffObjectSummary object={object} />}
+          </Stack>
+          {onShowOnMap && (
             <IconButton
               size="small"
-              label={expanded ? "diffCollapseObject" : "diffExpandObject"}
-              icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-              aria-expanded={expanded}
-              data-cy="diff-object-toggle"
+              label="diffShowObjectOnMap"
+              icon={<MapOutlinedIcon />}
+              onClick={event => {
+                event.stopPropagation();
+                onShowOnMap();
+              }}
+              data-cy="diff-object-map"
             />
           )}
         </Stack>
-        <DiffChangeTypeIcon changeType={object.kind} />
-        {layout === "wide" ? (
-          <Stack direction="row" sx={{ alignItems: "baseline", gap: 1.5, flex: 1, minWidth: 0 }}>
-            {className}
+        {/* Narrow, the id goes below the class and the summary is left out. */}
+        {layout === "narrow" && (
+          <Box sx={{ pl: theme => `calc(${theme.spacing(TOGGLE_WIDTH + 2)} + ${px2rem(20)})`, pb: 0.5 }}>
             {objectId}
-            <DiffObjectSummary object={object} />
-          </Stack>
-        ) : (
-          <Stack sx={{ flex: 1, minWidth: 0, py: 0.5 }}>
-            <Stack direction="row" sx={{ alignItems: "baseline", gap: 1, minWidth: 0 }}>
-              {className}
-              <DiffObjectSummary object={object} />
-            </Stack>
-            {objectId}
-          </Stack>
-        )}
-        {onShowOnMap && (
-          <IconButton
-            size="small"
-            label="diffShowObjectOnMap"
-            icon={<MapOutlinedIcon />}
-            onClick={event => {
-              event.stopPropagation();
-              onShowOnMap();
-            }}
-            data-cy="diff-object-map"
-          />
+          </Box>
         )}
       </Stack>
       {expandable && expanded && (

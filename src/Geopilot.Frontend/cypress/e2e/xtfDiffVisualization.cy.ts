@@ -81,12 +81,20 @@ describe("XTF diff visualization", () => {
   });
 
   it("keeps the summary on one line", () => {
-    cy.viewport(390, 844);
     openDiffVisualization();
     cy.dataCy("diff-object-summary")
       .first()
       .should("have.css", "text-overflow", "ellipsis")
       .and("have.css", "white-space", "nowrap");
+  });
+
+  it("fits a phone, without the summary", () => {
+    cy.viewport(390, 844);
+    openDiffVisualization();
+    object(ENTRANCE).should("contain", ENTRANCE).find('[data-cy="diff-object-summary"]').should("not.exist");
+    cy.document().should(document =>
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
+    );
   });
 
   it("toggles an object by clicking its header", () => {
