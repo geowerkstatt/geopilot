@@ -561,7 +561,7 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt.
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
 
 ```yaml
 channels:
