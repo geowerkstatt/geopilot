@@ -71,14 +71,14 @@ pipelines:
       - id: xtf_matching
         display_name:
           de: XTF Zuordnung
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
         input:
           files: "${upload()}"
       - id: old_new
         display_name:
           de: Alter und neuer Stand
-          en: Old and New State
+          en: Old and new state
         process_id: old_new_matcher
         conditions:
           post:

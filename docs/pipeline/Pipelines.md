@@ -144,7 +144,7 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
           fr: XTF Correspondance
           it: XTF Corrispondenza
@@ -395,7 +395,7 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
       - id: validation
         display_name:

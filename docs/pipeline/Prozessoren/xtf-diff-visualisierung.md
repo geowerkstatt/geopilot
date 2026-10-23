@@ -44,7 +44,7 @@ pipelines:
       - id: diff_visualization
         display_name:
           de: Differenzvisualisierung
-          en: Change Visualization
+          en: Change visualization
           fr: Visualisation des différences
           it: Visualizzazione delle differenze
         process_id: xtf_diff_visualizer

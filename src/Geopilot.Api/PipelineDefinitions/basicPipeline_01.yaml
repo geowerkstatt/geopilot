@@ -44,7 +44,7 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
           it: Corrispondenza XTF
           fr: Correspondance XTF
