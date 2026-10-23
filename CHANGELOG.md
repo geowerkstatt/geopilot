@@ -102,6 +102,7 @@
 
 ### Fixed
 
+- An upload that was initiated but never received a file now expires twice `Upload:UploadUrlExpiryMinutes` after its initiation, by default after two hours. Before, it kept its place among `Upload:MaxActiveJobs` until the next restart.
 - A start whose pipeline cannot be instantiated no longer leaves a pending job behind that never runs and that the cleanup reports as stuck on every run. The start is refused as before.
 - The XTF matcher can filter INTERLIS 1 transfer files by model: with `iliModels` set, an `.itf` file now matches by the model named in its `MODL` header line. Before, it never matched and was always sorted out, so a pipeline could not check the model of an INTERLIS 1 delivery.
 - Instances starting at the same time against the same database, for example two pods during a rolling update in Kubernetes, no longer run the database migrations concurrently. One instance migrates, the others wait and then find nothing left to apply.
