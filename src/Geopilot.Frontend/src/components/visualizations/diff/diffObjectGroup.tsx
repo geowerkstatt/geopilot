@@ -113,15 +113,16 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
       data-object-id={object.objectId}
       onMouseEnter={() => onHover(object.objectId)}
       onMouseLeave={() => onHover(null)}
+      // Hover and focus like a form field: the border turns primary, focused it is twice as wide.
       sx={{
         border: 1,
-        borderColor: "divider",
+        borderColor: hovered ? "primary.main" : "primary.light",
         borderRadius: theme => theme.radius.default,
-        bgcolor: hovered ? "primary.states.hover" : "background.content",
+        bgcolor: "background.content",
+        outline: "none",
         "&:focus": {
-          outline: theme => `2px solid ${theme.palette.primary.main}`,
-          boxShadow: theme => `0 0 0 6px ${theme.palette.primary.states.selected}`,
-          bgcolor: "primary.states.hover",
+          borderColor: "primary.main",
+          boxShadow: theme => `inset 0 0 0 1px ${theme.palette.primary.main}`,
         },
       }}>
       {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
@@ -129,18 +130,18 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
         direction="row"
         onClick={expandable ? onToggle : undefined}
         sx={{ alignItems: "center", gap: 1, minHeight: 48, pr: 0.5, cursor: expandable ? "pointer" : undefined }}>
-        {expandable ? (
-          <IconButton
-            size="small"
-            label={expanded ? "diffCollapseObject" : "diffExpandObject"}
-            icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-            aria-expanded={expanded}
-            data-cy="diff-object-toggle"
-            sx={{ ml: 0.5 }}
-          />
-        ) : (
-          <Box sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0 }} />
-        )}
+        {/* A fixed slot, so the change type icons line up with and without a toggle. */}
+        <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
+          {expandable && (
+            <IconButton
+              size="small"
+              label={expanded ? "diffCollapseObject" : "diffExpandObject"}
+              icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+              aria-expanded={expanded}
+              data-cy="diff-object-toggle"
+            />
+          )}
+        </Stack>
         <DiffChangeTypeIcon changeType={object.kind} />
         {layout === "wide" ? (
           <Stack direction="row" sx={{ alignItems: "baseline", gap: 1.5, flex: 1, minWidth: 0 }}>
