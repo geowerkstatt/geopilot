@@ -17,11 +17,11 @@ export interface ButtonProps extends MuiButtonProps {
   rel?: string;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, ...props }, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, children, ...props }, ref) => {
   const { t } = useTranslation();
   return (
     <MuiButton ref={ref} data-cy={label ? `${label}-button` : undefined} {...props}>
-      {label && t(label)}
+      {label ? t(label) : children}
     </MuiButton>
   );
 });

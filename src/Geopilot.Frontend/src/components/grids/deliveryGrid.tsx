@@ -2,25 +2,37 @@ import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
-import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
 import { ApiError, LocalizedText } from "../../api/apiInterfaces";
-import { Delivery, UploadedDelivery } from "../../api/generated";
+import {
+  DeliveryReactionResponse,
+  DeliveryResponse,
+  ReactionKind,
+  ReactionState,
+  UploadedDelivery,
+} from "../../api/generated";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "..//alert/alertContext";
 import { PromptContext } from "..//prompt/promptContext";
+import { Button } from "../buttons";
+import { PromptAction } from "../prompt/promptInterfaces";
+import { ForwardingDialog } from "./forwardingDialog.tsx";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
+import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface DeliveryInfo {
   id: number;
   date: string;
   userName: string;
   mandateName: LocalizedText;
+  forwardingState?: ReactionState | null;
   comment: string;
   canDelete?: boolean;
+  reactions?: DeliveryReactionResponse[];
 }
 
-type ColumnName = keyof Omit<DeliveryInfo, "canDelete">;
+type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "reactions">;
 
 interface DeliveryGridProps {
   fetchUrl: string;
@@ -31,14 +43,15 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [deliveries, setDeliveries] = useState<DeliveryInfo[]>([]);
+  const [forwardingOf, setForwardingOf] = useState<DeliveryInfo>();
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
-    // Administrators get whole deliveries, a user gets their own uploads with whether each can still be deleted.
-    fetchApi<(Delivery | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    // Administrators get all deliveries with their reactions, users their own uploads and whether they may delete them.
+    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
         setDeliveries(
           response.map(d => ({
@@ -46,8 +59,10 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
             date: d.date,
             userName: "declarerName" in d ? d.declarerName : "",
             mandateName: d.mandate.name,
+            forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             comment: d.comment,
             canDelete: "canDelete" in d ? d.canDelete : undefined,
+            reactions: "reactions" in d ? d.reactions : undefined,
           })),
         );
       })
@@ -75,10 +90,19 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   };
 
   const confirmDelete = (id: GridRowId) => {
-    showPrompt("deleteDeliveryConfirmation", [
+    const actions: PromptAction[] = [
       { label: "cancel" },
       { label: "delete", action: () => handleDelete(id), color: "error", variant: "contained" },
-    ]);
+    ];
+    // What a transfer has forwarded stays at its target, so the deletion cannot take it back.
+    const forwardedBy = (deliveries.find(delivery => delivery.id === id)?.reactions ?? [])
+      .filter(reaction => reaction.kind === ReactionKind.Transfer && reaction.state === ReactionState.Done)
+      .map(reaction => reaction.reactionId);
+    if (forwardedBy.length > 0) {
+      showPrompt("deleteForwardedDeliveryConfirmation", actions, { reactions: forwardedBy.join(", ") });
+    } else {
+      showPrompt("deleteDeliveryConfirmation", actions);
+    }
   };
 
   const namedColumnDefs: Record<ColumnName, GridColDef> = {
@@ -99,6 +123,17 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
       flex: 0.5,
       minWidth: 200,
       valueGetter: (mandateName: LocalizedText) => localized(mandateName),
+    },
+    forwardingState: {
+      field: "forwardingState",
+      headerName: t("forwarding"),
+      width: 180,
+      renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
+        row.forwardingState && (
+          <Button variant="text" onClick={() => setForwardingOf(row)} data-cy="forwardingState-button">
+            <ReactionStateLabel state={row.forwardingState} />
+          </Button>
+        ),
     },
     comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 400 },
   };
@@ -128,5 +163,20 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     ),
   });
 
-  return <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />;
+  return (
+    <>
+      <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />
+      {forwardingOf && (
+        <ForwardingDialog
+          deliveryId={forwardingOf.id}
+          reactions={forwardingOf.reactions ?? []}
+          onClose={() => setForwardingOf(undefined)}
+          onReset={() => {
+            setForwardingOf(undefined);
+            loadDeliveries();
+          }}
+        />
+      )}
+    </>
+  );
 };

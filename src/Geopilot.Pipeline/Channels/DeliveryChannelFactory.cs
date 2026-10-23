@@ -140,6 +140,21 @@ internal sealed class DeliveryChannelFactory
         return ConstructorBinding.GetSingleConstructor(type, implementation, Subject);
     }
 
+    /// <summary>
+    /// Describes the parameters of a channel marked as mandate values: what each one takes and whether the mandate must
+    /// supply it. The start ensures they take a text or a list of texts.
+    /// </summary>
+    /// <param name="implementation">The fully qualified type name of the channel.</param>
+    /// <returns>The type and whether it is required, per parameter name.</returns>
+    /// <exception cref="InvalidOperationException">The channel cannot be resolved.</exception>
+    internal IReadOnlyDictionary<string, (MandateValueType Type, bool Required)> DescribeMandateValues(string implementation)
+        => GetConstructor(implementation)
+            .GetParameters()
+            .Where(IsMandateValue)
+            .ToDictionary(
+                parameter => parameter.Name ?? string.Empty,
+                parameter => (parameter.ParameterType == typeof(string) ? MandateValueType.Text : MandateValueType.TextList, !ConstructorBinding.IsNullable(parameter)));
+
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
 
     // The administration offers a text field or a list of texts for a mandate value, nothing else.

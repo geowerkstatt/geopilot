@@ -156,21 +156,78 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a list of all deliveries.
+    /// Gets all deliveries with how far their reactions got.
     /// </summary>
-    /// <returns>A list of all <see cref="Delivery"/>.</returns>
+    /// <returns>A list of <see cref="DeliveryResponse"/>.</returns>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<DeliveryResponse>), "application/json")]
     public async Task<IActionResult> Get()
     {
         var user = await context.GetUserByPrincipalAsync(User);
         logger.LogInformation("User <{UserId}> accessed the list of all deliveries", user.AuthIdentifier);
 
-        var result = context.DeliveriesWithIncludes
-            .AsNoTracking();
+        var deliveries = await context.Deliveries
+            .AsNoTracking()
+            .OrderBy(d => d.Id)
+            .Select(d => new
+            {
+                d.Id,
+                d.Date,
+                Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
+                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                d.Comment,
+                Reactions = context.DeliveryReactions
+                    .Where(r => r.DeliveryId == d.Id)
+                    .OrderBy(r => r.Id)
+                    .Select(r => new DeliveryReactionResponse(
+                        r.ReactionId,
+                        r.Kind,
+                        r.State,
+                        r.Attempts,
+                        r.State == ReactionState.Pending ? r.NextAttemptAt : (DateTime?)null,
+                        r.LastAttemptAt,
+                        r.FinishedAt,
+                        r.Message))
+                    .ToList(),
+            })
+            .ToListAsync();
 
-        return Ok(await result.ToListAsync());
+        return Ok(deliveries
+            .Select(d => new DeliveryResponse(
+                d.Id,
+                d.Date,
+                d.Mandate,
+                d.DeclarerName,
+                d.Comment,
+                d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).ForwardingState(),
+                d.Reactions))
+            .ToList());
+    }
+
+    /// <summary>
+    /// Resets the reactions of a delivery that gave up: each gets all its attempts again and is due at once.
+    /// </summary>
+    /// <param name="deliveryId">The delivery whose failed reactions to reset.</param>
+    [HttpPost("{deliveryId}/reactions/reset")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "The failed reactions of the delivery are due again.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "No reaction of the delivery has failed.")]
+    public async Task<IActionResult> ResetReactions([FromRoute] int deliveryId)
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        if (!await context.Deliveries.AnyAsync(d => d.Id == deliveryId))
+            return NotFound($"No delivery with id <{deliveryId}> found.");
+
+        // Not cancelled with the request, so every reset that happens also reaches the protocol.
+        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, CancellationToken.None);
+        if (reset.Count == 0)
+            return Conflict($"No reaction of delivery <{deliveryId}> has failed.");
+
+        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, reset, user.Id);
+        logger.LogInformation("User <{UserId}> reset {Count} failed reactions of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.Count, deliveryId);
+        return NoContent();
     }
 
     /// <summary>

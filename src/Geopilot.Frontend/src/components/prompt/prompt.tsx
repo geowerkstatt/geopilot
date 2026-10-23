@@ -6,11 +6,11 @@ import { PromptContext } from "./promptContext";
 
 export const Prompt = () => {
   const { t } = useTranslation();
-  const { promptIsOpen, message, actions, closePrompt } = useContext(PromptContext);
+  const { promptIsOpen, message, messageValues, actions, closePrompt } = useContext(PromptContext);
   return (
     <Dialog open={promptIsOpen} data-cy="prompt">
       <DialogContent>
-        <DialogContentText>{t(message as string)}</DialogContentText>
+        <DialogContentText>{t(message as string, messageValues)}</DialogContentText>
       </DialogContent>
       <DialogActions>
         {actions?.map((action, index) => (
