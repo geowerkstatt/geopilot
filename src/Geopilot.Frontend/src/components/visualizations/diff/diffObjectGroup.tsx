@@ -1,4 +1,4 @@
-import { FC, Fragment } from "react";
+import { FC, Fragment, memo } from "react";
 import { useTranslation } from "react-i18next";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -65,21 +65,21 @@ interface DiffObjectGroupProps {
   /** The object is under the pointer, here or on the map. */
   hovered: boolean;
   layout: DiffLayout;
-  onToggle: () => void;
+  onToggle: (objectId: string) => void;
   /** Zooms the map to the object; undefined when the object is not on the map. */
-  onShowOnMap?: () => void;
+  onShowOnMap?: (objectId: string) => void;
   onHover: (objectId: string | null) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
   /** Receives the root, so a jump to the object can scroll to it and focus it. */
-  groupRef: (element: HTMLDivElement | null) => void;
+  registerObject: (objectId: string, element: HTMLDivElement | null) => void;
 }
 
 /**
  * An object of the diff: a header with the class, the object id and a summary of what changed, and below it, when
  * expanded, each change with the value before and after. An object added or deleted as a whole has no details.
  */
-export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
+const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   object,
   expanded,
   hovered,
@@ -89,11 +89,16 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
   onHover,
   lookupReference,
   onReference,
-  groupRef,
+  registerObject,
 }) => {
   const { t } = useTranslation();
   const propertyChanges = getPropertyChanges(object);
   const expandable = propertyChanges.length > 0;
+  const showOnMap = onShowOnMap && (() => onShowOnMap(object.objectId));
+  // Selecting text in the header, the object id to copy it for example, leaves the object as it is.
+  const toggle = () => {
+    if (!window.getSelection()?.toString()) onToggle(object.objectId);
+  };
   const className = (
     <Typography variant="body2" noWrap title={object.interlisName} sx={{ fontWeight: 600, flexShrink: 0 }}>
       {getClassName(object.interlisName)}
@@ -107,7 +112,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
 
   return (
     <Box
-      ref={groupRef}
+      ref={(element: HTMLDivElement | null) => registerObject(object.objectId, element)}
       tabIndex={-1}
       data-cy="diff-object"
       data-object-id={object.objectId}
@@ -127,7 +132,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
       }}>
       {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
       <Stack
-        onClick={expandable ? onToggle : undefined}
+        onClick={expandable ? toggle : undefined}
         sx={{ gap: 0, pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: layout === "wide" ? 40 : 36 }}>
           {/* A fixed slot, so the change type icons line up with and without a toggle. */}
@@ -149,14 +154,14 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
             {layout === "wide" && objectId}
             {layout === "wide" && <DiffObjectSummary object={object} />}
           </Stack>
-          {onShowOnMap && (
+          {showOnMap && (
             <IconButton
               size="small"
               label="diffShowObjectOnMap"
               icon={<MapOutlinedIcon />}
               onClick={event => {
                 event.stopPropagation();
-                onShowOnMap();
+                showOnMap();
               }}
               data-cy="diff-object-map"
             />
@@ -192,7 +197,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
                 lookupReference={lookupReference}
                 onReference={onReference}
                 // shortcut: a geometry zooms to its whole object, to that geometry and state once the map is reworked
-                onShowOnMap={onShowOnMap}
+                onShowOnMap={showOnMap}
               />
             </Fragment>
           ))}
@@ -201,3 +206,6 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
     </Box>
   );
 };
+
+/** Memoized, so moving the pointer over the list renders only the objects whose hover state changes. */
+export const DiffObjectGroup = memo(DiffObjectGroupContent);

@@ -75,12 +75,12 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
           expanded={expandedObjectIds.has(object.objectId)}
           hovered={hoveredObjectIds.has(object.objectId)}
           layout={layout}
-          onToggle={() => onToggleObject(object.objectId)}
-          onShowOnMap={object.onMap ? () => onShowObjectOnMap(object.objectId) : undefined}
+          onToggle={onToggleObject}
+          onShowOnMap={object.onMap ? onShowObjectOnMap : undefined}
           onHover={onHoverObject}
           lookupReference={lookupReference}
           onReference={onReference}
-          groupRef={element => registerObject(object.objectId, element)}
+          registerObject={registerObject}
         />
       ))}
     </Stack>
