@@ -8,10 +8,10 @@ import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
-import { FilterBar } from "./filterBar";
+import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
-import { buildErrorIdIndex, buildTree, collectFilterAttributes, FieldFilters, filterItems } from "./tree/treeNode";
+import { buildErrorIdIndex, buildTree, collectFilterAttributes, filterItems } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
 
 /**
@@ -42,7 +42,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const { localized } = useLocalized();
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
-  const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
+  const [fieldFilters, setFieldFilters] = useState<FieldFilters<TreeField>>({});
   const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer(
     (state: NodeSelectionState, nodeId: string | null): NodeSelectionState => ({
       selectedNodeId: nodeId,
@@ -118,6 +118,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const filter = config.tree && (
     <FilterBar
       attributes={attributes}
+      searchPlaceholder="treeVisualizationMessageSearch"
       messageQuery={messageQuery}
       onMessageQueryChange={setMessageQuery}
       fieldFilters={fieldFilters}
