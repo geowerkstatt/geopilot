@@ -278,7 +278,7 @@ pipelines:
       - id: zip_packaging
         display_name:
           en: ZIP packaging
-          de: ZIP Packet
+          de: ZIP Paket
           it: Creazione ZIP
           fr: Création ZIP
         process_id: zip_packager
