@@ -206,12 +206,11 @@ public class ReactionStore
     private IQueryable<DeliveryReaction> Claimable(Context context)
     {
         var maxAttempts = options.MaxAttempts;
+        var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
         return context.DeliveryReactions.Where(r =>
             ((r.State == ReactionState.Pending && r.NextAttemptAt <= DateTime.UtcNow)
                 || (r.State == ReactionState.Running && r.LockedUntil < DateTime.UtcNow && r.Attempts < maxAttempts))
-            && (r.Kind == ReactionKind.Transfer
-                || !context.DeliveryReactions.Any(transfer =>
-                    transfer.DeliveryId == r.DeliveryId && transfer.Kind == ReactionKind.Transfer && transfer.State != ReactionState.Done)));
+            && (r.Kind == ReactionKind.Transfer || !unforwarded.Contains(r.DeliveryId)));
     }
 
     // The delivery is deleted by then, which the query filter would hide.

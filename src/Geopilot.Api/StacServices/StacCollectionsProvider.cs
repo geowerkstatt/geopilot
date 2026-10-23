@@ -35,9 +35,8 @@ public class StacCollectionsProvider : ICollectionsProvider
         {
             var isAdmin = IsAdmin;
             using var db = contextFactory.CreateDbContext();
-            var mandate = db.MandatesWithIncludes
+            var mandate = db.MandatesInStac(isAdmin)
                 .AsNoTracking()
-                .VisibleInStac(isAdmin)
                 .AsEnumerable()
                 .FirstOrDefault(m => stacConverter.GetCollectionId(m) == collectionId)
                 ?? throw new InvalidOperationException($"Collection with id {collectionId} does not exist.");
@@ -59,9 +58,8 @@ public class StacCollectionsProvider : ICollectionsProvider
 
         var isAdmin = IsAdmin;
         using var db = contextFactory.CreateDbContext();
-        var collections = db.MandatesWithIncludes
+        var collections = db.MandatesInStac(isAdmin)
             .AsNoTracking()
-            .VisibleInStac(isAdmin)
             .ToList()
             .Select(m => stacConverter.ToStacCollection(m, isAdmin));
         stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count());

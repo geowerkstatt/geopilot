@@ -5,6 +5,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
+using Geopilot.Api.StacServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -296,9 +297,13 @@ public class DeliveryController : ControllerBase
         }
     }
 
-    private async Task<bool> MayDownloadAsync(Asset asset) =>
-        asset.Delivery?.Mandate?.StacAccess == StacAccess.Public
-        || (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
+    // STAC links its assets here, so a file can be downloaded exactly when the catalog shows its delivery.
+    private async Task<bool> MayDownloadAsync(Asset asset)
+    {
+        var isAdmin = (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
+        var deliveryId = asset.Delivery?.Id;
+        return await context.DeliveriesInStac(isAdmin).AnyAsync(d => d.Id == deliveryId);
+    }
 
     /// <summary>
     /// Ends the open reactions of a deleted delivery and records in the protocol how far each had got. The delivery is
