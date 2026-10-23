@@ -1,5 +1,7 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Stack, Typography } from "@mui/material";
 import { Button } from "../../buttons";
 import { DiffLayout, ReferenceTarget } from "./diffChangeRow";
@@ -9,6 +11,10 @@ import { DiffObject, getPropertyChanges } from "./diffObjects";
 interface DiffObjectListProps {
   /** The objects to list, already filtered. */
   objects: DiffObject[];
+  /** The number of changes of the whole diff, before filtering. */
+  totalChangeCount: number;
+  /** Whether a filter is active, which switches the count to "n of m". */
+  filterActive: boolean;
   expandedObjectIds: ReadonlySet<string>;
   onToggleObject: (objectId: string) => void;
   /** Expands or collapses the given objects together. */
@@ -26,6 +32,8 @@ interface DiffObjectListProps {
 /** The objects of the diff, one group each. */
 export const DiffObjectList: FC<DiffObjectListProps> = ({
   objects,
+  totalChangeCount,
+  filterActive,
   expandedObjectIds,
   onToggleObject,
   onExpandObjects,
@@ -39,21 +47,24 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
 }) => {
   const { t } = useTranslation();
   const expandableIds = objects.filter(object => getPropertyChanges(object).length > 0).map(object => object.objectId);
-  const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedObjectIds.has(id));
-  const changeCount = objects.reduce((count, object) => count + object.changes.length, 0);
+  const anyExpanded = expandableIds.some(id => expandedObjectIds.has(id));
+  const shownChangeCount = objects.reduce((count, object) => count + object.changes.length, 0);
 
   return (
     <Stack sx={{ width: "100%", gap: 1 }}>
       <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600 }} data-cy="diff-object-count">
-          {t("diffObjectCount", { objects: objects.length, changes: changeCount })}
+        <Typography variant="body2" data-cy="diff-change-count">
+          {filterActive
+            ? t("diffChangeCountFiltered", { count: totalChangeCount, shown: shownChangeCount })
+            : t("diffChangeCount", { count: totalChangeCount })}
         </Typography>
         {expandableIds.length > 0 && (
           <Button
             size="small"
             variant="text"
-            label={allExpanded ? "diffCollapseAll" : "diffExpandAll"}
-            onClick={() => onExpandObjects(expandableIds, !allExpanded)}
+            label={anyExpanded ? "collapseAll" : "expandAll"}
+            endIcon={anyExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+            onClick={() => onExpandObjects(expandableIds, !anyExpanded)}
           />
         )}
       </Stack>

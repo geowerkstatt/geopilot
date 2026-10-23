@@ -227,6 +227,8 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const list = config.table && (
     <DiffObjectList
       objects={filteredObjects}
+      totalChangeCount={changes.length}
+      filterActive={hasActiveFilters}
       expandedObjectIds={expandedObjectIds}
       onToggleObject={toggleObject}
       onExpandObjects={expandObjects}
