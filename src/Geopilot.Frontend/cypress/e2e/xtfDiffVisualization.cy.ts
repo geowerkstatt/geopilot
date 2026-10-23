@@ -6,7 +6,7 @@ const ADDED_LOCALISATION = "a1b2c3d4-1111-4a2b-8c3d-000000000032";
 const PARCEL = "d4e5f6a7-7777-4081-c293-000000000215";
 const NOTED_LOCALISATION = "2c3d4e5f-cccc-45d6-b7e8-000000000060";
 
-/** The parts of the diff visualization payload the tests change; the app's own types pull in its theme. */
+// Local types: the app's types would pull its theme into the Cypress type check.
 interface FixtureChange {
   id: string;
   objectId: string;
@@ -25,9 +25,6 @@ interface Visualization {
 
 type Transform = (visualization: Visualization) => Visualization;
 
-/**
- * Runs a mocked job whose diff visualization step serves the fixture, optionally transformed, and opens the step.
- */
 const openDiffVisualization = (transform: Transform = visualization => visualization) => {
   cy.fixture<Visualization>("xtfDiffVisualization.json").then(fixture => {
     cy.intercept("GET", VISUALIZATION_URL, { statusCode: 200, body: transform(fixture) });

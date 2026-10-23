@@ -1,14 +1,12 @@
 import { DiffChange, DiffChangeType, DiffValueType } from "../../../api/apiInterfaces";
 import { FieldFilters, FilterAttribute } from "../filterBar";
 
-/** The label (translation key) per change type. */
 export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, string> = {
   added: "diffChangeAdded",
   deleted: "diffChangeDeleted",
   changed: "diffChangeChanged",
 };
 
-/** The label (translation key) per value type. */
 export const DIFF_VALUE_TYPE_LABEL_KEYS: Record<DiffValueType, string> = {
   object: "diffValueTypeObject",
   reference: "diffValueTypeReference",
@@ -16,7 +14,6 @@ export const DIFF_VALUE_TYPE_LABEL_KEYS: Record<DiffValueType, string> = {
   geometry: "diffValueTypeGeometry",
 };
 
-/** The label (translation key) of an object added or deleted as a whole. */
 export const DIFF_OBJECT_LABEL_KEYS: Record<Exclude<DiffChangeType, "changed">, string> = {
   added: "diffChangeObjectAdded",
   deleted: "diffChangeObjectDeleted",
@@ -25,19 +22,15 @@ export const DIFF_OBJECT_LABEL_KEYS: Record<Exclude<DiffChangeType, "changed">, 
 /** The class of a qualified INTERLIS name, e.g. "Class" of "Model.Topic.Class". */
 export const getClassName = (interlisName: string): string => interlisName.split(".").at(-1) ?? interlisName;
 
-/** An object of the diff with all its changes. */
 export interface DiffObject {
   objectId: string;
   interlisName: string;
-  /** Added or deleted as a whole, or changed in its properties. */
   kind: DiffChangeType;
-  /** All changes of the object in the order of the diff, the one of the object as a whole included. */
+  /** In diff order, including the change of the object as a whole, which the filter needs. */
   changes: DiffChange[];
-  /** Whether the map draws the object, in its old or its new state. */
   onMap: boolean;
 }
 
-/** The changes of single properties, without the change of the object as a whole. */
 export const getPropertyChanges = (object: DiffObject): DiffChange[] =>
   object.changes.filter(change => change.valueType !== "object");
 
@@ -65,10 +58,9 @@ export const groupByObject = (changes: DiffChange[], mappedObjectIds: ReadonlySe
   });
 };
 
-/** What the summary puts in front of a property by its change type; the minus is the sign U+2212. */
+// The minus is the sign U+2212, not a hyphen.
 export const SUMMARY_PREFIXES: Record<DiffChangeType, string> = { added: "+", deleted: "−", changed: "" };
 
-/** A changed property of an object, as its summary names it. */
 export interface SummaryItem {
   path: string;
   changeType: DiffChangeType;
@@ -88,12 +80,10 @@ export const summarize = (object: DiffObject): SummaryItem[] => {
   return [...items].map(([path, changeType]) => ({ path, changeType }));
 };
 
-/** The fields the changes can be filtered by. */
 export type DiffFilterField = "changeType" | "valueType" | "class" | "attribute";
 
 const DIFF_FILTER_FIELDS: readonly DiffFilterField[] = ["changeType", "valueType", "class", "attribute"];
 
-/** The filter dropdown label (translation key) per field. */
 const DIFF_FILTER_LABEL_KEYS: Record<DiffFilterField, string> = {
   changeType: "diffFieldChangeType",
   valueType: "diffFieldValueType",
@@ -101,7 +91,6 @@ const DIFF_FILTER_LABEL_KEYS: Record<DiffFilterField, string> = {
   attribute: "diffColumnAttribute",
 };
 
-/** The value of a change in a filter field, as the filter shows and compares it; undefined when it has none. */
 export type ChangeLabeler = (field: DiffFilterField, change: DiffChange) => string | undefined;
 
 const matchesQuery = (object: DiffObject, change: DiffChange, query: string) =>

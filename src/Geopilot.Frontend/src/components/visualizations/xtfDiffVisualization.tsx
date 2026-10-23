@@ -27,11 +27,8 @@ import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
 
 /**
- * The XTF diff visualization: the changed objects in a list, one group per object, and on a map, the old state in
- * orange beneath the new one in blue. Mirrors the backend XtfDiffVisualizationConfig, and like the error
- * visualization it shows the views that are present. This component owns the state the views share: the filter, the
- * expanded and the selected objects and the ones under the pointer. They correlate by the object id, which
- * is also the id of the object's features.
+ * Mirrors the backend XtfDiffVisualizationConfig. List and map correlate by the object id, which is also the id of
+ * the object's features.
  */
 export interface XtfDiffVisualizationConfig {
   /** The map of the changes with a location; absent when the map is not included or no change has a location. */
