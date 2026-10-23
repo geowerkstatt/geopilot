@@ -5,7 +5,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { DiffChangeType } from "../../../api/apiInterfaces";
-import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
@@ -24,8 +23,8 @@ const SUMMARY_COLORS: Record<DiffChangeType, string | undefined> = {
   changed: undefined,
 };
 
-/** The width of the toggle in front of the class, which the rows below are indented by. */
-const TOGGLE_WIDTH = 5;
+/** The width of the toggle slot; with the gap after it, the rows below are indented as much, so all change icons line up. */
+const TOGGLE_WIDTH = 4.5;
 
 interface DiffObjectSummaryProps {
   object: DiffObject;
@@ -169,15 +168,11 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
             />
           )}
         </Stack>
-        {/* Narrow, the id goes below the class and the summary is left out. */}
-        {layout === "narrow" && (
-          <Box sx={{ pl: theme => `calc(${theme.spacing(TOGGLE_WIDTH + 2)} + ${px2rem(20)})`, pb: 0.5 }}>
-            {objectId}
-          </Box>
-        )}
+        {/* Narrow, the id goes on its own line along the left border and the summary is left out. */}
+        {layout === "narrow" && <Box sx={{ pl: 1, pb: 0.5 }}>{objectId}</Box>}
       </Stack>
       {expandable && expanded && (
-        <Box sx={{ pl: TOGGLE_WIDTH + 0.5, pr: 1.5, pb: 0.5 }}>
+        <Box sx={{ pl: TOGGLE_WIDTH + 1, pr: 1.5, pb: 0.5 }}>
           <Divider />
           {layout === "wide" && (
             <Box
