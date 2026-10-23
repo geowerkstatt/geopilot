@@ -72,10 +72,10 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -93,7 +93,7 @@ pipelines:
       # was als Modell an die Validierung geht.
       - id: ili_matching
         display_name:
-          en: Model Matching
+          en: Model matching
           de: Modell Zuordnung
           fr: Correspondance des modèles
           it: Corrispondenza dei modelli
@@ -109,10 +109,10 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         conditions:
           pre:
@@ -150,7 +150,7 @@ pipelines:
               - StatusMessage
       - id: map_visualization
         display_name:
-          en: Map Visualization
+          en: Map visualization
           de: Kartenvisualisierung
           it: Visualizzazione cartografica
           fr: Visualisation cartographique
@@ -186,7 +186,7 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
           it: Corrispondenza XTF
           fr: Correspondance XTF
@@ -205,7 +205,7 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
           it: Validazione XTF
           fr: Validation XTF
@@ -246,7 +246,7 @@ pipelines:
       - id: error_tree
         display_name:
           de: XTF-Visualisierung
-          en: XTF-Visualization
+          en: XTF visualization
           it: Visualizzazione XTF
           fr: Visualisation XTF
         process_id: xtf_error_visualizer
@@ -271,8 +271,8 @@ pipelines:
               - StatusMessage
       - id: zip_packaging
         display_name:
-          en: ZIP Packaging
-          de: ZIP Packet
+          en: ZIP packaging
+          de: ZIP Paket
           it: Creazione ZIP
           fr: Création ZIP
         process_id: zip_packager
@@ -357,7 +357,7 @@ pipelines:
               - StatusMessage
       - id: error_visualization
         display_name:
-          en: Error Visualization
+          en: Error visualization
           de: Fehlervisualisierung
           it: Visualizzazione degli errori
           fr: Visualisation des erreurs
@@ -394,7 +394,7 @@ pipelines:
     steps:
       - id: zip_matching
         display_name:
-          en: Archive Matching
+          en: Archive matching
           de: Archiv Zuordnung
           fr: Correspondance de l'archive
           it: Corrispondenza dell'archivio
@@ -420,7 +420,7 @@ pipelines:
               - StatusMessage
       - id: unzip
         display_name:
-          en: Unzip Archive
+          en: Unzip archive
           de: Archiv entpacken
           fr: Décompresser l'archive
           it: Decomprimere l'archivio
@@ -443,10 +443,10 @@ pipelines:
               - StatusMessage
       - id: xtf_matching_upload
         display_name:
-          en: Upload XTF Matching
+          en: Upload XTF matching
           de: Upload XTF Zuordnung
-          fr: Upload XTF Correspondance
-          it: Upload XTF Corrispondenza
+          fr: Correspondance XTF du téléversement
+          it: Corrispondenza XTF del caricamento
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -459,10 +459,10 @@ pipelines:
               - StatusMessage
       - id: xtf_matching_zip
         display_name:
-          en: ZIP XTF Matching
+          en: ZIP XTF matching
           de: ZIP XTF Zuordnung
-          fr: ZIP XTF Correspondance
-          it: ZIP XTF Corrispondenza
+          fr: Correspondance XTF du ZIP
+          it: Corrispondenza XTF dello ZIP
         process_id: xtf_matcher
         conditions:
           pre:
@@ -485,10 +485,10 @@ pipelines:
               - StatusMessage
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         conditions:
           pre:
@@ -634,7 +634,7 @@ pipelines:
               - StatusMessage
       - id: error_visualization
         display_name:
-          en: Error Visualization
+          en: Error visualization
           de: Fehlervisualisierung
           it: Visualizzazione degli errori
           fr: Visualisation des erreurs
@@ -669,10 +669,10 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -682,7 +682,7 @@ pipelines:
               - StatusMessage
       - id: old_new
         display_name:
-          en: Old and New State
+          en: Old and new state
           de: Alter und neuer Stand
           fr: Ancien et nouvel état
           it: Stato precedente e attuale
@@ -747,7 +747,7 @@ pipelines:
       # Läuft nur nach einem Vergleich: Lassen sich die Stände nicht vergleichen, beendet die fail_conditions oben den Lauf.
       - id: diff_visualization
         display_name:
-          en: Diff Visualization
+          en: Change visualization
           de: Differenzvisualisierung
           fr: Visualisation des différences
           it: Visualizzazione delle differenze

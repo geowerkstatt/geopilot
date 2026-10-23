@@ -75,6 +75,13 @@ export const themePalette = {
       highlight: "#0d47a1",
     },
   },
+  // Orange and blue are reserved for the map's old and new state.
+  diff: {
+    added: "#2E7D32",
+    deleted: "#C62828",
+    insertBackground: "#CDEBCF",
+    deleteBackground: "#F9D0D0",
+  },
   divider: alpha("#124A4F", 0.2),
   tooltip: {
     background: "#424242",

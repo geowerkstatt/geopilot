@@ -1,37 +1,39 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { Box, Modal, Stack, Typography, useTheme } from "@mui/material";
-import { gridPaginationModelSelector, gridSortedRowIdsSelector, useGridApiRef } from "@mui/x-data-grid";
-import {
-  DiffChange,
-  DiffChangeType,
-  MapLayerStyle,
-  MapVisualizationConfig,
-  TableVisualizationConfig,
-} from "../../api/apiInterfaces";
+import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { DiffChange, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
 import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
 import { GeopilotBox } from "../styledComponents";
-import { filterChanges, getChangeLabelKey, getClassName } from "./diff/diffChanges";
-import { DiffDetailPanel } from "./diff/diffDetailPanel";
-import { DiffFilterBar } from "./diff/diffFilterBar";
-import { DiffTable } from "./diff/diffTable";
+import { ReferenceTarget } from "./diff/diffChangeRow";
+import { DiffObjectList } from "./diff/diffObjectList";
+import {
+  ChangeLabeler,
+  DIFF_CHANGE_TYPE_LABEL_KEYS,
+  DIFF_OBJECT_LABEL_KEYS,
+  DIFF_VALUE_TYPE_LABEL_KEYS,
+  DiffFilterField,
+  filterObjects,
+  filterOptions,
+  getClassName,
+  groupByObject,
+  summarize,
+  SUMMARY_PREFIXES,
+} from "./diff/diffObjects";
+import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
 
 /**
- * The XTF diff visualization: every change of a diff in a table and the changed objects on a map, the old state in
- * orange beneath the new one in blue. Mirrors the backend XtfDiffVisualizationConfig, and like the error
- * visualization it shows the views that are present. This component owns the state the views share: the filter,
- * which comes with the table and filters it and the map, and the selected object and the one under the pointer,
- * which both highlight. They correlate by the object id, which is also the id of the object's features.
+ * Mirrors the backend XtfDiffVisualizationConfig. List and map correlate by the object id, which is also the id of
+ * the object's features.
  */
 export interface XtfDiffVisualizationConfig {
   /** The map of the changes with a location; absent when the map is not included or no change has a location. */
   map?: MapVisualizationConfig;
-  /** The table of the changes, with the filter and the detail of the selected object; absent when not included. */
+  /** The changes for the list and its filter; absent when not included. */
   table?: TableVisualizationConfig;
 }
 
@@ -39,101 +41,159 @@ interface XtfDiffVisualizationProps {
   config: XtfDiffVisualizationConfig;
 }
 
+/** A jump to an object; the token makes a jump to the same object again scroll and focus it again. */
+interface RevealRequest {
+  objectId: string;
+  token: number;
+}
+
 export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const apiRef = useGridApiRef();
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const [fullscreen, setFullscreen] = useState(false);
   const [query, setQuery] = useState("");
-  const [changeTypes, setChangeTypes] = useState<DiffChangeType[]>([]);
+  const [fieldFilters, setFieldFilters] = useState<FieldFilters<DiffFilterField>>({});
+  const [expandedObjectIds, setExpandedObjectIds] = useState<ReadonlySet<string>>(new Set());
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
-  const [hoveredObjectIds, setHoveredObjectIds] = useState<readonly string[]>([]);
+  const [hoveredObjectIds, setHoveredObjectIds] = useState<ReadonlySet<string>>(new Set());
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
+  const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
+  const groupElements = useRef(new Map<string, HTMLDivElement>());
 
   const changes = useMemo(() => config.table?.changes ?? [], [config.table]);
-  const filteredChanges = useMemo(() => filterChanges(changes, query, changeTypes), [changes, query, changeTypes]);
-  const hasActiveFilters = query.trim().length > 0 || changeTypes.length > 0;
-  // Filter result for the map: the objects still listed (undefined = no filter = show all).
-  const visibleObjectIds = useMemo<ReadonlySet<string> | undefined>(
-    () => (hasActiveFilters ? new Set(filteredChanges.map(change => change.objectId)) : undefined),
-    [hasActiveFilters, filteredChanges],
+  const mappedObjectIds = useMemo(
+    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.id) ?? [])),
+    [config.map],
   );
-  // As in the error visualization, an object the filter hides stays selected but shows neither as selected nor in the
-  // detail until it is listed again.
-  const shownObjectId =
-    selectedObjectId && (!visibleObjectIds || visibleObjectIds.has(selectedObjectId)) ? selectedObjectId : null;
-  const highlightedObjectIds = useMemo<ReadonlySet<string>>(
-    () => new Set(shownObjectId ? [shownObjectId] : []),
-    [shownObjectId],
-  );
-  // The map draws these lighter than the selection, as the table does with their rows.
-  const hoveredFeatureIds = useMemo<ReadonlySet<string>>(() => new Set(hoveredObjectIds), [hoveredObjectIds]);
-  // The states each object is drawn in, old before new: the layers of the map carry the style of their state.
-  const objectStates = useMemo<ReadonlyMap<string, readonly MapLayerStyle[]>>(() => {
-    const states = new Map<string, MapLayerStyle[]>();
-    for (const layer of config.map?.layers ?? []) {
-      const style = layer.style;
-      if (!style) continue;
-      for (const feature of layer.features ?? []) {
-        states.set(feature.id, [...(states.get(feature.id) ?? []), style]);
+  const objects = useMemo(() => groupByObject(changes, mappedObjectIds), [changes, mappedObjectIds]);
+  const objectsById = useMemo(() => new Map(objects.map(object => [object.objectId, object])), [objects]);
+
+  const label = useCallback<ChangeLabeler>(
+    (field: DiffFilterField, change: DiffChange) => {
+      switch (field) {
+        case "changeType":
+          return t(DIFF_CHANGE_TYPE_LABEL_KEYS[change.changeType]);
+        case "valueType":
+          return t(DIFF_VALUE_TYPE_LABEL_KEYS[change.valueType]);
+        case "class":
+          return getClassName(change.interlisName);
+        case "attribute":
+          return change.attributePath;
       }
-    }
-    return states;
-  }, [config.map]);
-  const changesByObjectId = useMemo(() => {
-    const grouped = new Map<string, DiffChange[]>();
-    for (const change of changes) {
-      const objectChanges = grouped.get(change.objectId);
-      if (objectChanges) objectChanges.push(change);
-      else grouped.set(change.objectId, [change]);
-    }
-    return grouped;
-  }, [changes]);
-  const selectedChanges = shownObjectId ? (changesByObjectId.get(shownObjectId) ?? []) : [];
-
-  // The popup on the map names the class of the object and below it its changes. Without the table there are no
-  // changes, and the popup falls back to the info of the feature, the qualified name of the class.
-  const describeObject = useCallback(
-    (objectId: string) => {
-      const objectChanges = changesByObjectId.get(objectId);
-      if (!objectChanges) return undefined;
-      return {
-        text: getClassName(objectChanges[0].interlisName),
-        secondaryText: objectChanges
-          .map(change => {
-            const label = t(getChangeLabelKey(change));
-            return change.valueType === "object" || !change.attributePath
-              ? label
-              : `${label} (${change.attributePath})`;
-          })
-          .join(", "),
-      };
     },
-    [changesByObjectId, t],
+    [t],
+  );
+  const attributes = useMemo(() => filterOptions(objects, label), [objects, label]);
+  const hasActiveFilters = query.trim().length > 0 || Object.values(fieldFilters).some(values => values.length > 0);
+  const filteredObjects = useMemo(
+    () => (hasActiveFilters ? filterObjects(objects, query, fieldFilters, label) : objects),
+    [hasActiveFilters, objects, query, fieldFilters, label],
+  );
+  const listedObjectIds = useMemo(() => new Set(filteredObjects.map(object => object.objectId)), [filteredObjects]);
+
+  // Filter result for the map: the objects still listed (undefined = no filter = show all).
+  const visibleObjectIds = hasActiveFilters ? listedObjectIds : undefined;
+  // An object the filter hides stays selected but shows as selected only once it is visible again.
+  const highlightedObjectIds = useMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        selectedObjectId && (!visibleObjectIds || visibleObjectIds.has(selectedObjectId)) ? [selectedObjectId] : [],
+      ),
+    [selectedObjectId, visibleObjectIds],
   );
 
-  const handleShowObjectOnMap = useCallback((objectId: string) => {
+  useEffect(() => {
+    if (!revealRequest) return;
+    const element = groupElements.current.get(revealRequest.objectId);
+    element?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    element?.focus({ preventScroll: true });
+  }, [revealRequest]);
+
+  /** Selects an object and, when it is listed, expands it and scrolls to it with the focus on it. */
+  const revealObject = useCallback(
+    (objectId: string) => {
+      setSelectedObjectId(objectId);
+      if (!listedObjectIds.has(objectId)) return;
+      setExpandedObjectIds(previous => new Set(previous).add(objectId));
+      setRevealRequest(previous => ({ objectId, token: (previous?.token ?? 0) + 1 }));
+    },
+    [listedObjectIds],
+  );
+
+  const lookupReference = useCallback(
+    (oid: string): ReferenceTarget => {
+      const target = objectsById.get(oid);
+      if (!target) return { state: "absent" };
+      const className = getClassName(target.interlisName);
+      return { state: listedObjectIds.has(oid) ? "listed" : "filtered", className };
+    },
+    [objectsById, listedObjectIds],
+  );
+
+  const showObjectOnMap = useCallback((objectId: string) => {
     setSelectedObjectId(objectId);
     setZoomRequest(previous => ({ featureIds: [objectId], token: (previous?.token ?? 0) + 1 }));
   }, []);
 
-  const handleHoverFeatures = useCallback((objectIds: string[]) => setHoveredObjectIds(objectIds), []);
-  const handleHoverObject = useCallback(
-    (objectId: string | null) => setHoveredObjectIds(objectId ? [objectId] : []),
+  const toggleObject = useCallback(
+    (objectId: string) =>
+      setExpandedObjectIds(previous => {
+        const next = new Set(previous);
+        if (!next.delete(objectId)) next.add(objectId);
+        return next;
+      }),
+    [],
+  );
+  const expandObjects = useCallback(
+    (objectIds: string[], expanded: boolean) =>
+      setExpandedObjectIds(previous => {
+        const next = new Set(previous);
+        for (const objectId of objectIds) {
+          if (expanded) next.add(objectId);
+          else next.delete(objectId);
+        }
+        return next;
+      }),
     [],
   );
 
-  // A feature clicked on the map selects its object and turns the table to the page of the object's first change.
-  const handleSelectFeature = useCallback(
-    (objectId: string) => {
-      setSelectedObjectId(objectId);
-      const api = apiRef.current;
-      if (!api) return;
-      const index = gridSortedRowIdsSelector(apiRef).findIndex(id => api.getRow<DiffChange>(id)?.objectId === objectId);
-      if (index >= 0) api.setPage(Math.floor(index / gridPaginationModelSelector(apiRef).pageSize));
-    },
-    [apiRef],
+  const registerObject = useCallback((objectId: string, element: HTMLDivElement | null) => {
+    if (element) groupElements.current.set(objectId, element);
+    else groupElements.current.delete(objectId);
+  }, []);
+
+  const hoverObject = useCallback(
+    (objectId: string | null) => setHoveredObjectIds(new Set(objectId ? [objectId] : [])),
+    [],
   );
+  const hoverFeatures = useCallback((objectIds: string[]) => setHoveredObjectIds(new Set(objectIds)), []);
+
+  // The popup on the map names the class of the object and below it what changed. Without the list there are no
+  // changes, and the popup falls back to the info of the feature, the qualified name of the class.
+  const describeObject = useCallback(
+    (objectId: string) => {
+      const object = objectsById.get(objectId);
+      if (!object) return undefined;
+      return {
+        text: getClassName(object.interlisName),
+        secondaryText:
+          object.kind === "changed"
+            ? summarize(object)
+                .map(item => `${SUMMARY_PREFIXES[item.changeType]}${item.path}`)
+                .join(", ")
+            : t(DIFF_OBJECT_LABEL_KEYS[object.kind]),
+      };
+    },
+    [objectsById, t],
+  );
+
+  const changeFilters = (field: DiffFilterField, selected: string[]) =>
+    setFieldFilters(current => ({ ...current, [field]: selected }));
+  const clearFilters = () => {
+    setQuery("");
+    setFieldFilters({});
+  };
 
   if (config.table && changes.length === 0) {
     return <Typography data-cy="diff-no-changes">{t("diffNoChanges")}</Typography>;
@@ -143,13 +203,17 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     return <Typography data-cy="diff-no-locations">{t("diffNoLocations")}</Typography>;
   }
 
+  const layout = fullscreen || isPhone ? "narrow" : "wide";
   const filter = config.table && (
-    <DiffFilterBar
-      changes={changes}
-      query={query}
-      onQueryChange={setQuery}
-      changeTypes={changeTypes}
-      onChangeTypesChange={setChangeTypes}
+    <FilterBar
+      attributes={attributes}
+      searchPlaceholder="diffSearch"
+      messageQuery={query}
+      onMessageQueryChange={setQuery}
+      fieldFilters={fieldFilters}
+      onFieldFilterChange={changeFilters}
+      onClearFilters={clearFilters}
+      forceMobileView={fullscreen}
     />
   );
   const map = config.map && (
@@ -160,21 +224,22 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       setFullscreen={setFullscreen}
     />
   );
-  const table = config.table && (
-    <DiffTable
-      apiRef={apiRef}
-      changes={filteredChanges}
-      selectedObjectId={shownObjectId}
+  const list = config.table && (
+    <DiffObjectList
+      objects={filteredObjects}
+      totalChangeCount={changes.length}
+      filterActive={hasActiveFilters}
+      expandedObjectIds={expandedObjectIds}
+      onToggleObject={toggleObject}
+      onExpandObjects={expandObjects}
       hoveredObjectIds={hoveredObjectIds}
-      objectStates={objectStates}
-      onSelectObject={setSelectedObjectId}
-      onHoverObject={handleHoverObject}
-      onShowObjectOnMap={handleShowObjectOnMap}
-      compact={fullscreen}
+      onHoverObject={hoverObject}
+      onShowObjectOnMap={showObjectOnMap}
+      lookupReference={lookupReference}
+      onReference={revealObject}
+      registerObject={registerObject}
+      layout={layout}
     />
-  );
-  const detail = config.table && selectedChanges.length > 0 && (
-    <DiffDetailPanel changes={selectedChanges} compact={fullscreen} />
   );
 
   return (
@@ -182,10 +247,10 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       config={config.map}
       visibleFeatureIds={visibleObjectIds}
       highlightedFeatureIds={highlightedObjectIds}
-      hoveredFeatureIds={hoveredFeatureIds}
+      hoveredFeatureIds={hoveredObjectIds}
       zoomRequest={zoomRequest}
-      onSelectFeature={handleSelectFeature}
-      onHoverFeatures={handleHoverFeatures}
+      onSelectFeature={revealObject}
+      onHoverFeatures={hoverFeatures}
       showMapSelectionPopup
       describeFeature={describeObject}
       fullscreen={fullscreen}>
@@ -208,7 +273,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
         <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
           <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
             {map}
-            {/* Beside the map: the filter, the narrow table and the detail, scrolling together when they outgrow it. */}
+            {/* Beside the map: the filter and the list, scrolling together when they outgrow it. */}
             {config.table && (
               <GeopilotBox
                 sx={{
@@ -217,13 +282,12 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
                   left: 0,
                   m: 2,
                   gap: 2,
-                  width: px2rem(400),
+                  width: px2rem(440),
                   maxHeight: `calc(100% - ${theme.spacing(4)})`,
                   overflowY: "auto",
                 }}>
                 {filter}
-                {table}
-                {detail}
+                {list}
               </GeopilotBox>
             )}
           </Box>
@@ -232,8 +296,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
         <Stack sx={{ width: "100%", gap: 2 }}>
           {filter}
           {map}
-          {table}
-          {detail}
+          {list}
         </Stack>
       )}
     </MapVisualizationProvider>
