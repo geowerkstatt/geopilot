@@ -381,3 +381,23 @@ Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, steuert der Abschnitt 
 ```
 
 Das Löschfenster schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
+
+## Weitergabe von Lieferungen
+
+Ist eine Lieferung abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Was mit den Lieferungen eines Mandats geschieht, legt ein Satz von Reaktionen in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Weitergabe nach dem Abschluss](./docs/pipeline/Pipelines.md#weitergabe-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Satz und füllt die Werte, die der Satz von ihm verlangt, etwa seinen Unterordner der Ablage.
+
+Die Weitergabe beginnt, sobald das [Löschfenster](#löschen-von-lieferungen) geschlossen ist. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht. Im STAC-Katalog erscheint eine solche Lieferung erst, wenn sie weitergegeben ist, auch für Admins.
+
+Was ein Kanal vom Betrieb braucht, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs`, für die Ablage das Basisverzeichnis:
+
+```json
+"Pipeline": {
+    "ChannelConfigs": {
+        "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel": {
+            "baseDirectory": "/drop" // Wird nie angelegt und muss für geopilot beschreibbar sein
+        }
+    }
+}
+```
+
+Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Weitergabe betreiben](./docs/Weitergabe.md).
