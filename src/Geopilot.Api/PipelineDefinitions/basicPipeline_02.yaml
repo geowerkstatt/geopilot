@@ -747,7 +747,7 @@ pipelines:
       # Läuft nur nach einem Vergleich: Lassen sich die Stände nicht vergleichen, beendet die fail_conditions oben den Lauf.
       - id: diff_visualization
         display_name:
-          en: Diff Visualization
+          en: Change Visualization
           de: Differenzvisualisierung
           fr: Visualisation des différences
           it: Visualizzazione delle differenze
