@@ -13,7 +13,6 @@ import {
   ChangeLabeler,
   DIFF_CHANGE_TYPE_LABEL_KEYS,
   DIFF_OBJECT_LABEL_KEYS,
-  DIFF_PAGE_SIZES,
   DIFF_VALUE_TYPE_LABEL_KEYS,
   DiffFilterField,
   filterObjects,
@@ -31,7 +30,7 @@ import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualization
  * The XTF diff visualization: the changed objects in a list, one group per object, and on a map, the old state in
  * orange beneath the new one in blue. Mirrors the backend XtfDiffVisualizationConfig, and like the error
  * visualization it shows the views that are present. This component owns the state the views share: the filter, the
- * page, the expanded and the selected objects and the ones under the pointer. They correlate by the object id, which
+ * expanded and the selected objects and the ones under the pointer. They correlate by the object id, which
  * is also the id of the object's features.
  */
 export interface XtfDiffVisualizationConfig {
@@ -58,8 +57,6 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const [fullscreen, setFullscreen] = useState(false);
   const [query, setQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters<DiffFilterField>>({});
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DIFF_PAGE_SIZES[0]);
   const [expandedObjectIds, setExpandedObjectIds] = useState<ReadonlySet<string>>(new Set());
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [hoveredObjectIds, setHoveredObjectIds] = useState<ReadonlySet<string>>(new Set());
@@ -97,8 +94,6 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     [hasActiveFilters, objects, query, fieldFilters, label],
   );
   const listedObjectIds = useMemo(() => new Set(filteredObjects.map(object => object.objectId)), [filteredObjects]);
-  // The page stays in range when the filter shortens the list.
-  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredObjects.length / pageSize) - 1));
 
   // Filter result for the map: the objects still listed (undefined = no filter = show all).
   const visibleObjectIds = hasActiveFilters ? listedObjectIds : undefined;
@@ -115,17 +110,15 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     element?.focus({ preventScroll: true });
   }, [revealRequest]);
 
-  /** Turns to the page of a listed object, expands it, selects it and scrolls to it with the focus on it. */
+  /** Expands a listed object, selects it and scrolls to it with the focus on it. */
   const revealObject = useCallback(
     (objectId: string) => {
-      const index = filteredObjects.findIndex(object => object.objectId === objectId);
-      if (index < 0) return;
-      setPage(Math.floor(index / pageSize));
+      if (!listedObjectIds.has(objectId)) return;
       setExpandedObjectIds(previous => new Set(previous).add(objectId));
       setSelectedObjectId(objectId);
       setRevealRequest(previous => ({ objectId, token: (previous?.token ?? 0) + 1 }));
     },
-    [filteredObjects, pageSize],
+    [listedObjectIds],
   );
 
   const lookupReference = useCallback(
@@ -195,18 +188,11 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     [objectsById, t],
   );
 
-  const changeFilters = (field: DiffFilterField, selected: string[]) => {
+  const changeFilters = (field: DiffFilterField, selected: string[]) =>
     setFieldFilters(current => ({ ...current, [field]: selected }));
-    setPage(0);
-  };
-  const changeQuery = (value: string) => {
-    setQuery(value);
-    setPage(0);
-  };
   const clearFilters = () => {
     setQuery("");
     setFieldFilters({});
-    setPage(0);
   };
 
   if (config.table && changes.length === 0) {
@@ -223,7 +209,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       attributes={attributes}
       searchPlaceholder="diffSearch"
       messageQuery={query}
-      onMessageQueryChange={changeQuery}
+      onMessageQueryChange={setQuery}
       fieldFilters={fieldFilters}
       onFieldFilterChange={changeFilters}
       onClearFilters={clearFilters}
@@ -241,13 +227,6 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const list = config.table && (
     <DiffObjectList
       objects={filteredObjects}
-      page={currentPage}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={size => {
-        setPageSize(size);
-        setPage(0);
-      }}
       expandedObjectIds={expandedObjectIds}
       onToggleObject={toggleObject}
       onExpandObjects={expandObjects}

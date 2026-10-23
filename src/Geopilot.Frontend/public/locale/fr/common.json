@@ -76,8 +76,6 @@
   "diffNoChanges": "Les deux états ne diffèrent pas.",
   "diffNoLocations": "Aucune modification à afficher sur la carte.",
   "diffObjectCount": "{{objects}} objets, {{changes}} modifications",
-  "diffObjectsPerPage": "Objets par page",
-  "diffPageRange": "{{from}} à {{to}} sur {{count}}",
   "diffReferenceFiltered": "Masqué par le filtre",
   "diffReferenceNotInDiff": "Ne fait pas partie des modifications",
   "diffSearch": "Rechercher dans les modifications",

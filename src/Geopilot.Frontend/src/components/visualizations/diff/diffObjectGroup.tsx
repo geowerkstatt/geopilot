@@ -124,14 +124,17 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
           bgcolor: "primary.states.hover",
         },
       }}>
-      <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: 48, pr: 0.5 }}>
+      {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
+      <Stack
+        direction="row"
+        onClick={expandable ? onToggle : undefined}
+        sx={{ alignItems: "center", gap: 1, minHeight: 48, pr: 0.5, cursor: expandable ? "pointer" : undefined }}>
         {expandable ? (
           <IconButton
             size="small"
             label={expanded ? "diffCollapseObject" : "diffExpandObject"}
             icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
             aria-expanded={expanded}
-            onClick={onToggle}
             data-cy="diff-object-toggle"
             sx={{ ml: 0.5 }}
           />
@@ -159,7 +162,10 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
             size="small"
             label="diffShowObjectOnMap"
             icon={<MapOutlinedIcon />}
-            onClick={onShowOnMap}
+            onClick={event => {
+              event.stopPropagation();
+              onShowOnMap();
+            }}
             data-cy="diff-object-map"
           />
         )}
