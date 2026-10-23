@@ -55,7 +55,7 @@ Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangs
 
 ## Stand ablesen
 
-Die Liste der Lieferungen für Admins, `GET api/v1/delivery`, zeigt pro Lieferung ihre Reaktionen mit Zustand, Versuchen, nächstem Versuch und Meldung, dazu den zusammengefassten Zustand der Weitergabe (`forwardingState`): `Error` vor `Running` vor `Pending` vor `Done`. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters.
+In der Administration zeigt die Lieferungsübersicht in der Spalte Weitergabe den zusammengefassten Zustand jeder Lieferung: `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick darauf öffnet die Reaktionen der Lieferung mit Zustand, Versuchen, Zeitpunkt und Meldung. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"). Dieselben Angaben liefert `GET api/v1/delivery` mit `forwardingState` und `reactions`.
 
 Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
 
@@ -75,7 +75,7 @@ Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede
 
 ## Zurücksetzen
 
-Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück, über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
+Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: im Dialog der Lieferung mit "Zurücksetzen" oder über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
 
 ## Betrieb unter IIS
 

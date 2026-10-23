@@ -4,13 +4,16 @@ import { TranslationKey } from "../../appInterfaces";
 export interface PromptContextInterface {
   promptIsOpen: boolean;
   message?: TranslationKey;
+  /** Values for the placeholders of the message, such as `{{reactions}}`. */
+  messageValues?: Record<string, string>;
   actions?: PromptAction[];
-  showPrompt: (message: TranslationKey, actions: PromptAction[]) => void;
+  showPrompt: (message: TranslationKey, actions: PromptAction[], messageValues?: Record<string, string>) => void;
   closePrompt: () => void;
 }
 
 export interface PromptOptions {
   message: TranslationKey;
+  messageValues?: Record<string, string>;
   actions: PromptAction[];
 }
 
