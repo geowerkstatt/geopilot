@@ -58,13 +58,26 @@ declare module "@mui/material/styles" {
     content: string;
   }
 
+  interface PaletteDiff {
+    /** Text and icons of what a diff added. */
+    added: string;
+    /** Text and icons of what a diff removed. */
+    deleted: string;
+    /** Behind the added part of a value. */
+    insertBackground: string;
+    /** Behind the removed part of a value. */
+    deleteBackground: string;
+  }
+
   interface Palette {
     map: PaletteMap;
+    diff: PaletteDiff;
     tooltip: { background: string };
   }
 
   interface PaletteOptions {
     map?: PaletteMap;
+    diff?: PaletteDiff;
     tooltip?: { background: string };
   }
 
