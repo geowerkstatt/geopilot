@@ -22,9 +22,6 @@ export const DIFF_OBJECT_LABEL_KEYS: Record<Exclude<DiffChangeType, "changed">, 
   deleted: "diffChangeObjectDeleted",
 };
 
-/** The page sizes the object list offers; the first one is the default. */
-export const DIFF_PAGE_SIZES = [10, 25, 50];
-
 /** The class of a qualified INTERLIS name, e.g. "Class" of "Model.Topic.Class". */
 export const getClassName = (interlisName: string): string => interlisName.split(".").at(-1) ?? interlisName;
 

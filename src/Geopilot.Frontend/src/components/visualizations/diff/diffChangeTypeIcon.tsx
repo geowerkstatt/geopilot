@@ -1,16 +1,16 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
-import ChangeCircleOutlinedIcon from "@mui/icons-material/ChangeCircleOutlined";
 import RemoveCircleOutlineOutlinedIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
+import SwapHorizontalCircleOutlinedIcon from "@mui/icons-material/SwapHorizontalCircleOutlined";
 import { DiffChangeType } from "../../../api/apiInterfaces";
 import { DIFF_CHANGE_TYPE_LABEL_KEYS } from "./diffObjects";
 
 const ICONS = {
   added: AddCircleOutlineOutlinedIcon,
   deleted: RemoveCircleOutlineOutlinedIcon,
-  changed: ChangeCircleOutlinedIcon,
-} satisfies Record<DiffChangeType, typeof ChangeCircleOutlinedIcon>;
+  changed: SwapHorizontalCircleOutlinedIcon,
+} satisfies Record<DiffChangeType, typeof SwapHorizontalCircleOutlinedIcon>;
 
 const COLORS: Record<DiffChangeType, string> = {
   added: "diff.added",

@@ -55,16 +55,6 @@ const expand = (objectId: string) => object(objectId).find('[data-cy="diff-objec
 const change = (changeId: string) => cy.get(`[data-change-id="${changeId}"]`);
 const markedTexts = (marks: JQuery) => [...marks].map(mark => mark.textContent);
 
-/** The table of the fixture with the given changes, which the map keeps showing. */
-const withChanges =
-  (edit: (changes: FixtureChange[]) => void) =>
-  (visualization: Visualization): Visualization => {
-    if (!visualization.data.table) return visualization;
-    const changes = [...visualization.data.table.changes];
-    edit(changes);
-    return { ...visualization, data: { ...visualization.data, table: { changes } } };
-  };
-
 describe("XTF diff visualization", () => {
   it("filters the changes by class", () => {
     openDiffVisualization();
@@ -97,6 +87,14 @@ describe("XTF diff visualization", () => {
       .first()
       .should("have.css", "text-overflow", "ellipsis")
       .and("have.css", "white-space", "nowrap");
+  });
+
+  it("toggles an object by clicking its header", () => {
+    openDiffVisualization();
+    object(ENTRANCE).find('[data-cy="diff-object-summary"]').click();
+    change("c0").should("exist");
+    object(ENTRANCE).find('[data-cy="diff-object-summary"]').click();
+    change("c0").should("not.exist");
   });
 
   it("highlights only the changed part of a value", () => {
@@ -140,28 +138,6 @@ describe("XTF diff visualization", () => {
     change("c3")
       .find('[data-cy="diff-value-new"] [data-cy="diff-reference"]')
       .should("not.have.attr", "role", "button");
-  });
-
-  it("turns to the page of a referenced object", () => {
-    // Ten added objects after c3 push the target onto page 2 at 10 objects per page.
-    openDiffVisualization(
-      withChanges(changes =>
-        changes.splice(
-          4,
-          0,
-          ...Array.from({ length: 10 }, (_, index) => ({
-            id: `f${index}`,
-            objectId: `filler-${index}`,
-            changeType: "added" as const,
-            valueType: "object" as const,
-            interlisName: "M.T.Filler",
-          })),
-        ),
-      ),
-    );
-    expand(ENTRANCE);
-    change("c3").find('[data-cy="diff-value-new"] [data-cy="diff-reference"]').click();
-    object(ADDED_LOCALISATION).should("have.focus");
   });
 
   it("offers map buttons only for objects on the map and on geometry values", () => {
