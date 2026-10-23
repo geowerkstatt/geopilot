@@ -3,13 +3,16 @@ import { ReactNode } from "react";
 export interface PromptContextInterface {
   promptIsOpen: boolean;
   message?: string;
+  /** Values for the placeholders of the message, such as `{{reactions}}`. */
+  messageValues?: Record<string, string>;
   actions?: PromptAction[];
-  showPrompt: (message: string, actions: PromptAction[]) => void;
+  showPrompt: (message: string, actions: PromptAction[], messageValues?: Record<string, string>) => void;
   closePrompt: () => void;
 }
 
 export interface PromptOptions {
   message: string;
+  messageValues?: Record<string, string>;
   actions: PromptAction[];
 }
 
