@@ -128,7 +128,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
       {/* The whole header toggles the object; the chevron is its keyboard target, its click reaches the header. */}
       <Stack
         onClick={expandable ? onToggle : undefined}
-        sx={{ pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
+        sx={{ gap: 0, pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: layout === "wide" ? 40 : 36 }}>
           {/* A fixed slot, so the change type icons line up with and without a toggle. */}
           <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
