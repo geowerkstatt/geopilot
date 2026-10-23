@@ -144,9 +144,7 @@ export const DiffObjectGroup: FC<DiffObjectGroupProps> = ({
           </Stack>
           <DiffChangeTypeIcon changeType={object.kind} />
           {/* The page grows to fit unbreakable text; contained, the line takes the width there is and cuts the rest. */}
-          <Stack
-            direction="row"
-            sx={{ alignItems: "baseline", gap: 1.5, flex: 1, minWidth: 0, contain: "inline-size" }}>
+          <Stack direction="row" sx={{ alignItems: "center", gap: 1.5, flex: 1, minWidth: 0, contain: "inline-size" }}>
             {className}
             {layout === "wide" && objectId}
             {layout === "wide" && <DiffObjectSummary object={object} />}
