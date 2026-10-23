@@ -1,18 +1,14 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack, TablePagination, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { Button } from "../../buttons";
 import { DiffLayout, ReferenceTarget } from "./diffChangeRow";
 import { DiffObjectGroup } from "./diffObjectGroup";
-import { DIFF_PAGE_SIZES, DiffObject, getPropertyChanges } from "./diffObjects";
+import { DiffObject, getPropertyChanges } from "./diffObjects";
 
 interface DiffObjectListProps {
   /** The objects to list, already filtered. */
   objects: DiffObject[];
-  page: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
   expandedObjectIds: ReadonlySet<string>;
   onToggleObject: (objectId: string) => void;
   /** Expands or collapses the given objects together. */
@@ -27,13 +23,9 @@ interface DiffObjectListProps {
   layout: DiffLayout;
 }
 
-/** The objects of the diff, one group each, a page at a time. */
+/** The objects of the diff, one group each. */
 export const DiffObjectList: FC<DiffObjectListProps> = ({
   objects,
-  page,
-  pageSize,
-  onPageChange,
-  onPageSizeChange,
   expandedObjectIds,
   onToggleObject,
   onExpandObjects,
@@ -46,10 +38,7 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
   layout,
 }) => {
   const { t } = useTranslation();
-  const pageObjects = objects.slice(page * pageSize, (page + 1) * pageSize);
-  const expandableIds = pageObjects
-    .filter(object => getPropertyChanges(object).length > 0)
-    .map(object => object.objectId);
+  const expandableIds = objects.filter(object => getPropertyChanges(object).length > 0).map(object => object.objectId);
   const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedObjectIds.has(id));
   const changeCount = objects.reduce((count, object) => count + object.changes.length, 0);
 
@@ -68,7 +57,7 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
           />
         )}
       </Stack>
-      {pageObjects.map(object => (
+      {objects.map(object => (
         <DiffObjectGroup
           key={object.objectId}
           object={object}
@@ -83,17 +72,6 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
           groupRef={element => registerObject(object.objectId, element)}
         />
       ))}
-      <TablePagination
-        component="div"
-        count={objects.length}
-        page={page}
-        rowsPerPage={pageSize}
-        rowsPerPageOptions={DIFF_PAGE_SIZES}
-        onPageChange={(_event, newPage) => onPageChange(newPage)}
-        onRowsPerPageChange={event => onPageSizeChange(Number(event.target.value))}
-        labelRowsPerPage={t("diffObjectsPerPage")}
-        labelDisplayedRows={({ from, to, count }) => t("diffPageRange", { from, to, count })}
-      />
     </Stack>
   );
 };
