@@ -54,6 +54,8 @@ public class ReactionSetValidationTest
     private const string PlainSet = """
         reaction_sets:
           - id: kanton_a
+            display_name:
+              de: Kanton A
             transfers:
               - id: weitergabe
                 channel_id: ablage
@@ -62,6 +64,8 @@ public class ReactionSetValidationTest
     private const string OverwritingSet = """
         reaction_sets:
           - id: kanton_a
+            display_name:
+              de: Kanton A
             transfers:
               - id: weitergabe
                 channel_id: ablage
@@ -151,6 +155,8 @@ public class ReactionSetValidationTest
         var sets = """
             reaction_sets:
               - id: ablage
+                display_name:
+                  de: Ablage
                 transfers:
                   - id: ablage
             """;
@@ -188,10 +194,26 @@ public class ReactionSetValidationTest
         var sets = """
             reaction_sets:
               - id: ablage
+                display_name:
+                  de: Ablage
                 transfers: []
             """;
 
         AssertInvalid(Factory(sets), "ReactionSetConfig (Transfers): At least one Transfer is required.");
+    }
+
+    [TestMethod]
+    public void RejectsASetWithoutDisplayName()
+    {
+        var sets = """
+            reaction_sets:
+              - id: ablage
+                transfers:
+                  - id: ablage
+                    channel_id: ablage
+            """;
+
+        AssertInvalid(Factory(FileDropChannel + sets), "ReactionSetConfig (DisplayName): Reaction Set Display Name is required.");
     }
 
     [TestMethod]
@@ -209,6 +231,8 @@ public class ReactionSetValidationTest
         var sets = """
             reaction_sets:
               - id: ablage
+                display_name:
+                  de: Ablage
                 transfers:
                   - id: ablage
                     channel_id: ablage
@@ -230,6 +254,8 @@ public class ReactionSetValidationTest
         var sets = """
             reaction_sets:
               - id: ablage
+                display_name:
+                  de: Ablage
                 transfers:
                   - id: ablage
                     channel_id: ablage
@@ -385,6 +411,8 @@ public class ReactionSetValidationTest
     private static string FileDropSet(string setId, string reactionId, string channelId = "ablage", string mandateKey = "subfolder", bool withHeader = true)
         => (withHeader ? "reaction_sets:\n" : string.Empty) + $$"""
               - id: {{setId}}
+                display_name:
+                  de: Ablage
                 transfers:
                   - id: "{{reactionId}}"
                     channel_id: {{channelId}}

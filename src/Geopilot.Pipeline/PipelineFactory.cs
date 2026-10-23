@@ -81,6 +81,23 @@ public class PipelineFactory : IPipelineFactory
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<MandateField> DescribeMandateFields(string reactionSetId)
+    {
+        var implementations = ResolveTransfers(reactionSetId).ToDictionary(transfer => transfer.ReactionId, transfer => transfer.Implementation);
+        var set = ReactionSets.Single(candidate => candidate.Id == reactionSetId);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+
+        return set.Transfers
+            .Where(reaction => reaction.MandateConfig is { Count: > 0 })
+            .SelectMany(reaction =>
+            {
+                var values = channelFactory.DescribeMandateValues(implementations[reaction.Id]);
+                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values)
     {
         ArgumentNullException.ThrowIfNull(values);

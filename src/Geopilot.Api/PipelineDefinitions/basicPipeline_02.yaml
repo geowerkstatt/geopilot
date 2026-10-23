@@ -932,10 +932,20 @@ channels:
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
 reaction_sets:
   - id: ablage
+    display_name:
+      de: Ablage
+      fr: Dépôt
+      it: Deposito
+      en: File drop
     transfers:
       - id: ablage
         channel_id: ablage
   - id: ablage_pro_mandat
+    display_name:
+      de: Ablage pro Mandat
+      fr: Dépôt par mandat
+      it: Deposito per mandato
+      en: File drop per mandate
     transfers:
       - id: ablage_pro_mandat
         channel_id: ablage_pro_mandat

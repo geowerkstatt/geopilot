@@ -207,6 +207,16 @@ public class DeliveryChannelFactoryTest
         var exception = Assert.ThrowsExactly<InvalidOperationException>(() => factory.Create(TargetChannel, null, null));
         Assert.AreEqual("Channel initialization: No suitable parameter found for parameter of type <String> and name <folder>. Parameter is not nullable, cannot initialize channel.", exception.Message);
     }
+
+    [TestMethod]
+    public void DescribeMandateValuesTellsATextFromAListAndARequiredValueFromAnOptionalOne()
+    {
+        var values = new DeliveryChannelFactory(null).DescribeMandateValues(TargetChannel);
+
+        Assert.HasCount(2, values);
+        Assert.AreEqual((MandateValueType.Text, true), values["folder"]);
+        Assert.AreEqual((MandateValueType.TextList, false), values["recipients"]);
+    }
 }
 
 internal sealed class TargetChannel : IDeliveryChannel

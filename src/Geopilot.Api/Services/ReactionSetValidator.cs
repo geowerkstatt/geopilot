@@ -30,7 +30,7 @@ internal sealed class ReactionSetValidator : IReactionSetValidator
         if (set is null)
             return new ReactionSetCheck([], $"Reaction set <{reactionSetId}> does not exist.", []);
 
-        if (deliveryOptions.Value.GetDeleteWindowEnd(DateTime.UtcNow) is null)
+        if (!deliveryOptions.Value.DeleteWindowCloses)
         {
             return new ReactionSetCheck(
                 [],

@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Channels;
+using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Microsoft.Extensions.Logging;
@@ -35,6 +36,8 @@ public class MandateValuesValidationTest
             implementation: {{FileDrop}}
         reaction_sets:
           - id: {{SetId}}
+            display_name:
+              de: Ablage pro Mandat
             transfers:
               - id: {{ReactionId}}
                 channel_id: ablage
@@ -71,6 +74,27 @@ public class MandateValuesValidationTest
         var set = Assert.ContainsSingle(Factory().ReactionSets);
 
         Assert.AreEqual(SetId, set.Id);
+        Assert.AreEqual("Ablage pro Mandat", set.DisplayName["de"]);
+    }
+
+    [TestMethod]
+    public void DescribesTheValuesTheSetAsksTheMandateFor()
+    {
+        var field = Assert.ContainsSingle(Factory().DescribeMandateFields(SetId));
+
+        Assert.AreEqual(ReactionId, field.ReactionId);
+        Assert.AreEqual("subfolder", field.Key);
+        Assert.AreEqual("Unterordner", field.DisplayName["de"]);
+        Assert.AreEqual(MandateValueType.Text, field.Type);
+        Assert.IsTrue(field.Required);
+    }
+
+    [TestMethod]
+    public void DescribingTheValuesOfAnUnknownSetFails()
+    {
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(() => Factory().DescribeMandateFields("unbekannt"));
+
+        Assert.AreEqual("Reaction set <unbekannt> does not exist.", exception.Message);
     }
 
     [TestMethod]

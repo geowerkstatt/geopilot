@@ -15,6 +15,7 @@ public class ReactionSetValidatorTest
     private static readonly ReactionSetConfig Set = new()
     {
         Id = SetId,
+        DisplayName = new Dictionary<string, string> { ["de"] = "Ablage pro Mandat" },
         Transfers =
         [
             new ReactionConfig

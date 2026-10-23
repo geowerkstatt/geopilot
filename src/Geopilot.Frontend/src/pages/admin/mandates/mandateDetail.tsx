@@ -11,6 +11,7 @@ import {
   Mandate,
   Organisation,
   PipelineSummary,
+  ReactionSetSummary,
   StacAccess,
 } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
@@ -27,6 +28,7 @@ import { FormAutocompleteValue } from "../../../components/form/formAutocomplete
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
+import ReactionSetFields from "./reactionSetFields.tsx";
 
 const MandateDetail = () => {
   const { t, i18n } = useTranslation();
@@ -36,6 +38,7 @@ const MandateDetail = () => {
   const [mandate, setMandate] = useState<MandateFormValues>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
+  const [reactionSets, setReactionSets] = useState<ReactionSetSummary[]>();
   const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
 
   const loadMandate = useCallback(
@@ -58,6 +61,7 @@ const MandateDetail = () => {
       errorMessageLabel: "pipelinesLoadingError",
     });
     setPipelines(pipelines?.pipelines ?? []);
+    setReactionSets(pipelines?.reactionSets ?? []);
   }, [fetchApi]);
 
   useEffect(() => {
@@ -91,6 +95,12 @@ const MandateDetail = () => {
     mandate.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
+
+    // Without a set, the empty values make the server drop the stored ones; values left out would be kept.
+    if (!formData["reactionSetId"]) {
+      mandate.reactionSetId = null;
+      mandate.reactionSetValues = {};
+    }
 
     return mandate;
   };
@@ -137,6 +147,12 @@ const MandateDetail = () => {
           {t("configuration")}
         </Typography>
         <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
+      </GeopilotBox>
+      <GeopilotBox>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+          {t("forwarding")}
+        </Typography>
+        <ReactionSetFields mandate={mandate} reactionSets={reactionSets} />
       </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>
