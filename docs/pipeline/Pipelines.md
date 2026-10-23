@@ -146,8 +146,8 @@ pipelines:
         display_name:
           en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -155,8 +155,8 @@ pipelines:
         display_name:
           en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A

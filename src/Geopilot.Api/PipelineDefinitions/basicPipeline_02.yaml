@@ -80,8 +80,8 @@ pipelines:
         display_name:
           en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -117,8 +117,8 @@ pipelines:
         display_name:
           en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         conditions:
           pre:
@@ -451,8 +451,8 @@ pipelines:
         display_name:
           en: Upload XTF matching
           de: Upload XTF Zuordnung
-          fr: Upload XTF Correspondance
-          it: Upload XTF Corrispondenza
+          fr: Correspondance XTF du téléversement
+          it: Corrispondenza XTF del caricamento
         process_id: xtf_matcher
         input:
           files: "${upload()}"
@@ -467,8 +467,8 @@ pipelines:
         display_name:
           en: ZIP XTF matching
           de: ZIP XTF Zuordnung
-          fr: ZIP XTF Correspondance
-          it: ZIP XTF Corrispondenza
+          fr: Correspondance XTF du ZIP
+          it: Corrispondenza XTF dello ZIP
         process_id: xtf_matcher
         conditions:
           pre:
@@ -493,8 +493,8 @@ pipelines:
         display_name:
           en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         conditions:
           pre:
@@ -677,8 +677,8 @@ pipelines:
         display_name:
           en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
