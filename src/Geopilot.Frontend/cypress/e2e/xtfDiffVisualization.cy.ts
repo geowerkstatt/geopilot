@@ -1,6 +1,7 @@
-import { processingJob, processingStep, runMockedProcessingJob } from "./helpers/deliveryHelpers";
+import { deliverableMandate, processingJob, processingStep, runMockedProcessingJob } from "./helpers/deliveryHelpers";
 
 const VISUALIZATION_URL = "/api/v2/processing/e2e-diff-job/visualizations/diff.json";
+const BLOB_URL = "/e2e-diff-upload";
 const ENTRANCE = "3f6c1a2e-8b4d-4e7a-9c1f-2d5e6a7b8c90";
 const ADDED_LOCALISATION = "a1b2c3d4-1111-4a2b-8c3d-000000000032";
 const PARCEL = "d4e5f6a7-7777-4081-c293-000000000215";
@@ -29,6 +30,16 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
   cy.fixture<Visualization>("xtfDiffVisualization.json").then(fixture => {
     cy.intercept("GET", VISUALIZATION_URL, { statusCode: 200, body: transform(fixture) });
   });
+  // The API allows 10 uploads a minute, fewer than this spec runs tests; the upload is mocked like the job.
+  cy.intercept("POST", "/api/v2/upload", {
+    statusCode: 201,
+    body: {
+      uploadId: "e2e-diff-upload",
+      files: [{ fileName: "ilimodels_valid.xtf", uploadUrl: BLOB_URL }],
+      expiresAt: "2099-01-01T00:00:00Z",
+    },
+  });
+  cy.intercept("PUT", BLOB_URL, { statusCode: 201 });
   const visualizationStep = {
     ...processingStep("diff_visualization", "Change visualization", "success"),
     visualizations: [{ originalFileName: "diff.json", url: VISUALIZATION_URL }],
@@ -38,6 +49,7 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
       processingStep("xtf_matching", "XTF matching", "success"),
       visualizationStep,
     ]),
+    [deliverableMandate(1, "Test Mandate")],
   );
   cy.dataCy("processing-step-diff_visualization")
     .find(".MuiAccordionSummary-root")
