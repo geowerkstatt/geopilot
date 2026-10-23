@@ -112,7 +112,7 @@ pipelines:
       - id: validation
         display_name:
           de: XTF Validierung
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         input:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"

@@ -153,7 +153,7 @@ pipelines:
           files: "${upload()}"
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
           fr: XTF Validation
           it: XTF Validazione
@@ -284,7 +284,7 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -399,7 +399,7 @@ pipelines:
         process_id: xtf_matcher
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         conditions:
           post:
@@ -412,7 +412,7 @@ pipelines:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
         display_name:
-          en: Zip Package
+          en: ZIP package
         process_id: zip_package_process
         conditions:
           pre:
