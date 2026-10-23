@@ -159,14 +159,17 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
     return (
       <Stack data-cy="diff-change" data-change-id={change.id} sx={{ gap: 0.5, py: 1 }}>
         {attribute}
-        {(["old", "new"] as const).map(side => (
-          <Stack key={side} sx={{ pl: 3.5, minWidth: 0 }} data-cy={`diff-value-${side}`}>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {t(side === "old" ? "diffColumnOldValue" : "diffColumnNewValue")}
-            </Typography>
-            {renderValue(side)}
-          </Stack>
-        ))}
+        {/* Each label sits close to its value; the space separates before from after. */}
+        <Stack sx={{ gap: 1.5, pl: 3.5, minWidth: 0 }}>
+          {(["old", "new"] as const).map(side => (
+            <Stack key={side} sx={{ minWidth: 0 }} data-cy={`diff-value-${side}`}>
+              <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
+                {t(side === "old" ? "diffColumnOldValue" : "diffColumnNewValue")}
+              </Typography>
+              {renderValue(side)}
+            </Stack>
+          ))}
+        </Stack>
       </Stack>
     );
   }
