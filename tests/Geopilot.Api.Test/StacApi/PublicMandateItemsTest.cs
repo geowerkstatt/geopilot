@@ -6,13 +6,15 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Stac;
+using Stac.Api;
+using Stac.Api.Clients.Collections;
 using Stac.Api.Clients.Features;
 using Stac.Api.Clients.ItemSearch;
 
 namespace Geopilot.Api.StacApi;
 
 /// <summary>
-/// The seed puts no delivery on the public mandate, so this test adds one. Every context of the test host
+/// The seed puts no delivery on the public mandate, so these tests add their own. Every context of the test host
 /// shares the connection and transaction of the test context: data written here is visible to the requests
 /// and rolled back afterwards.
 /// </summary>
@@ -22,9 +24,14 @@ public class PublicMandateItemsTest
     private const string Comment = "Nur für Admins";
     private const string DeclaredByProperty = "Abgegeben durch";
 
+    // Far apart, so the time span of the collection shows which deliveries it covers.
+    private static readonly DateTime ForwardedDate = new(2020, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime UnforwardedDate = new(2001, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+
     private Context context;
     private GeopilotApiApp baseApp;
     private WebApplicationFactory<GeopilotApiApp> app;
+    private Mandate mandate;
     private string collectionId;
     private string itemId;
 
@@ -32,7 +39,7 @@ public class PublicMandateItemsTest
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        var mandate = context.Mandates.Single(m => m.StacAccess == StacAccess.Public);
+        mandate = context.Mandates.Single(m => m.StacAccess == StacAccess.Public);
         var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First(), Comment = Comment };
         delivery.Assets.Add(new Asset { OriginalFilename = "Daten.xtf", SanitizedFilename = "daten.xtf", AssetType = AssetType.PrimaryData });
         context.Deliveries.Add(delivery);
@@ -75,8 +82,7 @@ public class PublicMandateItemsTest
     [TestMethod]
     public async Task AdminGetsItemsOfAPublicMandateWithPersonalData()
     {
-        using var adminClient = app.CreateClient();
-        adminClient.DefaultRequestHeaders.Add(GeopilotApiApp.AdminHeader, "true");
+        using var adminClient = CreateClient(asAdmin: true);
 
         var item = await new FeaturesClient(adminClient).GetFeatureAsync(collectionId, itemId);
         var searched = (await new ItemSearchClient(adminClient).PostItemSearchAsync(new SearchBody { Collections = new[] { collectionId } })).Items.Single(i => i.Id == itemId);
@@ -87,6 +93,111 @@ public class PublicMandateItemsTest
             Assert.IsTrue(adminItem.Properties.ContainsKey(DeclaredByProperty));
             Assert.AreEqual(Comment, adminItem.Description);
         }
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Anonymous")]
+    [DataRow(true, DisplayName = "Administrator")]
+    public async Task ItemsListOnlyForwardedDeliveries(bool asAdmin)
+    {
+        var (forwarded, unforwarded) = AddDeliveriesInEveryForwardingState();
+        using var client = CreateClient(asAdmin);
+
+        var listed = (await new FeaturesClient(client).GetFeaturesAsync(collectionId, null, null, null)).Features.Select(f => f.Id).ToList();
+        var searched = (await new ItemSearchClient(client).PostItemSearchAsync(new SearchBody { Collections = new[] { collectionId } })).Items.Select(i => i.Id).ToList();
+
+        foreach (var ids in new[] { listed, searched })
+        {
+            CollectionAssert.IsSubsetOf(forwarded, ids);
+            Assert.IsEmpty(ids.Intersect(unforwarded));
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Anonymous")]
+    [DataRow(true, DisplayName = "Administrator")]
+    public async Task AnItemIsFoundOnlyOnceItsDeliveryIsForwarded(bool asAdmin)
+    {
+        var (forwarded, unforwarded) = AddDeliveriesInEveryForwardingState();
+        using var client = CreateClient(asAdmin);
+        var features = new FeaturesClient(client);
+
+        foreach (var id in forwarded)
+        {
+            Assert.AreEqual(id, (await features.GetFeatureAsync(collectionId, id)).Id);
+        }
+
+        var nonExistent = await Assert.ThrowsExactlyAsync<StacApiException>(() => features.GetFeatureAsync(collectionId, "item_999999"));
+        foreach (var id in unforwarded)
+        {
+            var hidden = await Assert.ThrowsExactlyAsync<StacApiException>(() => features.GetFeatureAsync(collectionId, id));
+            Assert.AreEqual(nonExistent.StatusCode, hidden.StatusCode);
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Anonymous")]
+    [DataRow(true, DisplayName = "Administrator")]
+    public async Task TheCollectionSpansOnlyForwardedDeliveries(bool asAdmin)
+    {
+        AddDeliveriesInEveryForwardingState();
+        using var client = CreateClient(asAdmin);
+        var collections = new CollectionsClient(client);
+
+        var described = await collections.DescribeCollectionAsync(collectionId);
+        var listed = (await collections.GetCollectionsAsync()).Collections.Single(c => c.Id == collectionId);
+
+        foreach (var collection in new[] { described, listed })
+        {
+            Assert.AreEqual(ForwardedDate.Year, collection.Extent.Temporal.Interval.Single()[0]?.Year);
+        }
+    }
+
+    // One delivery per forwarding state, as the item ids of those the catalog shows and of those it hides.
+    private (List<string> Forwarded, List<string> Unforwarded) AddDeliveriesInEveryForwardingState()
+    {
+        var forwarded = new List<string>
+        {
+            AddDelivery(ForwardedDate),
+            AddDelivery(ForwardedDate, (ReactionKind.Transfer, ReactionState.Done), (ReactionKind.Notification, ReactionState.Pending)),
+            AddDelivery(ForwardedDate, (ReactionKind.Notification, ReactionState.Error)),
+        };
+        var unforwarded = new List<string>
+        {
+            AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Pending)),
+            AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Running)),
+            AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Error)),
+            AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Done), (ReactionKind.Transfer, ReactionState.Pending)),
+        };
+        return (forwarded, unforwarded);
+    }
+
+    private string AddDelivery(DateTime date, params (ReactionKind Kind, ReactionState State)[] reactions)
+    {
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First(), Date = date };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(reactions.Select((reaction, index) => new DeliveryReaction
+        {
+            Delivery = delivery,
+            ReactionId = $"reaction-{index}",
+            Kind = reaction.Kind,
+            Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+            State = reaction.State,
+            NextAttemptAt = date,
+        }));
+        context.SaveChanges();
+        return $"item_{delivery.Id}";
+    }
+
+    private HttpClient CreateClient(bool asAdmin)
+    {
+        var client = app.CreateClient();
+        if (asAdmin)
+        {
+            client.DefaultRequestHeaders.Add(GeopilotApiApp.AdminHeader, "true");
+        }
+
+        return client;
     }
 
     private Context CreateSharedContext()

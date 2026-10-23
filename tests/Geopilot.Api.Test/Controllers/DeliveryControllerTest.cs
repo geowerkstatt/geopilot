@@ -833,6 +833,45 @@ public class DeliveryControllerTest
         assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
+    [TestMethod]
+    [DataRow(ReactionState.Pending, false, DisplayName = "Transfer pending, anonymous")]
+    [DataRow(ReactionState.Pending, true, DisplayName = "Transfer pending, administrator")]
+    [DataRow(ReactionState.Running, true, DisplayName = "Transfer running, administrator")]
+    [DataRow(ReactionState.Error, true, DisplayName = "Transfer failed, administrator")]
+    public async Task DownloadOfADeliveryThatIsNotForwardedIsNotFound(ReactionState transferState, bool asAdmin)
+    {
+        if (asAdmin)
+        {
+            authorizationServiceMock
+                .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
+                .ReturnsAsync(AuthorizationResult.Success());
+        }
+
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        context.DeliveryReactions.Add(NewReaction(delivery, "drop", transferState));
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DownloadOfAForwardedDeliveryDoesNotWaitForItsNotifications()
+    {
+        assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "drop", ReactionState.Done),
+            NewReaction(delivery, "mail", ReactionState.Pending, ReactionKind.Notification));
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
+
+        Assert.AreEqual("Test.xml", result?.FileDownloadName);
+    }
+
     private Delivery CreateDeliveryWithAsset(Mandate mandate)
     {
         var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First() };
@@ -946,11 +985,11 @@ public class DeliveryControllerTest
     private User UserWithDeliveries()
         => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
 
-    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state) => new()
+    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state, ReactionKind kind = ReactionKind.Transfer) => new()
     {
         Delivery = delivery,
         ReactionId = reactionId,
-        Kind = ReactionKind.Transfer,
+        Kind = kind,
         Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
         State = state,
         NextAttemptAt = DateTime.UtcNow,

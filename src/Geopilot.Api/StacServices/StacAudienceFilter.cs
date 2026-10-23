@@ -1,7 +1,9 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
+using Geopilot.Api.Reactions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
 
 namespace Geopilot.Api.StacServices;
 
@@ -34,13 +36,32 @@ public sealed class StacAudienceFilter : IAsyncActionFilter
 }
 
 /// <summary>
-/// Restricts mandates to those the caller may see in the STAC catalog.
+/// What the STAC catalog shows a caller.
 /// </summary>
 public static class StacVisibilityExtensions
 {
     /// <summary>
-    /// All mandates for an administrator, only <see cref="StacAccess.Public"/> ones otherwise.
+    /// The mandates the caller sees, all of them for an administrator and only <see cref="StacAccess.Public"/> ones
+    /// otherwise, each with the deliveries the catalog shows (see <see cref="DeliveriesInStac"/>).
     /// </summary>
-    public static IQueryable<Mandate> VisibleInStac(this IQueryable<Mandate> mandates, bool isAdmin)
-        => isAdmin ? mandates : mandates.Where(m => m.StacAccess == StacAccess.Public);
+    public static IQueryable<Mandate> MandatesInStac(this Context context, bool isAdmin)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
+        var mandates = context.MandatesWithIncludes.Include(m => m.Deliveries.Where(d => !unforwarded.Contains(d.Id)));
+        return isAdmin ? mandates : mandates.Where(m => m.StacAccess == StacAccess.Public);
+    }
+
+    /// <summary>
+    /// The deliveries of the mandates the caller sees, each once it is forwarded: a delivery with transfers appears
+    /// when all of them are done, one without right away (ADR 0015). That holds for administrators as well.
+    /// </summary>
+    public static IQueryable<Delivery> DeliveriesInStac(this Context context, bool isAdmin)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
+        return context.DeliveriesWithIncludes.Where(d => (isAdmin || d.Mandate.StacAccess == StacAccess.Public) && !unforwarded.Contains(d.Id));
+    }
 }
