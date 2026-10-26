@@ -150,6 +150,24 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
+    public void ValidateRejectsABaseConfigValueTheDefinitionSets()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.SecretChannel", new Parameterization { ["password"] = "in the definition" }, []));
+        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.SecretChannel>: the parameter 'password' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition.", error);
+    }
+
+    [TestMethod]
+    public void ValidateRejectsTheBaseDirectoryOfAFileDropInTheDefinition()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Channels.FileDrop.FileDropChannel", new Parameterization { ["baseDirectory"] = "/drop", ["subfolder"] = "mandate-a" }, []));
+        Assert.Contains("'baseDirectory' is marked [BaseConfigValue]", error);
+    }
+
+    [TestMethod]
     public void CreateBindsBaseAndMandateValues()
     {
         var factory = new DeliveryChannelFactory(BaseConfigs);
@@ -258,6 +276,17 @@ internal sealed class TwoConstructorsChannel : IDeliveryChannel
 
 internal sealed class NoChannel
 {
+}
+
+internal sealed class SecretChannel : IDeliveryChannel
+{
+    public SecretChannel([BaseConfigValue] string password)
+    {
+        _ = password;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
 }
 
 internal sealed class CountChannel : IDeliveryChannel

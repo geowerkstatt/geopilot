@@ -26,7 +26,7 @@ internal sealed class FileDropChannel : IDeliveryChannel
     /// <param name="subfolder">The folder of the deliveries, a relative path below the base directory.</param>
     /// <exception cref="ArgumentException">The subfolder does not lie below the base directory, or one of its segments
     /// consists of digits only.</exception>
-    public FileDropChannel(string baseDirectory, [MandateValue] string subfolder)
+    public FileDropChannel([BaseConfigValue] string baseDirectory, [MandateValue] string subfolder)
     {
         this.baseDirectory = Path.GetFullPath(baseDirectory);
         mandateDirectory = ResolveBelow(this.baseDirectory, subfolder);
