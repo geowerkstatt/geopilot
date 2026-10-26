@@ -253,6 +253,24 @@ public class ReactionWorkerTest
     }
 
     [TestMethod]
+    public async Task RunNextCountsTheTimeBeforeTheChannelAgainstTheTimeLimit()
+    {
+        // The lock runs from the claim, so the time limit has to as well, or a slow database could outlast the lock.
+        reactionOptions.TimeLimit = TimeSpan.FromMilliseconds(200);
+        recorderMock
+            .Setup(recorder => recorder.RecordReactionAttemptStartedAsync(It.IsAny<DeliveryReaction>()))
+            .Returns(() => Task.Delay(TimeSpan.FromMilliseconds(500)));
+        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered))));
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        var stored = await ReloadAsync(reaction);
+        Assert.AreEqual(ReactionState.Pending, stored.State);
+        Assert.AreEqual($"The attempt exceeded its time limit of {reactionOptions.TimeLimit}.", stored.Message);
+    }
+
+    [TestMethod]
     public async Task RunNextRecordsAnAttemptInterruptedByTheStop()
     {
         using var stopping = new CancellationTokenSource();
