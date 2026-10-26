@@ -2,9 +2,11 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -176,6 +178,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         var holdEnd = deliveryOptions.Value.GetDeleteWindowEnd(delivery.Date)
             ?? throw new InvalidOperationException($"Mandate <{mandate.Id}> chose a reaction set while the delete window never closes.");
         var mandateValues = mandate.ReactionSetValues ?? [];
+        var reactions = pipelineFactory.ReactionSets.FirstOrDefault(set => set.Id == mandate.ReactionSetId)?.Transfers ?? [];
 
         return pipelineFactory.ResolveTransfers(mandate.ReactionSetId)
             .Select(transfer => new DeliveryReaction
@@ -184,11 +187,20 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
                 ReactionId = transfer.ReactionId,
                 Kind = ReactionKind.Transfer,
                 Implementation = transfer.Implementation,
-                Config = new ReactionSnapshot(transfer.Config, mandateValues.GetValueOrDefault(transfer.ReactionId) ?? []),
+                Config = new ReactionSnapshot(
+                    transfer.Config,
+                    DeclaredValues(mandateValues.GetValueOrDefault(transfer.ReactionId), reactions.FirstOrDefault(reaction => reaction.Id == transfer.ReactionId))),
                 State = ReactionState.Pending,
                 NextAttemptAt = holdEnd,
             })
             .ToList();
+    }
+
+    // Only what the set still declares: a key it dropped after the mandate was saved must not reach the channel.
+    private static Dictionary<string, JsonElement> DeclaredValues(Dictionary<string, JsonElement>? values, ReactionConfig? reaction)
+    {
+        var keys = (reaction?.MandateConfig ?? []).Select(entry => entry.Key).ToHashSet(StringComparer.Ordinal);
+        return (values ?? []).Where(entry => keys.Contains(entry.Key)).ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
     }
 
     private static bool IsJobConflict(DbUpdateException exception)

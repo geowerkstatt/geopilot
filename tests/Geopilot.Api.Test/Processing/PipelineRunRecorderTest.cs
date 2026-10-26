@@ -371,6 +371,20 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task AReactionRowThatCouldNotBeSavedDoesNotTakeTheNextOneWithIt()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var refused = ClaimedReaction(delivery);
+        refused.ReactionId = new string('x', 200);
+        await recorder.RecordReactionAttemptStartedAsync(refused);
+
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery));
+
+        var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
+        Assert.AreEqual("weitergabe", row.ReactionId, "the row the database refused is forgotten instead of failing the next write again.");
+    }
+
+    [TestMethod]
     public async Task ReactionAttemptIsRecordedForADeletedDelivery()
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();
