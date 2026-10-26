@@ -75,9 +75,9 @@ reaction_sets:
 ## Ablauf
 
 - Jede Lieferung bekommt einen eigenen Ordner nach ihrer Id: `<Basisverzeichnis>/<Unterordner>/<Id der Lieferung>/`. Darin liegen nur die gelieferten Dateien, unter ihrem ursprünglichen Namen. Metadaten der Lieferung, etwa wer sie deklariert hat, legt die Ablage nicht ab.
-- Die Ablage schreibt zuerst in einen temporären Ordner `.<Id der Lieferung>.partial` daneben und benennt ihn erst am Ende um. Unter dem Namen der Lieferung liegt also nie etwas Halbes, und wer die Ablage liest, kann Ordner mit einem Punkt am Anfang überspringen.
+- Die Ablage schreibt zuerst in einen temporären Ordner `.<Id der Lieferung>.<Zufallsteil>.partial` daneben, jeder Versuch in seinen eigenen, und benennt ihn erst am Ende um. Unter dem Namen der Lieferung liegt also nie etwas Halbes, und wer die Ablage liest, kann Ordner mit einem Punkt am Anfang überspringen.
 - Besteht der Ordner der Lieferung schon, gilt sie nur dann als abgelegt, wenn er genau ihre Dateien enthält, mit gleichen Namen und Grössen. So endet ein Versuch, der die Dateien abgelegt hat, sich aber nicht mehr zurückmelden konnte. Liegt dort etwas anderes, scheitert der Versuch, etwa wenn nach dem Zurückspielen der Datenbank die Ids von vorne zählen. Die Ablage überschreibt nichts.
-- Scheitert ein Versuch, räumt die Ablage ihren temporären Ordner weg, und der nächste Versuch beginnt von vorne. Stirbt die Instanz mitten in einem Versuch, räumt der nächste zuerst auf.
+- Scheitert ein Versuch, räumt die Ablage ihren temporären Ordner weg, und der nächste Versuch beginnt von vorne. Stirbt die Instanz mitten in einem Versuch, räumt der nächste Versuch derselben Lieferung zuerst auf. War es der letzte, bleibt der temporäre Ordner liegen, bis ein Admin die Reaktion zurücksetzt; der Betrieb darf ihn auch von Hand löschen.
 - Das Basisverzeichnis wird nie angelegt. Fehlt es, etwa weil ein Volume nicht eingebunden ist, scheitert der Versuch. Den Unterordner legt die Ablage bei Bedarf an.
 
 ## Betrieb
@@ -86,3 +86,4 @@ reaction_sets:
 - Das Basisverzeichnis darf sich weder mit einem Verzeichnis unter `Storage:` noch mit `Upload:Direct:Directory` überschneiden, sonst startet geopilot nicht. Die Bereinigungen von geopilot löschen, was sie nicht kennen, und wer die Ablage liest, soll die Daten von geopilot nicht sehen.
 - Was abgelegt ist, bleibt in der Ablage, auch wenn ein Admin die Lieferung später löscht.
 - Jede Installation braucht ihr eigenes Basisverzeichnis, auch Test und Produktion. Die Ids der Lieferungen zählen in jeder Installation für sich.
+- Wer die Ablage liest, legt darin keine Verknüpfungen (Symlinks, Junctions) an. Findet die Ablage unterhalb des Basisverzeichnisses eine, scheitert der Versuch, damit sie keine Dateien in ein Verzeichnis umgelenkt schreibt. Das Basisverzeichnis selbst darf eine Verknüpfung oder ein eingebundenes Laufwerk sein.
