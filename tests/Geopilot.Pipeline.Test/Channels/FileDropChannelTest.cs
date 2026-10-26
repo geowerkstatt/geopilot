@@ -48,15 +48,52 @@ public class FileDropChannelTest
     }
 
     [TestMethod]
-    public async Task DeliverCountsAnExistingTargetAsDelivered()
+    public async Task DeliverCountsATargetWithTheFilesOfTheDeliveryAsDelivered()
+    {
+        Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(target, "data.xtf"), "<xtf/>");
+        await File.WriteAllTextAsync(Path.Combine(target, "log.txt"), "ok");
+
+        var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>"), Content("log.txt", "ok")], CancellationToken.None);
+
+        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.AreEqual("<xtf/>", await File.ReadAllTextAsync(Path.Combine(target, "data.xtf")));
+    }
+
+    [TestMethod]
+    public async Task DeliverFailsWhenTheTargetHoldsOtherFiles()
+    {
+        Directory.CreateDirectory(target);
+        await File.WriteAllTextAsync(Path.Combine(target, "other.xtf"), "<xtf/>");
+
+        var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>")], CancellationToken.None);
+
+        Assert.IsFalse(result.Delivered);
+        Assert.Contains("does not hold the files of this delivery", result.Message);
+        CollectionAssert.AreEqual(new[] { Path.Combine(target, "other.xtf") }, Directory.GetFileSystemEntries(target));
+    }
+
+    [TestMethod]
+    public async Task DeliverFailsWhenAFileOfTheTargetDiffersInSize()
     {
         Directory.CreateDirectory(target);
         await File.WriteAllTextAsync(Path.Combine(target, "data.xtf"), "earlier");
 
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "later")], CancellationToken.None);
 
-        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.IsFalse(result.Delivered);
         Assert.AreEqual("earlier", await File.ReadAllTextAsync(Path.Combine(target, "data.xtf")));
+    }
+
+    [TestMethod]
+    public async Task DeliverFailsWhenTheTargetHoldsAFolder()
+    {
+        Directory.CreateDirectory(Path.Combine(target, "17"));
+        await File.WriteAllTextAsync(Path.Combine(target, "data.xtf"), "<xtf/>");
+
+        var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>")], CancellationToken.None);
+
+        Assert.IsFalse(result.Delivered);
     }
 
     [TestMethod]
@@ -121,9 +158,21 @@ public class FileDropChannelTest
     [TestMethod]
     [DataRow("mandate-a")]
     [DataRow("canton/mandate-a")]
+    [DataRow("kanton-be/bfs-351")]
     public void ConstructorAcceptsASubfolderBelowTheBaseDirectory(string subfolder)
     {
         _ = new FileDropChannel(baseDirectory, subfolder);
+    }
+
+    [TestMethod]
+    [DataRow("351")]
+    [DataRow("kanton-be/351")]
+    [DataRow("007\\mandate-a")]
+    public void ConstructorRejectsASubfolderWithASegmentOfDigitsOnly(string subfolder)
+    {
+        var exception = Assert.ThrowsExactly<ArgumentException>(() => new FileDropChannel(baseDirectory, subfolder));
+
+        Assert.Contains("digits only", exception.Message);
     }
 
     [TestMethod]
