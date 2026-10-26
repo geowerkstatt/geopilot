@@ -17,7 +17,7 @@ Wiederholungen und Zeitlimit stehen im Abschnitt `Delivery:Reactions`. Ohne Eint
 | Schlüssel | Standard | Bedeutung |
 | --- | --- | --- |
 | `RetryDelays` | `00:01:00`, `00:05:00`, `00:30:00`, `02:00:00`, `06:00:00`, `12:00:00` | Die Abstände von Start zu Start zwischen den Versuchen einer Reaktion. Eine Reaktion bekommt einen Versuch mehr, als die Liste Einträge hat, mit dem Standard also sieben; der letzte beginnt knapp 21 Stunden nach dem ersten. |
-| `TimeLimit` | `00:30:00` | Wie lange ein einzelner Versuch dauern darf. |
+| `TimeLimit` | `00:30:00` | Wie lange ein einzelner Versuch dauern darf, gemessen ab dem Holen der Reaktion. |
 | `PollInterval` | `00:00:15` | Wie oft eine Instanz nach fälligen Reaktionen sucht. |
 
 In den Appsettings:
