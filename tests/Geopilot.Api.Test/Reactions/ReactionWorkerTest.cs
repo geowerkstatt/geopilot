@@ -201,7 +201,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual("The attempt failed unexpectedly. InvalidOperationException: The probe broke.", stored.Message);
+        Assert.AreEqual("The attempt failed unexpectedly (InvalidOperationException); the log has the details.", stored.Message, "the text of an exception can name internal paths or hosts.");
     }
 
     [TestMethod]

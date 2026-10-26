@@ -139,7 +139,10 @@ public class ReactionWorker : BackgroundService
         catch (Exception ex)
         {
             logger.LogError(ex, "Attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} failed unexpectedly.", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId);
-            return ChannelResult.Failure($"The attempt failed unexpectedly. {ex.GetType().Name}: {ex.Message}");
+
+            // Only the type: the text of an exception can name internal paths or hosts, and the message is kept for the
+            // retention of the protocol and shown to administrators.
+            return ChannelResult.Failure($"The attempt failed unexpectedly ({ex.GetType().Name}); the log has the details.");
         }
     }
 

@@ -4,7 +4,8 @@
 /// The outcome of one attempt of a channel.
 /// </summary>
 /// <param name="Delivered">Whether the delivery was forwarded.</param>
-/// <param name="Message">What happened, for the operators.</param>
+/// <param name="Message">What happened, for the operators. It is stored with the reaction, kept in the execution
+/// protocol for its retention and shown to administrators, so it never contains credentials.</param>
 internal sealed record ChannelResult(bool Delivered, string Message)
 {
     /// <summary>
