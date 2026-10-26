@@ -271,6 +271,30 @@ public class ReactionWorkerTest
     }
 
     [TestMethod]
+    public async Task RunNextLogsAnOutcomeThatCouldNotBeSaved()
+    {
+        // The database goes away after the channel delivered and before the attempt reports.
+        AddReaction(Probe, ProbeSnapshot(new ChannelProbe(_ =>
+        {
+            context.Dispose();
+            return Task.FromResult(Delivered);
+        })));
+
+        using var worker = CreateWorker();
+        Assert.IsTrue(await worker.RunNextAsync(CancellationToken.None));
+
+        loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => $"{state}".Contains("could not be saved", StringComparison.Ordinal) && $"{state}".Contains("Delivered to the target.", StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<ReactionState?>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task RunNextRecordsAnAttemptInterruptedByTheStop()
     {
         using var stopping = new CancellationTokenSource();
