@@ -1,3 +1,4 @@
+import { TranslationKey } from "../appInterfaces";
 import { MachineClient, Mandate, ProcessingJobResponse, StepState, User } from "./generated";
 
 export enum ContentType {
@@ -7,7 +8,7 @@ export enum ContentType {
 }
 
 export interface FetchParams extends RequestInit {
-  errorMessageLabel?: string;
+  errorMessageLabel?: TranslationKey;
   responseType?: ContentType;
 }
 

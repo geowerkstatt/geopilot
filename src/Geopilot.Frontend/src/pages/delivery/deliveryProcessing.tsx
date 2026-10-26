@@ -175,8 +175,9 @@ export const DeliveryProcessing = () => {
                         key={d.originalFileName}
                         onClick={() => download(d.url, d.originalFileName)}
                         startIcon={<FileDownloadIcon />}
-                        label={d.originalFileName}
-                      />
+                        data-cy={`${d.originalFileName}-button`}>
+                        {d.originalFileName}
+                      </Button>
                     ))}
                   </Stack>
                 )}

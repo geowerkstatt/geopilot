@@ -5,9 +5,10 @@ import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
 import { IconButtonProps as MuiIconButtonProps } from "@mui/material/IconButton";
 import { SvgIconProps } from "@mui/material/SvgIcon";
 import { TooltipProps } from "@mui/material/Tooltip";
+import { TranslationKey } from "../appInterfaces";
 
 export interface ButtonProps extends MuiButtonProps {
-  label?: string;
+  label?: TranslationKey;
   // Polymorphic props (e.g. component={RouterLink}) are forwarded at runtime but missing
   // from the non-generic MuiButtonProps, so declare the ones we use.
   component?: ElementType;
@@ -17,11 +18,11 @@ export interface ButtonProps extends MuiButtonProps {
   rel?: string;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, ...props }, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, children, ...props }, ref) => {
   const { t } = useTranslation();
   return (
     <MuiButton ref={ref} data-cy={label ? `${label}-button` : undefined} {...props}>
-      {label && t(label)}
+      {label ? t(label) : children}
     </MuiButton>
   );
 });
@@ -30,7 +31,7 @@ Button.displayName = "Button";
 
 export interface IconButtonProps extends MuiIconButtonProps {
   icon: ReactElement<SvgIconProps>;
-  label: string;
+  label: TranslationKey;
   tooltipPlacement?: TooltipProps["placement"];
 }
 

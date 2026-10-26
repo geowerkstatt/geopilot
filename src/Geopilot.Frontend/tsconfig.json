@@ -13,6 +13,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true
   },
   "exclude": ["./cypress", "cypress.config.ts", "openapi-ts.config.ts", "vite.config.ts"]

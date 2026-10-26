@@ -2,12 +2,13 @@ import { FC, KeyboardEvent, useRef, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Stack, TextField } from "@mui/material";
+import { TranslationKey } from "../../appInterfaces";
 import { SelectedChips } from "./selectedChips";
 
 export interface FormChipInputProps {
   fieldName: string;
-  label: string;
-  placeholder?: string;
+  label: TranslationKey;
+  placeholder?: TranslationKey;
   required?: boolean;
   disabled?: boolean;
   /** The values the field starts with, typically the stored ones. */
@@ -19,7 +20,7 @@ export interface FormChipInputProps {
    */
   parse: (input: string) => string | undefined;
   /** Translation key of the message shown when `parse` rejects the input. */
-  errorMessage: string;
+  errorMessage: TranslationKey;
 }
 
 /** Collects free text values as removable chips below the input. Every value stays visible. */
@@ -157,7 +158,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
         required={required ?? false}
         disabled={disabled ?? false}
         error={!!fieldState.error}
-        helperText={fieldState.error?.message ? t(fieldState.error.message) : undefined}
+        helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : undefined}
         value={input}
         onChange={event => handleInput(event.target.value)}
         onBlur={field.onBlur}
