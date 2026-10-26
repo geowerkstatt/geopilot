@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { Organisation, User } from "../../../api/generated";
-import { TranslationKey } from "../../../appInterfaces";
+import { Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
@@ -61,8 +60,8 @@ const Users = () => {
       field: "state",
       headerName: t("userState"),
       width: 160,
-      valueFormatter: (param: string) => {
-        return t(param as TranslationKey);
+      valueFormatter: (param: UserState) => {
+        return t(param);
       },
     },
     {

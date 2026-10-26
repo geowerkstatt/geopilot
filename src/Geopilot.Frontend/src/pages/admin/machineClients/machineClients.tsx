@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { MachineClient, Organisation } from "../../../api/generated";
-import { TranslationKey } from "../../../appInterfaces";
+import { MachineClient, MachineClientState, Organisation } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
@@ -53,8 +52,8 @@ const MachineClients = () => {
       field: "state",
       headerName: t("machineClientState"),
       width: 160,
-      valueFormatter: (param: string) => {
-        return t(param as TranslationKey);
+      valueFormatter: (param: MachineClientState) => {
+        return t(param);
       },
     },
     {
