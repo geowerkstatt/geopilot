@@ -68,10 +68,11 @@ Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWo
 | Warning | `The delivery reaction {ReactionId} of delivery {DeliveryId} no longer belonged to its attempt when the attempt reported: {Message}` | Der Versuch hielt seine Reaktion bei der Rückmeldung nicht mehr, etwa weil die Lieferung inzwischen gelöscht wurde. |
 | Error | `Attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} failed unexpectedly.` | Der Kanal ist mit einer Ausnahme gescheitert. Der Versuch zählt als misslungen. Die Meldung der Reaktion nennt nur den Typ der Ausnahme, die Einzelheiten stehen in diesem Logeintrag. |
 | Error | `The transfer {ReactionId} of delivery {DeliveryId} gave up after {Attempts} attempts: {Message}` | Ein Lieferungs-Schritt ist endgültig gescheitert, die Lieferung gilt nicht als weitergegeben. |
+| Error | `The outcome of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be saved. Delivered: {Delivered}. {Message}` | Der Versuch ist gelaufen, sein Ergebnis liess sich aber nicht speichern, etwa weil die Datenbank nicht erreichbar war. Nach Ablauf der Sperre läuft die Reaktion noch einmal oder gibt auf, und im Ausführungsprotokoll bleibt der Ausgang unbekannt. Ob der Versuch geliefert hat, steht nur hier. |
 | Error | `{Count} delivery reactions gave up because their last attempt did not report back before its lock ran out.` | Der letzte Versuch dieser Reaktionen hat sich nie zurückgemeldet, etwa nach einem Absturz. |
 | Error | `Running the due delivery reactions failed.` | Der Dienst konnte die fälligen Reaktionen nicht holen, etwa weil die Datenbank nicht erreichbar war. Er versucht es beim nächsten `PollInterval` wieder. |
 
-Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede Lieferung, deren Weitergabe endgültig scheitert, und jedes Mal, wenn der Dienst die fälligen Reaktionen nicht holen kann.
+Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede Lieferung, deren Weitergabe endgültig scheitert, und jedes Mal, wenn der Dienst die fälligen Reaktionen nicht holen oder ein Ergebnis nicht speichern kann.
 
 ## Zurücksetzen
 
