@@ -6,7 +6,8 @@ namespace Geopilot.Pipeline.Channels.FileDrop;
 /// Places the files of a delivery in a folder of their own, <c>{baseDirectory}/{subfolder}/{delivery id}</c>, where
 /// the systems of the recipient pick them up. The base configuration provides the base directory, the pipeline
 /// definition or the mandate the subfolder. The files go to a temporary folder that is renamed at the end, so the
-/// target never shows half a delivery, and a target that already exists counts as delivered.
+/// target never shows half a delivery, and a target that already holds exactly the files of the delivery counts as
+/// delivered.
 /// </summary>
 internal sealed class FileDropChannel : IDeliveryChannel
 {
@@ -23,7 +24,8 @@ internal sealed class FileDropChannel : IDeliveryChannel
     /// </summary>
     /// <param name="baseDirectory">The directory the base configuration provides for all file drops.</param>
     /// <param name="subfolder">The folder of the deliveries, a relative path below the base directory.</param>
-    /// <exception cref="ArgumentException">The subfolder does not lie below the base directory.</exception>
+    /// <exception cref="ArgumentException">The subfolder does not lie below the base directory, or one of its segments
+    /// consists of digits only.</exception>
     public FileDropChannel(string baseDirectory, [MandateValue] string subfolder)
     {
         this.baseDirectory = Path.GetFullPath(baseDirectory);
@@ -42,14 +44,21 @@ internal sealed class FileDropChannel : IDeliveryChannel
 
         var deliveryFolder = delivery.Id.ToString(CultureInfo.InvariantCulture);
         var target = Path.Combine(mandateDirectory, deliveryFolder);
-        if (Directory.Exists(target))
-            return ChannelResult.Success($"The delivery already is in <{target}>.");
 
         // The leading dot lets whoever reads the drop skip it.
         var partial = Path.Combine(mandateDirectory, $".{deliveryFolder}.partial");
         var delivered = false;
         try
         {
+            // An earlier attempt that got through but could not report it left exactly these files. Anything else
+            // belongs to another delivery with the same id, after a restored database or from another installation.
+            if (Directory.Exists(target))
+            {
+                return await HoldsTheFilesAsync(target, files, cancellationToken).ConfigureAwait(false)
+                    ? ChannelResult.Success($"The delivery already is in <{target}>.")
+                    : ChannelResult.Failure($"The folder <{target}> already exists but does not hold the files of this delivery.");
+            }
+
             // An attempt whose instance stopped leaves its temporary folder behind.
             if (Directory.Exists(partial))
                 Directory.Delete(partial, recursive: true);
@@ -85,11 +94,38 @@ internal sealed class FileDropChannel : IDeliveryChannel
         if (string.IsNullOrWhiteSpace(subfolder) || Path.IsPathRooted(subfolder) || subfolder.Split('/', '\\').Contains(".."))
             throw new ArgumentException($"The subfolder <{subfolder}> is not a relative path without '..'.", nameof(subfolder));
 
+        // The folders of the deliveries are named by their id, so a segment of digits could turn one subfolder into the
+        // folder of a delivery of another.
+        if (subfolder.Split('/', '\\').Any(segment => segment.Length > 0 && segment.All(char.IsAsciiDigit)))
+            throw new ArgumentException($"The subfolder <{subfolder}> has a segment of digits only, which is how the folders of the deliveries are named.", nameof(subfolder));
+
         var resolved = Path.GetFullPath(Path.Combine(baseDirectory, subfolder));
         if (!resolved.StartsWith(Path.TrimEndingDirectorySeparator(baseDirectory) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new ArgumentException($"The subfolder <{subfolder}> does not lie below the base directory.", nameof(subfolder));
 
         return resolved;
+    }
+
+    private static async Task<bool> HoldsTheFilesAsync(string target, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+    {
+        if (Directory.EnumerateDirectories(target).Any())
+            return false;
+
+        var existing = Directory.EnumerateFiles(target).ToDictionary(path => Path.GetFileName(path), path => new FileInfo(path).Length, StringComparer.Ordinal);
+        if (existing.Count != files.Count)
+            return false;
+
+        foreach (var file in files)
+        {
+            if (!existing.TryGetValue(file.Name, out var length))
+                return false;
+
+            await using var source = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+            if (!source.CanSeek || source.Length != length)
+                return false;
+        }
+
+        return true;
     }
 
     private static bool IsPlainFileName(string name)
