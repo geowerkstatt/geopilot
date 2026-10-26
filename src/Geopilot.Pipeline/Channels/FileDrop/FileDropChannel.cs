@@ -42,11 +42,15 @@ internal sealed class FileDropChannel : IDeliveryChannel
         if (!Directory.Exists(baseDirectory))
             return ChannelResult.Failure($"The base directory <{baseDirectory}> does not exist.");
 
+        if (FindLinkBelowTheBaseDirectory() is string link)
+            return ChannelResult.Failure($"The folder <{link}> is a link, which the file drop does not follow.");
+
         var deliveryFolder = delivery.Id.ToString(CultureInfo.InvariantCulture);
         var target = Path.Combine(mandateDirectory, deliveryFolder);
 
-        // The leading dot lets whoever reads the drop skip it.
-        var partial = Path.Combine(mandateDirectory, $".{deliveryFolder}.partial");
+        // The leading dot lets whoever reads the drop skip it. Every attempt gets a folder of its own, so an attempt that
+        // overran its time limit cannot remove or move the files of the next one.
+        var partial = Path.Combine(mandateDirectory, $".{deliveryFolder}.{Guid.NewGuid():N}.partial");
         var delivered = false;
         try
         {
@@ -60,8 +64,9 @@ internal sealed class FileDropChannel : IDeliveryChannel
             }
 
             // An attempt whose instance stopped leaves its temporary folder behind.
-            if (Directory.Exists(partial))
-                Directory.Delete(partial, recursive: true);
+            // shortcut: only an attempt of the same delivery removes it, so the folder of a last attempt stays until an
+            // admin resets the reaction.
+            RemoveTemporaryFoldersOf(deliveryFolder);
 
             Directory.CreateDirectory(partial);
             foreach (var file in files)
@@ -104,6 +109,29 @@ internal sealed class FileDropChannel : IDeliveryChannel
             throw new ArgumentException($"The subfolder <{subfolder}> does not lie below the base directory.", nameof(subfolder));
 
         return resolved;
+    }
+
+    // Whoever reads the drop may write to it as well, so a link below the base directory could steer the files into a
+    // directory geopilot can write to. The base directory itself may be a link or a mount.
+    private string? FindLinkBelowTheBaseDirectory()
+    {
+        var root = Path.TrimEndingDirectorySeparator(baseDirectory);
+        for (var directory = mandateDirectory; directory is not null && directory.Length > root.Length; directory = Path.GetDirectoryName(directory))
+        {
+            if (Directory.Exists(directory) && new DirectoryInfo(directory).LinkTarget is not null)
+                return directory;
+        }
+
+        return null;
+    }
+
+    private void RemoveTemporaryFoldersOf(string deliveryFolder)
+    {
+        if (!Directory.Exists(mandateDirectory))
+            return;
+
+        foreach (var folder in Directory.EnumerateDirectories(mandateDirectory, $".{deliveryFolder}.*.partial"))
+            RemoveTemporaryFolder(folder);
     }
 
     private static async Task<bool> HoldsTheFilesAsync(string target, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
