@@ -2,7 +2,10 @@
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Geopilot.Api.Test.Services;
 
@@ -62,7 +65,28 @@ public class FileDropDirectoryValidatorTest
         Assert.Contains("Upload:Direct:Directory", result.FailureMessage);
     }
 
-    private ValidateOptionsResult Validate(string? baseDirectory, string? uploadDirectory = null)
+    [TestMethod]
+    public void RejectsTheDirectoryOfThePublicAssets()
+    {
+        // Its files are served without signing in, so a drop there would hand every delivery to anyone.
+        var publicAssets = Path.Combine(root, "public");
+
+        var result = Validate(Path.Combine(publicAssets, "drop"), publicAssetsOverride: publicAssets);
+
+        Assert.IsTrue(result.Failed);
+        Assert.Contains("PublicAssetsOverride", result.FailureMessage);
+    }
+
+    [TestMethod]
+    public void RejectsTheWebRoot()
+    {
+        var result = Validate(Path.Combine(root, "wwwroot", "drop"));
+
+        Assert.IsTrue(result.Failed);
+        Assert.Contains("the web root", result.FailureMessage);
+    }
+
+    private ValidateOptionsResult Validate(string? baseDirectory, string? uploadDirectory = null, string? publicAssetsOverride = null)
     {
         var storage = new FileAccessOptions
         {
@@ -77,6 +101,12 @@ public class FileDropDirectoryValidatorTest
         if (baseDirectory is not null)
             pipeline.ChannelConfigs["Geopilot.Pipeline.Channels.FileDrop.FileDropChannel"] = new Parameterization { ["baseDirectory"] = baseDirectory };
 
-        return new FileDropDirectoryValidator(Options.Create(storage), Options.Create(upload)).Validate(null, pipeline);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["PublicAssetsOverride"] = publicAssetsOverride })
+            .Build();
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.Setup(e => e.WebRootPath).Returns(Path.Combine(root, "wwwroot"));
+
+        return new FileDropDirectoryValidator(Options.Create(storage), Options.Create(upload), configuration, environment.Object).Validate(null, pipeline);
     }
 }
