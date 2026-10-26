@@ -649,6 +649,43 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    [DataRow(ReactionState.Pending, 1, DisplayName = "waiting for its next attempt")]
+    [DataRow(ReactionState.Running, 1, DisplayName = "running")]
+    [DataRow(ReactionState.Done, 1, DisplayName = "done")]
+    [DataRow(ReactionState.Error, 3, DisplayName = "given up")]
+    public async Task DeleteAsUploaderFailsOnceAReactionHasStarted(ReactionState state, int attempts)
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.Add(NewReaction(delivery, "ablage", state, attempts: attempts));
+        context.SaveChanges();
+
+        var result = await deliveryController.Delete(delivery.Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status403Forbidden, result?.StatusCode);
+        AssertNotDeleted(delivery);
+        Assert.AreEqual(state, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsUploaderEndsAReactionThatStillWaitsForTheWindow()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.Add(NewReaction(delivery, "ablage", ReactionState.Pending));
+        context.SaveChanges();
+        assetHandlerMock.Setup(h => h.DeleteJobAssets(delivery.JobId));
+
+        Assert.IsInstanceOfType<OkResult>(await deliveryController.Delete(delivery.Id));
+
+        Assert.AreEqual(ReactionState.Deleted, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
+    }
+
+    [TestMethod]
     public async Task DeleteAsAdminFailsDeliveryNotFound()
     {
         var admin = context.Users.First(u => u.IsAdmin);
@@ -1079,16 +1116,33 @@ public class DeliveryControllerTest
         Assert.IsTrue(uploads.All(upload => upload.CanDelete == enabled));
     }
 
+    [TestMethod]
+    public async Task GetUploadsReportsThatADeliveryWhoseForwardingBeganCannotBeDeleted()
+    {
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
+        deliveryController.SetupTestUser(user);
+        var forwarded = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        context.DeliveryReactions.Add(NewReaction(forwarded, "ablage", ReactionState.Done, attempts: 1));
+        context.SaveChanges();
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.IsFalse(uploads.Single(upload => upload.Id == forwarded.Id).CanDelete);
+        Assert.IsTrue(uploads.Where(upload => upload.Id != forwarded.Id).All(upload => upload.CanDelete));
+    }
+
     private User UserWithDeliveries()
         => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
 
-    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state, ReactionKind kind = ReactionKind.Transfer) => new()
+    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state, ReactionKind kind = ReactionKind.Transfer, int attempts = 0) => new()
     {
         Delivery = delivery,
         ReactionId = reactionId,
         Kind = kind,
         Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
         State = state,
+        Attempts = attempts,
         NextAttemptAt = DateTime.UtcNow,
     };
 

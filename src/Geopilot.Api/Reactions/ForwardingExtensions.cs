@@ -19,6 +19,13 @@ internal static class ForwardingExtensions
         => reactions.Where(r => r.Kind == ReactionKind.Transfer && r.State != ReactionState.Done).Select(r => r.DeliveryId);
 
     /// <summary>
+    /// The ids of the deliveries one of whose reactions has begun: it had an attempt or no longer waits. Their deliverer
+    /// can no longer withdraw them, as a subquery to compose into another query.
+    /// </summary>
+    internal static IQueryable<int> DeliveryIdsWithStartedReactions(this IQueryable<DeliveryReaction> reactions)
+        => reactions.Where(r => r.Attempts > 0 || r.State != ReactionState.Pending).Select(r => r.DeliveryId);
+
+    /// <summary>
     /// Sums up the states of the transfers of a delivery to the state of its forwarding: <see cref="ReactionState.Error"/>
     /// before <see cref="ReactionState.Running"/> before <see cref="ReactionState.Pending"/> before
     /// <see cref="ReactionState.Done"/>, which it only is once every transfer is done.
