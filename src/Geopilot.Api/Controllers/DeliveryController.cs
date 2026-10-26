@@ -246,16 +246,18 @@ public class DeliveryController : ControllerBase
             "User <{UserId}> accessed list of their uploaded deliveries",
             user.AuthIdentifier);
 
-        // Whether a delivery may still be deleted depends on the configuration and the time, which SQL cannot evaluate.
+        // Whether a delivery may still be deleted depends on the configuration and the time, which SQL cannot evaluate,
+        // and on whether one of its reactions has begun, which it can.
+        var started = context.DeliveryReactions.DeliveryIdsWithStartedReactions();
         var deliveries = await context.Deliveries
             .AsNoTracking()
             .Where(d => d.DeclaringUserId == user.Id)
             .OrderBy(d => d.Id)
-            .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name) })
+            .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name), Started = started.Contains(d.Id) })
             .ToListAsync();
 
         return Ok(deliveries
-            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.Comment, IsDeleteAllowedForUploader(d.Date)))
+            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
             .ToList());
     }
 
@@ -290,7 +292,12 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
-            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery.Date))
+            // The window decides on its own only while the configuration stays as it was at the declaration. A reaction
+            // that has begun means the delivery left already, after a longer window or a later enabled deletion.
+            // shortcut: checked before the deletion rather than with it, so a reaction claimed in between still runs once;
+            // its attempt then fails on the deleted files or its report is refused.
+            if (!user.IsAdmin && (!IsDeleteAllowedForUploader(delivery.Date)
+                || await context.DeliveryReactions.DeliveryIdsWithStartedReactions().AnyAsync(id => id == delivery.Id)))
             {
                 logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
                 return Problem($"Deleting delivery with id <{deliveryId}> is not allowed.", statusCode: StatusCodes.Status403Forbidden);
