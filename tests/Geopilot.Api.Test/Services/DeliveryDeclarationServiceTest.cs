@@ -135,9 +135,7 @@ public class DeliveryDeclarationServiceTest
         mandate.ReactionSetId = "ablage_pro_mandat";
         mandate.ReactionSetValues = new() { ["weitergabe"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-a") } };
         context.SaveChanges();
-        pipelineFactoryMock
-            .Setup(factory => factory.ResolveTransfers("ablage_pro_mandat"))
-            .Returns([("weitergabe", FileDrop, new Parameterization { ["mode"] = "copy" })]);
+        SetupSet("ablage_pro_mandat", "weitergabe", new Parameterization { ["mode"] = "copy" }, "subfolder");
 
         var deliveryId = await DeclareAsync(mandate);
 
@@ -154,6 +152,25 @@ public class DeliveryDeclarationServiceTest
     }
 
     [TestMethod]
+    public async Task KeepsOnlyTheMandateValuesTheSetStillDeclares()
+    {
+        // The mandate was saved while the set still declared "port"; the definition dropped it since.
+        var mandate = AddMandate(nameof(KeepsOnlyTheMandateValuesTheSetStillDeclares));
+        mandate.ReactionSetId = "ablage_pro_mandat";
+        mandate.ReactionSetValues = new()
+        {
+            ["weitergabe"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-a"), ["port"] = JsonSerializer.SerializeToElement("21") },
+        };
+        context.SaveChanges();
+        SetupSet("ablage_pro_mandat", "weitergabe", new Parameterization(), "subfolder");
+
+        var deliveryId = await DeclareAsync(mandate);
+
+        var reaction = Assert.ContainsSingle(context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList());
+        CollectionAssert.AreEqual(new[] { "subfolder" }, reaction.Config.Mandate.Keys.ToArray());
+    }
+
+    [TestMethod]
     public async Task CreatesNoReactionsWithoutASet()
     {
         var mandate = AddMandate(nameof(CreatesNoReactionsWithoutASet));
@@ -162,6 +179,19 @@ public class DeliveryDeclarationServiceTest
         var deliveryId = await DeclareAsync(mandate);
 
         Assert.IsFalse(context.DeliveryReactions.Any(r => r.DeliveryId == deliveryId));
+    }
+
+    private void SetupSet(string setId, string reactionId, Parameterization config, params string[] mandateKeys)
+    {
+        var reaction = new ReactionConfig
+        {
+            Id = reactionId,
+            ChannelId = "ablage",
+            MandateConfig = mandateKeys.Select(key => new MandateConfigEntry { Key = key, DisplayName = TestHelpers.Localized(key) }).ToList(),
+        };
+        var set = new ReactionSetConfig { Id = setId, DisplayName = TestHelpers.Localized(setId), Transfers = [reaction] };
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([set]);
+        pipelineFactoryMock.Setup(factory => factory.ResolveTransfers(setId)).Returns([(reactionId, FileDrop, config)]);
     }
 
     private Mandate AddMandate(string name)

@@ -50,7 +50,8 @@ internal sealed class ReactionSetValidator : IReactionSetValidator
         var declaredValues = new Dictionary<string, Dictionary<string, JsonElement>>();
         foreach (var reaction in set.Transfers)
         {
-            if (!values.TryGetValue(reaction.Id, out var reactionValues))
+            // A client can send null for the values of a reaction, which says as much as sending none.
+            if (!values.TryGetValue(reaction.Id, out var reactionValues) || reactionValues is null)
                 continue;
 
             var declared = (reaction.MandateConfig ?? [])

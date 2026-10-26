@@ -258,6 +258,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
         catch (Exception ex)
         {
+            ForgetUnsavedReactionEvents();
             LogReactionWriteFailed(reaction.DeliveryId, ex);
         }
     }
@@ -297,6 +298,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
         catch (Exception ex)
         {
+            ForgetUnsavedReactionEvents();
             LogReactionWriteFailed(reaction.DeliveryId, ex);
         }
     }
@@ -344,6 +346,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
         catch (Exception ex)
         {
+            ForgetUnsavedReactionEvents();
             LogReactionWriteFailed(deliveryId, ex);
         }
     }
@@ -495,4 +498,11 @@ public class PipelineRunRecorder : IPipelineRunRecorder
 
     private void LogReactionWriteFailed(int deliveryId, Exception exception) =>
         logger.LogWarning(exception, "Writing the execution protocol for delivery <{DeliveryId}> failed.", deliveryId);
+
+    // A row the database refused would otherwise go along with the next write of the same context and fail it again.
+    private void ForgetUnsavedReactionEvents()
+    {
+        foreach (var entry in context.ChangeTracker.Entries<PipelineRunReactionEvent>().Where(entry => entry.State is EntityState.Added or EntityState.Modified).ToList())
+            entry.State = EntityState.Detached;
+    }
 }
