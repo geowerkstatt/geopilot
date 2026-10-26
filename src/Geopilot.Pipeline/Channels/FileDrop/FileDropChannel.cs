@@ -25,7 +25,7 @@ internal sealed class FileDropChannel : IDeliveryChannel
     /// <param name="baseDirectory">The directory the base configuration provides for all file drops.</param>
     /// <param name="subfolder">The folder of the deliveries, a relative path below the base directory.</param>
     /// <exception cref="ArgumentException">The subfolder does not lie below the base directory, or one of its segments
-    /// consists of digits only.</exception>
+    /// consists of digits only or starts with a dot.</exception>
     public FileDropChannel([BaseConfigValue] string baseDirectory, [MandateValue] string subfolder)
     {
         this.baseDirectory = Path.GetFullPath(baseDirectory);
@@ -103,6 +103,11 @@ internal sealed class FileDropChannel : IDeliveryChannel
         // folder of a delivery of another.
         if (subfolder.Split('/', '\\').Any(segment => segment.Length > 0 && segment.All(char.IsAsciiDigit)))
             throw new ArgumentException($"The subfolder <{subfolder}> has a segment of digits only, which is how the folders of the deliveries are named.", nameof(subfolder));
+
+        // An attempt removes the leftover temporary folders of its delivery, which start with a dot, so a subfolder of
+        // another mandate named like one could vanish with every delivery in it.
+        if (subfolder.Split('/', '\\').Any(segment => segment.StartsWith('.')))
+            throw new ArgumentException($"The subfolder <{subfolder}> has a segment starting with a dot, which is how the file drop names its temporary folders.", nameof(subfolder));
 
         var resolved = Path.GetFullPath(Path.Combine(baseDirectory, subfolder));
         if (!resolved.StartsWith(Path.TrimEndingDirectorySeparator(baseDirectory) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
