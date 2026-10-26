@@ -227,6 +227,7 @@ public class FileDropChannelTest
     [DataRow("mandate-a")]
     [DataRow("canton/mandate-a")]
     [DataRow("kanton-be/bfs-351")]
+    [DataRow("kanton-be/av.2024")]
     public void ConstructorAcceptsASubfolderBelowTheBaseDirectory(string subfolder)
     {
         _ = new FileDropChannel(baseDirectory, subfolder);
@@ -241,6 +242,18 @@ public class FileDropChannelTest
         var exception = Assert.ThrowsExactly<ArgumentException>(() => new FileDropChannel(baseDirectory, subfolder));
 
         Assert.Contains("digits only", exception.Message);
+    }
+
+    [TestMethod]
+    [DataRow(".351.old.partial")]
+    [DataRow("kanton-be/.351.old.partial")]
+    [DataRow("kanton-be\\.hidden")]
+    [DataRow("./kanton-be")]
+    public void ConstructorRejectsASubfolderWithASegmentStartingWithADot(string subfolder)
+    {
+        var exception = Assert.ThrowsExactly<ArgumentException>(() => new FileDropChannel(baseDirectory, subfolder));
+
+        Assert.Contains("starting with a dot", exception.Message);
     }
 
     [TestMethod]
