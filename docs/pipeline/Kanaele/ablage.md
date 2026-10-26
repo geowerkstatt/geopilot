@@ -10,7 +10,7 @@ Eine Ablage muss unter `channels[X].implementation` den Wert `Geopilot.Pipeline.
 
 | Parameter | Herkunft | Bedeutung |
 | --- | --- | --- |
-| `baseDirectory` | Basis-Konfiguration, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. |
+| `baseDirectory` | Basis-Konfiguration, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. Setzt die Pipeline-Definition es, startet geopilot nicht. |
 | `subfolder` | Pipeline-Definition (`default_config`, in einer Reaktion überschreibbar) oder Mandat (`mandate_config`) | Der Ordner der Lieferungen, ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Kein Abschnitt darf nur aus Ziffern bestehen, denn so heissen die Ordner der Lieferungen: statt `kanton-be/351` also etwa `kanton-be/bfs-351`. Ein anderer Wert hält den Start an oder lässt das Mandat nicht speichern. |
 
 Das Basisverzeichnis gehört in die Basis-Konfiguration, entweder in die Appsettings:
@@ -83,7 +83,7 @@ reaction_sets:
 ## Betrieb
 
 - geopilot braucht Schreibrechte auf das Basisverzeichnis. In einer Installation mit Containern ist das ein zusätzlich eingebundenes Volume, und weil der Container nicht als root läuft, muss es für dessen Benutzer beschreibbar sein.
-- Das Basisverzeichnis darf sich weder mit einem Verzeichnis unter `Storage:` noch mit `Upload:Direct:Directory` überschneiden, sonst startet geopilot nicht. Die Bereinigungen von geopilot löschen, was sie nicht kennen, und wer die Ablage liest, soll die Daten von geopilot nicht sehen.
+- Das Basisverzeichnis darf sich weder mit einem Verzeichnis unter `Storage:` noch mit `Upload:Direct:Directory`, `PublicAssetsOverride` oder dem Web-Root überschneiden, sonst startet geopilot nicht. Die Bereinigungen von geopilot löschen, was sie nicht kennen, die Dateien von `PublicAssetsOverride` und dem Web-Root liefert geopilot ohne Anmeldung aus, und wer die Ablage liest, soll die Daten von geopilot nicht sehen.
 - Was abgelegt ist, bleibt in der Ablage, auch wenn ein Admin die Lieferung später löscht.
 - Jede Installation braucht ihr eigenes Basisverzeichnis, auch Test und Produktion. Die Ids der Lieferungen zählen in jeder Installation für sich.
 - Wer die Ablage liest, legt darin keine Verknüpfungen (Symlinks, Junctions) an. Findet die Ablage unterhalb des Basisverzeichnisses eine, scheitert der Versuch, damit sie keine Dateien in ein Verzeichnis umgelenkt schreibt. Das Basisverzeichnis selbst darf eine Verknüpfung oder ein eingebundenes Laufwerk sein.

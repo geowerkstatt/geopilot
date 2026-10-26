@@ -612,7 +612,7 @@ Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopi
 
 Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
 
-1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
 2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
 3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
 
@@ -649,7 +649,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 - die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
 - eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
-- die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet,
+- die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
 - ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
 - ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,
 - ein Mandat einen Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.

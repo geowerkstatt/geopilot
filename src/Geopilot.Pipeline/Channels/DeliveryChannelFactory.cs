@@ -8,6 +8,7 @@ namespace Geopilot.Pipeline.Channels;
 /// comes from exactly one of three places: the base configuration (<c>Pipeline:ChannelConfigs:&lt;implementation&gt;</c>),
 /// the pipeline definition (<c>default_config</c> of the channel with the reaction's <c>channel_config_overwrites</c>)
 /// or the mandate (<c>mandate_config</c>), the last only for parameters marked <see cref="MandateValueAttribute"/>.
+/// A parameter marked <see cref="BaseConfigValueAttribute"/> comes from the base configuration only.
 /// </summary>
 internal sealed class DeliveryChannelFactory
 {
@@ -27,9 +28,9 @@ internal sealed class DeliveryChannelFactory
 
     /// <summary>
     /// Checks a reaction without constructing its channel: the implementation is a channel with one public
-    /// constructor, every key of the definition is a parameter, every declared mandate key a parameter marked as
-    /// mandate value that the definition does not set, every parameter marked as mandate value takes a text or a list
-    /// of texts, every value converts to its parameter, and, with a base
+    /// constructor, every key of the definition is a parameter not marked as base configuration value, every declared
+    /// mandate key a parameter marked as mandate value that the definition does not set, every parameter marked as
+    /// mandate value takes a text or a list of texts, every value converts to its parameter, and, with a base
     /// configuration, every parameter that needs a value gets one. A key the base configuration pins is the concern
     /// of the definition validation.
     /// </summary>
@@ -67,6 +68,9 @@ internal sealed class DeliveryChannelFactory
             .Concat(mandateKeys
                 .Where(config.ContainsKey)
                 .Select(key => $"Channel <{implementation}>: the mandate value '{key}' is already set in default_config. A value comes either from the pipeline definition or from the mandate."))
+            .Concat(parameters
+                .Where(parameter => parameter.IsDefined(typeof(BaseConfigValueAttribute)) && config.ContainsKey(parameter.Name ?? string.Empty))
+                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition."))
             .Concat(parameters
                 .Where(parameter => IsMandateValue(parameter) && !IsTextOrTextList(parameter.ParameterType))
                 .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [MandateValue] but takes {parameter.ParameterType.Name}. A mandate value is a text (string) or a list of texts (IReadOnlyList<string>)."))
