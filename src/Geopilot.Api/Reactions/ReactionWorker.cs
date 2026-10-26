@@ -89,9 +89,15 @@ public class ReactionWorker : BackgroundService
         if (reaction is null)
             return false;
 
+        // The time limit runs from the claim like the lock, so the lock outlasts the attempt by its margin however long
+        // the database takes before the channel starts. Kept until the report, so a channel that ignores its token
+        // still sees it cancelled.
+        using var timeLimit = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        timeLimit.CancelAfter(options.TimeLimit);
+
         var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
         await recorder.RecordReactionAttemptStartedAsync(reaction);
-        var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, stoppingToken);
+        var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, timeLimit.Token, stoppingToken);
 
         // Reported even while the application stops, so an interrupted attempt does not hold its reaction until its
         // lock runs out.
@@ -107,11 +113,11 @@ public class ReactionWorker : BackgroundService
     /// Runs one attempt of a claimed reaction. Whatever goes wrong becomes a failed attempt with a reason the operators
     /// can read, so the attempt is always reported.
     /// </summary>
-    private async Task<ChannelResult> AttemptAsync(Context context, IAssetFileStore assetStore, DeliveryReaction reaction, CancellationToken stoppingToken)
+    private async Task<ChannelResult> AttemptAsync(Context context, IAssetFileStore assetStore, DeliveryReaction reaction, CancellationToken timeLimit, CancellationToken stoppingToken)
     {
         try
         {
-            var delivery = await ReadDeliveryAsync(context, reaction.DeliveryId, stoppingToken);
+            var delivery = await ReadDeliveryAsync(context, reaction.DeliveryId, timeLimit);
             if (delivery is null)
                 return ChannelResult.Failure(DeliveryGoneMessage);
 
@@ -121,12 +127,10 @@ public class ReactionWorker : BackgroundService
             var files = delivery.FileNames
                 .Select(name => (IDeliveryFile)new AssetFile(assetStore, delivery.Info.JobId, name))
                 .ToList();
-            using var timeLimit = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-            timeLimit.CancelAfter(options.TimeLimit);
 
             // WaitAsync gives up on a channel that does not honour its token.
             // shortcut: such a channel keeps running in the background after its attempt has failed.
-            return await channel.DeliverAsync(delivery.Info, files, timeLimit.Token).WaitAsync(options.TimeLimit, stoppingToken);
+            return await channel.DeliverAsync(delivery.Info, files, timeLimit).WaitAsync(timeLimit);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
