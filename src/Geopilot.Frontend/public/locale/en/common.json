@@ -130,7 +130,6 @@
   "organisationsLoadingError": "An error occurred while loading the organisations: {{error}}",
   "partialDelivery": "Partial delivery",
   "pipeline": "Pipeline",
-  "pipelineLoadingError": "An error occurred while loading the pipelines: {{error}}",
   "pipelineNotKnown": "Pipeline '{{pipelineId}}' is unknown",
   "pipelinesLoadingError": "An error occurred while loading the pipelines: {{error}}",
   "precursor": "Precursor",

@@ -130,7 +130,6 @@
   "organisationsLoadingError": "Une erreur s'est produite lors du chargement des organisations: {{error}}",
   "partialDelivery": "Livraison partielle",
   "pipeline": "Pipeline",
-  "pipelineLoadingError": "Une erreur s'est produite lors du chargement des pipelines: {{error}}",
   "pipelineNotKnown": "Pipeline '{{pipelineId}}' inconnu",
   "pipelinesLoadingError": "Une erreur s'est produite lors du chargement des pipelines: {{error}}",
   "precursor": "Prédécesseur",
