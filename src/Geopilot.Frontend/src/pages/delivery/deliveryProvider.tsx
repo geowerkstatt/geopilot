@@ -301,7 +301,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             setStepStatus(
               DeliveryStepEnum.Processing,
               DeliveryStepState.Error,
-              errorMessages.length > 0 ? errorMessages : [response.state as TranslationKey],
+              errorMessages.length > 0
+                ? errorMessages
+                : [job.state === StepState.Cancelled ? "stepStateCancelled" : "stepStateFailed"],
             );
           }
         }
