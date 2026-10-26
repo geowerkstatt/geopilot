@@ -99,11 +99,23 @@ public class ReactionWorker : BackgroundService
         await recorder.RecordReactionAttemptStartedAsync(reaction);
         var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, timeLimit.Token, stoppingToken);
 
-        // Reported even while the application stops, so an interrupted attempt does not hold its reaction until its
-        // lock runs out.
-        var state = result.Delivered
-            ? await store.CompleteAsync(context, reaction, result.Message, CancellationToken.None)
-            : await store.FailAsync(context, reaction, result.Message, CancellationToken.None);
+        ReactionState? state;
+        try
+        {
+            // Reported even while the application stops, so an interrupted attempt does not hold its reaction until its
+            // lock runs out.
+            state = result.Delivered
+                ? await store.CompleteAsync(context, reaction, result.Message, CancellationToken.None)
+                : await store.FailAsync(context, reaction, result.Message, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            // The reaction stays running until its lock runs out and then runs again or gives up, and its protocol entry
+            // keeps the outcome unknown: only this entry tells what the attempt did.
+            logger.LogError(ex, "The outcome of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be saved. Delivered: {Delivered}. {Message}", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId, result.Delivered, result.Message);
+            return true;
+        }
+
         await recorder.RecordReactionAttemptFinishedAsync(reaction, state, result.Message);
         LogOutcome(reaction, result.Message, state);
         return true;
