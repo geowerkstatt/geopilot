@@ -98,6 +98,18 @@ public class ReactionSetValidatorTest
     }
 
     [TestMethod]
+    public void CheckTakesNullForTheValuesOfAReactionAsNone()
+    {
+        // What a client sends as {"reactionSetValues": {"<reaction>": null}}.
+        var values = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>($"{{\"{ReactionId}\": null}}") ?? [];
+
+        var check = Validator().Check(SetId, values);
+
+        Assert.IsTrue(check.IsValid);
+        Assert.IsEmpty(check.Values);
+    }
+
+    [TestMethod]
     public void CheckReportsWhatTheChannelsRefuse()
     {
         pipelineFactoryMock
