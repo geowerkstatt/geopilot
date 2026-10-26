@@ -60,7 +60,7 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
 };
 
 const object = (objectId: string) => cy.get(`[data-object-id="${objectId}"]`);
-const expand = (objectId: string) => object(objectId).find('[data-cy="diff-object-toggle"]').click();
+const expand = (objectId: string) => object(objectId).dataCy("diff-object-toggle").click();
 const change = (changeId: string) => cy.get(`[data-change-id="${changeId}"]`);
 const markedTexts = (marks: JQuery) => [...marks].map(mark => mark.textContent);
 
@@ -81,7 +81,7 @@ describe("XTF diff visualization", () => {
       cy.dataCy("diff-object-summary").should("have.text", "Hausnummer, Lage, −Hausnummerpos/Pos, Lokalisation");
     });
     object(PARCEL)
-      .find('[data-cy="diff-object-summary"]')
+      .dataCy("diff-object-summary")
       .should("have.text", "Nummer, −Gesamteflaechenmass, +Entstehung, −Untergang");
     object(ADDED_LOCALISATION).within(() => {
       cy.dataCy("diff-object-summary").should("have.text", "Object added");
@@ -100,7 +100,7 @@ describe("XTF diff visualization", () => {
   it("fits a phone, without the summary", () => {
     cy.viewport(390, 844);
     openDiffVisualization();
-    object(ENTRANCE).should("contain", ENTRANCE).find('[data-cy="diff-object-summary"]').should("not.exist");
+    object(ENTRANCE).should("contain", ENTRANCE).dataCy("diff-object-summary").should("not.exist");
     cy.document().should(document =>
       expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth),
     );
@@ -108,9 +108,9 @@ describe("XTF diff visualization", () => {
 
   it("toggles an object by clicking its header", () => {
     openDiffVisualization();
-    object(ENTRANCE).find('[data-cy="diff-object-summary"]').click();
+    object(ENTRANCE).dataCy("diff-object-summary").click();
     change("c0").should("exist");
-    object(ENTRANCE).find('[data-cy="diff-object-summary"]').click();
+    object(ENTRANCE).dataCy("diff-object-summary").click();
     change("c0").should("not.exist");
   });
 
@@ -129,21 +129,21 @@ describe("XTF diff visualization", () => {
         .find("mark")
         .should(marks => expect(markedTexts(marks)).to.deep.equal(["4.1", "7.0"]));
     });
-    change("c2").find('[data-cy="diff-value-new"]').should("have.text", "empty");
+    change("c2").dataCy("diff-value-new").should("have.text", "empty");
   });
 
   it("clamps a very long value and shows it on demand", () => {
     openDiffVisualization();
     expand(NOTED_LOCALISATION);
-    change("c12").find('[data-cy="diff-show-more"]').first().click();
-    change("c12").find('[data-cy="diff-show-more"]').first().should("contain", "Show less");
-    change("c13").find('[data-cy="diff-value-old"]').should("have.text", "not-json");
+    change("c12").dataCy("diff-show-more").first().click();
+    change("c12").dataCy("diff-show-more").first().should("contain", "Show less");
+    change("c13").dataCy("diff-value-old").should("have.text", "not-json");
   });
 
   it("jumps to a referenced object and focuses it", () => {
     openDiffVisualization();
     expand(ENTRANCE);
-    change("c3").find('[data-cy="diff-value-new"] [data-cy="diff-reference"]').click();
+    change("c3").dataCy("diff-value-new").dataCy("diff-reference").click();
     object(ADDED_LOCALISATION).should("have.focus");
   });
 
@@ -152,9 +152,7 @@ describe("XTF diff visualization", () => {
     cy.dataCy("treeFilterToggle-button").click();
     cy.dataCy("metadata-filter-class").find("input").type("Gebaeudeeingang{downArrow}{enter}");
     expand(ENTRANCE);
-    change("c3")
-      .find('[data-cy="diff-value-new"] [data-cy="diff-reference"]')
-      .should("not.have.attr", "role", "button");
+    change("c3").dataCy("diff-value-new").dataCy("diff-reference").should("not.have.attr", "role", "button");
   });
 
   it("offers map buttons only for objects on the map and on geometry values", () => {
@@ -163,11 +161,11 @@ describe("XTF diff visualization", () => {
       cy.dataCy("diff-object-map").should("exist");
       cy.dataCy("diff-object-toggle").click();
     });
-    change("c1").find('[data-cy="diff-geometry-map-old"]').should("exist");
-    change("c1").find('[data-cy="diff-geometry-map-new"]').should("exist");
-    change("c2").find('[data-cy="diff-geometry-map-new"]').should("not.exist");
+    change("c1").dataCy("diff-geometry-map-old").should("exist");
+    change("c1").dataCy("diff-geometry-map-new").should("exist");
+    change("c2").dataCy("diff-geometry-map-new").should("not.exist");
     change("c0").find('[data-cy^="diff-geometry-map"]').should("not.exist");
-    object(ADDED_LOCALISATION).find('[data-cy="diff-object-map"]').should("not.exist");
+    object(ADDED_LOCALISATION).dataCy("diff-object-map").should("not.exist");
   });
 
   it("shows no map buttons without a map", () => {
