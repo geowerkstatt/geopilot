@@ -2,12 +2,14 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { DiffChange, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
+import { DiffChange, MapLayer, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
 import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
+import { inferObjectTypes } from "./diff/diffMapGeometry";
+import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
 import {
   ChangeLabeler,
@@ -68,6 +70,15 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   );
   const objects = useMemo(() => groupByObject(changes, mappedObjectIds), [changes, mappedObjectIds]);
   const objectsById = useMemo(() => new Map(objects.map(object => [object.objectId, object])), [objects]);
+  const objectTypes = useMemo(() => {
+    if (config.table) return new Map(objects.map(object => [object.objectId, object.kind]));
+    const idsOf = (style: MapLayer["style"]) =>
+      (config.map?.layers ?? [])
+        .filter(layer => layer.style === style)
+        .flatMap(layer => layer.features ?? [])
+        .map(feature => feature.id);
+    return inferObjectTypes(idsOf("old"), idsOf("new"));
+  }, [config.table, config.map, objects]);
 
   const label = useCallback<ChangeLabeler>(
     (field: DiffFilterField, change: DiffChange) => {
@@ -254,6 +265,16 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       showMapSelectionPopup
       describeFeature={describeObject}
       fullscreen={fullscreen}>
+      {config.map && (
+        <DiffMapLayers
+          changes={changes}
+          objectTypes={objectTypes}
+          visibleIds={visibleObjectIds}
+          highlightedIds={highlightedObjectIds}
+          hoveredIds={hoveredObjectIds}
+          focus={null}
+        />
+      )}
       {config.map && (
         <IconButton
           size="small"
