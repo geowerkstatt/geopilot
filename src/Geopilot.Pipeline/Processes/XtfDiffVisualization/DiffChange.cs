@@ -48,6 +48,18 @@ internal sealed record DiffChange
     /// <see langword="null"/> when the new state has none.
     /// </summary>
     public string? NewValue { get; init; }
+
+    /// <summary>
+    /// Gets the location in the old state as WKT, for a geometry change when the map is included; otherwise
+    /// <see langword="null"/>.
+    /// </summary>
+    public string? OldLocation { get; init; }
+
+    /// <summary>
+    /// Gets the location in the new state as WKT, for a geometry change when the map is included; otherwise
+    /// <see langword="null"/>.
+    /// </summary>
+    public string? NewLocation { get; init; }
 }
 
 /// <summary>

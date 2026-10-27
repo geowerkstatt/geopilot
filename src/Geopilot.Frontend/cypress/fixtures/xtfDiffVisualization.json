@@ -62,7 +62,9 @@
           "interlisName": "DMAV_Gebaeudeadressen_V1_0.Gebaeudeadressen.Gebaeudeeingang",
           "attributePath": "Lage",
           "oldValue": "POINT(2645123.400 1249876.200)",
-          "newValue": "POINT(2645124.100 1249877.000)"
+          "newValue": "POINT(2645124.100 1249877.000)",
+          "oldLocation": "POINT(2645123.4 1249876.2)",
+          "newLocation": "POINT(2645124.1 1249877)"
         },
         {
           "id": "c2",
@@ -71,7 +73,8 @@
           "valueType": "geometry",
           "interlisName": "DMAV_Gebaeudeadressen_V1_0.Gebaeudeadressen.Gebaeudeeingang",
           "attributePath": "Hausnummerpos/Pos",
-          "oldValue": "POINT(2645126.000 1249880.500)"
+          "oldValue": "POINT(2645126.000 1249880.500)",
+          "oldLocation": "POINT(2645126 1249880.5)"
         },
         {
           "id": "c3",

@@ -67,7 +67,9 @@ internal class XtfDiffVisualizationProcess
         var config = new XtfDiffVisualizationConfig
         {
             Map = includeMap ? BuildMap(entries) : null,
-            Table = includeTable ? new TableVisualizationConfig { Changes = entries.Select(entry => entry.Change).ToList() } : null,
+            Table = includeTable
+                ? new TableVisualizationConfig { Changes = entries.Select(entry => includeMap ? WithLocation(entry) : entry.Change).ToList() }
+                : null,
         };
 
         return new XtfDiffVisualizationResult
@@ -76,6 +78,14 @@ internal class XtfDiffVisualizationProcess
             StatusMessage = CreatedStatusMessage,
         };
     }
+
+    // Only a geometry change has a map button of its own, so only its locations are sent twice: here and in the map.
+    private static DiffChange WithLocation(DiffEntry entry) =>
+        entry.Change.ValueType == DiffValueType.Geometry
+            ? entry.Change with { OldLocation = NullIfBlank(entry.OldLocation), NewLocation = NullIfBlank(entry.NewLocation) }
+            : entry.Change;
+
+    private static string? NullIfBlank(string? location) => string.IsNullOrWhiteSpace(location) ? null : location;
 
     private MapVisualizationConfig? BuildMap(IReadOnlyList<DiffEntry> entries)
     {

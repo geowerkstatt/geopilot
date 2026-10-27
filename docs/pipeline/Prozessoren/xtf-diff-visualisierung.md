@@ -71,7 +71,7 @@ pipelines:
 
 ## Format des `Visualization`-Outputs
 
-Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Wie bei der Fehlervisualisierung enthält die Nutzlast nur die Ansichten, die erscheinen: die Liste (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), sofern `include` sie enthält, und die Karte (`map`), sofern `include` sie enthält und eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `style` sagt dem Frontend, wie es eine Ebene zeichnet: `old` und `new` in eigenen Farben, ohne `style` in der Standardfarbe der Karte. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
+Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Wie bei der Fehlervisualisierung enthält die Nutzlast nur die Ansichten, die erscheinen: die Liste (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), sofern `include` sie enthält, und die Karte (`map`), sofern `include` sie enthält und eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `style` sagt dem Frontend, wie es eine Ebene zeichnet: `old` und `new` in eigenen Farben, ohne `style` in der Standardfarbe der Karte. Eine Geometrieänderung trägt zudem ihre Lagen (`oldLocation`, `newLocation`), sofern die Karte erscheint, damit die Karte zu ihr allein zoomt und jeden Teil eines Features seiner Änderung zuordnet; die übrigen Änderungen tragen keine. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
 
 ```json
 {
@@ -102,7 +102,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Wie
           "features": [
             {
               "id": "e9cf8d88-3898-4e2a-869c-32d45e3f21a2",
-              "geom": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+              "geom": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))",
               "info": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche"
             }
           ],
@@ -121,6 +121,18 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Wie
           "attributePath": "EGID",
           "oldValue": "190001",
           "newValue": "190002"
+        },
+        {
+          "id": "c1",
+          "objectId": "e9cf8d88-3898-4e2a-869c-32d45e3f21a2",
+          "changeType": "changed",
+          "valueType": "geometry",
+          "interlisName": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche",
+          "attributePath": "Geometrie",
+          "oldValue": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+          "newValue": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))",
+          "oldLocation": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+          "newLocation": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))"
         }
       ]
     }
