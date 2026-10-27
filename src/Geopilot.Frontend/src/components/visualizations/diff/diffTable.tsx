@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Box, Stack, useTheme } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridApi, GridColDef } from "@mui/x-data-grid";
 import { DiffChange, DiffChangeType, MapLayerStyle } from "../../../api/apiInterfaces";
+import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme";
 import { stopStepSwipePropagation } from "../../../hooks/useStepSwipe";
 import GeopilotDataGrid from "../../grids/geopilotDataGrid";
@@ -19,7 +20,7 @@ const shortenValue = (value?: string) =>
   value && value.length > MAX_CELL_VALUE_LENGTH ? `${value.slice(0, MAX_CELL_VALUE_LENGTH)}…` : value;
 
 /** The label (translation key) of the button that shows an object on the map, by the states it is drawn in. */
-const showOnMapLabelKey = (states: readonly MapLayerStyle[]): string => {
+const showOnMapLabelKey = (states: readonly MapLayerStyle[]): TranslationKey => {
   if (states.length > 1) return "diffShowOnMapBoth";
   return states[0] === "old" ? "diffShowOnMapOld" : "diffShowOnMapNew";
 };

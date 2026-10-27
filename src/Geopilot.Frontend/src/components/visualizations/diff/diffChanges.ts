@@ -1,10 +1,11 @@
 import { DiffChange, DiffChangeType, DiffValueType } from "../../../api/apiInterfaces";
+import { TranslationKey } from "../../../appInterfaces";
 
 /** The change types in the order the filter offers them. */
 export const DIFF_CHANGE_TYPES: readonly DiffChangeType[] = ["added", "deleted", "changed"];
 
 /** The label (translation key) per change type, for the filter, which spans every kind of property. */
-export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, string> = {
+export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, TranslationKey> = {
   added: "diffChangeAdded",
   deleted: "diffChangeDeleted",
   changed: "diffChangeChanged",
@@ -14,7 +15,7 @@ export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, string> = {
  * The label (translation key) of a change by what changed and how, so an object deleted as a whole reads differently
  * from a reference removed from an object that stays.
  */
-const DIFF_CHANGE_LABEL_KEYS: Record<DiffValueType, Record<DiffChangeType, string>> = {
+const DIFF_CHANGE_LABEL_KEYS: Record<DiffValueType, Record<DiffChangeType, TranslationKey>> = {
   object: { added: "diffChangeObjectAdded", deleted: "diffChangeObjectDeleted", changed: "diffChangeObjectChanged" },
   reference: {
     added: "diffChangeReferenceAdded",
@@ -34,7 +35,7 @@ const DIFF_CHANGE_LABEL_KEYS: Record<DiffValueType, Record<DiffChangeType, strin
 };
 
 /** The label (translation key) of a change, e.g. "Objekt gelöscht" or "Referenz entfernt". */
-export const getChangeLabelKey = (change: DiffChange): string =>
+export const getChangeLabelKey = (change: DiffChange): TranslationKey =>
   DIFF_CHANGE_LABEL_KEYS[change.valueType][change.changeType];
 
 /** The class of a qualified INTERLIS name, e.g. "Class" of "Model.Topic.Class". */
