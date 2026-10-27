@@ -134,6 +134,8 @@ public partial class UploadCleanupService : BackgroundService
                 }
             }
 
+            var expiredSessions = ExpireSessionsWithoutFiles(filesByUploadId.Select(g => g.Key).ToHashSet());
+
             // Delete blobs outside the uploads/ prefix
             var allFiles = await uploadStorage.ListFilesAsync(string.Empty);
             foreach (var file in allFiles.Where(f => !f.Key.StartsWith("uploads/", StringComparison.Ordinal)))
@@ -142,7 +144,7 @@ public partial class UploadCleanupService : BackgroundService
                 logger.LogTrace("Deleted blob outside uploads/ prefix: {Key}.", file.Key);
             }
 
-            logger.LogInformation("UploadCleanupService completed. Deleted prefixes: {Deleted}.", deletedPrefixes);
+            logger.LogInformation("UploadCleanupService completed. Deleted prefixes: {Deleted}. Expired sessions: {Expired}.", deletedPrefixes, expiredSessions);
         }
         catch (Exception ex)
         {
@@ -152,6 +154,25 @@ public partial class UploadCleanupService : BackgroundService
         {
             cleanupSemaphore.Release();
         }
+    }
+
+    // Sessions without files never show up in the pass over the files, so they expire here.
+    private int ExpireSessionsWithoutFiles(HashSet<Guid?> uploadIdsWithFiles)
+    {
+        // Cloud storage lists a file only once its upload is complete, so a session also waits out an upload
+        // that was still running when its URLs expired.
+        var uploadWindow = TimeSpan.FromMinutes(options.UploadUrlExpiryMinutes);
+        var cutoff = DateTime.UtcNow - (2 * uploadWindow);
+        int expiredSessions = 0;
+
+        foreach (var upload in uploadStore.GetUploadsCreatedBefore(cutoff).Where(upload => !uploadIdsWithFiles.Contains(upload.Id)))
+        {
+            uploadStore.RemoveUpload(upload.Id);
+            expiredSessions++;
+            logger.LogTrace("Expired upload session <{UploadId}> without files.", upload.Id);
+        }
+
+        return expiredSessions;
     }
 
     // Matches a key that names a file inside an upload and captures the upload id. The file name is

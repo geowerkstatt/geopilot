@@ -39,6 +39,15 @@ public class UploadStoreTest
     }
 
     [TestMethod]
+    public void GetUploadsCreatedBeforeReturnsOnlyOlderUploads()
+    {
+        var upload = store.CreateUpload(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty);
+
+        CollectionAssert.AreEqual(new[] { upload }, store.GetUploadsCreatedBefore(upload.CreatedAt.AddTicks(1)).ToList());
+        Assert.IsEmpty(store.GetUploadsCreatedBefore(upload.CreatedAt));
+    }
+
+    [TestMethod]
     public void CreateUploadThrowsIfIdAlreadyExists()
     {
         var id = Guid.NewGuid();
