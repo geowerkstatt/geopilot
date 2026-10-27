@@ -82,6 +82,8 @@
   "diffReferenceFiltered": "Hidden by the filter",
   "diffReferenceNotInDiff": "Not part of the changes",
   "diffSearch": "Search changes",
+  "diffShowAfterOnMap": "Show after on the map",
+  "diffShowBeforeOnMap": "Show before on the map",
   "diffShowLess": "Show less",
   "diffShowMore": "Show more",
   "diffShowObjectOnMap": "Show object on the map",

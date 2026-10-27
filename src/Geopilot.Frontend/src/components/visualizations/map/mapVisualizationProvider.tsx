@@ -22,21 +22,19 @@ import proj4 from "proj4";
 import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized";
-import { getPopupFeatures } from "./featureRank";
 import {
   buildFeatureLayer,
   buildWmtsLayer,
   fitToFeatures,
   fitToLayers,
-  getClusterMembers,
   getFeaturesExtent,
   getPickOrder,
-  isPickable,
   refreshFeatureLayer,
 } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapSelectionPopup, SelectionEntry } from "./mapSelectionPopup";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
+import { getClusterMembers, getPopupFeatures, isFittableExtent, isPickable } from "./picking";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_CLUSTER_MAX_ZOOM = 18;
@@ -493,8 +491,9 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       maxZoom: ZOOM_TO_NODE_MAX_ZOOM,
       duration: ZOOM_TO_NODE_DURATION,
     };
-    if (zoomRequest.extent && map.getSize()) map.getView().fit(zoomRequest.extent, options);
-    else fitToFeatures(map, new Set(zoomRequest.featureIds), options);
+    if (zoomRequest.extent && isFittableExtent(zoomRequest.extent) && map.getSize()) {
+      map.getView().fit(zoomRequest.extent, options);
+    } else fitToFeatures(map, new Set(zoomRequest.featureIds), options);
   }, [map, zoomRequest]);
 
   const contextValue = useMemo<MapVisualizationContextInterface>(

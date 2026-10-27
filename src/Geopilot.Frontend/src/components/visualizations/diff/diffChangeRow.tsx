@@ -133,7 +133,7 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
         {text}
         <IconButton
           size="small"
-          label="diffShowObjectOnMap"
+          label={side === "old" ? "diffShowBeforeOnMap" : "diffShowAfterOnMap"}
           icon={<MapOutlinedIcon fontSize="small" />}
           onClick={() => onShowOnMap(side)}
           data-cy={`diff-geometry-map-${side}`}

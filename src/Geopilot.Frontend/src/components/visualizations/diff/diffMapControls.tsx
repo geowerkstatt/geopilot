@@ -249,6 +249,7 @@ export const DiffMapSlider: FC<DiffMapSliderProps> = ({ value, onChange }) => {
         value={value}
         onChange={(_, next) => onChange(Array.isArray(next) ? next[0] : next)}
         aria-label={t("diffMapSlider")}
+        getAriaValueText={share => `${Math.round(share * 100)} %`}
       />
       <Typography variant="body2">{t("diffColumnNewValue")}</Typography>
     </Stack>

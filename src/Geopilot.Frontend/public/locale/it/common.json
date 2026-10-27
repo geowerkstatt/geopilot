@@ -82,6 +82,8 @@
   "diffReferenceFiltered": "Nascosto dal filtro",
   "diffReferenceNotInDiff": "Non fa parte delle modifiche",
   "diffSearch": "Cerca nelle modifiche",
+  "diffShowAfterOnMap": "Mostra il dopo sulla mappa",
+  "diffShowBeforeOnMap": "Mostra il prima sulla mappa",
   "diffShowLess": "Mostra meno",
   "diffShowMore": "Mostra di più",
   "diffShowObjectOnMap": "Mostra l'oggetto sulla mappa",
