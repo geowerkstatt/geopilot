@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import { DiffChange } from "../../../api/apiInterfaces";
+import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
@@ -22,6 +23,13 @@ export const WIDE_CHANGE_COLUMNS = `${px2rem(200)} minmax(0, 1fr) minmax(0, 1fr)
 
 const SHORT_OID_LENGTH = 12;
 
+/** Why a reference is not a link to its object. */
+const REFERENCE_REASONS: Record<ReferenceTarget["state"], TranslationKey | undefined> = {
+  listed: undefined,
+  filtered: "diffReferenceFiltered",
+  absent: "diffReferenceNotInDiff",
+};
+
 const REFERENCE_BACKGROUNDS: Record<DiffSide, string> = {
   old: "diff.deleteBackground",
   new: "diff.insertBackground",
@@ -40,9 +48,7 @@ const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onR
   const { t } = useTranslation();
   const shortOid = `…${oid.slice(-SHORT_OID_LENGTH)}`;
   const listed = target.state === "listed";
-  const reason = { listed: undefined, filtered: "diffReferenceFiltered", absent: "diffReferenceNotInDiff" }[
-    target.state
-  ];
+  const reason = REFERENCE_REASONS[target.state];
   return (
     <Tooltip title={reason ? `${t(reason)}: ${oid}` : oid}>
       <Chip
