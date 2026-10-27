@@ -171,6 +171,24 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetSummaryAsDeactivatedUserPassesNullUser()
+        {
+            // A deactivated person keeps their memberships, so only the anonymous view keeps them from non-public mandates.
+            var uploadId = Guid.NewGuid();
+            editUser.State = UserState.Inactive;
+            context.SaveChanges();
+            mandateController.SetupTestUser(editUser);
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
+
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
+
+            Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
+        }
+
+        [TestMethod]
         public async Task GetSummaryWithoutUploadIdSkipsTheUploadFilter()
         {
             mandateServiceMock

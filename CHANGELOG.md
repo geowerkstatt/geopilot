@@ -104,6 +104,7 @@
 
 - A machine delivery is declared even when its run ends before the attempt is fully registered, which a very short run could manage until now, leaving the attempt in `processing` until its job was retired. An attempt whose delivery the client declared itself after geopilot could not now reports `delivered` with that delivery, instead of staying `failed`.
 - A processing run that nobody can declare, because it was started anonymously, by someone outside the organisations of its mandate, or on a mandate that takes no deliveries, is no longer kept as a delivery: its delivery files are not staged, and `POST api/v1/delivery` refuses its job with `400`, whoever asks. Until now such a run was staged until `Processing:JobRetention` had passed, and a member of the mandate could declare the job of an anonymous run.
+- A deactivated person counts as anonymous on the endpoints open to everyone, as a deactivated machine client already did: the list of mandates and the start of a validation only offer public mandates to them.
 - A start whose pipeline cannot be instantiated no longer leaves a pending job behind that never runs and that the cleanup reports as stuck on every run. The start is refused as before.
 - The XTF matcher can filter INTERLIS 1 transfer files by model: with `iliModels` set, an `.itf` file now matches by the model named in its `MODL` header line. Before, it never matched and was always sorted out, so a pipeline could not check the model of an INTERLIS 1 delivery.
 - Instances starting at the same time against the same database, for example two pods during a rolling update in Kubernetes, no longer run the database migrations concurrently. One instance migrates, the others wait and then find nothing left to apply.
@@ -121,6 +122,8 @@
 - A delivery can only be declared once its delivery files are completely staged. Through the API, a job could be declared as soon as its pipeline had finished, while the files were still being staged, and a job whose staging had failed stayed declarable, so the delivery received an incomplete set of files. Both are now refused as a job that cannot be delivered (`400`). The web interface was not affected.
 - A processing run whose result can be delivered releases its uploaded files once its delivery files are staged, instead of holding them until the job is removed after `Processing:JobRetention`. Many such runs could use up `Upload:MaxActiveJobs`, so that new uploads were refused.
 - Downloads and visualizations of a processing job stay for their full retention (`Processing:DownloadRetention`, `Processing:VisualizationRetention`) counted from the end of the run, and so does the job itself (`Processing:JobRetention`), so a finished run can be delivered for that full window. The retention counted from the creation of the job, so a job that waited long for a free processing slot lost its visualizations shortly after writing them, and a running job could lose them mid-run.
+- When the pipelines fail to load on the mandate page, the error message is now shown in the selected language instead of as the raw text `pipelinesLoadingError`.
+- A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
 
 ## v3.0.341 - 2026-06-17
 

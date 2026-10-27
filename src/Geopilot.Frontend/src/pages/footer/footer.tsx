@@ -28,11 +28,11 @@ const Footer = () => {
           size={isXs ? "small" : "medium"}
           variant="text"
           data-cy="home-nav"
-          label="geopilot"
           component={RouterLink}
           to="/"
-          onClick={linkClick("/")}
-        />
+          onClick={linkClick("/")}>
+          geopilot
+        </Button>
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"

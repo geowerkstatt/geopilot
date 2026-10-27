@@ -307,6 +307,32 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
+    [DataRow(UserState.Active, DisplayName = "StartJobAsyncWithAnActiveUserStartsAsThatUser")]
+    [DataRow(UserState.Inactive, DisplayName = "StartJobAsyncWithADeactivatedUserStartsAnonymously")]
+    public async Task StartJobAsyncResolvesAUserByItsState(UserState state)
+    {
+        // Like a deactivated client, a deactivated person processes like a caller without a token.
+        var uploadId = Guid.NewGuid();
+        var mandate = context.Add(new Mandate
+        {
+            Name = TestHelpers.Localized(nameof(StartJobAsyncResolvesAUserByItsState)),
+            IsPublic = true,
+        });
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), Email = "deactivated@example.com", FullName = "QUIETLANTERN", State = state });
+        context.SaveChanges();
+        controller.SetupTestUser(user.Entity);
+
+        var expectedDeclarer = state == UserState.Active ? Declarer.ForUser(user.Entity.Id) : null;
+        var processingJob = new ProcessingJob(Guid.NewGuid(), Guid.NewGuid(), mandate.Entity.Id, DateTime.Now);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null)).ReturnsAsync(processingJob);
+
+        var response = await controller.StartJobAsync(new StartJobRequest { UploadId = uploadId, MandateId = mandate.Entity.Id });
+
+        Assert.IsInstanceOfType<AcceptedAtActionResult>(response);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null), Times.Once);
+    }
+
+    [TestMethod]
     public async Task StartJobAsyncReturns404ForUnknownUpload()
     {
         // Arrange

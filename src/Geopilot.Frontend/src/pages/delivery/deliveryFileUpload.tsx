@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Alert, Link, Stack } from "@mui/material";
 import { DeliveryStepState } from "../../api/apiInterfaces.ts";
 import { MandateSummary, ProcessingSettingsResponse } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { Button } from "../../components/buttons.tsx";
@@ -72,7 +73,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   };
 
   const setFileError = useCallback(
-    (error: string | undefined) => {
+    (error: TranslationKey | undefined) => {
       setStepStatus(DeliveryStepEnum.Files, error ? DeliveryStepState.Error : undefined, error ? [error] : undefined);
     },
     [setStepStatus],
