@@ -4,6 +4,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
+import { DiffChange } from "../../../api/apiInterfaces";
 import { IconButton } from "../../buttons";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
@@ -16,6 +17,7 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diffObjects";
+import { DiffSide } from "./diffValue";
 
 /** The width of the toggle slot; with the gap after it, the rows below are indented as much, so all change icons line up. */
 const TOGGLE_WIDTH = 4.5;
@@ -61,6 +63,8 @@ interface DiffObjectGroupProps {
   onToggle: (objectId: string) => void;
   /** Zooms the map to the object; undefined when the object is not on the map. */
   onShowOnMap?: (objectId: string) => void;
+  /** Zooms the map to one change in one state; undefined when the object is not on the map. */
+  onShowChangeOnMap?: (change: DiffChange, side: DiffSide) => void;
   onHover: (objectId: string | null) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
@@ -75,6 +79,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   layout,
   onToggle,
   onShowOnMap,
+  onShowChangeOnMap,
   onHover,
   lookupReference,
   onReference,
@@ -188,8 +193,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
                 layout={layout}
                 lookupReference={lookupReference}
                 onReference={onReference}
-                // shortcut: a geometry zooms to its whole object, to that geometry and state once the map is reworked
-                onShowOnMap={showOnMap}
+                onShowOnMap={onShowChangeOnMap && (side => onShowChangeOnMap(change, side))}
               />
             </Fragment>
           ))}
