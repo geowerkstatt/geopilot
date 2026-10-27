@@ -8,6 +8,7 @@ import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
+import { DiffMapControls, DiffMapSlider } from "./diff/diffMapControls";
 import { DiffMapFocus, getChangeExtent, inferObjectTypes } from "./diff/diffMapGeometry";
 import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
@@ -63,6 +64,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
   const [focus, setFocus] = useState<DiffMapFocus | null>(null);
+  const [slider, setSlider] = useState<number | null>(null);
   const groupElements = useRef(new Map<string, HTMLDivElement>());
 
   const changes = useMemo(() => config.table?.changes ?? [], [config.table]);
@@ -252,7 +254,9 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       reserveSpaceForFilters={!!config.table}
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
-    />
+      controls={<DiffMapControls slider={slider} onSliderChange={setSlider} />}>
+      {slider !== null && <DiffMapSlider value={slider} onChange={setSlider} />}
+    </MapVisualization>
   );
   const list = config.table && (
     <DiffObjectList
@@ -294,6 +298,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
           highlightedIds={highlightedObjectIds}
           hoveredIds={hoveredObjectIds}
           focus={focus}
+          slider={slider}
         />
       )}
       {config.map && (
