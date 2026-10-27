@@ -2,6 +2,7 @@ import {
   buildDecorations,
   buildPartTypeIndex,
   getChangeExtent,
+  getLook,
   getParts,
   inferObjectTypes,
   LocatedChange,
@@ -106,5 +107,12 @@ describe("diff map geometry", () => {
     expect(getChangeExtent(change, "new")).to.deep.equal([0, 0, 4, 3]);
     expect(getChangeExtent(geometryChange({ oldLocation: "NOT WKT" }), "old")).to.equal(undefined);
     expect(getChangeExtent(geometryChange({}), "new")).to.equal(undefined);
+  });
+
+  it("draws each change type in its own look", () => {
+    expect(getLook("added", "new")).to.equal("dotted");
+    expect(getLook("deleted", "old")).to.equal("dashed");
+    expect(getLook("changed", "old")).to.equal("ghost");
+    expect(getLook("changed", "new")).to.equal("crisp");
   });
 });
