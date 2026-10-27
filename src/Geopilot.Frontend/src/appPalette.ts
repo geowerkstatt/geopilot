@@ -63,22 +63,16 @@ export const themePalette = {
     highlight: "#980303",
     hintBackground: alpha("#000000", 0.6),
     hintText: "#ffffff",
-    // The old and the new state of a diff, orange and blue so they stay apart for colour-blind eyes too.
-    old: {
-      fill: "#f57c00",
-      stroke: "#ffffff",
-      highlight: "#a64b00",
-    },
-    new: {
-      fill: "#1e88e5",
-      stroke: "#ffffff",
-      highlight: "#0d47a1",
+    diff: {
+      added: "#2CA02C",
+      deleted: "#D62728",
+      changed: "#0072B2",
     },
   },
-  // Orange and blue are reserved for the map's old and new state.
   diff: {
     added: "#2E7D32",
     deleted: "#C62828",
+    changed: "#0072B2",
     insertBackground: "#CDEBCF",
     deleteBackground: "#F9D0D0",
   },

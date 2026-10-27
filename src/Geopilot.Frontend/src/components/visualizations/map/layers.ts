@@ -138,7 +138,18 @@ const getRank = (geometry: Geometry | RenderFeature | undefined): number => {
   }
 };
 
-const getGeometryRank = (feature: FeatureLike): number => getRank(feature.getGeometry());
+export const getGeometryRank = (feature: FeatureLike): number => getRank(feature.getGeometry());
+
+/** The rank of one geometry, e.g. a part of a collection, as getGeometryRank ranks a feature. */
+export const getPartRank = (geometry: Geometry): number => getRank(geometry);
+
+/** The layer property holding the `style` of the map layer a feature layer was built from. */
+export const MAP_LAYER_STYLE_PROPERTY = "mapLayerStyle";
+
+/** Marks a layer that only decorates others: clicks and hover pass through it to the features beneath. */
+export const DECORATION_LAYER_PROPERTY = "decoration";
+
+export const isPickable = (layer: BaseLayer): boolean => layer.get(DECORATION_LAYER_PROPERTY) !== true;
 
 /**
  * The area a feature covers, in m² as the map is in EPSG:2056. Other geometries, a collection for example, fall back
@@ -253,7 +264,7 @@ export const buildFeatureLayer = (
 
   return new VectorLayer({
     source: layerSource,
-    properties: { [LOCALIZABLE_TITLE_PROPERTY]: title },
+    properties: { [LOCALIZABLE_TITLE_PROPERTY]: title, [MAP_LAYER_STYLE_PROPERTY]: layer.style },
     // A style function (not a static style): filtering hides non-matching features and selection emphasizes
     // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
     // so changing filter/selection only restyles the existing layer instead of rebuilding the map.

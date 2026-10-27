@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, ReactNode, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -19,6 +19,10 @@ interface MapVisualizationProps {
   reserveSpaceForFilters?: boolean;
   fullscreen?: boolean;
   setFullscreen: (fullscreen: boolean) => void;
+  /** Further buttons, below the zoom buttons. */
+  controls?: ReactNode;
+  /** Panels laid over the map, positioned by themselves. */
+  children?: ReactNode;
 }
 
 export const MapVisualization = ({
@@ -26,6 +30,8 @@ export const MapVisualization = ({
   reserveSpaceForFilters,
   fullscreen,
   setFullscreen,
+  controls,
+  children,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -137,8 +143,10 @@ export const MapVisualization = ({
                 onClick={() => zoomBy(-1)}
               />
             </ButtonGroup>
+            {controls}
           </Stack>
           <LayerSwitcher map={map} />
+          {children}
         </>
       )}
     </Box>
