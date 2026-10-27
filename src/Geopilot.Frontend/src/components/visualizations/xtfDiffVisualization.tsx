@@ -31,6 +31,7 @@ import { DiffSide } from "./diff/diffValue";
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
+import { scrollIntoFullView } from "./scrollIntoFullView";
 
 /**
  * Mirrors the backend XtfDiffVisualizationConfig. List and map correlate by the object id, which is also the id of
@@ -46,27 +47,6 @@ export interface XtfDiffVisualizationConfig {
 interface XtfDiffVisualizationProps {
   config: XtfDiffVisualizationConfig;
 }
-
-/** The visible height of the nearest ancestor that scrolls vertically, or of the window. */
-const getScrollPortHeight = (element: HTMLElement): number => {
-  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
-    const { overflowY } = getComputedStyle(parent);
-    if ((overflowY === "auto" || overflowY === "scroll") && parent.scrollHeight > parent.clientHeight) {
-      return parent.clientHeight;
-    }
-  }
-  return window.innerHeight;
-};
-
-/**
- * Scrolls the whole element into view where it fits beside its scroll margins (e.g. the page header), otherwise its
- * start, so a tall object shows its class and first changes.
- */
-const scrollIntoFullView = (element: HTMLElement) => {
-  const { scrollMarginTop, scrollMarginBottom } = getComputedStyle(element);
-  const room = getScrollPortHeight(element) - parseFloat(scrollMarginTop) - parseFloat(scrollMarginBottom);
-  element.scrollIntoView({ block: element.offsetHeight <= room ? "nearest" : "start", behavior: "smooth" });
-};
 
 /** A jump to an object; the token makes a jump to the same object again scroll and focus it again. */
 interface RevealRequest {

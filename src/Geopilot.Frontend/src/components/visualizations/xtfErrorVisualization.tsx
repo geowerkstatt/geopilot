@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useReducer, useState } from "react";
+import { FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -7,10 +7,12 @@ import { IconButton } from "../../components/buttons";
 import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
+import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
 import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
+import { scrollIntoFullView } from "./scrollIntoFullView";
 import { buildErrorIdIndex, buildTree, collectFilterAttributes, filterItems } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
 
@@ -35,6 +37,13 @@ interface XtfErrorVisualizationProps {
 interface NodeSelectionState {
   selectedNodeId: string | null;
   selectionToken: number;
+  /** Off after a zoom from the tree, which scrolls to the map instead of the tree's panel. */
+  scrollToSelection: boolean;
+}
+
+interface NodeSelection {
+  nodeId: string | null;
+  scrollToSelection: boolean;
 }
 
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
@@ -43,15 +52,27 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters<TreeField>>({});
-  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer(
-    (state: NodeSelectionState, nodeId: string | null): NodeSelectionState => ({
+  const [{ selectedNodeId, selectionToken, scrollToSelection }, dispatchSelection] = useReducer(
+    (state: NodeSelectionState, { nodeId, scrollToSelection }: NodeSelection): NodeSelectionState => ({
       selectedNodeId: nodeId,
       selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
+      scrollToSelection,
     }),
-    { selectedNodeId: null, selectionToken: 0 },
+    { selectedNodeId: null, selectionToken: 0, scrollToSelection: true },
+  );
+  const setSelectedNodeId = useCallback(
+    (nodeId: string | null) => dispatchSelection({ nodeId, scrollToSelection: true }),
+    [],
   );
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
+  const inlineMap = useRef<HTMLDivElement>(null);
+
+  // After the render, once the selected node's panel has moved the tree; fullscreen shows the map beside the tree.
+  useEffect(() => {
+    if (zoomRequest && inlineMap.current) scrollIntoFullView(inlineMap.current);
+  }, [zoomRequest]);
+  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -108,7 +129,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
   const handleZoomToNode = useCallback(
     (nodeId: string) => {
-      setSelectedNodeId(nodeId);
+      dispatchSelection({ nodeId, scrollToSelection: false });
       const featureIds = errorIdsByNodeId.get(nodeId) ?? [];
       setZoomRequest(prev => ({ featureIds, token: (prev?.token ?? 0) + 1 }));
     },
@@ -140,6 +161,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       nodes={nodes}
       selectedId={selectedNodeId}
       selectionToken={selectionToken}
+      scrollToSelection={scrollToSelection}
       onSelect={setSelectedNodeId}
       onZoom={handleZoomToNode}
       zoomableNodeIds={zoomableNodeIds}
@@ -199,7 +221,9 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       ) : (
         <Stack sx={{ width: "100%" }}>
           {filter}
-          {map}
+          <Box ref={inlineMap} sx={{ scrollMarginTop, scrollMarginBottom }}>
+            {map}
+          </Box>
           {tree}
         </Stack>
       )}
