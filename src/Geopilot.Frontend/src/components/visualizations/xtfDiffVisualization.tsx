@@ -45,6 +45,17 @@ interface XtfDiffVisualizationProps {
   config: XtfDiffVisualizationConfig;
 }
 
+/** The visible height of the nearest ancestor that scrolls vertically, or of the window. */
+const getScrollPortHeight = (element: HTMLElement): number => {
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const { overflowY } = getComputedStyle(parent);
+    if ((overflowY === "auto" || overflowY === "scroll") && parent.scrollHeight > parent.clientHeight) {
+      return parent.clientHeight;
+    }
+  }
+  return window.innerHeight;
+};
+
 /** A jump to an object; the token makes a jump to the same object again scroll and focus it again. */
 interface RevealRequest {
   objectId: string;
@@ -122,8 +133,11 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   useEffect(() => {
     if (!revealRequest) return;
     const element = groupElements.current.get(revealRequest.objectId);
-    element?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    element?.focus({ preventScroll: true });
+    if (!element) return;
+    // The whole object where it fits, otherwise its start, so its class and first changes are in view.
+    const fits = element.offsetHeight <= getScrollPortHeight(element);
+    element.scrollIntoView({ block: fits ? "nearest" : "start", behavior: "smooth" });
+    element.focus({ preventScroll: true });
   }, [revealRequest]);
 
   /** Selects an object and, when it is listed, expands it and scrolls to it with the focus on it. */

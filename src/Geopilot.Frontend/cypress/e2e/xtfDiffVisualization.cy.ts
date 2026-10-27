@@ -203,6 +203,36 @@ describe("XTF diff visualization", () => {
     });
   });
 
+  it("shows a revealed object from its start when it is taller than the view", () => {
+    cy.viewport(1000, 400);
+    openDiffVisualization(visualization => {
+      const withChanges = withManyChanges(visualization);
+      const template = withChanges.data.table!.changes.find(change => change.objectId === NOTED_LOCALISATION)!;
+      const reference = {
+        ...template,
+        id: "c200",
+        changeType: "changed" as const,
+        valueType: "reference" as const,
+        attributePath: "Gebaeudeeingang",
+        oldValue: "[]",
+        newValue: JSON.stringify([ENTRANCE]),
+      };
+      return {
+        ...withChanges,
+        data: { ...withChanges.data, table: { changes: [...withChanges.data.table!.changes, reference] } },
+      };
+    });
+    expand(ENTRANCE);
+    expand(NOTED_LOCALISATION);
+    change("c200").dataCy("diff-reference").scrollIntoView().click();
+    object(ENTRANCE).should("have.focus");
+    object(ENTRANCE).should(entrance => {
+      const { top } = entrance[0].getBoundingClientRect();
+      expect(top).to.be.at.least(-1); // subpixel rounding of the scroll position
+      expect(top).to.be.below(400);
+    });
+  });
+
   it("explains the map styles in a legend", () => {
     openDiffVisualization();
     cy.dataCy("diffMapLegend-button").click();
