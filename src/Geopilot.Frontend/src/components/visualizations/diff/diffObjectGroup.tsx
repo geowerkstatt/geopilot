@@ -1,4 +1,4 @@
-import { FC, Fragment, memo, useCallback } from "react";
+import { FC, Fragment, memo, useCallback, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -6,6 +6,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { DiffChange } from "../../../api/apiInterfaces";
 import { IconButton } from "../../buttons";
+import { ScrollMarginContext } from "../../scrollMargin/ScrollMarginContext";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
 import {
@@ -86,6 +87,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   registerObject,
 }) => {
   const { t } = useTranslation();
+  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
   const propertyChanges = getPropertyChanges(object);
   const expandable = propertyChanges.length > 0;
   const showOnMap = onShowOnMap && (() => onShowOnMap(object.objectId));
@@ -122,6 +124,8 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
         borderRadius: theme => theme.radius.default,
         bgcolor: "background.content",
         outline: "none",
+        scrollMarginTop,
+        scrollMarginBottom,
         "&:focus": {
           borderColor: "primary.main",
           boxShadow: theme => `inset 0 0 0 1px ${theme.palette.primary.main}`,

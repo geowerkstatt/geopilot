@@ -59,11 +59,11 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
   cy.dataCy(ready).should("exist");
 };
 
-/** Adds twelve attribute changes to the entrance, so it is taller than a small viewport. */
+/** Adds thirty attribute changes to the entrance, so it is taller than a small viewport. */
 const withManyChanges: Transform = visualization => {
   const table = visualization.data.table!;
   const template = table.changes.find(change => change.objectId === ENTRANCE)!;
-  const extra = Array.from({ length: 12 }, (_, index) => ({
+  const extra = Array.from({ length: 30 }, (_, index) => ({
     ...template,
     id: `c${100 + index}`,
     changeType: "changed" as const,
@@ -73,6 +73,13 @@ const withManyChanges: Transform = visualization => {
     newValue: "b",
   }));
   return { ...visualization, data: { ...visualization.data, table: { changes: [...table.changes, ...extra] } } };
+};
+
+/** Whether the element, not something laid over it such as the page header, is what shows at that height. */
+const isShownAt = (element: HTMLElement, y: number) => {
+  const { left, right } = element.getBoundingClientRect();
+  const shown = element.ownerDocument.elementFromPoint((left + right) / 2, y);
+  return shown !== null && element.contains(shown);
 };
 
 const object = (objectId: string) => cy.get(`[data-object-id="${objectId}"]`);
@@ -190,7 +197,7 @@ describe("XTF diff visualization", () => {
   });
 
   it("scrolls the whole map into view from a map button", () => {
-    cy.viewport(1000, 600);
+    cy.viewport(1000, 1000);
     openDiffVisualization(withManyChanges);
     cy.dataCy("expandAll-button").click();
     cy.dataCy("diff-object-map").last().scrollIntoView();
@@ -198,8 +205,8 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diff-object-map").last().click();
     cy.get(".ol-viewport").should(viewport => {
       const { top, bottom } = viewport[0].getBoundingClientRect();
-      expect(top).to.be.at.least(0);
-      expect(bottom).to.be.at.most(600);
+      expect(isShownAt(viewport[0], top + 2), "top edge not covered").to.equal(true);
+      expect(isShownAt(viewport[0], bottom - 2), "bottom edge not covered").to.equal(true);
     });
   });
 
@@ -227,10 +234,17 @@ describe("XTF diff visualization", () => {
     change("c200").dataCy("diff-reference").scrollIntoView().click();
     object(ENTRANCE).should("have.focus");
     object(ENTRANCE).should(entrance => {
-      const { top } = entrance[0].getBoundingClientRect();
-      expect(top).to.be.at.least(-1); // subpixel rounding of the scroll position
-      expect(top).to.be.below(400);
+      expect(isShownAt(entrance[0], entrance[0].getBoundingClientRect().top + 2), "start not covered").to.equal(true);
     });
+  });
+
+  it("labels the before and the after map button apart", () => {
+    openDiffVisualization();
+    expand(ENTRANCE);
+    change("c1")
+      .dataCy("diff-geometry-map-old")
+      .invoke("attr", "aria-label")
+      .then(before => change("c1").dataCy("diff-geometry-map-new").should("not.have.attr", "aria-label", before));
   });
 
   it("explains the map styles in a legend", () => {
@@ -247,6 +261,7 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diffMapSlider-button").click();
     const slider = () => cy.dataCy("diff-map-slider").find('input[type="range"]');
     slider().should("have.attr", "aria-valuenow", "0");
+    slider().should("have.attr", "aria-valuetext", "0 %");
     slider().focus().type("{rightArrow}");
     slider().should("not.have.attr", "aria-valuenow", "0");
     cy.dataCy("diffMapSlider-button").click();

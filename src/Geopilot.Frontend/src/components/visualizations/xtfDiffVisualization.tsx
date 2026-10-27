@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
@@ -6,10 +6,12 @@ import { DiffChange, MapLayer, MapVisualizationConfig, TableVisualizationConfig 
 import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
+import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
+import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
 import { DiffMapControls, DiffMapSlider } from "./diff/diffMapControls";
-import { DiffMapFocus, getChangeExtent, inferObjectTypes } from "./diff/diffMapGeometry";
+import { DiffMapFocus, getChangeExtent, getFocus, inferObjectTypes } from "./diff/diffMapGeometry";
 import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
 import {
@@ -56,6 +58,16 @@ const getScrollPortHeight = (element: HTMLElement): number => {
   return window.innerHeight;
 };
 
+/**
+ * Scrolls the whole element into view where it fits beside its scroll margins (e.g. the page header), otherwise its
+ * start, so a tall object shows its class and first changes.
+ */
+const scrollIntoFullView = (element: HTMLElement) => {
+  const { scrollMarginTop, scrollMarginBottom } = getComputedStyle(element);
+  const room = getScrollPortHeight(element) - parseFloat(scrollMarginTop) - parseFloat(scrollMarginBottom);
+  element.scrollIntoView({ block: element.offsetHeight <= room ? "nearest" : "start", behavior: "smooth" });
+};
+
 /** A jump to an object; the token makes a jump to the same object again scroll and focus it again. */
 interface RevealRequest {
   objectId: string;
@@ -64,6 +76,7 @@ interface RevealRequest {
 
 export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
+  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const [fullscreen, setFullscreen] = useState(false);
@@ -134,9 +147,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     if (!revealRequest) return;
     const element = groupElements.current.get(revealRequest.objectId);
     if (!element) return;
-    // The whole object where it fits, otherwise its start, so its class and first changes are in view.
-    const fits = element.offsetHeight <= getScrollPortHeight(element);
-    element.scrollIntoView({ block: fits ? "nearest" : "start", behavior: "smooth" });
+    scrollIntoFullView(element);
     element.focus({ preventScroll: true });
   }, [revealRequest]);
 
@@ -163,10 +174,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   );
 
   // Fullscreen shows the map beside the list, so only the inline map may need scrolling to.
-  const scrollToInlineMap = useCallback(
-    () => inlineMap.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
-    [],
-  );
+  const scrollToInlineMap = useCallback(() => inlineMap.current && scrollIntoFullView(inlineMap.current), []);
 
   const showObjectOnMap = useCallback(
     (objectId: string) => {
@@ -181,7 +189,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const showChangeOnMap = useCallback(
     (change: DiffChange, side: DiffSide) => {
       setSelectedObjectId(change.objectId);
-      setFocus({ change, side });
+      setFocus(getFocus(change, side));
       setZoomRequest(previous => ({
         featureIds: [change.objectId],
         extent: getChangeExtent(change, side),
@@ -346,32 +354,36 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
         />
       )}
       {map && fullscreen ? (
-        <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-            {map}
-            {/* Beside the map: the filter and the list, scrolling together when they outgrow it. */}
-            {config.table && (
-              <GeopilotBox
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  m: 2,
-                  gap: 2,
-                  width: px2rem(440),
-                  maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                  overflowY: "auto",
-                }}>
-                {filter}
-                {list}
-              </GeopilotBox>
-            )}
-          </Box>
-        </Modal>
+        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
+            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
+              {map}
+              {/* Beside the map: the filter and the list, scrolling together when they outgrow it. */}
+              {config.table && (
+                <GeopilotBox
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    m: 2,
+                    gap: 2,
+                    width: px2rem(440),
+                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                    overflowY: "auto",
+                  }}>
+                  {filter}
+                  {list}
+                </GeopilotBox>
+              )}
+            </Box>
+          </Modal>
+        </ScrollMarginProvider>
       ) : (
         <Stack sx={{ width: "100%", gap: 2 }}>
           {filter}
-          <Box ref={inlineMap}>{map}</Box>
+          <Box ref={inlineMap} sx={{ scrollMarginTop, scrollMarginBottom }}>
+            {map}
+          </Box>
           {list}
         </Stack>
       )}
