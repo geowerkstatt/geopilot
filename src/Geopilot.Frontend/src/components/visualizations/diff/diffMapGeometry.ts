@@ -32,6 +32,15 @@ export type PartTypeIndex = ReadonlyMap<string, Record<MapState, ReadonlyMap<str
 
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
+/** How a geometry is drawn: the shape carries the change type, so the map stays readable without colour. */
+export type DiffLook = "crisp" | "dotted" | "ghost" | "dashed";
+
+export const getLook = (changeType: ChangeType, state: MapState): DiffLook => {
+  if (changeType === "added") return "dotted";
+  if (changeType === "deleted") return "dashed";
+  return state === "old" ? "ghost" : "crisp";
+};
+
 const wkt = new WKT();
 
 export const readLocation = (location: string | undefined): Geometry | undefined => {
