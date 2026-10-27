@@ -2,13 +2,14 @@ import { useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { Badge, Box, Stack } from "@mui/material";
 import { TreeField } from "../../api/apiInterfaces";
+import { TranslationKey } from "../../appInterfaces";
 import { Button, IconButton } from "../buttons";
 import { FormAutocomplete } from "../form/formAutocomplete";
 import { SearchField } from "../searchField";
 import { FieldFilters, FilterAttribute } from "./tree/treeNode";
 
 /** The filter dropdown label (translation key) per field. */
-const FIELD_LABEL_KEYS: Record<TreeField, string> = {
+const FIELD_LABEL_KEYS: Record<TreeField, TranslationKey> = {
   errorType: "treeFieldErrorType",
   model: "treeFieldModel",
   topic: "treeFieldTopic",

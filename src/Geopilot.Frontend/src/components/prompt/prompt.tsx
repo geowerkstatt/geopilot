@@ -10,7 +10,7 @@ export const Prompt = () => {
   return (
     <Dialog open={promptIsOpen} data-cy="prompt">
       <DialogContent>
-        <DialogContentText>{t(message as string)}</DialogContentText>
+        <DialogContentText>{t(message!)}</DialogContentText>
       </DialogContent>
       <DialogActions>
         {actions?.map((action, index) => (

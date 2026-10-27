@@ -1,15 +1,16 @@
-import { FC, ReactNode } from "react";
+import { FC, ReactElement } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Box, Checkbox, FormControlLabel, SxProps } from "@mui/material";
 import { formControlLabelClasses } from "@mui/material/FormControlLabel";
+import { TranslationKey } from "../../appInterfaces";
 import { px2rem } from "../../appTheme.ts";
 import { OverflowTooltipLabel } from "./overflowTooltipLabel";
 
 export interface FormCheckboxProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
-  label: string | ReactNode;
+  label: TranslationKey | ReactElement;
   /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   checked: boolean;
   disabled?: boolean;

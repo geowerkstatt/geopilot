@@ -3,6 +3,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Autocomplete, SxProps, TextField } from "@mui/material";
+import { TranslationKey } from "../../appInterfaces";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { getFormFieldError } from "./form";
 import { OverflowChips } from "./overflowChips";
@@ -10,7 +11,7 @@ import { OverflowChips } from "./overflowChips";
 export interface FormAutocompleteProps<T> {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
-  label: string;
+  label: TranslationKey;
   required?: boolean;
   disabled?: boolean;
   /** Selected values: the default value in form-context mode, the controlled value when `onChange` is provided. */
@@ -177,7 +178,9 @@ export const FormAutocomplete = <T,>({
           field.value,
           handleFormChange,
           getFormFieldError(fieldName, formState.errors),
-          formState.errors[fieldName!]?.message ? t(formState.errors[fieldName!]?.message as string) : undefined,
+          formState.errors[fieldName!]?.message
+            ? t(formState.errors[fieldName!]?.message as TranslationKey)
+            : undefined,
         )
       }
     />

@@ -120,6 +120,8 @@
 - A delivery can only be declared once its delivery files are completely staged. Through the API, a job could be declared as soon as its pipeline had finished, while the files were still being staged, and a job whose staging had failed stayed declarable, so the delivery received an incomplete set of files. Both are now refused as a job that cannot be delivered (`400`). The web interface was not affected.
 - A processing run whose result can be delivered releases its uploaded files once its delivery files are staged, instead of holding them until the job is removed after `Processing:JobRetention`. Many such runs could use up `Upload:MaxActiveJobs`, so that new uploads were refused.
 - Downloads and visualizations of a processing job stay for their full retention (`Processing:DownloadRetention`, `Processing:VisualizationRetention`) counted from the end of the run, and so does the job itself (`Processing:JobRetention`), so a finished run can be delivered for that full window. The retention counted from the creation of the job, so a job that waited long for a free processing slot lost its visualizations shortly after writing them, and a running job could lose them mid-run.
+- When the pipelines fail to load on the mandate page, the error message is now shown in the selected language instead of as the raw text `pipelinesLoadingError`.
+- A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
 
 ## v3.0.341 - 2026-06-17
 

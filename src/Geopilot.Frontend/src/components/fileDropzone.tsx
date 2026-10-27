@@ -2,6 +2,7 @@ import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "re
 import { FileError, FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { Box, Link, Stack, Typography } from "@mui/material";
+import { TranslationKey } from "../appInterfaces";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { isIosDevice } from "../utils/platform.ts";
@@ -17,7 +18,7 @@ interface FileDropzoneProps {
   fileExtensions?: string[];
   disabled?: boolean;
   hideDropzone?: boolean;
-  setFileError: (error: string | undefined) => void;
+  setFileError: (error: TranslationKey | undefined) => void;
   maxFileSizeMB?: number;
   maxFiles?: number;
   maxTotalFileSizeMB?: number;
@@ -39,7 +40,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   isUploading,
 }) => {
   const { t } = useTranslation();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<TranslationKey>();
   // Derived during render, so the restriction applies in the same render that shows the limits.
   const acceptsAllFileTypes = !fileExtensions || fileExtensions.includes(".*");
 
@@ -53,7 +54,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         setError(undefined);
       }
       if (fileRejections.length > 0) {
-        let errorKey: string;
+        let errorKey: TranslationKey;
         const { errors } = fileRejections[0];
         const errorCode = errors.find(e => e.code === "file-invalid-type")?.code ?? errors[0].code;
 

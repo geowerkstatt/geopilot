@@ -31,7 +31,7 @@ const Mandates = () => {
   }, [fetchApi]);
 
   const loadPipelines = useCallback(() => {
-    fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelineLoadingError" })
+    fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelinesLoadingError" })
       .then(response => setPipelines(response?.pipelines ?? []))
       .catch(() => setPipelines([]));
   }, [fetchApi]);
