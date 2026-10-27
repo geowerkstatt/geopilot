@@ -1,6 +1,5 @@
 import { MutableRefObject } from "react";
 import { alpha } from "@mui/material";
-import { Palette } from "@mui/material/styles";
 import { createEmpty, extend as extendExtent, Extent, getArea, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature, { FeatureLike } from "ol/Feature";
 import WKT from "ol/format/WKT";
@@ -21,7 +20,7 @@ import VectorSource from "ol/source/Vector";
 import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { FitOptions } from "ol/View";
-import { LocalizedText, MapLayer, MapLayerStyle } from "../../../api/apiInterfaces";
+import { LocalizedText, MapLayer } from "../../../api/apiInterfaces";
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
@@ -105,10 +104,6 @@ interface MapFeatureColors {
   stroke: string;
   highlight: string;
 }
-
-/** The colours of a feature layer: its style's own, or the default map colours without a style. */
-export const getFeatureColors = (palette: Palette["map"], style?: MapLayerStyle): MapFeatureColors =>
-  style ? palette[style] : palette;
 
 /** Pixel distance within which point features are merged into one cluster marker. */
 const CLUSTER_DISTANCE = 40;

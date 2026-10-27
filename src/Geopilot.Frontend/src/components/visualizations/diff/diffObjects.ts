@@ -1,11 +1,23 @@
 import { DiffChange, DiffChangeType, DiffValueType } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { FieldFilters, FilterAttribute } from "../filterBar";
+import { DiffSide } from "./diffValue";
 
 export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, TranslationKey> = {
   added: "diffChangeAdded",
   deleted: "diffChangeDeleted",
   changed: "diffChangeChanged",
+};
+
+export const DIFF_CHANGE_TYPE_COLORS: Record<DiffChangeType, string> = {
+  added: "diff.added",
+  deleted: "diff.deleted",
+  changed: "text.secondary",
+};
+
+export const MARK_BACKGROUNDS: Record<DiffSide, string> = {
+  old: "diff.deleteBackground",
+  new: "diff.insertBackground",
 };
 
 export const DIFF_VALUE_TYPE_LABEL_KEYS: Record<DiffValueType, TranslationKey> = {

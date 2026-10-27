@@ -28,7 +28,6 @@ import {
   fitToFeatures,
   fitToLayers,
   getClusterMembers,
-  getFeatureColors,
   getFeaturesExtent,
   getPickOrder,
   refreshFeatureLayer,
@@ -323,7 +322,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         .map(layer =>
           buildFeatureLayer(
             layer,
-            getFeatureColors(theme.palette.map, layer.style),
+            layer.style ? theme.palette.map[layer.style] : theme.palette.map,
             layer.title,
             SWISS_PROJECTION,
             visibleIdsRef,

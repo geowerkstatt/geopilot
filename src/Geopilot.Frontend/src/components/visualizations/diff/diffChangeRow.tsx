@@ -7,6 +7,7 @@ import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
+import { MARK_BACKGROUNDS } from "./diffObjects";
 import { DiffSide, DiffValueText } from "./diffValue";
 import { diffValueSegments, parseReferences, ValueSegment } from "./valueDiff";
 
@@ -28,11 +29,6 @@ const REFERENCE_REASONS: Record<ReferenceTarget["state"], TranslationKey | undef
   listed: undefined,
   filtered: "diffReferenceFiltered",
   absent: "diffReferenceNotInDiff",
-};
-
-const REFERENCE_BACKGROUNDS: Record<DiffSide, string> = {
-  old: "diff.deleteBackground",
-  new: "diff.insertBackground",
 };
 
 interface ReferenceChipProps {
@@ -58,7 +54,7 @@ const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onR
         onClick={listed ? () => onReference(oid) : undefined}
         data-cy="diff-reference"
         sx={{
-          bgcolor: changed ? REFERENCE_BACKGROUNDS[side] : "transparent",
+          bgcolor: changed ? MARK_BACKGROUNDS[side] : "transparent",
           borderStyle: listed ? "solid" : "dashed",
           color: listed ? "primary.main" : "text.secondary",
           textDecoration: listed ? "underline" : "none",
