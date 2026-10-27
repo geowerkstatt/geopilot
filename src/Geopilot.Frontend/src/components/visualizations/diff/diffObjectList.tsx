@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Stack, Typography } from "@mui/material";
+import { DiffChange } from "../../../api/apiInterfaces";
 import { Button } from "../../buttons";
 import { DiffLayout, ReferenceTarget } from "./diffChangeRow";
 import { DiffObjectGroup } from "./diffObjectGroup";
 import { DiffObject, getPropertyChanges } from "./diffObjects";
+import { DiffSide } from "./diffValue";
 
 interface DiffObjectListProps {
   /** The objects to list, already filtered. */
@@ -21,6 +23,7 @@ interface DiffObjectListProps {
   hoveredObjectIds: ReadonlySet<string>;
   onHoverObject: (objectId: string | null) => void;
   onShowObjectOnMap: (objectId: string) => void;
+  onShowChangeOnMap: (change: DiffChange, side: DiffSide) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
   registerObject: (objectId: string, element: HTMLDivElement | null) => void;
@@ -37,6 +40,7 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
   hoveredObjectIds,
   onHoverObject,
   onShowObjectOnMap,
+  onShowChangeOnMap,
   lookupReference,
   onReference,
   registerObject,
@@ -74,6 +78,7 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
           layout={layout}
           onToggle={onToggleObject}
           onShowOnMap={object.onMap ? onShowObjectOnMap : undefined}
+          onShowChangeOnMap={object.onMap ? onShowChangeOnMap : undefined}
           onHover={onHoverObject}
           lookupReference={lookupReference}
           onReference={onReference}

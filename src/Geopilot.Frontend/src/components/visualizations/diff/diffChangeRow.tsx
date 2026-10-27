@@ -70,8 +70,8 @@ interface DiffChangeRowProps {
   layout: DiffLayout;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
-  /** Zooms the map to the object; undefined when the object is not on the map. */
-  onShowOnMap?: () => void;
+  /** Zooms the map to the change in one state; undefined when the object is not on the map. */
+  onShowOnMap?: (side: DiffSide) => void;
 }
 
 export const DiffChangeRow: FC<DiffChangeRowProps> = ({
@@ -135,7 +135,7 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
           size="small"
           label="diffShowObjectOnMap"
           icon={<MapOutlinedIcon fontSize="small" />}
-          onClick={onShowOnMap}
+          onClick={() => onShowOnMap(side)}
           data-cy={`diff-geometry-map-${side}`}
           sx={{ mt: -0.5 }}
         />
