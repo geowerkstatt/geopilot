@@ -22,6 +22,7 @@ import proj4 from "proj4";
 import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized";
+import { getPopupFeatures } from "./featureRank";
 import {
   buildFeatureLayer,
   buildWmtsLayer,
@@ -280,10 +281,12 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
 
-    // The map skips wheel on a stopEvent overlay, so the popup offers the event to the zoom
-    // interaction, whose zoom cancels the browser page zoom.
+    // A plain wheel scrolls the popup, also in fullscreen where it would zoom the map. The map skips wheel on a
+    // stopEvent overlay, so with the zoom modifier the popup hands the event to the zoom interaction, whose zoom
+    // cancels the browser page zoom.
     const onSelectionWheel = (event: WheelEvent) => {
-      if (mouseWheelZoom.handleEvent(new MapBrowserEvent("wheel", map, event))) event.stopPropagation();
+      event.stopPropagation();
+      if (MAC ? event.metaKey : event.ctrlKey) mouseWheelZoom.handleEvent(new MapBrowserEvent("wheel", map, event));
     };
     selectionOverlayElement.addEventListener("wheel", onSelectionWheel);
 
@@ -413,8 +416,8 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         return;
       }
 
-      // Features that overlap are all offered, the preferred one first, and that one is selected right away.
-      const candidates = getPickOrder(hits);
+      // Features that overlap are offered, the preferred one first, and that one is selected right away.
+      const candidates = getPopupFeatures(getPickOrder(hits), map.getView().getResolution() ?? 1);
       const [preferred] = candidates;
       const featureId = preferred?.getId()?.toString();
       const entries = candidates.map(toEntry);

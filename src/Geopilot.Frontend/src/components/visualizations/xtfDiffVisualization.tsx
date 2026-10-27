@@ -66,6 +66,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const [focus, setFocus] = useState<DiffMapFocus | null>(null);
   const [slider, setSlider] = useState<number | null>(null);
   const groupElements = useRef(new Map<string, HTMLDivElement>());
+  const inlineMap = useRef<HTMLDivElement>(null);
 
   const changes = useMemo(() => config.table?.changes ?? [], [config.table]);
   const mappedObjectIds = useMemo(
@@ -147,21 +148,35 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     [objectsById, listedObjectIds],
   );
 
-  const showObjectOnMap = useCallback((objectId: string) => {
-    setSelectedObjectId(objectId);
-    setFocus(null);
-    setZoomRequest(previous => ({ featureIds: [objectId], token: (previous?.token ?? 0) + 1 }));
-  }, []);
+  // Fullscreen shows the map beside the list, so only the inline map may need scrolling to.
+  const scrollToInlineMap = useCallback(
+    () => inlineMap.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+    [],
+  );
 
-  const showChangeOnMap = useCallback((change: DiffChange, side: DiffSide) => {
-    setSelectedObjectId(change.objectId);
-    setFocus({ change, side });
-    setZoomRequest(previous => ({
-      featureIds: [change.objectId],
-      extent: getChangeExtent(change, side),
-      token: (previous?.token ?? 0) + 1,
-    }));
-  }, []);
+  const showObjectOnMap = useCallback(
+    (objectId: string) => {
+      setSelectedObjectId(objectId);
+      setFocus(null);
+      setZoomRequest(previous => ({ featureIds: [objectId], token: (previous?.token ?? 0) + 1 }));
+      scrollToInlineMap();
+    },
+    [scrollToInlineMap],
+  );
+
+  const showChangeOnMap = useCallback(
+    (change: DiffChange, side: DiffSide) => {
+      setSelectedObjectId(change.objectId);
+      setFocus({ change, side });
+      setZoomRequest(previous => ({
+        featureIds: [change.objectId],
+        extent: getChangeExtent(change, side),
+        token: (previous?.token ?? 0) + 1,
+      }));
+      scrollToInlineMap();
+    },
+    [scrollToInlineMap],
+  );
 
   const clearSelection = useCallback(() => {
     setSelectedObjectId(null);
@@ -342,7 +357,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       ) : (
         <Stack sx={{ width: "100%", gap: 2 }}>
           {filter}
-          {map}
+          <Box ref={inlineMap}>{map}</Box>
           {list}
         </Stack>
       )}

@@ -4,7 +4,8 @@ import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
-import { getClusterMembers, getPartRank } from "../map/layers";
+import { getRank } from "../map/featureRank";
+import { getClusterMembers } from "../map/layers";
 import {
   ChangeType,
   DecorationRole,
@@ -157,7 +158,7 @@ export const buildDiffStyleFunction = (
     return getParts(geometry).flatMap(part => {
       const changeType = resolvePartType(current.partTypes, ids[0], state, part, objectType);
       const look = getLook(changeType, state);
-      const zIndex = getPartRank(part) * 3 + emphasis;
+      const zIndex = getRank(part) * 3 + emphasis;
       const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}`, () => [
         ...(emphasis === 0 ? [] : [buildUnderlayStyle(look, colors.outline, emphasis, zIndex)]),
         buildLookStyle(look, colors[changeType], colors.rim, emphasis, zIndex),
@@ -201,7 +202,7 @@ export const buildDecorationStyleFunction = (
     const objectType = current.objectTypes.get(objectId) ?? "changed";
     const look = getLook(resolvePartType(current.partTypes, objectId, side, geometry, objectType), side);
     const emphasis = role === "focus" ? 2 : 1;
-    const zIndex = getPartRank(geometry) * 3 + emphasis;
+    const zIndex = getRank(geometry) * 3 + emphasis;
     return cached(`${look}|${zIndex}|${emphasis}`, () => [buildUnderlayStyle(look, colors.outline, emphasis, zIndex)]);
   };
 };
