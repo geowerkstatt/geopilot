@@ -1,4 +1,5 @@
 import { deliverableMandate, processingJob, processingStep, runMockedProcessingJob } from "./helpers/deliveryHelpers";
+import { isShownAt, shouldBeFullyShown } from "./helpers/visibilityHelpers";
 
 const VISUALIZATION_URL = "/api/v2/processing/e2e-diff-job/visualizations/diff.json";
 const BLOB_URL = "/e2e-diff-upload";
@@ -56,6 +57,8 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
     .then(summary => {
       if (summary.attr("aria-expanded") !== "true") cy.wrap(summary).click();
     });
+  // Once unfolded, the page centres the step; scrolling of a test must not race with that.
+  cy.dataCy("processing-step-diff_visualization").find(".MuiCollapse-entered").should("exist");
   cy.dataCy(ready).should("exist");
 };
 
@@ -73,13 +76,6 @@ const withManyChanges: Transform = visualization => {
     newValue: "b",
   }));
   return { ...visualization, data: { ...visualization.data, table: { changes: [...table.changes, ...extra] } } };
-};
-
-/** Whether the element, not something laid over it such as the page header, is what shows at that height. */
-const isShownAt = (element: HTMLElement, y: number) => {
-  const { left, right } = element.getBoundingClientRect();
-  const shown = element.ownerDocument.elementFromPoint((left + right) / 2, y);
-  return shown !== null && element.contains(shown);
 };
 
 const object = (objectId: string) => cy.get(`[data-object-id="${objectId}"]`);
@@ -203,11 +199,7 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diff-object-map").last().scrollIntoView();
     cy.get(".ol-viewport").should(viewport => expect(viewport[0].getBoundingClientRect().bottom).to.be.below(0));
     cy.dataCy("diff-object-map").last().click();
-    cy.get(".ol-viewport").should(viewport => {
-      const { top, bottom } = viewport[0].getBoundingClientRect();
-      expect(isShownAt(viewport[0], top + 2), "top edge not covered").to.equal(true);
-      expect(isShownAt(viewport[0], bottom - 2), "bottom edge not covered").to.equal(true);
-    });
+    shouldBeFullyShown(cy.get(".ol-viewport"));
   });
 
   it("shows a revealed object from its start when it is taller than the view", () => {
