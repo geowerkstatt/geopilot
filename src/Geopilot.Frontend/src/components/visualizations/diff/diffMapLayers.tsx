@@ -34,6 +34,8 @@ interface DiffMapLayersProps {
   highlightedIds: ReadonlySet<string>;
   hoveredIds: ReadonlySet<string>;
   focus: DiffMapFocus | null;
+  /** 0 shows only the old state, 1 only the new one; null means the slider is off. */
+  slider: number | null;
 }
 
 /**
@@ -47,6 +49,7 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
   highlightedIds,
   hoveredIds,
   focus,
+  slider,
 }) => {
   const { map } = useMapVisualization();
   const theme = useTheme();
@@ -60,6 +63,7 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
     [theme],
   );
   const partTypes = useMemo(() => buildPartTypeIndex(changes), [changes]);
+  const opacitiesBeforeSlider = useRef<Map<BaseLayer, number> | null>(null);
   const inputs = useRef<DiffStyleInputs>({ objectTypes, partTypes, visibleIds, highlightedIds, hoveredIds });
   const decorations = useMemo(
     () =>
@@ -105,6 +109,18 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
     source?.clear();
     source?.addFeatures(buildDecorations(changes, focus, visibleIds));
   }, [decorations, changes, focus, visibleIds]);
+
+  useEffect(() => {
+    if (!map) return;
+    const stateLayers = getStateLayers(map.getLayers().getArray());
+    if (slider === null) {
+      opacitiesBeforeSlider.current?.forEach((opacity, layer) => layer.setOpacity(opacity));
+      opacitiesBeforeSlider.current = null;
+      return;
+    }
+    opacitiesBeforeSlider.current ??= new Map(stateLayers.map(layer => [layer, layer.getOpacity()]));
+    stateLayers.forEach(layer => layer.setOpacity(isStateLayer(layer, "old") ? 1 - slider : slider));
+  }, [map, slider]);
 
   return null;
 };

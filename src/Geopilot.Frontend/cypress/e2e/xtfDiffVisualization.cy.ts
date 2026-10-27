@@ -26,7 +26,7 @@ interface Visualization {
 
 type Transform = (visualization: Visualization) => Visualization;
 
-const openDiffVisualization = (transform: Transform = visualization => visualization) => {
+const openDiffVisualization = (transform: Transform = visualization => visualization, ready = "diff-object") => {
   cy.fixture<Visualization>("xtfDiffVisualization.json").then(fixture => {
     cy.intercept("GET", VISUALIZATION_URL, { statusCode: 200, body: transform(fixture) });
   });
@@ -56,7 +56,7 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
     .then(summary => {
       if (summary.attr("aria-expanded") !== "true") cy.wrap(summary).click();
     });
-  cy.dataCy("diff-object").should("exist");
+  cy.dataCy(ready).should("exist");
 };
 
 const object = (objectId: string) => cy.get(`[data-object-id="${objectId}"]`);
@@ -171,6 +171,34 @@ describe("XTF diff visualization", () => {
   it("shows no map buttons without a map", () => {
     openDiffVisualization(visualization => ({ ...visualization, data: { table: visualization.data.table } }));
     cy.dataCy("diff-object-map").should("not.exist");
+  });
+
+  it("explains the map styles in a legend", () => {
+    openDiffVisualization();
+    cy.dataCy("diffMapLegend-button").click();
+    cy.dataCy("diffMapLegend-button").should("have.attr", "aria-pressed", "true");
+    cy.dataCy("diff-map-legend").should("be.visible").find("svg").should("have.length", 9);
+    cy.get(".ol-viewport").click("topLeft");
+    cy.dataCy("diff-map-legend").should("not.exist");
+  });
+
+  it("fades from before to after with the slider", () => {
+    openDiffVisualization();
+    cy.dataCy("diffMapSlider-button").click();
+    const slider = () => cy.dataCy("diff-map-slider").find('input[type="range"]');
+    slider().should("have.attr", "aria-valuenow", "0");
+    slider().focus().type("{rightArrow}");
+    slider().should("not.have.attr", "aria-valuenow", "0");
+    cy.dataCy("diffMapSlider-button").click();
+    cy.dataCy("diff-map-slider").should("not.exist");
+  });
+
+  it("offers legend and slider on a map without the list", () => {
+    openDiffVisualization(
+      visualization => ({ ...visualization, data: { map: visualization.data.map } }),
+      "diffMapLegend-button",
+    );
+    cy.dataCy("diffMapSlider-button").should("exist");
   });
 
   it("stacks before and after on a phone", () => {
