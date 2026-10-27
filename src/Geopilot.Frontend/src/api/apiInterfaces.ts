@@ -79,7 +79,7 @@ export interface MapLayer {
 }
 
 /** A way to draw the features of a feature layer other than in the default map colour. */
-export type MapLayerStyle = "old" | "new";
+type MapLayerStyle = "old" | "new";
 
 /** The map-visualization payload produced by the map visualization pipeline step. */
 export interface MapVisualizationConfig {
