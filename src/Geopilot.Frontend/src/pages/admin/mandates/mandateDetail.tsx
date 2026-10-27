@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { FormHelperText, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
@@ -180,12 +180,22 @@ const MandateDetail = () => {
         </FormContainerHalfWidth>
       </GeopilotBox>
       <GeopilotBox>
-        <Stack direction="row">
-          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
-            {t("spatialExtent")}
-          </Typography>
-          <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>
-        </Stack>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+          {t("stacBrowser")}
+        </Typography>
+        <FormContainer>
+          <FormSelect
+            fieldName={"stacAccess"}
+            label={"stacAccess"}
+            required={true}
+            selected={mandate?.stacAccess}
+            values={[
+              { key: 0, value: StacAccess.AdminsOnly, name: t("stacAccessAdminsOnly") },
+              { key: 1, value: StacAccess.Public, name: t("stacAccessPublic") },
+            ]}
+          />
+        </FormContainer>
+        <Typography variant={"body1"}>{t("spatialExtent")}</Typography>
         <FormContainer>
           <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
         </FormContainer>

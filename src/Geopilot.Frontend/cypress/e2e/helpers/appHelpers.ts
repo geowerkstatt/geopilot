@@ -126,10 +126,10 @@ export const openToolMenu = () => {
 };
 
 /**
- * Opens the tool navigation to switch between delivery, administation and stac browser. Requires the user to be logged in.
+ * Opens the tool navigation to switch between delivery, my deliveries and administration. Requires the user to be logged in.
  * @param tool The tool to open.
  */
-export const openTool = (tool: "delivery" | "admin" | "my-deliveries" | "stacBrowser") => {
+export const openTool = (tool: "delivery" | "admin" | "my-deliveries") => {
   openToolMenu();
   cy.dataCy(`${tool}-nav`).click();
 };
