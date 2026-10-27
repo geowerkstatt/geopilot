@@ -1,20 +1,21 @@
 import { ReactNode } from "react";
+import { TranslationKey } from "../../appInterfaces";
 
 export interface PromptContextInterface {
   promptIsOpen: boolean;
-  message?: string;
+  message?: TranslationKey;
   actions?: PromptAction[];
-  showPrompt: (message: string, actions: PromptAction[]) => void;
+  showPrompt: (message: TranslationKey, actions: PromptAction[]) => void;
   closePrompt: () => void;
 }
 
 export interface PromptOptions {
-  message: string;
+  message: TranslationKey;
   actions: PromptAction[];
 }
 
 export interface PromptAction {
-  label: string;
+  label: TranslationKey;
   icon?: ReactNode;
   action?: () => void | Promise<void>;
   color?: PromptActionColor;

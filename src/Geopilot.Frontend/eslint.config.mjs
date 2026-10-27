@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.js";
+import i18nKeys from "./eslint-rules/i18n-keys.js";
 import noHexTransparency from "./eslint-rules/no-hex-transparency.js";
 import noUndefinedPaletteColors from "./eslint-rules/no-undefined-palette-colors.js";
 import requirePx2rem from "./eslint-rules/require-px2rem.js";
@@ -32,6 +33,7 @@ const muiWrapperImportRestriction = {
 
 const localRules = {
   rules: {
+    "i18n-keys": i18nKeys,
     "no-hardcoded-colors": noHardcodedColors,
     "no-hex-transparency": noHexTransparency,
     "no-undefined-palette-colors": noUndefinedPaletteColors,
@@ -124,5 +126,9 @@ export default defineConfig([
     rules: {
       "@typescript-eslint/no-unused-expressions": "off",
     },
+  },
+  {
+    files: ["public/locale/**/*.json"],
+    rules: { "local-rules/i18n-keys": "warn" },
   },
 ]);
