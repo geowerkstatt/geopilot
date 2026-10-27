@@ -1,20 +1,21 @@
 import { DiffChange, DiffChangeType, DiffValueType } from "../../../api/apiInterfaces";
+import { TranslationKey } from "../../../appInterfaces";
 import { FieldFilters, FilterAttribute } from "../filterBar";
 
-export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, string> = {
+export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, TranslationKey> = {
   added: "diffChangeAdded",
   deleted: "diffChangeDeleted",
   changed: "diffChangeChanged",
 };
 
-export const DIFF_VALUE_TYPE_LABEL_KEYS: Record<DiffValueType, string> = {
+export const DIFF_VALUE_TYPE_LABEL_KEYS: Record<DiffValueType, TranslationKey> = {
   object: "diffValueTypeObject",
   reference: "diffValueTypeReference",
   attribute: "diffValueTypeAttribute",
   geometry: "diffValueTypeGeometry",
 };
 
-export const DIFF_OBJECT_LABEL_KEYS: Record<Exclude<DiffChangeType, "changed">, string> = {
+export const DIFF_OBJECT_LABEL_KEYS: Record<Exclude<DiffChangeType, "changed">, TranslationKey> = {
   added: "diffChangeObjectAdded",
   deleted: "diffChangeObjectDeleted",
 };
@@ -84,7 +85,7 @@ export type DiffFilterField = "changeType" | "valueType" | "class" | "attribute"
 
 const DIFF_FILTER_FIELDS: readonly DiffFilterField[] = ["changeType", "valueType", "class", "attribute"];
 
-const DIFF_FILTER_LABEL_KEYS: Record<DiffFilterField, string> = {
+const DIFF_FILTER_LABEL_KEYS: Record<DiffFilterField, TranslationKey> = {
   changeType: "diffFieldChangeType",
   valueType: "diffFieldValueType",
   class: "diffColumnClass",
