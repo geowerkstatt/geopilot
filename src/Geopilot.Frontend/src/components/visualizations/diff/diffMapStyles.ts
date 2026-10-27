@@ -1,11 +1,10 @@
 import { asArray } from "ol/color";
-import { FeatureLike } from "ol/Feature";
+import Feature, { FeatureLike } from "ol/Feature";
 import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
-import { getRank } from "../map/featureRank";
-import { getClusterMembers } from "../map/layers";
+import { getClusterMembers, getRank } from "../map/picking";
 import {
   ChangeType,
   DecorationRole,
@@ -137,6 +136,11 @@ export const buildDiffStyleFunction = (
   colors: DiffMapColors,
 ): StyleFunction => {
   const cached = createStyleCache();
+  // Splitting a feature into parts and matching them to changes is costly; it reruns only when its inputs change.
+  const featureStyles = new WeakMap<
+    Feature,
+    Pick<DiffStyleInputs, "objectTypes" | "partTypes"> & { emphasis: Emphasis; styles: Style[] }
+  >();
   return (feature: FeatureLike) => {
     const current = inputs.current;
     const members = getClusterMembers(feature).filter(member => {
@@ -152,10 +156,18 @@ export const buildDiffStyleFunction = (
       ]);
 
     const [member] = members;
+    const known = featureStyles.get(member);
+    if (
+      known?.emphasis === emphasis &&
+      known.objectTypes === current.objectTypes &&
+      known.partTypes === current.partTypes
+    ) {
+      return known.styles;
+    }
     const geometry = member.getGeometry();
     if (!geometry) return undefined;
     const objectType = current.objectTypes.get(ids[0]) ?? "changed";
-    return getParts(geometry).flatMap(part => {
+    const styles = getParts(geometry).flatMap(part => {
       const changeType = resolvePartType(current.partTypes, ids[0], state, part, objectType);
       const look = getLook(changeType, state);
       const zIndex = getRank(part) * 3 + emphasis;
@@ -170,6 +182,8 @@ export const buildDiffStyleFunction = (
         return partStyle;
       });
     });
+    featureStyles.set(member, { objectTypes: current.objectTypes, partTypes: current.partTypes, emphasis, styles });
+    return styles;
   };
 };
 

@@ -4,10 +4,12 @@ import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import { unByKey } from "ol/Observable";
 import VectorSource from "ol/source/Vector";
-import { DECORATION_LAYER_PROPERTY, MAP_LAYER_STYLE_PROPERTY } from "../map/layers";
+import { MAP_LAYER_STYLE_PROPERTY } from "../map/layers";
 import { LayerSwitcherProperties } from "../map/layerSwitcherProps";
 import { useMapVisualization } from "../map/mapVisualizationContext";
+import { DECORATION_LAYER_PROPERTY } from "../map/picking";
 import {
+  buildConnectors,
   buildDecorations,
   buildPartTypeIndex,
   ChangeType,
@@ -70,6 +72,7 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
     [theme],
   );
   const partTypes = useMemo(() => buildPartTypeIndex(changes), [changes]);
+  const connectors = useMemo(() => buildConnectors(changes), [changes]);
   const opacitiesBeforeSlider = useRef<Map<BaseLayer, number> | null>(null);
   const sliderOn = useRef(slider !== null);
   const inputs = useRef<DiffStyleInputs>({ objectTypes, partTypes, visibleIds, highlightedIds, hoveredIds });
@@ -114,8 +117,8 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
   useEffect(() => {
     const source = decorations.getSource();
     source?.clear();
-    source?.addFeatures(buildDecorations(changes, focus, visibleIds));
-  }, [decorations, changes, focus, visibleIds]);
+    source?.addFeatures(buildDecorations(connectors, focus, visibleIds));
+  }, [decorations, connectors, focus, visibleIds]);
 
   useEffect(() => {
     sliderOn.current = slider !== null;

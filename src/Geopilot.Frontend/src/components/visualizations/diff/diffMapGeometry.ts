@@ -6,6 +6,7 @@ import GeometryCollection from "ol/geom/GeometryCollection";
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
 import SimpleGeometry from "ol/geom/SimpleGeometry";
+import { isFittableExtent } from "../map/picking";
 
 // Free of React, MUI and the app's types, so a Cypress spec can test it on its own.
 
@@ -56,7 +57,7 @@ const locationOf = (change: LocatedChange, state: MapState) =>
   readLocation(state === "old" ? change.oldLocation : change.newLocation);
 
 export const getParts = (geometry: Geometry): Geometry[] =>
-  geometry instanceof GeometryCollection ? geometry.getGeometries() : [geometry];
+  geometry instanceof GeometryCollection ? geometry.getGeometriesArray() : [geometry];
 
 // Parts and locations come from the same WKT of the diff tool, so equal coordinates mean the same location.
 const getPartKey = (geometry: Geometry): string =>
@@ -99,8 +100,14 @@ export const inferObjectTypes = (oldIds: Iterable<string>, newIds: Iterable<stri
   return types;
 };
 
-export const getChangeExtent = (change: LocatedChange, side: MapState): Extent | undefined =>
-  locationOf(change, side)?.getExtent();
+export const getChangeExtent = (change: LocatedChange, side: MapState): Extent | undefined => {
+  const extent = locationOf(change, side)?.getExtent();
+  return extent && isFittableExtent(extent) ? extent : undefined;
+};
+
+/** A jump to the change in that state, or none without a location there to jump to. */
+export const getFocus = (change: LocatedChange, side: MapState): DiffMapFocus | null =>
+  getChangeExtent(change, side) ? { change, side } : null;
 
 const buildConnector = (change: LocatedChange): Feature | undefined => {
   const before = locationOf(change, "old");
@@ -120,14 +127,18 @@ const buildFocusFeatures = (focus: DiffMapFocus): Feature[] =>
     return geometry ? [new Feature({ geometry, role, side, objectId: focus.change.objectId })] : [];
   });
 
-/** Connectors of moved points and, when given, the focused pair; features carry `role`, `objectId` and `side`. */
+/** Lines from the old to the new position of each moved point; features carry `role` and `objectId`. */
+export const buildConnectors = (changes: LocatedChange[]): Feature[] =>
+  changes.flatMap(change => buildConnector(change) ?? []);
+
+/** The connectors and, when given, the focused pair of the objects the filter shows; features carry `role`, `objectId` and `side`. */
 export const buildDecorations = (
-  changes: LocatedChange[],
+  connectors: Feature[],
   focus: DiffMapFocus | null,
   visibleIds?: ReadonlySet<string>,
 ): Feature[] => {
   const isVisible = (objectId: string) => !visibleIds || visibleIds.has(objectId);
-  const connectors = changes.flatMap(change => (isVisible(change.objectId) ? (buildConnector(change) ?? []) : []));
+  const shownConnectors = connectors.filter(connector => isVisible(connector.get("objectId")));
   const pair = focus && isVisible(focus.change.objectId) ? buildFocusFeatures(focus) : [];
-  return [...connectors, ...pair];
+  return [...shownConnectors, ...pair];
 };

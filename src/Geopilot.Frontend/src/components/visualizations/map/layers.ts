@@ -18,7 +18,7 @@ import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { FitOptions } from "ol/View";
 import { LocalizedText, MapLayer } from "../../../api/apiInterfaces";
-import { getGeometryRank } from "./featureRank";
+import { getClusterMembers, getGeometryRank } from "./picking";
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
@@ -109,20 +109,8 @@ const CLUSTER_DISTANCE = 40;
 /** Pixel distance kept between two cluster markers so their counts stay readable. */
 const CLUSTER_MIN_DISTANCE = 24;
 
-/** The property under which a cluster feature carries the features it stands for. */
-const CLUSTER_MEMBERS_PROPERTY = "features";
-
-/** Returns the features a cluster contains, or the feature itself, if its not a cluster. */
-export const getClusterMembers = (feature: FeatureLike): Feature[] =>
-  (feature.get(CLUSTER_MEMBERS_PROPERTY) as Feature[] | undefined) ?? [feature as Feature];
-
 /** The layer property holding the `style` of the map layer a feature layer was built from. */
 export const MAP_LAYER_STYLE_PROPERTY = "mapLayerStyle";
-
-/** Marks a layer that only decorates others: clicks and hover pass through it to the features beneath. */
-export const DECORATION_LAYER_PROPERTY = "decoration";
-
-export const isPickable = (layer: BaseLayer): boolean => layer.get(DECORATION_LAYER_PROPERTY) !== true;
 
 /**
  * The area a feature covers, in m² as the map is in EPSG:2056. Other geometries, a collection for example, fall back
