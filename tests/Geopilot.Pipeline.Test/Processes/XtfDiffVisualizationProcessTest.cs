@@ -87,6 +87,26 @@ public class XtfDiffVisualizationProcessTest
     }
 
     [TestMethod]
+    public async Task CarriesTheLocationsOfGeometryChangesForTheMap()
+    {
+        var changes = Changes(await VisualizeAsync("changes.json"));
+
+        Assert.AreEqual(OldBuilding, changes[1].OldLocation);
+        Assert.AreEqual(NewBuilding, changes[1].NewLocation);
+        Assert.IsNull(changes[0].OldLocation);
+        Assert.IsNull(changes[2].NewLocation);
+    }
+
+    [TestMethod]
+    public async Task LeavesTheLocationsOutWithoutTheMap()
+    {
+        var changes = Changes(await VisualizeAsync("changes.json", new XtfDiffVisualizationProcess(include: [DiffView.Table])));
+
+        Assert.IsNull(changes[1].OldLocation);
+        Assert.IsNull(changes[1].NewLocation);
+    }
+
+    [TestMethod]
     public async Task UsesTheConfiguredBaseMap()
     {
         var process = new XtfDiffVisualizationProcess(baseMapWmtsCapabilitiesUrl: "https://wmts.example.ch/WMTSCapabilities.xml");
