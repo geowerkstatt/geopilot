@@ -54,9 +54,9 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const [fullscreen, setFullscreen] = useState(false);
   const [query, setQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters<DiffFilterField>>({});
-  const [expandedObjectIds, setExpandedObjectIds] = useState<ReadonlySet<string>>(new Set());
+  const [expandedObjectIds, setExpandedObjectIds] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
-  const [hoveredObjectIds, setHoveredObjectIds] = useState<ReadonlySet<string>>(new Set());
+  const [hoveredObjectIds, setHoveredObjectIds] = useState<ReadonlySet<string>>(() => new Set());
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
   const groupElements = useRef(new Map<string, HTMLDivElement>());

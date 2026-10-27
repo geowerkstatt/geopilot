@@ -176,6 +176,12 @@ public class XtfDiffVisualizationProcessTest
         Assert.HasCount(9, oldFeatures);
         Assert.HasCount(9, newFeatures);
 
+        // An SRID prefix or an EMPTY geometry would make a combined GEOMETRYCOLLECTION invalid WKT.
+        foreach (var (_, geom) in oldFeatures.Concat(newFeatures))
+        {
+            Assert.MatchesRegex(@"^[A-Z]+ ?\(", geom);
+        }
+
         // The locations reach the map exactly as the tool writes them.
         CollectionAssert.Contains(oldFeatures, ("c9e0e1a7-89e7-43f3-9da9-1f098635aaaa", "POINT (2600138.07 1199618.42)"));
         CollectionAssert.Contains(
