@@ -1,4 +1,4 @@
-import { FC, Fragment, memo } from "react";
+import { FC, Fragment, memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -91,9 +91,13 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   const expandable = propertyChanges.length > 0;
   const showOnMap = onShowOnMap && (() => onShowOnMap(object.objectId));
   // Selecting text in the header, the object id to copy it for example, leaves the object as it is.
-  const toggle = () => {
+  const toggleByHeader = () => {
     if (!window.getSelection()?.toString()) onToggle(object.objectId);
   };
+  const register = useCallback(
+    (element: HTMLDivElement | null) => registerObject(object.objectId, element),
+    [registerObject, object.objectId],
+  );
   const className = (
     <Typography variant="body2" noWrap title={object.interlisName} sx={{ fontWeight: 600, flexShrink: 0 }}>
       {getClassName(object.interlisName)}
@@ -107,7 +111,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
 
   return (
     <Box
-      ref={(element: HTMLDivElement | null) => registerObject(object.objectId, element)}
+      ref={register}
       tabIndex={-1}
       data-cy="diff-object"
       data-object-id={object.objectId}
@@ -124,9 +128,8 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
           boxShadow: theme => `inset 0 0 0 1px ${theme.palette.primary.main}`,
         },
       }}>
-      {/* The header handles the click; the chevron has no handler of its own, so its keyboard click bubbles here. */}
       <Stack
-        onClick={expandable ? toggle : undefined}
+        onClick={expandable ? toggleByHeader : undefined}
         sx={{ gap: 0, pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1, minHeight: layout === "wide" ? 40 : 36 }}>
           <Stack sx={{ width: theme => theme.spacing(TOGGLE_WIDTH), flexShrink: 0, alignItems: "center" }}>
@@ -136,6 +139,10 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
                 label={expanded ? "diffCollapseObject" : "diffExpandObject"}
                 icon={expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
                 aria-expanded={expanded}
+                onClick={event => {
+                  event.stopPropagation();
+                  onToggle(object.objectId);
+                }}
                 data-cy="diff-object-toggle"
               />
             )}
