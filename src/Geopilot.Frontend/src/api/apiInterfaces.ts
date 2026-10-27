@@ -144,6 +144,10 @@ export interface DiffChange {
   oldValue?: string;
   /** Value in the new state as text, lists and structures as compact JSON; absent when the new state has none. */
   newValue?: string;
+  /** Location in the old state as WKT, for a geometry change when the map is included. */
+  oldLocation?: string;
+  /** Location in the new state as WKT, for a geometry change when the map is included. */
+  newLocation?: string;
 }
 
 /**
