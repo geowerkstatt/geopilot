@@ -42,9 +42,7 @@ public class MandateService : IMandateService
             mandates = FilterMandatesByUpload(mandates, uploadId.Value);
 
         // A public mandate is listed for everyone, but only offers the delivery to the members of its organisations.
-        var deliverableMandateIds = FilterMandatesByMembership(context.Mandates, declarer)
-            .Where(m => m.AllowDelivery)
-            .Select(m => m.Id);
+        var deliverableMandateIds = FilterDeclarableMandates(context.Mandates, declarer).Select(m => m.Id);
 
         return await mandates.ToSummaries(deliverableMandateIds).ToListAsync();
     }
@@ -70,6 +68,10 @@ public class MandateService : IMandateService
     {
         return await FilterMandatesByMembership(context.Mandates.AsNoTracking(), declarer).SingleOrDefaultAsync(m => m.Id == mandateId);
     }
+
+    /// <inheritdoc/>
+    public Task<bool> IsDeclarableAsync(int mandateId, Declarer? declarer)
+        => FilterDeclarableMandates(context.Mandates.AsNoTracking(), declarer).AnyAsync(m => m.Id == mandateId);
 
     /// <inheritdoc/>
     public async Task<Mandate?> GetMandateByKeyAsync(string key, Declarer declarer)
@@ -159,6 +161,13 @@ public class MandateService : IMandateService
         var userId = declarer.UserId ?? throw new UnreachableException("A declarer that is no machine client is a user.");
         return mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == userId));
     }
+
+    /// <summary>
+    /// The mandates a run of <paramref name="declarer"/> can become a delivery on: a member of their organisations,
+    /// on a mandate that accepts deliveries.
+    /// </summary>
+    private static IQueryable<Mandate> FilterDeclarableMandates(IQueryable<Mandate> mandates, Declarer? declarer)
+        => FilterMandatesByMembership(mandates, declarer).Where(m => m.AllowDelivery);
 
     private IQueryable<Mandate> FilterMandatesByResolvablePipeline(IQueryable<Mandate> mandates)
     {

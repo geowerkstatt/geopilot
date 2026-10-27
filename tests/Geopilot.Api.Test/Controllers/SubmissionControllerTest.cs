@@ -29,7 +29,6 @@ public class SubmissionControllerTest
 
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IProcessingService> processingServiceMock;
-    private Mock<ISubmissionStore> submissionStoreMock;
     private Mock<IUploadOrchestrationService> orchestrationMock;
     private Context context;
     private User user;
@@ -44,7 +43,6 @@ public class SubmissionControllerTest
         context = AssemblyInitialize.DbFixture.GetTestContext();
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
-        submissionStoreMock = new Mock<ISubmissionStore>();
         uploadId = Guid.NewGuid();
         uploadRoot = Path.Combine(Path.GetTempPath(), $"geopilot-submission-{Guid.NewGuid()}");
 
@@ -87,7 +85,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -103,7 +101,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType(result, expected);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -149,20 +147,22 @@ public class SubmissionControllerTest
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A violated field rule must be reported per field.");
         Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.Comment)));
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
-    public async Task AcceptsAnAttemptAndRemembersIt()
+    public async Task AcceptsAnAttemptAndStartsItsJobWithTheDeliveryFields()
     {
         var controller = CreateController(withUrlHelper: true);
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
 
+        // The delivery fields are what makes the job an attempt that geopilot declares itself.
         var jobId = Guid.NewGuid();
+        var fields = new DeliveryFields(null, null, null);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer))
-            .ReturnsAsync(new ProcessingJob(jobId, uploadId, mandate.Id, DateTime.UtcNow));
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, fields))
+            .ReturnsAsync(NewAttemptJob(jobId, uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
@@ -171,9 +171,6 @@ public class SubmissionControllerTest
         Assert.AreEqual(jobId, response.Id, "The attempt is addressed by the id of its job.");
         Assert.AreEqual(SubmissionState.Processing, response.State);
         Assert.AreEqual(MandateKey, response.MandateKey);
-        submissionStoreMock.Verify(
-            s => s.Add(It.Is<Submission>(sub => sub.JobId == jobId && sub.Declarer == declarer && sub.MandateKey == MandateKey)),
-            Times.Once);
     }
 
     [TestMethod]
@@ -183,13 +180,12 @@ public class SubmissionControllerTest
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new JobAlreadyActiveException(uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<ConflictObjectResult>(result, "A caller that repeats its attempt must learn to retry later, not see a server error.");
-        submissionStoreMock.Verify(s => s.Add(It.IsAny<Submission>()), Times.Never);
     }
 
     [TestMethod]
@@ -230,8 +226,8 @@ public class SubmissionControllerTest
 
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer))
-            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring) => new ProcessingJob(jobId, upload, mandateId, DateTime.UtcNow));
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsNotNull<DeliveryFields?>()))
+            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields) => NewAttemptJob(jobId, upload));
 
         SetMultipartBody(controller, MandateKey, [("data.xtf", "transfer content")]);
 
@@ -245,7 +241,6 @@ public class SubmissionControllerTest
         var stored = Directory.GetFiles(uploadRoot, "data.xtf", SearchOption.AllDirectories).SingleOrDefault();
         Assert.IsNotNull(stored, "The file sent with the request must be stored under the upload of the attempt.");
         Assert.AreEqual("transfer content", await File.ReadAllTextAsync(stored));
-        submissionStoreMock.Verify(s => s.Add(It.Is<Submission>(sub => sub.JobId == jobId)), Times.Once);
     }
 
     [TestMethod]
@@ -349,10 +344,7 @@ public class SubmissionControllerTest
     public async Task HidesAnAttemptOfAnotherCaller()
     {
         var controller = CreateController();
-        var jobId = Guid.NewGuid();
-        submissionStoreMock
-            .Setup(s => s.GetSubmission(jobId))
-            .Returns(new Submission(jobId, MandateKey, Declarer.ForUser(user.Id + 1), new DeliveryFields(null, null, null)));
+        var jobId = SetupAttemptOfAnotherCaller();
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -364,15 +356,29 @@ public class SubmissionControllerTest
     {
         var downloadStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = Guid.NewGuid();
-        submissionStoreMock
-            .Setup(s => s.GetSubmission(jobId))
-            .Returns(new Submission(jobId, MandateKey, Declarer.ForUser(user.Id + 1), new DeliveryFields(null, null, null)));
+        var jobId = SetupAttemptOfAnotherCaller();
 
         var result = await controller.GetDownload(jobId, "validation_errorLog.log");
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
         downloadStoreMock.Verify(s => s.Exists(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "A foreign attempt must be refused before its files are even looked for.");
+    }
+
+    [TestMethod]
+    public async Task HidesAJobThatIsNoAttempt()
+    {
+        var downloadStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
+        var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
+
+        // A job started from the web interface carries no delivery intent, so it is no attempt of anybody.
+        var jobId = Guid.NewGuid();
+        processingServiceMock
+            .Setup(p => p.GetJob(jobId))
+            .Returns(new ProcessingJob(jobId, uploadId, mandate.Id, DateTime.UtcNow) { State = ProcessingState.Success });
+
+        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetSubmissionStatus(jobId));
+        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetDownload(jobId, "validation_errorLog.log"));
+        downloadStoreMock.Verify(s => s.Exists(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "A job that is no attempt must be refused before its files are even looked for.");
     }
 
     [TestMethod]
@@ -387,7 +393,7 @@ public class SubmissionControllerTest
         Assert.IsInstanceOfType<BadRequestObjectResult>(
             result,
             "The fields are checked before the first file, so a later one would be dropped without the caller noticing.");
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -418,7 +424,7 @@ public class SubmissionControllerTest
         var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer))
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new InvalidOperationException("The pipeline could not be built."));
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -432,24 +438,29 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Running, null, null, SubmissionState.Processing, DisplayName = "Still running")]
-    [DataRow(ProcessingState.Success, null, null, SubmissionState.Processing, DisplayName = "Run finished, delivery not written yet")]
-    [DataRow(ProcessingState.Success, 42, null, SubmissionState.Delivered, DisplayName = "Delivered")]
-    [DataRow(ProcessingState.Warning, 42, null, SubmissionState.Delivered, DisplayName = "Delivered despite warnings")]
-    [DataRow(ProcessingState.DeliveryRestriction, null, null, SubmissionState.Rejected, DisplayName = "The data did not pass")]
-    [DataRow(ProcessingState.Failed, null, null, SubmissionState.Failed, DisplayName = "Run failed")]
-    [DataRow(ProcessingState.Cancelled, null, null, SubmissionState.Failed, DisplayName = "Run cancelled")]
-    [DataRow(ProcessingState.Success, null, "the database went away", SubmissionState.Failed, DisplayName = "Declaration failed after a run that passed")]
-    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, int? deliveryId, string? declarationFailure, SubmissionState expected)
+    [DataRow(ProcessingState.Running, false, null, SubmissionState.Processing, DisplayName = "Still running")]
+    [DataRow(ProcessingState.Success, false, null, SubmissionState.Processing, DisplayName = "Run finished, delivery not written yet")]
+    [DataRow(ProcessingState.Success, true, null, SubmissionState.Delivered, DisplayName = "Delivered")]
+    [DataRow(ProcessingState.Warning, true, null, SubmissionState.Delivered, DisplayName = "Delivered despite warnings")]
+    [DataRow(ProcessingState.DeliveryRestriction, false, null, SubmissionState.Rejected, DisplayName = "The data did not pass")]
+    [DataRow(ProcessingState.Failed, false, null, SubmissionState.Failed, DisplayName = "Run failed")]
+    [DataRow(ProcessingState.Cancelled, false, null, SubmissionState.Failed, DisplayName = "Run cancelled")]
+    [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Declaration failed after a run that passed")]
+    [DataRow(ProcessingState.Success, true, "the database went away", SubmissionState.Delivered, DisplayName = "Declared by hand after geopilot could not")]
+    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? declarationFailure, SubmissionState expected)
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(deliveryId, declarationFailure, jobState);
+        var jobId = SetupAttempt(delivered, declarationFailure, jobState);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         Assert.AreEqual(expected, response.State);
-        Assert.AreEqual(deliveryId, response.DeliveryId, "The delivery is the durable handle and must be reported as soon as it exists.");
+        Assert.AreEqual(
+            context.Deliveries.Where(d => d.JobId == jobId).Select(d => (int?)d.Id).SingleOrDefault(),
+            response.DeliveryId,
+            "The delivery is the durable handle and must be reported as soon as it exists.");
+        Assert.AreEqual(delivered, response.DeliveryId is not null);
         Assert.AreEqual(MandateKey, response.MandateKey);
     }
 
@@ -457,7 +468,7 @@ public class SubmissionControllerTest
     public async Task SaysWhyADeclarationFailed()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(deliveryId: null, declarationFailure: "the database went away", ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: false, declarationFailure: "the database went away", ProcessingState.Success);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -469,6 +480,34 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task DropsTheFailureOnceTheCallerDeclaredTheDeliveryItself()
+    {
+        var controller = CreateController();
+        var jobId = SetupAttempt(delivered: true, declarationFailure: "the database went away", ProcessingState.Success);
+
+        var result = await controller.GetSubmissionStatus(jobId);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts the failure to declare it.");
+    }
+
+    [TestMethod]
+    public async Task StaysDeliveredOnceItsDeliveryIsDeleted()
+    {
+        var controller = CreateController();
+        var jobId = SetupAttempt(delivered: true, declarationFailure: null, ProcessingState.Success);
+        var delivery = context.Deliveries.Single(d => d.JobId == jobId);
+        delivery.Deleted = true;
+        context.SaveChanges();
+
+        var result = await controller.GetSubmissionStatus(jobId);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.AreEqual(SubmissionState.Delivered, response.State, "A delivery deleted later must not send the attempt back to processing.");
+        Assert.AreEqual(delivery.Id, response.DeliveryId);
+    }
+
+    [TestMethod]
     [DataRow(StepState.Error, SubmissionMessageSeverity.Error, DisplayName = "Error")]
     [DataRow(StepState.Cancelled, SubmissionMessageSeverity.Error, DisplayName = "Cancelled")]
     [DataRow(StepState.Warning, SubmissionMessageSeverity.Warning, DisplayName = "Warning")]
@@ -477,7 +516,7 @@ public class SubmissionControllerTest
     public async Task ReportsWhatAStepSaidWithItsOwnSeverity(StepState stepState, SubmissionMessageSeverity expected)
     {
         var controller = CreateController(withUrlHelper: true);
-        var jobId = SetupAttempt(deliveryId: null, declarationFailure: null, ProcessingState.Running, BuildStep(stepState));
+        var jobId = SetupAttempt(delivered: false, declarationFailure: null, ProcessingState.Running, BuildStep(stepState));
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -499,7 +538,7 @@ public class SubmissionControllerTest
         downloadStoreMock.Setup(s => s.OpenFile(It.IsAny<Guid>(), "validation_errorLog.log")).Returns(new MemoryStream(Encoding.UTF8.GetBytes("log")));
 
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = SetupAttempt(deliveryId: null, declarationFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
+        var jobId = SetupAttempt(delivered: false, declarationFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
 
         var result = await controller.GetDownload(jobId, "validation_errorLog.log");
 
@@ -524,15 +563,31 @@ public class SubmissionControllerTest
         return step;
     }
 
-    private Guid SetupAttempt(int? deliveryId, string? declarationFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
+    /// <summary>
+    /// The job of an attempt, as the start returns it for a machine delivery.
+    /// </summary>
+    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Declarer? startedBy = null)
+        => new(jobId, attemptUploadId, mandate.Id, DateTime.UtcNow)
+        {
+            IsDeclarable = true,
+            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null)),
+        };
+
+    private Guid SetupAttemptOfAnotherCaller()
     {
         var jobId = Guid.NewGuid();
-        var submission = new Submission(jobId, MandateKey, declarer, new DeliveryFields(null, null, null))
+        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, Declarer.ForUser(user.Id + 1)));
+        return jobId;
+    }
+
+    private Guid SetupAttempt(bool delivered, string? declarationFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
+    {
+        var jobId = Guid.NewGuid();
+        if (delivered)
         {
-            DeliveryId = deliveryId,
-            DeclarationFailure = declarationFailure,
-        };
-        submissionStoreMock.Setup(s => s.GetSubmission(jobId)).Returns(submission);
+            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+            context.SaveChanges();
+        }
 
         IPipeline? pipeline = null;
         if (step is not null)
@@ -543,7 +598,7 @@ public class SubmissionControllerTest
             pipeline = pipelineMock.Object;
         }
 
-        var job = new ProcessingJob(jobId, uploadId, mandate.Id, DateTime.UtcNow) { State = jobState, Pipeline = pipeline };
+        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeclarationFailure = declarationFailure };
         processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(job);
         return jobId;
     }
@@ -635,7 +690,6 @@ public class SubmissionControllerTest
             context,
             mandateServiceMock.Object,
             processingServiceMock.Object,
-            submissionStoreMock.Object,
             store,
             storage,
             orchestrationMock.Object,

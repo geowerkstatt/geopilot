@@ -30,4 +30,23 @@ public record class ProcessingJob(
     /// keeps them for the full window.
     /// </summary>
     public DateTime? FinishedAt { get; init; }
+
+    /// <summary>
+    /// Whether the run can ever become a delivery: whoever started it is a member of an organisation of the mandate,
+    /// and the mandate accepts deliveries. Decided once when the job starts; a run nobody can declare is not staged,
+    /// and its delivery is refused. Declaring still checks the mandate on its own.
+    /// </summary>
+    public bool IsDeclarable { get; init; }
+
+    /// <summary>
+    /// The wish expressed at the start that geopilot declares the delivery itself, or <see langword="null"/> for a
+    /// job whose delivery is declared by hand, if at all. Only a machine delivery attempt carries one.
+    /// </summary>
+    public DeliveryIntent? DeliveryIntent { get; init; }
+
+    /// <summary>
+    /// Why geopilot could not declare the delivery of its <see cref="DeliveryIntent"/>, although the run allowed it.
+    /// Whether a delivery exists is not kept here: the delivery itself is the record of that.
+    /// </summary>
+    public string? DeclarationFailure { get; init; }
 }

@@ -115,7 +115,7 @@ Damit ist auch die Frage beantwortet, ob die Prüfungen bestanden wurden: `deliv
 
 Der Unterschied zwischen `rejected` und `failed` ist der, auf den ein Client reagiert. `rejected` heisst korrigieren, `failed` heisst wiederholen. Auch der Fall, dass die Daten in Ordnung waren und nur das Anlegen der Lieferung scheiterte, ist deshalb `failed`: zu korrigieren gibt es nichts, und `messages` nennt den Grund.
 
-Ein fertiger Lauf bleibt kurz auf `processing`, bis die Lieferung geschrieben ist. `delivered` ohne `deliveryId` gibt es nicht.
+Ein fertiger Lauf bleibt kurz auf `processing`, bis die Lieferung geschrieben ist. `delivered` ohne `deliveryId` gibt es nicht. Wird die Lieferung nach einem `failed` doch noch angelegt, etwa von Hand über `POST api/v1/delivery`, meldet der Versuch danach `delivered` mit deren `deliveryId`.
 
 `messages` sammelt, was die Schritte gemeldet haben, je mit Schritt und Gewicht (`info`, `warning`, `error`). Die Texte sind mehrsprachig, wie überall in geopilot.
 

@@ -38,7 +38,7 @@ public class ProcessingJobStore : IProcessingJobStore
     public IReadOnlyCollection<Guid> GetJobIds() => jobs.Keys.ToList();
 
     /// <inheritdoc/>
-    public ProcessingJob CreateJob(Guid uploadId)
+    public ProcessingJob CreateJob(Guid uploadId, bool isDeclarable, DeliveryIntent? deliveryIntent = null)
     {
         // State changes happen outside the lock, which is safe: they only ever make a job less active, so only
         // two starts at once could admit a second active job.
@@ -55,7 +55,11 @@ public class ProcessingJobStore : IProcessingJobStore
                 Id: Guid.NewGuid(),
                 UploadId: uploadId,
                 MandateId: null,
-                CreatedAt: DateTime.UtcNow);
+                CreatedAt: DateTime.UtcNow)
+            {
+                IsDeclarable = isDeclarable,
+                DeliveryIntent = deliveryIntent,
+            };
 
             jobs[newJob.Id] = newJob;
             return newJob;
@@ -114,11 +118,15 @@ public class ProcessingJobStore : IProcessingJobStore
             });
 
         // A job left in Running without a work item would never run and never end, so a refused write must surface.
-        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files)))
+        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files, updatedJob.IsDeclarable)))
             throw new InvalidOperationException($"Job <{jobId}> could not be queued for processing.");
 
         return updatedJob;
     }
+
+    /// <inheritdoc/>
+    public void RecordDeclarationFailure(Guid jobId, string reason)
+        => TryUpdate(jobId, job => job with { DeclarationFailure = reason });
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);
@@ -151,13 +159,20 @@ public class ProcessingJobStore : IProcessingJobStore
     /// caller that is already handling a failure cannot make it worse.
     /// </summary>
     private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
+        => TryUpdate(jobId, job => isAllowed(job) ? job with { State = newState, FinishedAt = DateTime.UtcNow } : null);
+
+    /// <summary>
+    /// Applies <paramref name="update"/> to the job, retrying against the freshly read job whenever a concurrent write
+    /// wins the compare-and-swap. An update that returns <see langword="null"/> leaves the job untouched.
+    /// </summary>
+    private bool TryUpdate(Guid jobId, Func<ProcessingJob, ProcessingJob?> update)
     {
         while (jobs.TryGetValue(jobId, out var currentJob))
         {
-            if (!isAllowed(currentJob))
+            if (update(currentJob) is not { } updated)
                 return false;
 
-            if (jobs.TryUpdate(jobId, currentJob with { State = newState, FinishedAt = DateTime.UtcNow }, currentJob))
+            if (jobs.TryUpdate(jobId, updated, currentJob))
                 return true;
         }
 

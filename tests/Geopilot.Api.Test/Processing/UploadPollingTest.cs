@@ -106,6 +106,34 @@ public class UploadPollingTest
     }
 
     [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable)
+    {
+        // Started by a signed in user, so a service that settled for a known declarer instead of asking the rule
+        // would mark the run declarable here, and a staging that nobody can declare would be back.
+        var (jobId, _, _, _) = await CreateAndStartJobAsync(isDeclarable);
+
+        var job = processingService.GetJob(jobId);
+        Assert.IsNotNull(job);
+        Assert.AreEqual(isDeclarable, job.IsDeclarable);
+    }
+
+    [TestMethod]
+    public async Task StartBindsTheDeliveryFieldsToTheJob()
+    {
+        var fields = new DeliveryFields(PartialDelivery: null, PrecursorDeliveryId: null, Comment: "declared by geopilot");
+
+        // Through the real service, so fields lost on the way to the lifecycle show here: the job would be no
+        // attempt, geopilot would never declare its delivery, and polling it would answer 404.
+        var (jobId, _, _, _) = await CreateAndStartJobAsync(deliveryFields: fields);
+
+        var job = processingService.GetJob(jobId);
+        Assert.IsNotNull(job);
+        Assert.AreEqual(fields, job.DeliveryIntent?.Fields);
+    }
+
+    [TestMethod]
     public async Task PollReturnsProcessingAfterSuccessfulPreflight()
     {
         var (jobId, uploadId, mandate, user) = await CreateAndStartJobAsync();
@@ -167,7 +195,7 @@ public class UploadPollingTest
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
-    private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartJobAsync()
+    private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartJobAsync(bool isDeclarable = true, DeliveryFields? deliveryFields = null)
     {
         var pipelineId = "pipeline1";
         var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized("Test Mandate"), PipelineId = pipelineId };
@@ -180,6 +208,7 @@ public class UploadPollingTest
         uploadStore.CreateUpload(uploadId, uploadedFiles);
 
         mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.IsDeclarableAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(isDeclarable);
 
         // The start instantiates the pipeline up front (without files) and attaches it to the job. On a preflight
         // failure the job lifecycle disposes the attached pipeline, so allow Dispose on the strict mock.
@@ -188,7 +217,7 @@ public class UploadPollingTest
         pipeline.Setup(p => p.Dispose());
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id));
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), deliveryFields);
 
         return (job.Id, uploadId, mandate, user);
     }

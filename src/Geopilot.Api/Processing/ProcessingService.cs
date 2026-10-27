@@ -24,7 +24,7 @@ public class ProcessingService : IProcessingService
     }
 
     /// <inheritdoc/>
-    public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer)
+    public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer, DeliveryFields? deliveryFields)
     {
         var upload = uploadStore.GetUpload(uploadId)
             ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
@@ -33,7 +33,8 @@ public class ProcessingService : IProcessingService
         if (mandate?.PipelineId == null)
             throw new InvalidOperationException($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.");
 
-        return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, declarer);
+        var isDeclarable = await mandateService.IsDeclarableAsync(mandateId, declarer);
+        return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, declarer, isDeclarable, deliveryFields);
     }
 
     /// <inheritdoc/>
