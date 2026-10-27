@@ -59,6 +59,22 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
   cy.dataCy(ready).should("exist");
 };
 
+/** Adds twelve attribute changes to the entrance, so it is taller than a small viewport. */
+const withManyChanges: Transform = visualization => {
+  const table = visualization.data.table!;
+  const template = table.changes.find(change => change.objectId === ENTRANCE)!;
+  const extra = Array.from({ length: 12 }, (_, index) => ({
+    ...template,
+    id: `c${100 + index}`,
+    changeType: "changed" as const,
+    valueType: "attribute" as const,
+    attributePath: `Attr${index}`,
+    oldValue: "a",
+    newValue: "b",
+  }));
+  return { ...visualization, data: { ...visualization.data, table: { changes: [...table.changes, ...extra] } } };
+};
+
 const object = (objectId: string) => cy.get(`[data-object-id="${objectId}"]`);
 const expand = (objectId: string) => object(objectId).dataCy("diff-object-toggle").click();
 const change = (changeId: string) => cy.get(`[data-change-id="${changeId}"]`);
@@ -171,6 +187,20 @@ describe("XTF diff visualization", () => {
   it("shows no map buttons without a map", () => {
     openDiffVisualization(visualization => ({ ...visualization, data: { table: visualization.data.table } }));
     cy.dataCy("diff-object-map").should("not.exist");
+  });
+
+  it("scrolls the whole map into view from a map button", () => {
+    cy.viewport(1000, 600);
+    openDiffVisualization(withManyChanges);
+    cy.dataCy("expandAll-button").click();
+    cy.dataCy("diff-object-map").last().scrollIntoView();
+    cy.get(".ol-viewport").should(viewport => expect(viewport[0].getBoundingClientRect().bottom).to.be.below(0));
+    cy.dataCy("diff-object-map").last().click();
+    cy.get(".ol-viewport").should(viewport => {
+      const { top, bottom } = viewport[0].getBoundingClientRect();
+      expect(top).to.be.at.least(0);
+      expect(bottom).to.be.at.most(600);
+    });
   });
 
   it("explains the map styles in a legend", () => {
