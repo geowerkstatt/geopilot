@@ -4,11 +4,11 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
-import { DiffChangeType } from "../../../api/apiInterfaces";
 import { IconButton } from "../../buttons";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
 import {
+  DIFF_CHANGE_TYPE_COLORS,
   DIFF_OBJECT_LABEL_KEYS,
   DiffObject,
   getClassName,
@@ -16,12 +16,6 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diffObjects";
-
-const SUMMARY_COLORS: Record<DiffChangeType, string | undefined> = {
-  added: "diff.added",
-  deleted: "diff.deleted",
-  changed: undefined,
-};
 
 /** The width of the toggle slot; with the gap after it, the rows below are indented as much, so all change icons line up. */
 const TOGGLE_WIDTH = 4.5;
@@ -40,14 +34,14 @@ const DiffObjectSummary: FC<DiffObjectSummaryProps> = ({ object }) => {
       data-cy="diff-object-summary"
       sx={{ color: "text.secondary", flex: 1, minWidth: 0 }}>
       {object.kind !== "changed" ? (
-        <Box component="span" sx={{ color: SUMMARY_COLORS[object.kind] }}>
+        <Box component="span" sx={{ color: DIFF_CHANGE_TYPE_COLORS[object.kind] }}>
           {t(DIFF_OBJECT_LABEL_KEYS[object.kind])}
         </Box>
       ) : (
         items.map((item, index) => (
           <Fragment key={item.path}>
             {index > 0 && ", "}
-            <Box component="span" sx={{ color: SUMMARY_COLORS[item.changeType] }}>
+            <Box component="span" sx={{ color: DIFF_CHANGE_TYPE_COLORS[item.changeType] }}>
               {SUMMARY_PREFIXES[item.changeType]}
               {item.path}
             </Box>

@@ -163,11 +163,11 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     else groupElements.current.delete(objectId);
   }, []);
 
-  const hoverObject = useCallback(
-    (objectId: string | null) => setHoveredObjectIds(new Set(objectId ? [objectId] : [])),
-    [],
-  );
   const hoverFeatures = useCallback((objectIds: string[]) => setHoveredObjectIds(new Set(objectIds)), []);
+  const hoverObject = useCallback(
+    (objectId: string | null) => hoverFeatures(objectId ? [objectId] : []),
+    [hoverFeatures],
+  );
 
   // The popup on the map names the class of the object and below it what changed. Without the list there are no
   // changes, and the popup falls back to the info of the feature, the qualified name of the class.

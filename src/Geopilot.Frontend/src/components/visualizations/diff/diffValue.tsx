@@ -1,16 +1,12 @@
 import { FC, useLayoutEffect, useRef, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import { Button } from "../../buttons";
+import { MARK_BACKGROUNDS } from "./diffObjects";
 import { ValueSegment } from "./valueDiff";
 
 const CLAMPED_LINES = 4;
 
 export type DiffSide = "old" | "new";
-
-const MARK_BACKGROUNDS: Record<DiffSide, string> = {
-  old: "diff.deleteBackground",
-  new: "diff.insertBackground",
-};
 
 interface DiffValueTextProps {
   segments: ValueSegment[];

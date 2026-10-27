@@ -4,19 +4,13 @@ import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOu
 import RemoveCircleOutlineOutlinedIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
 import SwapHorizontalCircleOutlinedIcon from "@mui/icons-material/SwapHorizontalCircleOutlined";
 import { DiffChangeType } from "../../../api/apiInterfaces";
-import { DIFF_CHANGE_TYPE_LABEL_KEYS } from "./diffObjects";
+import { DIFF_CHANGE_TYPE_COLORS, DIFF_CHANGE_TYPE_LABEL_KEYS } from "./diffObjects";
 
 const ICONS = {
   added: AddCircleOutlineOutlinedIcon,
   deleted: RemoveCircleOutlineOutlinedIcon,
   changed: SwapHorizontalCircleOutlinedIcon,
 } satisfies Record<DiffChangeType, typeof SwapHorizontalCircleOutlinedIcon>;
-
-const COLORS: Record<DiffChangeType, string> = {
-  added: "diff.added",
-  deleted: "diff.deleted",
-  changed: "text.secondary",
-};
 
 interface DiffChangeTypeIconProps {
   changeType: DiffChangeType;
@@ -29,7 +23,7 @@ export const DiffChangeTypeIcon: FC<DiffChangeTypeIconProps> = ({ changeType }) 
     <Icon
       fontSize="small"
       titleAccess={t(DIFF_CHANGE_TYPE_LABEL_KEYS[changeType])}
-      sx={{ color: COLORS[changeType] }}
+      sx={{ color: DIFF_CHANGE_TYPE_COLORS[changeType] }}
     />
   );
 };
