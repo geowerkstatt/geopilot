@@ -492,6 +492,22 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task StaysDeliveredOnceItsDeliveryIsDeleted()
+    {
+        var controller = CreateController();
+        var jobId = SetupAttempt(delivered: true, declarationFailure: null, ProcessingState.Success);
+        var delivery = context.Deliveries.Single(d => d.JobId == jobId);
+        delivery.Deleted = true;
+        context.SaveChanges();
+
+        var result = await controller.GetSubmissionStatus(jobId);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.AreEqual(SubmissionState.Delivered, response.State, "A delivery deleted later must not send the attempt back to processing.");
+        Assert.AreEqual(delivery.Id, response.DeliveryId);
+    }
+
+    [TestMethod]
     [DataRow(StepState.Error, SubmissionMessageSeverity.Error, DisplayName = "Error")]
     [DataRow(StepState.Cancelled, SubmissionMessageSeverity.Error, DisplayName = "Cancelled")]
     [DataRow(StepState.Warning, SubmissionMessageSeverity.Warning, DisplayName = "Warning")]
