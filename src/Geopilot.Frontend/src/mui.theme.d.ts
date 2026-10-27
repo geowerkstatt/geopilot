@@ -31,10 +31,14 @@ declare module "@mui/material/styles" {
   interface PaletteMap extends PaletteMapFeature {
     hintBackground: string;
     hintText: string;
-    /** The features of the old state of a diff. */
-    old: PaletteMapFeature;
-    /** The features of the new state of a diff. */
-    new: PaletteMapFeature;
+    /** The features of a diff by change type. */
+    diff: PaletteMapDiff;
+  }
+
+  interface PaletteMapDiff {
+    added: string;
+    deleted: string;
+    changed: string;
   }
 
   interface PaletteColor {
@@ -63,6 +67,8 @@ declare module "@mui/material/styles" {
     added: string;
     /** Text and icons of what a diff removed. */
     deleted: string;
+    /** Icons of what a diff changed. */
+    changed: string;
     /** Behind the added part of a value. */
     insertBackground: string;
     /** Behind the removed part of a value. */
