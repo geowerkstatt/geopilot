@@ -137,7 +137,7 @@
   "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "processing": "Elaborazione",
-  "publiclyProcessable": "Elaborazione pubblica",
+  "processingWithoutLogin": "Elaborazione senza accesso",
   "removeFile": "Rimuovi file",
   "reset": "Reimposta",
   "restart": "Riavvia",

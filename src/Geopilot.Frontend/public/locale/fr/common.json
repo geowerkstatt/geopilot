@@ -137,7 +137,7 @@
   "precursor": "Prédécesseur",
   "privacyPolicy": "Politique de confidentialité",
   "processing": "Traitement",
-  "publiclyProcessable": "Traitement public",
+  "processingWithoutLogin": "Traitement sans connexion",
   "removeFile": "Supprimer le fichier",
   "reset": "Réinitialiser",
   "restart": "Redémarrer",
