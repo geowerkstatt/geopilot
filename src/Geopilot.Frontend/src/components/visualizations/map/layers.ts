@@ -4,8 +4,6 @@ import { createEmpty, extend as extendExtent, Extent, getArea, isEmpty as isExte
 import Feature, { FeatureLike } from "ol/Feature";
 import WKT from "ol/format/WKT";
 import WMTSCapabilities from "ol/format/WMTSCapabilities";
-import Geometry from "ol/geom/Geometry";
-import GeometryCollection from "ol/geom/GeometryCollection";
 import MultiPolygon from "ol/geom/MultiPolygon";
 import Point from "ol/geom/Point";
 import Polygon from "ol/geom/Polygon";
@@ -14,13 +12,13 @@ import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
-import RenderFeature from "ol/render/Feature";
 import Cluster from "ol/source/Cluster";
 import VectorSource from "ol/source/Vector";
 import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { FitOptions } from "ol/View";
 import { LocalizedText, MapLayer } from "../../../api/apiInterfaces";
+import { getGeometryRank } from "./featureRank";
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
@@ -117,31 +115,6 @@ const CLUSTER_MEMBERS_PROPERTY = "features";
 /** Returns the features a cluster contains, or the feature itself, if its not a cluster. */
 export const getClusterMembers = (feature: FeatureLike): Feature[] =>
   (feature.get(CLUSTER_MEMBERS_PROPERTY) as Feature[] | undefined) ?? [feature as Feature];
-
-/**
- * Where a geometry stands when features overlap: areas 0, lines 1, points 2. A higher rank is drawn above a lower one
- * and picked before it, so a large area neither covers nor swallows the points in it. A collection, the locations of
- * an object in a diff for example, stands where its highest part stands.
- */
-const getRank = (geometry: Geometry | RenderFeature | undefined): number => {
-  if (geometry instanceof GeometryCollection) return Math.max(0, ...geometry.getGeometries().map(getRank));
-  switch (geometry?.getType()) {
-    case "Point":
-    case "MultiPoint":
-      return 2;
-    case "LineString":
-    case "MultiLineString":
-    case "LinearRing":
-      return 1;
-    default:
-      return 0;
-  }
-};
-
-export const getGeometryRank = (feature: FeatureLike): number => getRank(feature.getGeometry());
-
-/** The rank of one geometry, e.g. a part of a collection, as getGeometryRank ranks a feature. */
-export const getPartRank = (geometry: Geometry): number => getRank(geometry);
 
 /** The layer property holding the `style` of the map layer a feature layer was built from. */
 export const MAP_LAYER_STYLE_PROPERTY = "mapLayerStyle";
