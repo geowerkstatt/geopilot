@@ -8,7 +8,7 @@ import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
-import { inferObjectTypes } from "./diff/diffMapGeometry";
+import { DiffMapFocus, getChangeExtent, inferObjectTypes } from "./diff/diffMapGeometry";
 import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
 import {
@@ -24,6 +24,7 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diff/diffObjects";
+import { DiffSide } from "./diff/diffValue";
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
@@ -61,6 +62,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const [hoveredObjectIds, setHoveredObjectIds] = useState<ReadonlySet<string>>(() => new Set());
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
+  const [focus, setFocus] = useState<DiffMapFocus | null>(null);
   const groupElements = useRef(new Map<string, HTMLDivElement>());
 
   const changes = useMemo(() => config.table?.changes ?? [], [config.table]);
@@ -125,6 +127,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const revealObject = useCallback(
     (objectId: string) => {
       setSelectedObjectId(objectId);
+      setFocus(null);
       if (!listedObjectIds.has(objectId)) return;
       setExpandedObjectIds(previous => new Set(previous).add(objectId));
       setRevealRequest(previous => ({ objectId, token: (previous?.token ?? 0) + 1 }));
@@ -144,7 +147,23 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
 
   const showObjectOnMap = useCallback((objectId: string) => {
     setSelectedObjectId(objectId);
+    setFocus(null);
     setZoomRequest(previous => ({ featureIds: [objectId], token: (previous?.token ?? 0) + 1 }));
+  }, []);
+
+  const showChangeOnMap = useCallback((change: DiffChange, side: DiffSide) => {
+    setSelectedObjectId(change.objectId);
+    setFocus({ change, side });
+    setZoomRequest(previous => ({
+      featureIds: [change.objectId],
+      extent: getChangeExtent(change, side),
+      token: (previous?.token ?? 0) + 1,
+    }));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedObjectId(null);
+    setFocus(null);
   }, []);
 
   const toggleObject = useCallback(
@@ -246,6 +265,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       hoveredObjectIds={hoveredObjectIds}
       onHoverObject={hoverObject}
       onShowObjectOnMap={showObjectOnMap}
+      onShowChangeOnMap={showChangeOnMap}
       lookupReference={lookupReference}
       onReference={revealObject}
       registerObject={registerObject}
@@ -261,6 +281,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       hoveredFeatureIds={hoveredObjectIds}
       zoomRequest={zoomRequest}
       onSelectFeature={revealObject}
+      onClearSelection={clearSelection}
       onHoverFeatures={hoverFeatures}
       showMapSelectionPopup
       describeFeature={describeObject}
@@ -272,7 +293,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
           visibleIds={visibleObjectIds}
           highlightedIds={highlightedObjectIds}
           hoveredIds={hoveredObjectIds}
-          focus={null}
+          focus={focus}
         />
       )}
       {config.map && (
