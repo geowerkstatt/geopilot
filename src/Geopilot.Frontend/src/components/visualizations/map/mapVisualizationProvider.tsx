@@ -30,6 +30,7 @@ import {
   getClusterMembers,
   getFeaturesExtent,
   getPickOrder,
+  isPickable,
   refreshFeatureLayer,
 } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
@@ -41,6 +42,7 @@ const ZOOM_TO_CLUSTER_MAX_ZOOM = 18;
 const ZOOM_TO_NODE_DURATION = 400;
 /** Pixels around the pointer that still hit a feature, so a small marker or a thin line is easy to pick. */
 const PICK_HIT_TOLERANCE = 4;
+const PICK_OPTIONS = { hitTolerance: PICK_HIT_TOLERANCE, layerFilter: isPickable };
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
@@ -129,6 +131,8 @@ const createInteractionHint = (
  */
 export interface MapZoomRequest {
   featureIds: string[];
+  /** Zooms to this extent instead of the features, e.g. to one part of a feature. */
+  extent?: Extent;
   token: number;
 }
 
@@ -145,6 +149,8 @@ interface MapVisualizationProviderProps {
   zoomRequest?: MapZoomRequest | null;
   /** Called with the feature id when a feature is clicked. */
   onSelectFeature?: (featureId: string) => void;
+  /** Called when the map is clicked where there is no feature. */
+  onClearSelection?: () => void;
   /** Called with the ids of the features under the pointer whenever they change, with none once it leaves them. */
   onHoverFeatures?: (featureIds: string[]) => void;
   /** Whether to show the metadata popup when a feature is selected. */
@@ -170,6 +176,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   hoveredFeatureIds = NO_FEATURE_IDS,
   zoomRequest,
   onSelectFeature,
+  onClearSelection,
   onHoverFeatures,
   showMapSelectionPopup = false,
   describeFeature,
@@ -286,7 +293,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     });
 
     map.on("pointermove", event => {
-      const hit = map?.hasFeatureAtPixel(event.pixel, { hitTolerance: PICK_HIT_TOLERANCE }) ?? false;
+      const hit = map?.hasFeatureAtPixel(event.pixel, PICK_OPTIONS) ?? false;
       map!.getTargetElement().style.cursor = hit ? "pointer" : "";
     });
 
@@ -322,7 +329,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         .map(layer =>
           buildFeatureLayer(
             layer,
-            layer.style ? theme.palette.map[layer.style] : theme.palette.map,
+            theme.palette.map,
             layer.title,
             SWISS_PROJECTION,
             visibleIdsRef,
@@ -381,7 +388,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     };
 
     const handler = map.on("click", event => {
-      const hits = map.getFeaturesAtPixel(event.pixel, { hitTolerance: PICK_HIT_TOLERANCE });
+      const hits = map.getFeaturesAtPixel(event.pixel, PICK_OPTIONS);
 
       // If a clicked feature is a cluster, zoom into it
       const members = hits.map(getClusterMembers).find(clusterMembers => clusterMembers.length > 1);
@@ -422,12 +429,13 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         setSelection(null);
       }
       if (featureId) onSelectFeature?.(featureId);
+      else onClearSelection?.();
     });
 
     return () => {
       unByKey(handler);
     };
-  }, [map, onSelectFeature, showMapSelectionPopup, describeFeature]);
+  }, [map, onSelectFeature, onClearSelection, showMapSelectionPopup, describeFeature]);
 
   useEffect(() => {
     if (!map || !onHoverFeatures) return;
@@ -441,7 +449,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     };
     const moveKey = map.on("pointermove", event => {
       if (event.dragging) return;
-      const hits = map.getFeaturesAtPixel(event.pixel, { hitTolerance: PICK_HIT_TOLERANCE });
+      const hits = map.getFeaturesAtPixel(event.pixel, PICK_OPTIONS);
       // A cluster stands for all its members, otherwise the feature a click would pick.
       const hovered = hits.map(getClusterMembers).find(members => members.length > 1) ?? getPickOrder(hits).slice(0, 1);
       report(
@@ -477,11 +485,13 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
     lastZoomTokenRef.current = zoomRequest.token;
-    fitToFeatures(map, new Set(zoomRequest.featureIds), {
+    const options = {
       padding: fitOptions.current.padding,
       maxZoom: ZOOM_TO_NODE_MAX_ZOOM,
       duration: ZOOM_TO_NODE_DURATION,
-    });
+    };
+    if (zoomRequest.extent && map.getSize()) map.getView().fit(zoomRequest.extent, options);
+    else fitToFeatures(map, new Set(zoomRequest.featureIds), options);
   }, [map, zoomRequest]);
 
   const contextValue = useMemo<MapVisualizationContextInterface>(
