@@ -27,12 +27,12 @@ internal static class ContextExtensions
 
     /// <summary>
     /// Retrieves the user that matches the provided principal, or <see langword="null"/> when the principal is
-    /// no user: a machine client, or a token the application has never seen as a person.
+    /// no active user: a machine client, a deactivated person, or a token the application has never seen as a person.
     /// </summary>
     public static async Task<User?> GetUserOrDefaultByPrincipalAsync(this Context context, ClaimsPrincipal principal)
     {
         var subjectId = principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value;
-        return await context.Users.SingleOrDefaultAsync(u => u.AuthIdentifier == subjectId);
+        return await context.Users.SingleOrDefaultAsync(u => u.AuthIdentifier == subjectId && u.State == UserState.Active);
     }
 
     /// <summary>
@@ -45,13 +45,13 @@ internal static class ContextExtensions
     public static async Task<Declarer> GetDeclarerAsync(this Context context, ClaimsPrincipal principal)
     {
         return await context.GetDeclarerOrDefaultAsync(principal)
-            ?? throw new InvalidOperationException($"Subject <{GetSubject(principal)}> is neither an active machine client nor a user.");
+            ?? throw new InvalidOperationException($"Subject <{GetSubject(principal)}> is neither an active machine client nor an active user.");
     }
 
     /// <summary>
     /// Resolves the provided principal like <see cref="GetDeclarerAsync"/>, but answers <see langword="null"/>
-    /// for a subject that is neither an active machine client nor a user, for the anonymous endpoints, where
-    /// such a caller is simply nobody in particular.
+    /// for a subject that is neither an active machine client nor an active user, for the anonymous endpoints,
+    /// where such a caller is simply nobody in particular.
     /// </summary>
     public static async Task<Declarer?> GetDeclarerOrDefaultAsync(this Context context, ClaimsPrincipal principal)
     {
@@ -67,7 +67,7 @@ internal static class ContextExtensions
             return client.State == MachineClientState.Active ? Declarer.ForClient(client.Id) : null;
 
         var userId = await context.Users
-            .Where(u => u.AuthIdentifier == subjectId)
+            .Where(u => u.AuthIdentifier == subjectId && u.State == UserState.Active)
             .Select(u => (int?)u.Id)
             .SingleOrDefaultAsync();
         if (userId is not null)
