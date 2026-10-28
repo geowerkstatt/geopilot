@@ -77,6 +77,7 @@
   "diffLegendPoint": "Punkt",
   "diffMapLegend": "Legende",
   "diffMapSlider": "Vorher und nachher vergleichen",
+  "diffMapSliderOneState": "Nur ein Stand hat Änderungen, Überblenden ist nicht möglich",
   "diffNoChanges": "Die beiden Stände unterscheiden sich nicht.",
   "diffReferenceFiltered": "Vom Filter ausgeblendet",
   "diffReferenceNotInDiff": "Nicht Teil der Änderungen",

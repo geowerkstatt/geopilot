@@ -70,6 +70,13 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     [config.map],
   );
   const objects = useMemo(() => groupByObject(changes, mappedObjectIds), [changes, mappedObjectIds]);
+  const bothStatesChanged = useMemo(
+    () =>
+      (["old", "new"] as const).every(state =>
+        config.map?.layers.some(layer => layer.style === state && (layer.features?.length ?? 0) > 0),
+      ),
+    [config.map],
+  );
   const objectsById = useMemo(() => new Map(objects.map(object => [object.objectId, object])), [objects]);
   const objectTypes = useMemo(() => new Map(objects.map(object => [object.objectId, object.kind])), [objects]);
 
@@ -238,7 +245,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       reserveSpaceForFilters
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
-      controls={<DiffMapSliderButton slider={slider} onSliderChange={setSlider} />}
+      controls={<DiffMapSliderButton slider={slider} onSliderChange={setSlider} disabled={!bothStatesChanged} />}
       layerControls={<DiffMapLegendButton />}>
       {slider !== null && <DiffMapSlider value={slider} onChange={setSlider} />}
     </MapVisualization>

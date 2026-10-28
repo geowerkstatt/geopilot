@@ -66,8 +66,8 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
   );
   const partTypes = useMemo(() => buildPartTypeIndex(changes), [changes]);
   const connectors = useMemo(() => buildConnectors(changes), [changes]);
-  /** Per state layer, its opacity before the slider and the one the slider set last. */
-  const sliderOpacities = useRef<Map<BaseLayer, { before: number; set: number }> | null>(null);
+  /** Per state layer, its opacity and visibility before the slider, and the opacity the slider set last. */
+  const beforeSlider = useRef<Map<BaseLayer, { opacity: number; visible: boolean; set: number }> | null>(null);
   const sliderOn = useRef(slider !== null);
   const inputs = useRef<DiffStyleInputs>({ objectTypes, partTypes, visibleIds, highlightedIds, hoveredIds });
   const decorations = useMemo(
@@ -120,18 +120,26 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
     const stateLayers = getStateLayers(map.getLayers().getArray());
     showDecorations(decorations, stateLayers, sliderOn.current);
     if (slider === null) {
-      // An opacity set in the layer switcher while the slider was on stays.
-      sliderOpacities.current?.forEach(({ before, set }, layer) => {
-        if (layer.getOpacity() === set) layer.setOpacity(before);
+      // An opacity set or a layer hidden in the layer switcher while the slider was on stays.
+      beforeSlider.current?.forEach(({ opacity, visible, set }, layer) => {
+        if (layer.getOpacity() === set) layer.setOpacity(opacity);
+        if (layer.getVisible()) layer.setVisible(visible);
       });
-      sliderOpacities.current = null;
+      beforeSlider.current = null;
       return;
     }
-    const opacities = (sliderOpacities.current ??= new Map());
+    const saved = (beforeSlider.current ??= new Map());
     stateLayers.forEach(layer => {
       const set = isStateLayer(layer, "old") ? 1 - slider : slider;
-      opacities.set(layer, { before: opacities.get(layer)?.before ?? layer.getOpacity(), set });
+      const previous = saved.get(layer);
+      saved.set(layer, {
+        opacity: previous?.opacity ?? layer.getOpacity(),
+        visible: previous?.visible ?? layer.getVisible(),
+        set,
+      });
       layer.setOpacity(set);
+      // The slider fades between both states, so turning it on shows both.
+      if (!previous) layer.setVisible(true);
     });
   }, [map, decorations, slider]);
 

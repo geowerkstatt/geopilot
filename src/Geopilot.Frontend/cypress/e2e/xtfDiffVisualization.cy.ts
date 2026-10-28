@@ -20,9 +20,14 @@ interface FixtureChange {
   newValue?: string;
 }
 
+interface FixtureLayer {
+  style?: "old" | "new";
+  features?: unknown[];
+}
+
 interface Visualization {
   type: "xtfDiff";
-  data: { map?: unknown; table: { changes: FixtureChange[] } };
+  data: { map?: { layers: FixtureLayer[] }; table: { changes: FixtureChange[] } };
 }
 
 type Transform = (visualization: Visualization) => Visualization;
@@ -292,6 +297,37 @@ describe("XTF diff visualization", () => {
     slider().should("not.have.attr", "aria-valuenow", "0");
     cy.dataCy("diffMapSlider-button").click();
     cy.dataCy("diff-map-slider").should("not.exist");
+  });
+
+  it("shows both states while the slider is on", () => {
+    openDiffVisualization();
+    const afterLayer = () => cy.dataCy("layer-switcher").contains("label", "After").find("input");
+    cy.dataCy("layers-button").click();
+    afterLayer().uncheck();
+    cy.dataCy("diffMapSlider-button").click();
+    cy.dataCy("layers-button").click();
+    afterLayer().should("be.checked");
+    cy.dataCy("layers-button").click();
+    cy.dataCy("diffMapSlider-button").click();
+    cy.dataCy("layers-button").click();
+    afterLayer().should("not.be.checked");
+  });
+
+  it("disables the slider when only one state has changes", () => {
+    openDiffVisualization(visualization => ({
+      ...visualization,
+      data: {
+        ...visualization.data,
+        map: {
+          layers: visualization.data.map!.layers.map(layer =>
+            layer.style === "new" ? { ...layer, features: [] } : layer,
+          ),
+        },
+      },
+    }));
+    cy.dataCy("diffMapSlider-button").should("be.disabled");
+    cy.dataCy("diffMapSlider-button").parent().trigger("mouseover");
+    cy.contains("Only one state has changes, so fading is not possible").should("be.visible");
   });
 
   it("stacks before and after on a phone", () => {

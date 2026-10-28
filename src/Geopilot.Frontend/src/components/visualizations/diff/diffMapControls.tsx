@@ -181,17 +181,21 @@ interface DiffMapSliderButtonProps {
   /** 0 shows only the old state, 1 only the new one; null means the slider is off. */
   slider: number | null;
   onSliderChange: (slider: number | null) => void;
+  /** Only one state has changes on the map, so there is nothing to fade between. */
+  disabled: boolean;
 }
 
 /** The slider button, in a group of its own above the legend and the layers. */
-export const DiffMapSliderButton: FC<DiffMapSliderButtonProps> = ({ slider, onSliderChange }) => {
+export const DiffMapSliderButton: FC<DiffMapSliderButtonProps> = ({ slider, onSliderChange, disabled }) => {
   const sliderOn = slider !== null;
   return (
     <ButtonGroup orientation="vertical">
       <IconButton
         color="primaryOutlined"
         icon={<CompareIcon />}
-        label="diffMapSlider"
+        label={disabled ? "diffMapSliderOneState" : "diffMapSlider"}
+        data-cy="diffMapSlider-button"
+        disabled={disabled}
         tooltipPlacement="left"
         aria-pressed={sliderOn}
         sx={{ bgcolor: sliderOn ? "primary.states.selected" : undefined }}

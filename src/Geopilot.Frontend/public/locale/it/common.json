@@ -77,6 +77,7 @@
   "diffLegendPoint": "Punto",
   "diffMapLegend": "Legenda",
   "diffMapSlider": "Confrontare prima e dopo",
+  "diffMapSliderOneState": "Solo uno stato contiene modifiche, la dissolvenza non è possibile",
   "diffNoChanges": "I due stati non differiscono.",
   "diffReferenceFiltered": "Nascosto dal filtro",
   "diffReferenceNotInDiff": "Non fa parte delle modifiche",

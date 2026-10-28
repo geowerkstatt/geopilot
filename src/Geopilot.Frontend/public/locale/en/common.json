@@ -77,6 +77,7 @@
   "diffLegendPoint": "Point",
   "diffMapLegend": "Legend",
   "diffMapSlider": "Compare before and after",
+  "diffMapSliderOneState": "Only one state has changes, so fading is not possible",
   "diffNoChanges": "The two states do not differ.",
   "diffReferenceFiltered": "Hidden by the filter",
   "diffReferenceNotInDiff": "Not part of the changes",
