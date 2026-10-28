@@ -9,11 +9,41 @@ Ein XTF Fehlervisualisierungs-Prozess muss unter `processes[X].implementation` d
 ## Konfiguration
 
 - `include`: Optionaler Parameter vom Typ `HashSet<string>`. Wählt die zu erzeugenden Ansichten: `map` (Kartenansicht) und/oder `tree` (Error Tree). Der Vergleich erfolgt ohne Berücksichtigung der Gross-/Kleinschreibung. Wenn `null` oder leer, werden beide Ansichten erzeugt.
-- `baseMapWmtsCapabilitiesUrl`: Optionaler Parameter vom Typ `string`. Übersteuert die WMTS-Capabilities-URL der Hintergrundkarte für die Kartenansicht. Wenn `null` oder leer, wird die eingebaute Standard-Hintergrundkarte verwendet.
+- `baseMapWmtsCapabilitiesUrl`: Optionaler Parameter vom Typ `string`. Übersteuert die WMTS-Capabilities-URL der Hintergrundkarte für die Kartenansicht. Wenn `null` oder leer, wird die eingebaute Standard-Hintergrundkarte von swisstopo verwendet. Ein anderer Dienst braucht zusätzlich `baseMapLayerIds` und eine Freigabe im Browser, siehe [Hintergrundkarte eines anderen Dienstes](#hintergrundkarte-eines-anderen-dienstes).
+- `baseMapLayerIds`: Optionaler Parameter vom Typ `IReadOnlyList<string>`. Die Layer, die vom Dienst der Hintergrundkarte angefordert werden, jeweils mit ihrem `Identifier` aus den WMTS-Capabilities. Sie werden in der angegebenen Reihenfolge gezeichnet, der letzte zuoberst, und lassen sich in der Karte einzeln ein- und ausblenden. Einen Layer, den der Dienst nicht anbietet, übergeht die Karte mit einer Warnung in der Browser-Konsole. Wenn `null` oder leer, werden die Landeskarten von swisstopo angefordert, `ch.swisstopo.pixelkarte-farbe` über `ch.swisstopo.pixelkarte-grau`. Wer `baseMapWmtsCapabilitiesUrl` auf einen anderen Dienst setzt, muss deshalb auch `baseMapLayerIds` setzen, sonst bleibt die Hintergrundkarte leer. Als Liste gehört der Parameter in die `default_config` oder die `process_config_overwrites`, nicht in `Pipeline:ProcessConfigs`.
 - `baseMapAttribution`: Optionaler Parameter vom Typ `string`. Übersteuert den Copyright-/Urhebervermerk der Hintergrundkarte (Daten-Owner, z.B. `swisstopo`), symmetrisch zu `baseMapWmtsCapabilitiesUrl`. Wenn `null` oder leer, wird der eingebaute Standardwert verwendet. Das Frontend zeigt den Vermerk mit einem lokalisierten "©"-Präfix in der linken unteren Ecke der Karte an.
 - `baseMapAttributionUrl`: Optionaler Parameter vom Typ `string`. Übersteuert die URL, auf die der Copyright-Vermerk verlinkt (z.B. die Nutzungsbedingungen des Karten-Owners). Wenn `null` oder leer, wird der eingebaute Standardwert verwendet. Da `null` und leer auf den Standardwert zurückfallen, ist immer eine URL wirksam und der Vermerk wird stets als Link dargestellt. Wer `baseMapAttribution` übersteuert, sollte deshalb auch `baseMapAttributionUrl` passend setzen, sonst verlinkt der angepasste Vermerk weiterhin auf den Standardwert (z.B. swisstopo).
 - `groupBy`: Optionaler Parameter vom Typ `IReadOnlyList<TreeField>`. Felder, nach denen das Frontend den Error Tree gruppiert, äusserste Ebene zuerst (z.B. `["model", "topic", "class"]`). Erlaubte Werte: `errorType`, `model`, `topic`, `class`; die Gross-/Kleinschreibung ist unerheblich, ein anderer Wert schlägt bei der Validierung beim Applikationsstart fehl. Wenn `null` oder leer, wird nicht gruppiert (flache Liste). Ein Feld, das auf einem Fehler nicht vorhanden ist, landet in einer separaten Gruppe "Ohne Zuordnung".
 - `filterBy`: Optionaler Parameter vom Typ `IReadOnlyList<TreeField>`. Felder, die das Frontend als Filter anbietet, in Anzeigereihenfolge (z.B. `["model", "topic", "class", "errorType"]`). Erlaubte Werte wie bei `groupBy`. Der Filter wirkt auf Karte und Baum gleichzeitig. Wenn `null` oder leer, werden keine Filter angeboten.
+
+### Hintergrundkarte eines anderen Dienstes
+
+Die Hintergrundkarte lädt der Browser direkt vom Dienst, nicht über geopilot. Ein anderer Dienst als swisstopo braucht deshalb neben `baseMapWmtsCapabilitiesUrl` und `baseMapLayerIds` zwei Dinge ausserhalb der Pipeline-Definition:
+
+- **Freigabe in der Content Security Policy:** geopilot erlaubt dem Browser die Hintergrundkarte von genau einem Host, dem der Applikationseinstellung `MapVisualization:BaseMapWmtsCapabilitiesUrl` (als Umgebungsvariable `MapVisualization__BaseMapWmtsCapabilitiesUrl`). Ohne diese Einstellung ist es der Host von swisstopo. Am einfachsten erhält sie dieselbe URL wie `baseMapWmtsCapabilitiesUrl`; ausgewertet wird nur der Host, und Capabilities wie Kacheln müssen von diesem Host kommen. Weil nur ein Host möglich ist, gilt er für alle Kartenansichten der Installation, auch die der [XTF Diff Visualisierung](xtf-diff-visualisierung.md): Wer ihn auf einen anderen Dienst setzt, sperrt die Standardkarte von swisstopo. Ohne passende Freigabe bleibt die Hintergrundkarte leer, und die Browser-Konsole meldet eine Verletzung der Direktive `connect-src`. geopilot liest die Einstellung beim Start.
+- **CORS:** Der Dienst muss Abrufe von der Adresse der geopilot-Installation zulassen (`Access-Control-Allow-Origin`), für die Capabilities wie für die Kacheln.
+
+Ein Beispiel mit einem Dienst unter `wmts.example.com`, in der Pipeline-Definition:
+
+```yaml
+processes:
+  - id: xtf_error_visualizer
+    implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
+    default_config:
+      baseMapWmtsCapabilitiesUrl: https://wmts.example.com/1.0.0/WMTSCapabilities.xml
+      baseMapLayerIds:
+        - grundkarte
+      baseMapAttribution: Beispiel AG
+      baseMapAttributionUrl: https://example.com/nutzungsbedingungen
+```
+
+und in den Appsettings:
+
+```json
+"MapVisualization": {
+  "BaseMapWmtsCapabilitiesUrl": "https://wmts.example.com/1.0.0/WMTSCapabilities.xml"
+}
+```
 
 ## Input
 

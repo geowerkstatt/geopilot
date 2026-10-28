@@ -45,7 +45,7 @@ internal class XtfDiffVisualizationProcess
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
     public XtfDiffVisualizationProcess(string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
     {
-        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl);
+        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, layerIds: null, baseMapAttribution, baseMapAttributionUrl);
     }
 
     /// <summary>

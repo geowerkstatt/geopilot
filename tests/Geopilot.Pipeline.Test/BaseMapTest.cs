@@ -8,7 +8,7 @@ public class BaseMapTest
     [TestMethod]
     public void CreateLayerFallsBackToTheSwisstopoMapWhenNothingIsConfigured()
     {
-        var layer = BaseMap.CreateLayer(null, " ", string.Empty);
+        var layer = BaseMap.CreateLayer(null, [], " ", string.Empty);
 
         Assert.AreEqual("https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml", layer.Wmts);
         Assert.AreEqual("swisstopo", layer.Attribution);
@@ -21,9 +21,11 @@ public class BaseMapTest
     [TestMethod]
     public void CreateLayerUsesTheConfiguredService()
     {
-        var layer = BaseMap.CreateLayer("https://wmts.example.ch/WMTSCapabilities.xml", "Example", "https://example.ch/terms");
+        var layer = BaseMap.CreateLayer("https://wmts.example.ch/WMTSCapabilities.xml", ["grundkarte"], "Example", "https://example.ch/terms");
 
         Assert.AreEqual("https://wmts.example.ch/WMTSCapabilities.xml", layer.Wmts);
+        Assert.IsNotNull(layer.LayerIds);
+        CollectionAssert.AreEqual(new[] { "grundkarte" }, layer.LayerIds.ToArray());
         Assert.AreEqual("Example", layer.Attribution);
         Assert.AreEqual("https://example.ch/terms", layer.AttributionUrl);
     }
