@@ -60,7 +60,6 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
       ...theme.palette.map.diff,
       outline: theme.palette.primary.dark,
       rim: theme.palette.map.stroke,
-      cluster: theme.palette.text.secondary,
     }),
     [theme],
   );

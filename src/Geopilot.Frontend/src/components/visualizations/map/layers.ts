@@ -170,8 +170,9 @@ export const buildFeatureLayer = (
   };
 
   // Clustering keeps markers of nearby errors from covering each other. It reduces every feature to a
-  // point, so a layer holding any other geometry is left unclustered instead of losing those shapes.
-  const clusterable = source.getFeatures().every(feature => feature.getGeometry() instanceof Point);
+  // point, so a layer holding any other geometry is left unclustered instead of losing those shapes. A diff layer is
+  // never clustered: it holds one state only, so a cluster could not join an object's before and after.
+  const clusterable = !layer.style && source.getFeatures().every(feature => feature.getGeometry() instanceof Point);
   const layerSource = clusterable
     ? new Cluster({
         source,

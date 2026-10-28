@@ -2,10 +2,10 @@ import { asArray } from "ol/color";
 import Feature, { FeatureLike } from "ol/Feature";
 import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
-import { Circle, Fill, Stroke, Style, Text } from "ol/style";
+import { Circle, Fill, Stroke, Style } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
 import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
-import { getClusterMembers, getRank } from "../map/picking";
+import { getRank } from "../map/picking";
 import { DecorationRole, DiffLook, getLook, getParts, PartTypeIndex, resolvePartType } from "./diffMapGeometry";
 
 export interface DiffMapColors {
@@ -16,8 +16,6 @@ export interface DiffMapColors {
   outline: string;
   /** Around filled points, apart from the base map. */
   rim: string;
-  /** Of a cluster, which may hold several change types. */
-  cluster: string;
 }
 
 export interface DiffStyleInputs {
@@ -116,9 +114,9 @@ const createStyleCache = () => {
   };
 };
 
-const getEmphasis = (ids: string[], inputs: DiffStyleInputs): Emphasis => {
-  if (ids.some(id => inputs.highlightedIds.has(id))) return 2;
-  return ids.some(id => inputs.hoveredIds.has(id)) ? 1 : 0;
+const getEmphasis = (id: string, inputs: DiffStyleInputs): Emphasis => {
+  if (inputs.highlightedIds.has(id)) return 2;
+  return inputs.hoveredIds.has(id) ? 1 : 0;
 };
 
 /** The style of an old or a new layer of the diff: each part of a feature in the look and color of its change type. */
@@ -135,20 +133,12 @@ export const buildDiffStyleFunction = (
   >();
   return (feature: FeatureLike) => {
     const current = inputs.current;
-    const members = getClusterMembers(feature).filter(member => {
-      const id = member.getId()?.toString();
-      return !current.visibleIds || (id !== undefined && current.visibleIds.has(id));
-    });
-    if (members.length === 0) return undefined;
-    const ids = members.map(member => member.getId()?.toString() ?? "");
-    const emphasis = getEmphasis(ids, current);
-    if (members.length > 1)
-      return cached(`cluster|${members.length}|${emphasis}`, () => [
-        buildClusterStyle(members.length, emphasis, colors),
-      ]);
+    if (!(feature instanceof Feature)) return undefined;
+    const id = feature.getId()?.toString() ?? "";
+    if (current.visibleIds && !current.visibleIds.has(id)) return undefined;
+    const emphasis = getEmphasis(id, current);
 
-    const [member] = members;
-    const known = featureStyles.get(member);
+    const known = featureStyles.get(feature);
     if (
       known?.emphasis === emphasis &&
       known.objectTypes === current.objectTypes &&
@@ -156,11 +146,11 @@ export const buildDiffStyleFunction = (
     ) {
       return known.styles;
     }
-    const geometry = member.getGeometry();
+    const geometry = feature.getGeometry();
     if (!geometry) return undefined;
-    const objectType = current.objectTypes.get(ids[0]) ?? "changed";
+    const objectType = current.objectTypes.get(id) ?? "changed";
     const styles = getParts(geometry).flatMap(part => {
-      const changeType = resolvePartType(current.partTypes, ids[0], state, part, objectType);
+      const changeType = resolvePartType(current.partTypes, id, state, part, objectType);
       const look = getLook(changeType, state);
       const zIndex = getRank(part) * 3 + emphasis;
       const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}`, () => [
@@ -174,21 +164,10 @@ export const buildDiffStyleFunction = (
         return partStyle;
       });
     });
-    featureStyles.set(member, { objectTypes: current.objectTypes, partTypes: current.partTypes, emphasis, styles });
+    featureStyles.set(feature, { objectTypes: current.objectTypes, partTypes: current.partTypes, emphasis, styles });
     return styles;
   };
 };
-
-const buildClusterStyle = (count: number, emphasis: Emphasis, colors: DiffMapColors) =>
-  new Style({
-    image: new Circle({
-      radius: 12,
-      fill: new Fill({ color: colors.cluster }),
-      stroke: new Stroke({ color: emphasis > 0 ? colors.outline : colors.rim, width: emphasis > 0 ? 4 : 2 }),
-    }),
-    text: new Text({ text: count.toString(), font: "bold 12px sans-serif", fill: new Fill({ color: colors.rim }) }),
-    zIndex: 6 + emphasis,
-  });
 
 /** The style of the decoration layer: connectors of moved points and the outlines of a focused pair. */
 export const buildDecorationStyleFunction = (

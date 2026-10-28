@@ -129,7 +129,7 @@ describe("diff map geometry", () => {
         hoveredIds: new Set<string>(),
       },
     };
-    const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white", cluster: "gray" };
+    const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
     const style = buildDiffStyleFunction("new", inputs, colors);
 
     const first = style(feature, 1);
