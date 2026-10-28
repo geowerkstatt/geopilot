@@ -6,7 +6,15 @@ import { Circle, Fill, Stroke, Style } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
 import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { getRank } from "../map/picking";
-import { DecorationRole, DiffLook, getLook, getParts, PartTypeIndex, resolvePartType } from "./diffMapGeometry";
+import {
+  DecorationRole,
+  DiffLook,
+  getLook,
+  getParts,
+  liesOnSurfaceEdge,
+  PartTypeIndex,
+  resolvePartType,
+} from "./diffMapGeometry";
 
 export interface DiffMapColors {
   added: string;
@@ -39,6 +47,11 @@ const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
 const withAlpha = (color: string, opacity: number): string => {
   const [red, green, blue] = asArray(color);
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+};
+
+const blendOverWhite = (color: string, opacity: number): string => {
+  const [red, green, blue] = asArray(color).map(channel => Math.round(channel * opacity + 255 * (1 - opacity)));
+  return `rgb(${red}, ${green}, ${blue})`;
 };
 
 const getSizes = (look: DiffLook, emphasis: Emphasis) => {
@@ -90,10 +103,13 @@ const buildLookStyle = (look: DiffLook, color: string, rim: string, emphasis: Em
   }
 };
 
-/** A dark rim beneath a feature's own style, so emphasis never competes with the change colors. */
+/**
+ * A dark rim beneath a feature's own style, so emphasis never competes with the change colors. Opaque, so the rims of
+ * two parts on the same edge, a surface and a line on its boundary, look like one.
+ */
 const buildUnderlayStyle = (look: DiffLook, outline: string, emphasis: Exclude<Emphasis, 0>, zIndex: number): Style => {
   const { radius, width } = getSizes(look, emphasis);
-  const color = withAlpha(outline, emphasis === 2 ? 0.9 : 0.45);
+  const color = blendOverWhite(outline, emphasis === 2 ? 0.9 : 0.45);
   return new Style({
     image: new Circle({ radius: radius + 3, fill: new Fill({ color }) }),
     stroke: new Stroke({ color, width: width + 5, lineCap: "round", lineJoin: "round" }),
@@ -149,8 +165,17 @@ export const buildDiffStyleFunction = (
     const geometry = feature.getGeometry();
     if (!geometry) return undefined;
     const objectType = current.objectTypes.get(id) ?? "changed";
-    const styles = getParts(geometry).flatMap(part => {
-      const changeType = resolvePartType(current.partTypes, id, state, part, objectType);
+    const parts = getParts(geometry).map(part => ({
+      part,
+      changeType: resolvePartType(current.partTypes, id, state, part, objectType),
+    }));
+    // A line on the outline of a surface of the same change type is drawn by that outline already. Drawn twice, the
+    // dashes of the two strokes fall out of step with the zoom and close into a solid line.
+    const drawnParts = parts.filter(
+      ({ part, changeType }) =>
+        !parts.some(other => other.changeType === changeType && liesOnSurfaceEdge(part, other.part)),
+    );
+    const styles = drawnParts.flatMap(({ part, changeType }) => {
       const look = getLook(changeType, state);
       const zIndex = getRank(part) * 3 + emphasis;
       const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}`, () => [

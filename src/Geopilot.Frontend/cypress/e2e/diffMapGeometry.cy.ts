@@ -8,6 +8,7 @@ import {
   getFocus,
   getLook,
   getParts,
+  liesOnSurfaceEdge,
   LocatedChange,
   readLocation,
   resolvePartType,
@@ -139,6 +140,44 @@ describe("diff map geometry", () => {
     expect(
       Array.isArray(first) && Array.isArray(second) && first.every((part: Style, i) => part === second[i]),
     ).to.equal(true);
+  });
+
+  it("finds lines on the outline of a surface", () => {
+    const surface = readLocation("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))")!;
+    const onEdge = (wkt: string) => liesOnSurfaceEdge(readLocation(wkt)!, surface);
+
+    expect(onEdge("MULTILINESTRING ((10 0, 10 10, 0 10))")).to.equal(true);
+    expect(onEdge("LINESTRING (2 0.0005, 8 0)")).to.equal(true);
+    expect(onEdge("LINESTRING (0 0, 10 10)")).to.equal(false);
+    expect(onEdge("LINESTRING (0 0, 10 0, 12 0)")).to.equal(false);
+    expect(onEdge("POINT (0 0)")).to.equal(false);
+    expect(
+      liesOnSurfaceEdge(readLocation("LINESTRING (0 0, 10 0)")!, readLocation("LINESTRING (0 0, 10 0)")!),
+    ).to.equal(false);
+  });
+
+  it("draws a line on the outline of a surface only with a change of its own", () => {
+    const feature = new Feature(
+      readLocation("GEOMETRYCOLLECTION (POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0)), MULTILINESTRING ((0 10, 10 10)))"),
+    );
+    feature.setId("o");
+    const stylesFor = (partTypes: ReturnType<typeof buildPartTypeIndex>) => {
+      const inputs = {
+        current: {
+          objectTypes: new Map<string, "deleted">([["o", "deleted"]]),
+          partTypes,
+          highlightedIds: new Set<string>(),
+          hoveredIds: new Set<string>(),
+        },
+      };
+      const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
+      const styles = buildDiffStyleFunction("old", inputs, colors)(feature, 1);
+      return Array.isArray(styles) ? styles.length : 0;
+    };
+    const ownChange = buildPartTypeIndex([geometryChange({ oldLocation: "MULTILINESTRING ((0 10, 10 10))" })]);
+
+    expect(stylesFor(buildPartTypeIndex([]))).to.equal(1);
+    expect(stylesFor(ownChange)).to.equal(2);
   });
 
   it("draws each change type in its own look", () => {

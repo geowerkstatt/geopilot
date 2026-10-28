@@ -1,10 +1,14 @@
+import { Coordinate, squaredDistanceToSegment } from "ol/coordinate";
 import { Extent } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
 import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
 import LineString from "ol/geom/LineString";
+import MultiLineString from "ol/geom/MultiLineString";
+import MultiPolygon from "ol/geom/MultiPolygon";
 import Point from "ol/geom/Point";
+import Polygon from "ol/geom/Polygon";
 import SimpleGeometry from "ol/geom/SimpleGeometry";
 import type { DiffChange, DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { isFittableExtent } from "../map/picking";
@@ -81,6 +85,48 @@ export const resolvePartType = (
   part: Geometry,
   objectType: DiffChangeType,
 ): DiffChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
+
+// The diff tool writes coordinates to the millimeter, so a line on the edge of a surface lies within a millimeter of it.
+const EDGE_TOLERANCE = 0.001;
+
+const getRings = (surface: Geometry): Coordinate[][] => {
+  if (surface instanceof Polygon) return surface.getCoordinates();
+  if (surface instanceof MultiPolygon) return surface.getCoordinates().flat();
+  return [];
+};
+
+const getLines = (line: Geometry): Coordinate[][] => {
+  if (line instanceof LineString) return [line.getCoordinates()];
+  if (line instanceof MultiLineString) return line.getCoordinates();
+  return [];
+};
+
+const isOnRing = (point: Coordinate, ring: Coordinate[]) =>
+  ring.some(
+    (end, i) => i > 0 && squaredDistanceToSegment(point, [ring[i - 1], end]) <= EDGE_TOLERANCE * EDGE_TOLERANCE,
+  );
+
+/**
+ * Whether every segment of a line lies on the outline of a surface, so the outline already draws it. A segment counts
+ * when its ends and its middle do, which keeps a chord between two corners off the outline.
+ */
+export const liesOnSurfaceEdge = (line: Geometry, surface: Geometry): boolean => {
+  const rings = getRings(surface);
+  const lines = getLines(line);
+  const isOnEdge = (point: Coordinate) => rings.some(ring => isOnRing(point, ring));
+  return (
+    lines.length > 0 &&
+    lines.every(
+      coordinates =>
+        coordinates.length > 1 &&
+        coordinates.every(
+          (point, i) =>
+            isOnEdge(point) &&
+            (i === 0 || isOnEdge([(coordinates[i - 1][0] + point[0]) / 2, (coordinates[i - 1][1] + point[1]) / 2])),
+        ),
+    )
+  );
+};
 
 export const getChangeExtent = (change: LocatedChange, state: DiffState): Extent | undefined => {
   const extent = locationOf(change, state)?.getExtent();
