@@ -130,6 +130,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
           boxShadow: theme => `inset 0 0 0 1px ${theme.palette.primary.main}`,
         },
       }}>
+      {/* A larger target for the pointer only; the toggle button below is the keyboard path, with aria-expanded. */}
       <Stack
         onClick={expandable ? toggleByHeader : undefined}
         sx={{ gap: 0, pr: 0.5, py: layout === "wide" ? 0.5 : 0.25, cursor: expandable ? "pointer" : undefined }}>

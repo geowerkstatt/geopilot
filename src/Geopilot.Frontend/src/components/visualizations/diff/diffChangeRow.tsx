@@ -45,13 +45,16 @@ const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onR
   const shortOid = `…${oid.slice(-SHORT_OID_LENGTH)}`;
   const listed = target.state === "listed";
   const reason = REFERENCE_REASONS[target.state];
+  const description = reason ? `${t(reason)}: ${oid}` : oid;
   return (
-    <Tooltip title={reason ? `${t(reason)}: ${oid}` : oid}>
+    <Tooltip title={description}>
       <Chip
         size="small"
         variant="outlined"
         label={listed && target.className ? `${target.className} ${shortOid}` : shortOid}
         onClick={listed ? () => onReference(oid) : undefined}
+        tabIndex={listed ? undefined : 0}
+        aria-label={listed ? undefined : description}
         data-cy="diff-reference"
         sx={{
           bgcolor: changed ? MARK_BACKGROUNDS[side] : "transparent",
