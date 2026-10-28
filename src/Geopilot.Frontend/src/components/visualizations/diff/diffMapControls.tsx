@@ -148,36 +148,29 @@ const DiffMapLegend: FC = () => {
   );
 };
 
-interface DiffMapControlsProps {
-  /** 0 shows only the old state, 1 only the new one; null means the slider is off. */
-  slider: number | null;
-  onSliderChange: (slider: number | null) => void;
-}
-
-/** The legend and the slider buttons, below the zoom buttons of the map. */
-export const DiffMapControls: FC<DiffMapControlsProps> = ({ slider, onSliderChange }) => {
-  const [legendOpen, setLegendOpen] = useState(false);
-  const [legendButton, setLegendButton] = useState<HTMLButtonElement | null>(null);
+/** The legend button, grouped with the layers button, and the legend beside it. */
+export const DiffMapLegendButton: FC = () => {
+  const [open, setOpen] = useState(false);
+  const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const legendRef = useRef<HTMLDivElement>(null);
-  const sliderOn = slider !== null;
 
   // Closes like the layer switcher, on a pointer down anywhere else, so the two never overlap.
   useEffect(() => {
-    if (!legendOpen) return;
+    if (!open) return;
     const closeOutside = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
-      if (legendRef.current?.contains(event.target) || legendButton?.contains(event.target)) return;
-      setLegendOpen(false);
+      if (legendRef.current?.contains(event.target) || button?.contains(event.target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", closeOutside);
     return () => document.removeEventListener("pointerdown", closeOutside);
-  }, [legendOpen, legendButton]);
+  }, [open, button]);
 
   return (
     <>
       <Popper
-        open={legendOpen}
-        anchorEl={legendButton}
+        open={open}
+        anchorEl={button}
         placement="left-end"
         disablePortal
         modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
@@ -186,28 +179,41 @@ export const DiffMapControls: FC<DiffMapControlsProps> = ({ slider, onSliderChan
           <DiffMapLegend />
         </div>
       </Popper>
-      <ButtonGroup orientation="vertical" sx={{ mt: 1 }}>
-        <IconButton
-          ref={setLegendButton}
-          color="primaryOutlined"
-          icon={<FormatListBulletedIcon />}
-          label="diffMapLegend"
-          tooltipPlacement="left"
-          aria-pressed={legendOpen}
-          sx={{ bgcolor: legendOpen ? "primary.states.selected" : undefined }}
-          onClick={() => setLegendOpen(open => !open)}
-        />
-        <IconButton
-          color="primaryOutlined"
-          icon={<CompareIcon />}
-          label="diffMapSlider"
-          tooltipPlacement="left"
-          aria-pressed={sliderOn}
-          sx={{ bgcolor: sliderOn ? "primary.states.selected" : undefined }}
-          onClick={() => onSliderChange(sliderOn ? null : 0)}
-        />
-      </ButtonGroup>
+      <IconButton
+        ref={setButton}
+        color="primaryOutlined"
+        icon={<FormatListBulletedIcon />}
+        label="diffMapLegend"
+        tooltipPlacement="left"
+        aria-pressed={open}
+        sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
+        onClick={() => setOpen(previous => !previous)}
+      />
     </>
+  );
+};
+
+interface DiffMapSliderButtonProps {
+  /** 0 shows only the old state, 1 only the new one; null means the slider is off. */
+  slider: number | null;
+  onSliderChange: (slider: number | null) => void;
+}
+
+/** The slider button, in a group of its own above the legend and the layers. */
+export const DiffMapSliderButton: FC<DiffMapSliderButtonProps> = ({ slider, onSliderChange }) => {
+  const sliderOn = slider !== null;
+  return (
+    <ButtonGroup orientation="vertical">
+      <IconButton
+        color="primaryOutlined"
+        icon={<CompareIcon />}
+        label="diffMapSlider"
+        tooltipPlacement="left"
+        aria-pressed={sliderOn}
+        sx={{ bgcolor: sliderOn ? "primary.states.selected" : undefined }}
+        onClick={() => onSliderChange(sliderOn ? null : 0)}
+      />
+    </ButtonGroup>
   );
 };
 
