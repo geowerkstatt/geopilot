@@ -598,7 +598,7 @@ reaction_sets:
   - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
   - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
   - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
-  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert.
+  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
 
 Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
 

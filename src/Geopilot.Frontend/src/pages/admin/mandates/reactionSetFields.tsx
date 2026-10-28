@@ -1,10 +1,11 @@
-import { FC } from "react";
+import { FC, ReactElement } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { MandateField, MandateValueType, ReactionSetSummary } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
+  FormCheckbox,
   FormChipInput,
   FormContainer,
   FormContainerHalfWidth,
@@ -38,16 +39,15 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
       return { key: idx, value: set.id, name: name === set.id ? set.id : `${name} (${t("id")}: ${set.id})` };
     }) ?? [];
 
-  const renderField = (field: MandateField) => {
-    const fieldName = `reactionSetValues.${field.reactionId}.${field.key}`;
+  const renderInput = (field: MandateField, fieldName: string, label: ReactElement) => {
     const stored = mandate?.reactionSetValues?.[field.reactionId]?.[field.key];
-    // The label comes from the pipeline definition, already in the active language, so it goes to the form components
-    // as an element, which they show as it is instead of looking it up as a translation key.
-    const label = <>{localized(field.displayName, field.key)}</>;
 
-    return (
-      <FormContainerHalfWidth key={fieldName}>
-        {field.type === MandateValueType.TextList ? (
+    switch (field.type) {
+      case MandateValueType.Switch:
+        // A switch always has a value, so it is never required: unset means off.
+        return <FormCheckbox fieldName={fieldName} label={label} checked={stored === true} />;
+      case MandateValueType.TextList:
+        return (
           <FormChipInput
             fieldName={fieldName}
             label={label}
@@ -58,16 +58,26 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
             parse={parseEntry}
             errorMessage="entryRequiresText"
           />
-        ) : (
+        );
+      default:
+        return (
           <FormInput
             fieldName={fieldName}
             label={label}
             required={field.required}
             value={typeof stored === "string" ? stored : undefined}
           />
-        )}
-      </FormContainerHalfWidth>
-    );
+        );
+    }
+  };
+
+  const renderField = (field: MandateField) => {
+    const fieldName = `reactionSetValues.${field.reactionId}.${field.key}`;
+    // The label comes from the pipeline definition, already in the active language, so it goes to the form components
+    // as an element, which they show as it is instead of looking it up as a translation key.
+    const label = <>{localized(field.displayName, field.key)}</>;
+
+    return <FormContainerHalfWidth key={fieldName}>{renderInput(field, fieldName, label)}</FormContainerHalfWidth>;
   };
 
   return (
