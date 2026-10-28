@@ -573,5 +573,5 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [GPKG Daten-Import](Prozessoren/gpkg-import.md)
 - [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
 - [GPKG Export](Prozessoren/gpkg-export.md)
+- [GPKG Metadaten-Extraktor](Prozessoren/gpkg-metadaten.md)
 - [GPKG Validierung](Prozessoren/gpkg-validierung.md)
-- [GPKG Metadaten](Prozessoren/gpkg-metadaten.md)

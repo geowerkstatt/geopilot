@@ -22,7 +22,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
-- `Models`: Die Namen der gespeicherten Modelle vom Typ `string`, mit Semikolon getrennt (`Geometry_V2;GeometryCHLV95_V2`), oder `null`, wenn keine gelesen werden konnten. Jedes Modell kommt nur einmal vor. Die Schreibweise passt direkt auf den Input `models` der GPKG Validierung.
+- `Models`: Die Namen der gespeicherten Modelle vom Typ `string`, mit Semikolon getrennt (`Geometry_V2;GeometryCHLV95_V2`), oder `null`, wenn keine gelesen werden konnten. Dazu gehören auch die importierten Basismodelle wie `Units` oder `CoordSys`. Jedes Modell kommt nur einmal vor. Die Schreibweise passt direkt auf den Input `models` der GPKG Validierung.
 - `FileState`: Wie weit die Datei gelesen werden konnte:
   - `Readable`: Die Modelle wurden gelesen.
   - `MissingData`: Die Datei ist eine lesbare SQLite-Datenbank, aber die Tabelle `T_ILI2DB_MODEL` fehlt oder ist leer.
