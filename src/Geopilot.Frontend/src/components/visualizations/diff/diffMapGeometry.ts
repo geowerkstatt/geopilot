@@ -129,7 +129,7 @@ export const buildDecorations = (
   focus: DiffMapFocus | null,
   visibleIds?: ReadonlySet<string>,
 ): Feature[] => {
-  const isVisible = (objectId: string) => !visibleIds || visibleIds.has(objectId);
+  const isVisible = (objectId: unknown) => !visibleIds || (typeof objectId === "string" && visibleIds.has(objectId));
   const shownConnectors = connectors.filter(connector => isVisible(connector.get("objectId")));
   const pair = focus && isVisible(focus.change.objectId) ? buildFocusFeatures(focus) : [];
   return [...shownConnectors, ...pair];
