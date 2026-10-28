@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { Stack, useTheme } from "@mui/material";
+import { ButtonGroup, Popper, Stack, useTheme } from "@mui/material";
 import Collection from "ol/Collection";
 import { EventsKey } from "ol/events";
 import BaseLayer from "ol/layer/Base";
@@ -83,30 +83,35 @@ const hasOpenGroup = (layers: BaseLayer[]): boolean => {
 interface LayerSwitcherProps {
   /** The OpenLayers map whose layer tree is managed. Null while the map is still initializing. */
   map: OlMap | null;
+  /** Further buttons, grouped above the layers button. */
+  controls?: ReactNode;
+  /** Further buttons in a group of their own, above those. */
+  separateControls?: ReactNode;
 }
 
 /**
  * A layer switcher overlay for the OpenLayers map. Shows the full layer tree with expand/collapse,
  * visibility (with group cascade), opacity, zoom-to-extent, search and drag-to-reorder.
  */
-export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
+export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcherProps) => {
   const [open, setOpen] = useState(false);
+  const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const forceUpdate = useForceUpdate();
   const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
-  // Close the panel when the user clicks anywhere outside it (e.g. on the map).
+  // Close the panel when the user clicks anywhere outside it and its button (e.g. on the map).
   useEffect(() => {
     if (!open) return;
     const handlePointerDown = (event: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      if (!(event.target instanceof Node)) return;
+      if (containerRef.current?.contains(event.target) || button?.contains(event.target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [open]);
+  }, [open, button]);
 
   // Re-render when any group's expanded state changes so the header can switch between the expand-all and collapse-all buttons
   useEffect(() => {
@@ -143,21 +148,43 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
   const anyGroupOpen = hasOpenGroup(rootLayers);
 
   return (
-    <Stack
-      sx={{
-        position: "absolute",
-        bottom: 0,
-        right: 0,
-        m: { xs: 1, sm: 2 },
-        maxHeight: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
-        maxWidth: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
-      }}>
-      {open ? (
+    <>
+      <Stack sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
+        {separateControls}
+        <ButtonGroup orientation="vertical">
+          {controls}
+          <IconButton
+            ref={setButton}
+            color="primaryOutlined"
+            icon={<LayersOutlinedIcon />}
+            label="layers"
+            aria-pressed={open}
+            sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
+            onClick={() => setOpen(previous => !previous)}
+            tooltipPlacement="left"
+          />
+        </ButtonGroup>
+      </Stack>
+      {/* Beside its button and bottom-aligned with it, no higher than the map. */}
+      <Popper
+        open={open}
+        anchorEl={button}
+        placement="left-end"
+        disablePortal
+        modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
+        sx={{
+          zIndex: 1,
+          display: "flex",
+          maxHeight: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
+          maxWidth: { xs: `calc(100% - ${theme.spacing(8)})`, sm: `calc(100% - ${theme.spacing(12)})` },
+        }}>
         <Stack
           ref={containerRef}
+          data-cy="layer-switcher"
           sx={{
             width: "360px",
             maxWidth: "100%",
+            minHeight: 0,
             p: { xs: 1, sm: 2 },
             pb: { xs: 0, sm: 1 },
             gap: { xs: 0, sm: 1 },
@@ -185,19 +212,11 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
                 />
               ))}
           </Stack>
-          <Stack sx={{ pb: 1, overflowY: "auto" }}>
+          <Stack sx={{ pb: 1, minHeight: 0, overflowY: "auto" }}>
             <LayerSwitcherCollection collection={rootCollection} map={map} rootLayers={rootLayers} />
           </Stack>
         </Stack>
-      ) : (
-        <IconButton
-          color={"primaryOutlined"}
-          icon={<LayersOutlinedIcon />}
-          label="layers"
-          onClick={() => setOpen(true)}
-          tooltipPlacement="left"
-        />
-      )}
-    </Stack>
+      </Popper>
+    </>
   );
 };
