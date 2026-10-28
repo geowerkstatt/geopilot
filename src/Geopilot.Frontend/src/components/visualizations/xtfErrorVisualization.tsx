@@ -180,7 +180,6 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
         fullscreen={fullscreen}
         setFullscreen={setFullscreen}
         inlineMapRef={inlineMap}
-        panelSx={{ width: "400px" }}
       />
     </MapVisualizationProvider>
   );

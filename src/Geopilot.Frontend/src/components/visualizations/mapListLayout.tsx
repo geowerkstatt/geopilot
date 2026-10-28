@@ -2,6 +2,7 @@ import { FC, ReactNode, RefObject, useContext } from "react";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
 import { SxProps, Theme } from "@mui/material/styles";
+import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
 import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
@@ -16,8 +17,6 @@ interface MapListLayoutProps {
   setFullscreen: (fullscreen: boolean) => void;
   /** Receives the inline map, so the caller can scroll to it. */
   inlineMapRef: RefObject<HTMLDivElement | null>;
-  /** Spacing between the filter, the map and the list. */
-  gap?: number;
   /** The panel that holds the filter and the list beside the map in fullscreen. */
   panelSx?: SxProps<Theme>;
 }
@@ -33,7 +32,6 @@ export const MapListLayout: FC<MapListLayoutProps> = ({
   fullscreen,
   setFullscreen,
   inlineMapRef,
-  gap,
   panelSx,
 }) => {
   const theme = useTheme();
@@ -69,6 +67,7 @@ export const MapListLayout: FC<MapListLayoutProps> = ({
                       top: 0,
                       left: 0,
                       m: 2,
+                      width: px2rem(440),
                       maxHeight: `calc(100% - ${theme.spacing(4)})`,
                     },
                     ...(Array.isArray(panelSx) ? panelSx : [panelSx]),
@@ -81,7 +80,7 @@ export const MapListLayout: FC<MapListLayoutProps> = ({
           </Modal>
         </ScrollMarginProvider>
       ) : (
-        <Stack sx={{ width: "100%", gap }}>
+        <Stack sx={{ width: "100%" }}>
           {filter}
           <Box ref={inlineMapRef} sx={{ scrollMarginTop, scrollMarginBottom }}>
             {map}

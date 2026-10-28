@@ -8,7 +8,6 @@ import {
   MapVisualizationConfig,
   TableVisualizationConfig,
 } from "../../api/apiInterfaces";
-import { px2rem } from "../../appTheme";
 import { ReferenceTarget } from "./diff/diffChangeRow";
 import { DiffMapLegendButton, DiffMapSlider, DiffMapSliderButton } from "./diff/diffMapControls";
 import { DiffMapFocus, getChangeExtent, getFocus, inferObjectTypes } from "./diff/diffMapGeometry";
@@ -311,8 +310,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
         fullscreen={fullscreen}
         setFullscreen={setFullscreen}
         inlineMapRef={inlineMap}
-        gap={2}
-        panelSx={{ gap: 2, width: px2rem(440), overflowY: "auto" }}
+        panelSx={{ overflowY: "auto" }}
       />
     </MapVisualizationProvider>
   );
