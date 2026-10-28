@@ -38,12 +38,14 @@ internal partial class GpkgMetadataExtractorProcess(ILogger logger)
 
     private static readonly GpkgMetadataExtractorResult MissingDataResult = new()
     {
+        Models = [],
         FileState = GpkgFileState.MissingData,
         StatusMessage = MissingModelsStatusMessage,
     };
 
     private static readonly GpkgMetadataExtractorResult UnreadableResult = new()
     {
+        Models = [],
         FileState = GpkgFileState.Unreadable,
         StatusMessage = UnreadableStatusMessage,
     };
@@ -93,7 +95,7 @@ internal partial class GpkgMetadataExtractorProcess(ILogger logger)
         logger.LogInformation("Found {Count} model(s) in the GPKG file <{FileName}>", modelNames.Count, gpkgFile.OriginalFileName);
         return new GpkgMetadataExtractorResult
         {
-            Models = string.Join(';', modelNames),
+            Models = modelNames.ToArray(),
             FileState = GpkgFileState.Readable,
             StatusMessage = SuccessStatusMessageFormat.Map(format => string.Format(CultureInfo.InvariantCulture, format, modelsDisplayString)),
         };

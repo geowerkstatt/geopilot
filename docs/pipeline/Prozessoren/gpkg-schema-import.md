@@ -19,7 +19,7 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 - `modelFiles`: Input vom Typ `IPipelineFile[]` mit mindestens einer `*.ili`-Datei. Mehrere Modelldateien werden nacheinander in dieselbe GeoPackage-Datei importiert; beim ersten fehlgeschlagenen Import wird der Vorgang abgebrochen und keine weitere Modelldatei mehr importiert.
 - `dbFile`: Optionale bestehende GeoPackage-Datei vom Typ `IPipelineFile`, in die das Schema ergänzt wird. Ohne Angabe entsteht eine neue Datei.
-- `models`: Optionale Modellnamen vom Typ `string`, mit Semikolon getrennt (`--models`).
+- `models`: Optionale Modellnamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--models`).
 - `defaultSrsCode`: Optionaler EPSG-Code vom Typ `int` (`--defaultSrsCode`).
 
 ## Output

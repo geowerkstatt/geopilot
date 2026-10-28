@@ -26,7 +26,7 @@ public class GpkgMetadataExtractorProcessTest
 
         Assert.IsNotNull(result);
         Assert.AreEqual(GpkgFileState.Readable, result.FileState);
-        Assert.AreEqual("SimpleModel", result.Models);
+        CollectionAssert.AreEqual(new[] { "SimpleModel" }, result.Models);
     }
 
     [TestMethod]
@@ -38,7 +38,7 @@ public class GpkgMetadataExtractorProcessTest
 
         Assert.IsNotNull(result);
         Assert.AreEqual(GpkgFileState.Unreadable, result.FileState);
-        Assert.IsNull(result.Models);
+        Assert.IsEmpty(result.Models);
     }
 
     [TestMethod]
@@ -53,7 +53,7 @@ public class GpkgMetadataExtractorProcessTest
             var result = await process.RunAsync(new PipelineFile(path, Path.GetFileName(path)), TestContext.CancellationToken);
 
             Assert.AreEqual(GpkgFileState.Readable, result.FileState);
-            Assert.AreEqual("SimpleModel", result.Models);
+            CollectionAssert.AreEqual(new[] { "SimpleModel" }, result.Models);
 
             // A connection left open, for example by pooling, keeps the file locked on Windows.
             File.Delete(path);
@@ -82,7 +82,7 @@ public class GpkgMetadataExtractorProcessTest
             var result = await process.RunAsync(new PipelineFile(path, Path.GetFileName(path)), TestContext.CancellationToken);
 
             Assert.AreEqual(GpkgFileState.Unreadable, result.FileState);
-            Assert.IsNull(result.Models);
+            Assert.IsEmpty(result.Models);
         }
         finally
         {
@@ -104,7 +104,7 @@ public class GpkgMetadataExtractorProcessTest
             var result = await process.RunAsync(new PipelineFile(path, Path.GetFileName(path)), TestContext.CancellationToken);
 
             Assert.AreEqual(GpkgFileState.MissingData, result.FileState);
-            Assert.IsNull(result.Models);
+            Assert.IsEmpty(result.Models);
         }
         finally
         {
@@ -136,7 +136,7 @@ public class GpkgMetadataExtractorProcessTest
             var result = await process.RunAsync(new PipelineFile(path, Path.GetFileName(path)), TestContext.CancellationToken);
 
             Assert.AreEqual(GpkgFileState.MissingData, result.FileState);
-            Assert.IsNull(result.Models);
+            Assert.IsEmpty(result.Models);
         }
         finally
         {

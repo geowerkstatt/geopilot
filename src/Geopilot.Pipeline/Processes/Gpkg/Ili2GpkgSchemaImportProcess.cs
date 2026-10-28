@@ -80,7 +80,7 @@ internal class Ili2GpkgSchemaImportProcess
     public async Task<Ili2GpkgSchemaImportResult> RunAsync(
         IPipelineFile[] modelFiles,
         IPipelineFile? dbFile,
-        string? models,
+        string[]? models,
         int? defaultSrsCode,
         CancellationToken cancellationToken)
     {
@@ -94,7 +94,7 @@ internal class Ili2GpkgSchemaImportProcess
 
         var args = ili2GpkgArgs with
         {
-            Models = IlitoolsHelper.SplitConfiguredList(models),
+            Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             DefaultSrsCode = defaultSrsCode,
         };
 

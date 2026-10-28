@@ -5,9 +5,9 @@ namespace Geopilot.Pipeline.Processes.Gpkg;
 internal class GpkgMetadataExtractorResult
 {
     /// <summary>
-    /// A semicolon-separated list of model names found in the GeoPackage file.
+    /// The model names found in the GeoPackage file, empty if none could be read.
     /// </summary>
-    public string? Models { get; init; }
+    public required string[] Models { get; init; }
 
     public required GpkgFileState FileState { get; init; }
 

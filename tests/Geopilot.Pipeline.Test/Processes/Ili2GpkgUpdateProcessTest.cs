@@ -168,7 +168,7 @@ public class Ili2GpkgUpdateProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync([CreateTransferFile()], CreateDbFile(), models: "ModelA;ModelB", dataset: "dataset1", defaultSrsCode: 2056, CancellationToken.None);
+        await process.RunAsync([CreateTransferFile()], CreateDbFile(), models: ["ModelA", "ModelB"], dataset: ["dataset1"], defaultSrsCode: 2056, CancellationToken.None);
 
         var args = calls.Last().Args;
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());
@@ -179,6 +179,18 @@ public class Ili2GpkgUpdateProcessTest
         await process.RunAsync([CreateTransferFile()], CreateDbFile(), models: null, dataset: null, defaultSrsCode: null, CancellationToken.None);
 
         Assert.AreEqual(new Ili2GpkgArgs { TransferFormat = Ili2GpkgTransferFormat.Xtf }, calls.Last().Args);
+    }
+
+    [TestMethod]
+    public async Task PassesTheSemicolonSeparatedFormOfTheSelection()
+    {
+        var process = CreateProcess();
+
+        await process.RunAsync([CreateTransferFile()], CreateDbFile(), models: ["ModelA; ModelB;"], dataset: ["dataset1;dataset2"], defaultSrsCode: null, CancellationToken.None);
+
+        var args = calls.Single().Args;
+        CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());
+        Assert.AreEqual("dataset1;dataset2", args.Dataset);
     }
 
     [TestMethod]

@@ -155,7 +155,7 @@ public class Ili2GpkgExportProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync(CreateDbFile(), models: "ModelA;ModelB", topics: "ModelA.TopicA;ModelB.TopicB", baskets: "b1;b2", dataset: "dataset1", exportModels: "BaseModelA;BaseModelB", transferFormat: null, CancellationToken.None);
+        await process.RunAsync(CreateDbFile(), models: ["ModelA", "ModelB"], topics: ["ModelA.TopicA", "ModelB.TopicB"], baskets: ["b1", "b2"], dataset: ["dataset1"], exportModels: ["BaseModelA", "BaseModelB"], transferFormat: null, CancellationToken.None);
 
         var args = calls.Last().Args;
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());
@@ -168,6 +168,21 @@ public class Ili2GpkgExportProcessTest
         await process.RunAsync(CreateDbFile(), models: null, topics: null, baskets: null, dataset: null, exportModels: null, transferFormat: null, CancellationToken.None);
 
         Assert.AreEqual(new Ili2GpkgArgs(), calls.Last().Args);
+    }
+
+    [TestMethod]
+    public async Task PassesTheSemicolonSeparatedFormOfTheSelection()
+    {
+        var process = CreateProcess();
+
+        await process.RunAsync(CreateDbFile(), models: ["ModelA; ModelB; ;"], topics: ["ModelA.TopicA; ModelB.TopicB"], baskets: ["b1; b2"], dataset: ["dataset1;dataset2"], exportModels: ["BaseModelA; BaseModelB"], transferFormat: null, CancellationToken.None);
+
+        var args = calls.Single().Args;
+        CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());
+        CollectionAssert.AreEqual(new[] { "ModelA.TopicA", "ModelB.TopicB" }, args.Topics?.ToArray());
+        CollectionAssert.AreEqual(new[] { "b1", "b2" }, args.Baskets?.ToArray());
+        Assert.AreEqual("dataset1;dataset2", args.Dataset);
+        CollectionAssert.AreEqual(new[] { "BaseModelA", "BaseModelB" }, args.ExportModels?.ToArray());
     }
 
     [TestMethod]

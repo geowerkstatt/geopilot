@@ -21,8 +21,8 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 - `transferFiles`: Input vom Typ `IPipelineFile[]` mit mindestens einer Transferdatei. Alle Dateien müssen dasselbe Format haben (`.xtf`/`.xml` oder `.itf`).
 - `dbFile`: Die zu aktualisierende GeoPackage-Datei vom Typ `IPipelineFile`, Pflicht.
-- `models`: Optionale Modellnamen vom Typ `string`, mit Semikolon getrennt (`--models`).
-- `dataset`: Optionaler Datensatzname vom Typ `string` (`--dataset`).
+- `models`: Optionale Modellnamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--models`).
+- `dataset`: Optionale Datensatznamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--dataset`).
 - `defaultSrsCode`: Optionaler EPSG-Code vom Typ `int` (`--defaultSrsCode`).
 
 ## Output

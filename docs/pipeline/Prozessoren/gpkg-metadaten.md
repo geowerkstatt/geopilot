@@ -22,7 +22,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
-- `Models`: Die Namen der gespeicherten Modelle vom Typ `string`, mit Semikolon getrennt (`Geometry_V2;GeometryCHLV95_V2`), oder `null`, wenn keine gelesen werden konnten. Dazu gehören auch die importierten Basismodelle wie `Units` oder `CoordSys`. Jedes Modell kommt nur einmal vor. Die Schreibweise passt direkt auf den Input `models` der GPKG Validierung.
+- `Models`: Die Namen der gespeicherten Modelle vom Typ `string[]` (`["Geometry_V2", "GeometryCHLV95_V2"]`), leer, wenn keine gelesen werden konnten. Dazu gehören auch die importierten Basismodelle wie `Units` oder `CoordSys`. Jedes Modell kommt nur einmal vor. Die Liste passt direkt auf den Input `models` der GPKG Validierung. Eine Einschränkung, dass ein bestimmtes Modell enthalten sein muss, kann über eine Condition gelöst werden, siehe [Beispiel](#beispiel).
 - `FileState`: Wie weit die Datei gelesen werden konnte:
   - `Readable`: Die Modelle wurden gelesen.
   - `MissingData`: Die Datei ist eine lesbare SQLite-Datenbank, aber die Tabelle `T_ILI2DB_MODEL` fehlt oder ist leer.
@@ -77,6 +77,11 @@ pipelines:
                 message:
                   de: "Aus der GeoPackage-Datei liessen sich keine Modelle lesen."
                   en: "No models could be read from the GeoPackage file."
+              - id: wrong-model
+                expression: "!('ModelName' in [gpkg_metadata.Models])"
+                message:
+                  de: "Die Daten bilden nicht das Modell 'ModelName' ab."
+                  en: "The data does not represent the 'ModelName' model."
         input:
           gpkgFile: "${step_output(file_matching.MatchedFiles)}"
         output_actions:
