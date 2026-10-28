@@ -10,7 +10,7 @@ import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
 import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
-import { DiffMapControls, DiffMapSlider } from "./diff/diffMapControls";
+import { DiffMapLegendButton, DiffMapSlider, DiffMapSliderButton } from "./diff/diffMapControls";
 import { DiffMapFocus, getChangeExtent, getFocus, inferObjectTypes } from "./diff/diffMapGeometry";
 import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
@@ -271,7 +271,8 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       reserveSpaceForFilters={!!config.table}
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
-      controls={<DiffMapControls slider={slider} onSliderChange={setSlider} />}>
+      controls={<DiffMapSliderButton slider={slider} onSliderChange={setSlider} />}
+      layerControls={<DiffMapLegendButton />}>
       {slider !== null && <DiffMapSlider value={slider} onChange={setSlider} />}
     </MapVisualization>
   );

@@ -19,8 +19,10 @@ interface MapVisualizationProps {
   reserveSpaceForFilters?: boolean;
   fullscreen?: boolean;
   setFullscreen: (fullscreen: boolean) => void;
-  /** Further buttons, below the zoom buttons. */
+  /** Further buttons in a group of their own, above those grouped with the layers button. */
   controls?: ReactNode;
+  /** Further buttons, grouped above the layers button. */
+  layerControls?: ReactNode;
   /** Panels laid over the map, positioned by themselves. */
   children?: ReactNode;
 }
@@ -31,6 +33,7 @@ export const MapVisualization = ({
   fullscreen,
   setFullscreen,
   controls,
+  layerControls,
   children,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
@@ -143,9 +146,8 @@ export const MapVisualization = ({
                 onClick={() => zoomBy(-1)}
               />
             </ButtonGroup>
-            {controls}
           </Stack>
-          <LayerSwitcher map={map} />
+          <LayerSwitcher map={map} controls={layerControls} separateControls={controls} />
           {children}
         </>
       )}

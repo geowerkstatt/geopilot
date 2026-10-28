@@ -239,6 +239,31 @@ describe("XTF diff visualization", () => {
       .then(before => change("c1").dataCy("diff-geometry-map-new").should("not.have.attr", "aria-label", before));
   });
 
+  it("groups the legend with the layers, the slider just above, and opens both panels beside their button", () => {
+    openDiffVisualization();
+    cy.dataCy("layers-button").parent().children().last().should("have.attr", "data-cy", "layers-button");
+    cy.dataCy("layers-button").parent().find('[data-cy="diffMapLegend-button"]').should("exist");
+    cy.dataCy("layers-button").parent().find('[data-cy="diffMapSlider-button"]').should("not.exist");
+    cy.dataCy("diffMapSlider-button").should(slider => {
+      const legend = Cypress.$('[data-cy="diffMapLegend-button"]')[0].getBoundingClientRect();
+      const { bottom, left } = slider[0].getBoundingClientRect();
+      expect(legend.top - bottom, "just above the legend").to.be.within(1, 24);
+      expect(Math.abs(left - legend.left), "in line with the legend").to.be.below(1);
+    });
+    const besideButton = (panel: string, button: string) =>
+      cy.dataCy(panel).should(shown => {
+        const { bottom, right } = shown[0].getBoundingClientRect();
+        const anchor = Cypress.$(`[data-cy="${button}"]`)[0].getBoundingClientRect();
+        expect(Math.abs(bottom - anchor.bottom), "bottom aligned with the button").to.be.below(1);
+        expect(right, "left of the button").to.be.at.most(anchor.left);
+      });
+    cy.dataCy("layers-button").click();
+    besideButton("layer-switcher", "layers-button");
+    cy.dataCy("diffMapLegend-button").click();
+    cy.dataCy("layer-switcher").should("not.exist");
+    besideButton("diff-map-legend", "diffMapLegend-button");
+  });
+
   it("explains the map styles in a legend", () => {
     openDiffVisualization();
     cy.dataCy("diffMapLegend-button").click();
