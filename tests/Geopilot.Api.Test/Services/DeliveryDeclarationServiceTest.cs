@@ -171,6 +171,28 @@ public class DeliveryDeclarationServiceTest
     }
 
     [TestMethod]
+    public async Task CreatesTheNotificationsOfTheChosenSetOnHold()
+    {
+        var mandate = AddMandate(nameof(CreatesTheNotificationsOfTheChosenSetOnHold));
+        mandate.ReactionSetId = "ablage_mit_meldung";
+        mandate.ReactionSetValues = new() { ["meldung"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("meldungen") } };
+        context.SaveChanges();
+        SetupSet("ablage_mit_meldung", [(Reaction("weitergabe"), new Parameterization())], [(Reaction("meldung", "subfolder"), new Parameterization())]);
+
+        var deliveryId = await DeclareAsync(mandate);
+
+        var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
+        var reactions = context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList();
+        Assert.HasCount(2, reactions);
+        Assert.AreEqual(ReactionKind.Transfer, reactions.Single(r => r.ReactionId == "weitergabe").Kind);
+        var notification = reactions.Single(r => r.ReactionId == "meldung");
+        Assert.AreEqual(ReactionKind.Notification, notification.Kind);
+        Assert.AreEqual(ReactionState.Pending, notification.State);
+        Assert.AreEqual(delivery.Date.AddHours(1), notification.NextAttemptAt, "A notification waits like a transfer until the uploader can no longer delete the delivery.");
+        Assert.AreEqual("meldungen", notification.Config.Mandate["subfolder"].GetString());
+    }
+
+    [TestMethod]
     public async Task CreatesNoReactionsWithoutASet()
     {
         var mandate = AddMandate(nameof(CreatesNoReactionsWithoutASet));
@@ -182,17 +204,29 @@ public class DeliveryDeclarationServiceTest
     }
 
     private void SetupSet(string setId, string reactionId, Parameterization config, params string[] mandateKeys)
+        => SetupSet(setId, [(Reaction(reactionId, mandateKeys), config)], []);
+
+    private void SetupSet(string setId, (ReactionConfig Reaction, Parameterization Config)[] transfers, (ReactionConfig Reaction, Parameterization Config)[] notifications)
     {
-        var reaction = new ReactionConfig
+        var set = new ReactionSetConfig
+        {
+            Id = setId,
+            DisplayName = TestHelpers.Localized(setId),
+            Transfers = transfers.Select(transfer => transfer.Reaction).ToList(),
+            Notifications = notifications.Select(notification => notification.Reaction).ToList(),
+        };
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([set]);
+        pipelineFactoryMock.Setup(factory => factory.ResolveTransfers(setId)).Returns(transfers.Select(transfer => (transfer.Reaction.Id, FileDrop, transfer.Config)).ToList());
+        pipelineFactoryMock.Setup(factory => factory.ResolveNotifications(setId)).Returns(notifications.Select(notification => (notification.Reaction.Id, FileDrop, notification.Config)).ToList());
+    }
+
+    private static ReactionConfig Reaction(string reactionId, params string[] mandateKeys)
+        => new()
         {
             Id = reactionId,
             ChannelId = "ablage",
             MandateConfig = mandateKeys.Select(key => new MandateConfigEntry { Key = key, DisplayName = TestHelpers.Localized(key) }).ToList(),
         };
-        var set = new ReactionSetConfig { Id = setId, DisplayName = TestHelpers.Localized(setId), Transfers = [reaction] };
-        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([set]);
-        pipelineFactoryMock.Setup(factory => factory.ResolveTransfers(setId)).Returns([(reactionId, FileDrop, config)]);
-    }
 
     private Mandate AddMandate(string name)
         => context.Mandates.Add(new Mandate

@@ -29,6 +29,14 @@ public interface IPipelineFactory
     IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveTransfers(string reactionSetId);
 
     /// <summary>
+    /// Resolves the notifications of a set the way <see cref="ResolveTransfers"/> resolves its transfers.
+    /// </summary>
+    /// <param name="reactionSetId">The id of the set.</param>
+    /// <returns>The notifications of the set, empty when it has none.</returns>
+    /// <exception cref="InvalidOperationException">No set with the specified id exists.</exception>
+    IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveNotifications(string reactionSetId);
+
+    /// <summary>
     /// Checks the values a mandate supplies to the reactions of a set by constructing the channel of each reaction
     /// with them and discarding it again. Values for keys the set does not declare are the caller's to drop.
     /// </summary>
@@ -40,8 +48,8 @@ public interface IPipelineFactory
 
     /// <summary>
     /// Describes the values a set asks the mandate for, in the order its reactions and their <c>mandate_config</c>
-    /// declare them: the label from the definition, and from the channel whether a value is a text or a list of texts
-    /// and whether the mandate must supply it.
+    /// declare them, transfers before notifications: the label from the definition, and from the channel whether a
+    /// value is a text or a list of texts and whether the mandate must supply it.
     /// </summary>
     /// <param name="reactionSetId">The id of the set.</param>
     /// <returns>The values the set asks for, empty when it asks for none.</returns>

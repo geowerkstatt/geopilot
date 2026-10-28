@@ -66,28 +66,20 @@ public class PipelineFactory : IPipelineFactory
 
     /// <inheritdoc />
     public IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveTransfers(string reactionSetId)
-    {
-        var set = ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
-            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
-        var channels = PipelineProcessConfig.Channels ?? [];
+        => Resolve(FindReactionSet(reactionSetId).Transfers ?? []);
 
-        return set.Transfers
-            .Select(reaction =>
-            {
-                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
-                return (reaction.Id, channel.Implementation, MergeChannelConfig(channel, reaction));
-            })
-            .ToList();
-    }
+    /// <inheritdoc />
+    public IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveNotifications(string reactionSetId)
+        => Resolve(FindReactionSet(reactionSetId).Notifications ?? []);
 
     /// <inheritdoc />
     public IReadOnlyList<MandateField> DescribeMandateFields(string reactionSetId)
     {
-        var implementations = ResolveTransfers(reactionSetId).ToDictionary(transfer => transfer.ReactionId, transfer => transfer.Implementation);
-        var set = ReactionSets.Single(candidate => candidate.Id == reactionSetId);
+        var set = FindReactionSet(reactionSetId);
+        var implementations = Resolve(set.AllReactions()).ToDictionary(reaction => reaction.ReactionId, reaction => reaction.Implementation);
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
 
-        return set.Transfers
+        return set.AllReactions()
             .Where(reaction => reaction.MandateConfig is { Count: > 0 })
             .SelectMany(reaction =>
             {
@@ -104,20 +96,20 @@ public class PipelineFactory : IPipelineFactory
 
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
         var errors = new List<string>();
-        foreach (var transfer in ResolveTransfers(reactionSetId))
+        foreach (var reaction in Resolve(FindReactionSet(reactionSetId).AllReactions()))
         {
             try
             {
-                channelFactory.Create(transfer.Implementation, transfer.Config, values.GetValueOrDefault(transfer.ReactionId));
+                channelFactory.Create(reaction.Implementation, reaction.Config, values.GetValueOrDefault(reaction.ReactionId));
             }
             catch (InvalidOperationException ex)
             {
-                errors.Add($"reaction {transfer.ReactionId}: {ex.Message}");
+                errors.Add($"reaction {reaction.ReactionId}: {ex.Message}");
             }
             catch (TargetInvocationException ex)
             {
                 // The constructor of the channel refused a value, such as a subfolder outside the base directory.
-                errors.Add($"reaction {transfer.ReactionId}: {(ex.InnerException ?? ex).Message}");
+                errors.Add($"reaction {reaction.ReactionId}: {(ex.InnerException ?? ex).Message}");
             }
         }
 
@@ -243,7 +235,7 @@ public class PipelineFactory : IPipelineFactory
         var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
         var channels = PipelineProcessConfig.Channels ?? [];
         return (PipelineProcessConfig.ReactionSets ?? [])
-            .SelectMany(set => set.Transfers.SelectMany(reaction =>
+            .SelectMany(set => set.AllReactions().SelectMany(reaction =>
             {
                 // The definition validation has already rejected a reaction without a defined channel.
                 var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
@@ -251,6 +243,23 @@ public class PipelineFactory : IPipelineFactory
                     .Validate(channel.Implementation, MergeChannelConfig(channel, reaction), reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
                     .Select(error => $"reaction set {set.Id}, reaction {reaction.Id}, channel {channel.Id}, error: {error}");
             }))
+            .ToList();
+    }
+
+    private ReactionSetConfig FindReactionSet(string reactionSetId)
+        => ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
+            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
+
+    // Per reaction its id, the implementation of its channel and the configuration the definition gives it.
+    private List<(string ReactionId, string Implementation, Parameterization Config)> Resolve(IEnumerable<ReactionConfig> reactions)
+    {
+        var channels = PipelineProcessConfig.Channels ?? [];
+        return reactions
+            .Select(reaction =>
+            {
+                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+                return (reaction.Id, channel.Implementation, MergeChannelConfig(channel, reaction));
+            })
             .ToList();
     }
 

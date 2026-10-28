@@ -21,7 +21,7 @@ internal sealed class NoUndefinedChannelConfigOverwriteAttribute : ValidationAtt
         var errorMessages = new List<string>();
         foreach (var set in pipelineProcessConfig.ReactionSets ?? [])
         {
-            foreach (var reaction in set.Transfers ?? [])
+            foreach (var reaction in set.AllReactions())
             {
                 var channel = pipelineProcessConfig.Channels?.Find(candidate => candidate.Id == reaction.ChannelId);
                 if (channel == null || reaction.ChannelConfigOverwrites == null)

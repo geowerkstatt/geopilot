@@ -137,9 +137,9 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.NoAssets, Message: $"No assets found for job with id <{jobId}>.");
         }
 
-        var transfers = CreateTransfers(delivery, mandate);
+        var reactions = CreateReactions(delivery, mandate);
         var entityEntry = context.Deliveries.Add(delivery);
-        context.DeliveryReactions.AddRange(transfers);
+        context.DeliveryReactions.AddRange(reactions);
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -148,9 +148,9 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         {
             // Another caller declared the same job between the check above and this write. The unique index is
             // what actually keeps a job to one delivery; the check only spares the common case a failed insert.
-            foreach (var transfer in transfers)
+            foreach (var reaction in reactions)
             {
-                context.Entry(transfer).State = EntityState.Detached;
+                context.Entry(reaction).State = EntityState.Detached;
             }
 
             context.Entry(delivery).State = EntityState.Detached;
@@ -166,10 +166,11 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
     }
 
     /// <summary>
-    /// Creates the transfers of the set the mandate chose. They wait until the uploader can no longer delete the
-    /// delivery, and keep the configuration of the set and the values of the mandate as they are at the declaration.
+    /// Creates the transfers and the notifications of the set the mandate chose. They wait until the uploader can no
+    /// longer delete the delivery, and keep the configuration of the set and the values of the mandate as they are at
+    /// the declaration.
     /// </summary>
-    private List<DeliveryReaction> CreateTransfers(Delivery delivery, Mandate mandate)
+    private List<DeliveryReaction> CreateReactions(Delivery delivery, Mandate mandate)
     {
         if (mandate.ReactionSetId is null)
             return [];
@@ -178,21 +179,23 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         var holdEnd = deliveryOptions.Value.GetDeleteWindowEnd(delivery.Date)
             ?? throw new InvalidOperationException($"Mandate <{mandate.Id}> chose a reaction set while the delete window never closes.");
         var mandateValues = mandate.ReactionSetValues ?? [];
-        var reactions = pipelineFactory.ReactionSets.FirstOrDefault(set => set.Id == mandate.ReactionSetId)?.Transfers ?? [];
+        var declaredReactions = pipelineFactory.ReactionSets.FirstOrDefault(set => set.Id == mandate.ReactionSetId)?.AllReactions().ToList() ?? [];
 
-        return pipelineFactory.ResolveTransfers(mandate.ReactionSetId)
-            .Select(transfer => new DeliveryReaction
-            {
-                Delivery = delivery,
-                ReactionId = transfer.ReactionId,
-                Kind = ReactionKind.Transfer,
-                Implementation = transfer.Implementation,
-                Config = new ReactionSnapshot(
-                    transfer.Config,
-                    DeclaredValues(mandateValues.GetValueOrDefault(transfer.ReactionId), reactions.FirstOrDefault(reaction => reaction.Id == transfer.ReactionId))),
-                State = ReactionState.Pending,
-                NextAttemptAt = holdEnd,
-            })
+        DeliveryReaction Create((string ReactionId, string Implementation, Parameterization Config) reaction, ReactionKind kind) => new()
+        {
+            Delivery = delivery,
+            ReactionId = reaction.ReactionId,
+            Kind = kind,
+            Implementation = reaction.Implementation,
+            Config = new ReactionSnapshot(
+                reaction.Config,
+                DeclaredValues(mandateValues.GetValueOrDefault(reaction.ReactionId), declaredReactions.FirstOrDefault(declared => declared.Id == reaction.ReactionId))),
+            State = ReactionState.Pending,
+            NextAttemptAt = holdEnd,
+        };
+
+        return pipelineFactory.ResolveTransfers(mandate.ReactionSetId).Select(transfer => Create(transfer, ReactionKind.Transfer))
+            .Concat(pipelineFactory.ResolveNotifications(mandate.ReactionSetId).Select(notification => Create(notification, ReactionKind.Notification)))
             .ToList();
     }
 
