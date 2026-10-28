@@ -533,7 +533,11 @@ export type MandateSummary = {
   evaluateComment: FieldEvaluationType;
 };
 
-export const MandateValueType = { Text: "text", TextList: "textList" } as const;
+export const MandateValueType = {
+  Text: "text",
+  TextList: "textList",
+  Switch: "switch",
+} as const;
 
 export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateValueType];
 

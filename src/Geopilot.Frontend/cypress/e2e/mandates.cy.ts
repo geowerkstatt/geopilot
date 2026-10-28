@@ -690,6 +690,13 @@ describe("Mandate with a reaction set", () => {
             type: MandateValueType.TextList,
             required: false,
           },
+          {
+            reactionId: "ablage_pro_mandat",
+            key: "copyToDeclarer",
+            displayName: { de: "Lieferant ins To", en: "Deliverer in To" },
+            type: MandateValueType.Switch,
+            required: false,
+          },
         ],
       },
     ],
@@ -744,12 +751,14 @@ describe("Mandate with a reaction set", () => {
     evaluateInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
     setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-b");
     setChipInput("reactionSetValues.ablage_pro_mandat.recipients", "someone@example.com");
+    evaluateCheckbox("reactionSetValues.ablage_pro_mandat.copyToDeclarer", false);
+    toggleCheckbox("reactionSetValues.ablage_pro_mandat.copyToDeclarer");
 
     cy.dataCy("save-button").click();
     savedMandate().then(body => {
       expect(body.reactionSetId).to.equal("ablage_pro_mandat");
       expect(body.reactionSetValues).to.deep.equal({
-        ablage_pro_mandat: { subfolder: "kanton-b", recipients: ["someone@example.com"] },
+        ablage_pro_mandat: { subfolder: "kanton-b", recipients: ["someone@example.com"], copyToDeclarer: true },
       });
     });
   });
