@@ -267,10 +267,19 @@ describe("XTF diff visualization", () => {
   it("explains the map styles in a legend", () => {
     openDiffVisualization();
     cy.dataCy("diffMapLegend-button").click();
-    cy.dataCy("diffMapLegend-button").should("have.attr", "aria-pressed", "true");
+    cy.dataCy("diffMapLegend-button").should("have.attr", "aria-expanded", "true");
     cy.dataCy("diff-map-legend").should("be.visible").find("svg").should("have.length", 9);
     cy.get(".ol-viewport").click("topLeft");
     cy.dataCy("diff-map-legend").should("not.exist");
+  });
+
+  it("closes the legend on Escape and returns the focus to its button", () => {
+    openDiffVisualization();
+    cy.dataCy("diffMapLegend-button").click();
+    cy.dataCy("diff-map-legend").should("be.visible");
+    cy.get("body").type("{esc}");
+    cy.dataCy("diff-map-legend").should("not.exist");
+    cy.dataCy("diffMapLegend-button").should("have.focus").and("have.attr", "aria-expanded", "false");
   });
 
   it("fades from before to after with the slider", () => {

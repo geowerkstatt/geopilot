@@ -1,11 +1,12 @@
-import { FC, Fragment, useEffect, useRef, useState } from "react";
+import { FC, Fragment, useCallback, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CompareIcon from "@mui/icons-material/Compare";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import { Box, ButtonGroup, Popper, Slider, Stack, Typography, useTheme } from "@mui/material";
+import { Box, ButtonGroup, Slider, Stack, Typography, useTheme } from "@mui/material";
 import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { IconButton } from "../../buttons";
+import { MapPanelPopper } from "../map/mapPanelPopper";
 import { DiffLook, getLook } from "./diffMapGeometry";
 
 type LegendGeometry = "point" | "line" | "area";
@@ -153,40 +154,22 @@ const DiffMapLegend: FC = () => {
 export const DiffMapLegendButton: FC = () => {
   const [open, setOpen] = useState(false);
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
-  const legendRef = useRef<HTMLDivElement>(null);
-
-  // Closes like the layer switcher, on a pointer down anywhere else, so the two never overlap.
-  useEffect(() => {
-    if (!open) return;
-    const closeOutside = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) return;
-      if (legendRef.current?.contains(event.target) || button?.contains(event.target)) return;
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOutside);
-    return () => document.removeEventListener("pointerdown", closeOutside);
-  }, [open, button]);
+  const legendId = useId();
+  const close = useCallback(() => setOpen(false), []);
 
   return (
     <>
-      <Popper
-        open={open}
-        anchorEl={button}
-        placement="left-end"
-        disablePortal
-        modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
-        sx={{ zIndex: 1 }}>
-        <div ref={legendRef}>
-          <DiffMapLegend />
-        </div>
-      </Popper>
+      <MapPanelPopper id={legendId} open={open} anchorEl={button} onClose={close}>
+        <DiffMapLegend />
+      </MapPanelPopper>
       <IconButton
         ref={setButton}
         color="primaryOutlined"
         icon={<FormatListBulletedIcon />}
         label="diffMapLegend"
         tooltipPlacement="left"
-        aria-pressed={open}
+        aria-expanded={open}
+        aria-controls={open ? legendId : undefined}
         sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
         onClick={() => setOpen(previous => !previous)}
       />

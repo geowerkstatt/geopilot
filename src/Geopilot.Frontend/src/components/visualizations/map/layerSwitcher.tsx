@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useId, useState } from "react";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { ButtonGroup, Popper, Stack, useTheme } from "@mui/material";
+import { ButtonGroup, Stack, useTheme } from "@mui/material";
 import Collection from "ol/Collection";
 import { EventsKey } from "ol/events";
 import BaseLayer from "ol/layer/Base";
@@ -15,6 +15,7 @@ import { IconButton } from "../../buttons";
 import { SearchField } from "../../searchField";
 import { LayerSwitcherCollection } from "./layerSwitcherCollection";
 import { getOpen, getTitle, LayerSwitcherProperties } from "./layerSwitcherProps";
+import { MapPanelPopper } from "./mapPanelPopper";
 
 const { OPEN, RESULT } = LayerSwitcherProperties;
 
@@ -98,20 +99,9 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const forceUpdate = useForceUpdate();
-  const containerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
-
-  // Close the panel when the user clicks anywhere outside it and its button (e.g. on the map).
-  useEffect(() => {
-    if (!open) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) return;
-      if (containerRef.current?.contains(event.target) || button?.contains(event.target)) return;
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [open, button]);
+  const panelId = useId();
+  const close = useCallback(() => setOpen(false), []);
 
   // Re-render when any group's expanded state changes so the header can switch between the expand-all and collapse-all buttons
   useEffect(() => {
@@ -158,28 +148,26 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
             color="primaryOutlined"
             icon={<LayersOutlinedIcon />}
             label="layers"
-            aria-pressed={open}
+            aria-expanded={open}
+            aria-controls={open ? panelId : undefined}
             sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
             onClick={() => setOpen(previous => !previous)}
             tooltipPlacement="left"
           />
         </ButtonGroup>
       </Stack>
-      {/* Beside its button and bottom-aligned with it, no higher than the map. */}
-      <Popper
+      {/* No higher than the map. */}
+      <MapPanelPopper
+        id={panelId}
         open={open}
         anchorEl={button}
-        placement="left-end"
-        disablePortal
-        modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
+        onClose={close}
         sx={{
-          zIndex: 1,
           display: "flex",
           maxHeight: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
           maxWidth: { xs: `calc(100% - ${theme.spacing(8)})`, sm: `calc(100% - ${theme.spacing(12)})` },
         }}>
         <Stack
-          ref={containerRef}
           data-cy="layer-switcher"
           sx={{
             width: "360px",
@@ -216,7 +204,7 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
             <LayerSwitcherCollection collection={rootCollection} map={map} rootLayers={rootLayers} />
           </Stack>
         </Stack>
-      </Popper>
+      </MapPanelPopper>
     </>
   );
 };
