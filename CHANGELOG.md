@@ -130,6 +130,7 @@
 - Downloads and visualizations of a processing job stay for their full retention (`Processing:DownloadRetention`, `Processing:VisualizationRetention`) counted from the end of the run, and so does the job itself (`Processing:JobRetention`), so a finished run can be delivered for that full window. The retention counted from the creation of the job, so a job that waited long for a free processing slot lost its visualizations shortly after writing them, and a running job could lose them mid-run.
 - When the pipelines fail to load on the mandate page, the error message is now shown in the selected language instead of as the raw text `pipelinesLoadingError`.
 - A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
+- The mandates offered for a delivery are listed alphabetically by their name in the selected language. Until now a mandate moved to the end of the list once it was edited.
 
 ## v3.0.341 - 2026-06-17
 
