@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Net.Http.Headers;
 using Moq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -11,6 +12,7 @@ public class JwtSecurityTest
 {
     private const string RepresentativeAdminEndpoint = "/api/v1/user";
     private const string RepresentativeAdminMethod = "GET";
+    private const string RepresentativeUserWriteEndpoint = "/api/v1/delivery";
 
     private static JwtTestApp app;
     private static HttpClient client;
@@ -358,6 +360,52 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
+    [DataRow("Sec-Fetch-Site", "same-site")]
+    [DataRow("Sec-Fetch-Site", "cross-site")]
+    [DataRow("Origin", "https://wiki.example.ch")]
+    [DataRow("Origin", "null")]
+    public async Task CookieWriteFromOtherOriginReturns403(string header, string value)
+    {
+        using var request = CreateCookieRequest("POST", RepresentativeUserWriteEndpoint, JwtTestTokenBuilder.CreateValidUserToken());
+        request.Headers.Add(header, value);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"A write carrying the cookie with {header}: {value} must be refused, but got {(int)response.StatusCode}");
+    }
+
+    [TestMethod]
+    [DataRow("Sec-Fetch-Site", "same-origin")]
+    [DataRow("Origin", "http://localhost")]
+    public async Task CookieWriteFromOwnOriginPasses(string header, string value)
+    {
+        using var request = CreateCookieRequest("POST", RepresentativeUserWriteEndpoint, JwtTestTokenBuilder.CreateValidUserToken());
+        request.Headers.Add(header, value);
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, $"The cookie should authenticate a write with {header}: {value}");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, $"A write from the own origin with {header}: {value} should pass");
+    }
+
+    [TestMethod]
+    public async Task CookieWriteWithoutBrowserHeadersPasses()
+    {
+        using var request = CreateCookieRequest("POST", RepresentativeUserWriteEndpoint, JwtTestTokenBuilder.CreateValidUserToken());
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, "The cookie should authenticate a write without browser headers");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, "Without Sec-Fetch-Site and Origin no browser sent the write, so it should pass");
+    }
+
+    [TestMethod]
+    public async Task BearerWriteFromOtherSitePasses()
+    {
+        using var request = CreateRequest("POST", RepresentativeUserWriteEndpoint, JwtTestTokenBuilder.CreateValidUserToken());
+        request.Headers.Add("Sec-Fetch-Site", "cross-site");
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, "A bearer header carries no ambient authority, so its origin does not matter");
+    }
+
+    [TestMethod]
     public void EndpointDiscoveryFindsEndpoints()
     {
         var allEndpoints = EndpointDiscovery.GetProtectedEndpoints()
@@ -375,6 +423,13 @@ public class JwtSecurityTest
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
 
+        return request;
+    }
+
+    private static HttpRequestMessage CreateCookieRequest(string method, string url, string token)
+    {
+        var request = new HttpRequestMessage(new HttpMethod(method), url);
+        request.Headers.Add(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={token}");
         return request;
     }
 }
