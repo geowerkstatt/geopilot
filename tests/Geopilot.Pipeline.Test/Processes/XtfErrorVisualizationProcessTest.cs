@@ -53,9 +53,9 @@ public class XtfErrorVisualizationProcessTest
             Assert.IsNotEmpty(feature.Info);
         }
 
-        // Every feature carries an errorId.
-        var featureIds = features.Select(f => f.ErrorId).ToList();
-        Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
+        // Every feature carries the id of its error.
+        var featureIds = features.Select(f => f.Id).ToList();
+        Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an id");
 
         // Tree carries the grouping keys; the composite root carries the filter keys (the filter spans map + tree).
         Assert.IsEmpty(config.Tree.GroupBy, "no grouping (flat list) unless groupBy is configured");
@@ -67,7 +67,7 @@ public class XtfErrorVisualizationProcessTest
         var itemIds = config.Tree.Items.Where(i => i.Id is not null).Select(i => i.Id!).ToHashSet();
         Assert.IsTrue(featureIds.All(itemIds.Contains), "every feature's errorId is present on a tree item");
 
-        // Each item carries a severity for the icon/colour and the raw validator message.
+        // Each item carries a severity for the icon/color and the raw validator message.
         foreach (var item in config.Tree.Items)
         {
             Assert.IsTrue(item.Severity is "error" or "warning", "item carries an error or warning severity");

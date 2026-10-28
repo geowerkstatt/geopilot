@@ -24,4 +24,7 @@ export const MapVisualizationContext = createContext<MapVisualizationContextInte
   setFitOptions: () => {},
 });
 
+/** The map element the panels beside its buttons are laid over, wherever those buttons are rendered. */
+export const MapPanelContainerContext = createContext<HTMLElement | null>(null);
+
 export const useMapVisualization = (): MapVisualizationContextInterface => useContext(MapVisualizationContext);

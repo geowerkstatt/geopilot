@@ -46,8 +46,8 @@ export type LocalizedText = Record<string, string>;
 
 /** A single feature inside a feature layer of a map visualization. */
 interface MapFeature {
-  /** Stable id of the validation error this feature represents, shared with its tree node for cross-select. */
-  errorId: string;
+  /** Stable id of what this feature represents, e.g. a validation error, shared with its list or tree entry for cross-select. */
+  id: string;
   /** The feature geometry as Well-Known Text (WKT), e.g. "POINT(2600000 1200000)" (EPSG:2056 / LV95). */
   geom: string;
   /** The informational text shown for the feature. */
@@ -74,7 +74,12 @@ export interface MapLayer {
   attributionUrl?: string;
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
+  /** The state of a diff the features of a feature layer show; absent for a layer outside a diff, drawn in the default map color. */
+  state?: DiffState;
 }
+
+/** The state before or after a diff. */
+export type DiffState = "old" | "new";
 
 /** The map-visualization payload produced by the map visualization pipeline step. */
 export interface MapVisualizationConfig {
@@ -89,7 +94,7 @@ export type TreeField = "errorType" | "model" | "topic" | "class";
 export interface TreeItem {
   /** Stable id correlating this item with its map feature for cross-select. Absent on items without a feature. */
   id?: string;
-  /** Error or warning; drives the leaf's icon and colour. */
+  /** Error or warning; drives the leaf's icon and color. */
   severity: "error" | "warning";
   /** The classified error category as a localized label. Absent when the message matches no known category. */
   errorType?: LocalizedText;
@@ -115,6 +120,40 @@ export interface TreeVisualizationConfig {
   items: TreeItem[];
   /** The fields to group by, outermost first (e.g. ["model", "topic", "class"]). */
   groupBy: TreeField[];
+}
+
+/** Whether a value was added, deleted or changed, as the XTF-Diff-Tool reports it. */
+export type DiffChangeType = "added" | "deleted" | "changed";
+
+/** The kind of property that changed, as the XTF-Diff-Tool reports it. */
+export type DiffValueType = "object" | "reference" | "attribute" | "geometry";
+
+/** One entry of an XTF diff: the change of one property of one object, or an object added or deleted as a whole. */
+export interface DiffChange {
+  /** Id of the change, unique within the visualization. */
+  id: string;
+  /** Transfer id of the changed object, also the id of its features on the map. */
+  objectId: string;
+  changeType: DiffChangeType;
+  valueType: DiffValueType;
+  /** Qualified INTERLIS name of the class of the object, e.g. "Model.Topic.Class". */
+  interlisName: string;
+  /** Path of the changed property; absent when the object was added or deleted as a whole. */
+  attributePath?: string;
+  /** Value in the old state as text, lists and structures as compact JSON; absent when the old state has none. */
+  oldValue?: string;
+  /** Value in the new state as text, lists and structures as compact JSON; absent when the new state has none. */
+  newValue?: string;
+  /** Location in the old state as WKT, for a geometry change that has one. */
+  oldLocation?: string;
+  /** Location in the new state as WKT, for a geometry change that has one. */
+  newLocation?: string;
+}
+
+/** The table of the diff visualization. The map beside it reads the same changes for its popup and its filter. */
+export interface TableVisualizationConfig {
+  /** Every change of the diff, in the order of the diff. */
+  changes: DiffChange[];
 }
 
 /**

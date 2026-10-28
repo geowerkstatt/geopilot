@@ -144,19 +144,19 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
         input:
           files: "${upload()}"
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -284,7 +284,7 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -395,11 +395,11 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         conditions:
           post:
@@ -412,7 +412,7 @@ pipelines:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
         display_name:
-          en: Zip Package
+          en: ZIP package
         process_id: zip_package_process
         conditions:
           pre:
@@ -574,3 +574,4 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
 - [GPKG Export](Prozessoren/gpkg-export.md)
 - [GPKG Validierung](Prozessoren/gpkg-validierung.md)
+- [XTF Diff Visualisierung](Prozessoren/xtf-diff-visualisierung.md)

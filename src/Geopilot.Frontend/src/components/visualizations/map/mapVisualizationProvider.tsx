@@ -5,6 +5,8 @@ import { Theme, useTheme } from "@mui/material/styles";
 import { Coordinate } from "ol/coordinate";
 import { Condition, platformModifierKeyOnly } from "ol/events/condition";
 import { Extent, getCenter, getHeight, getWidth } from "ol/extent";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
 import { MAC } from "ol/has";
 import { defaults as defaultInteractions, DragPan, MouseWheelZoom } from "ol/interaction";
 import BaseLayer from "ol/layer/Base";
@@ -25,21 +27,27 @@ import {
   buildWmtsLayer,
   fitToFeatures,
   fitToLayers,
-  getClusterMembers,
   getFeaturesExtent,
+  getPickOrder,
   refreshFeatureLayer,
 } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapSelectionPopup, SelectionEntry } from "./mapSelectionPopup";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
+import { getClusterMembers, getPopupFeatures, isFittableExtent, isPickable } from "./picking";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_CLUSTER_MAX_ZOOM = 18;
 const ZOOM_TO_NODE_DURATION = 400;
+/** Pixels around the pointer that still hit a feature, so a small marker or a thin line is easy to pick. */
+const PICK_HIT_TOLERANCE = 4;
+const PICK_OPTIONS = { hitTolerance: PICK_HIT_TOLERANCE, layerFilter: isPickable };
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
 const SWISS_PROJECTION = "EPSG:2056";
+
+const NO_FEATURE_IDS: ReadonlySet<string> = new Set();
 const SWISS_EXTENT: Extent = [2420000, 1030000, 2900000, 1350000];
 
 proj4.defs(
@@ -92,8 +100,8 @@ const createInteractionHint = (
     textAlign: "center",
     padding: theme.spacing(2),
     fontSize: px2rem(20),
-    color: theme.palette.map.hintText,
-    backgroundColor: theme.palette.map.hintBackground,
+    color: theme.palette.map.hint.text,
+    backgroundColor: theme.palette.map.hint.background,
     opacity: "0",
     transition: "opacity 0.2s ease",
     pointerEvents: "none",
@@ -122,6 +130,8 @@ const createInteractionHint = (
  */
 export interface MapZoomRequest {
   featureIds: string[];
+  /** Zooms to this extent instead of the features, e.g. to one part of a feature. */
+  extent?: Extent;
   token: number;
 }
 
@@ -132,12 +142,25 @@ interface MapVisualizationProviderProps {
   visibleFeatureIds?: ReadonlySet<string>;
   /** Feature ids to highlight (current selection); empty set means none. */
   highlightedFeatureIds: ReadonlySet<string>;
+  /** Feature ids under the pointer, drawn lighter than the selection; absent means none. */
+  hoveredFeatureIds?: ReadonlySet<string>;
   /** Latest explicit zoom-to-node request, or null. Selection no longer moves the map; this does. */
   zoomRequest?: MapZoomRequest | null;
   /** Called with the feature id when a feature is clicked. */
   onSelectFeature?: (featureId: string) => void;
+  /** Called with the feature id of the popup row the user clicked; without it, that click selects like one on the map. */
+  onSelectPopupEntry?: (featureId: string) => void;
+  /** Called when the map is clicked where there is no feature. */
+  onClearSelection?: () => void;
+  /** Called with the ids of the features under the pointer whenever they change, with none once it leaves them. */
+  onHoverFeatures?: (featureIds: string[]) => void;
   /** Whether to show the metadata popup when a feature is selected. */
   showMapSelectionPopup?: boolean;
+  /**
+   * Describes a feature in the selection popup by its id. Without it, or where it returns nothing, the popup shows the
+   * info text of the feature.
+   */
+  describeFeature?: (featureId: string) => Omit<SelectionEntry, "id"> | undefined;
   /** Whether the map is shown fullscreen, where it may claim single-touch drag and plain scroll-zoom. */
   fullscreen?: boolean;
 }
@@ -151,9 +174,14 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   config,
   visibleFeatureIds,
   highlightedFeatureIds,
+  hoveredFeatureIds = NO_FEATURE_IDS,
   zoomRequest,
   onSelectFeature,
+  onSelectPopupEntry = onSelectFeature,
+  onClearSelection,
+  onHoverFeatures,
   showMapSelectionPopup = false,
+  describeFeature,
   fullscreen = false,
   children,
 }) => {
@@ -169,7 +197,9 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   // (which would re-fetch the WMTS base map).
   const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleFeatureIds);
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedFeatureIds);
+  const hoveredIdsRef = useRef<ReadonlySet<string>>(hoveredFeatureIds);
   const lastZoomTokenRef = useRef<number | undefined>(undefined);
+  const hoveredIdsKeyRef = useRef("");
   const fullscreenRef = useRef(fullscreen);
 
   // Padding and max zoom used whenever the view is fit to features.
@@ -252,10 +282,12 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
 
-    // The map skips wheel on a stopEvent overlay, so the popup offers the event to the zoom
-    // interaction, whose zoom cancels the browser page zoom.
+    // A plain wheel scrolls the popup, also in fullscreen where it would zoom the map. The map skips wheel on a
+    // stopEvent overlay, so with the zoom modifier the popup hands the event to the zoom interaction, whose zoom
+    // cancels the browser page zoom.
     const onSelectionWheel = (event: WheelEvent) => {
-      if (mouseWheelZoom.handleEvent(new MapBrowserEvent("wheel", map, event))) event.stopPropagation();
+      event.stopPropagation();
+      if (MAC ? event.metaKey : event.ctrlKey) mouseWheelZoom.handleEvent(new MapBrowserEvent("wheel", map, event));
     };
     selectionOverlayElement.addEventListener("wheel", onSelectionWheel);
 
@@ -265,7 +297,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     });
 
     map.on("pointermove", event => {
-      const hit = map?.hasFeatureAtPixel(event.pixel) ?? false;
+      const hit = map?.hasFeatureAtPixel(event.pixel, PICK_OPTIONS) ?? false;
       map!.getTargetElement().style.cursor = hit ? "pointer" : "";
     });
 
@@ -299,7 +331,15 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       const layers: BaseLayer[] = config.layers
         .filter(layer => layer.features)
         .map(layer =>
-          buildFeatureLayer(layer, theme.palette.map, layer.title, SWISS_PROJECTION, visibleIdsRef, highlightedIdsRef),
+          buildFeatureLayer(
+            layer,
+            { ...theme.palette.map.error, stroke: theme.palette.map.stroke },
+            layer.title,
+            SWISS_PROJECTION,
+            visibleIdsRef,
+            highlightedIdsRef,
+            hoveredIdsRef,
+          ),
         );
 
       const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
@@ -345,12 +385,18 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   useEffect(() => {
     if (!map) return;
 
-    const handler = map.on("click", event => {
-      const clicked = map?.forEachFeatureAtPixel(event.pixel, f => f);
-      const members = clicked ? getClusterMembers(clicked) : [];
+    const toEntry = (feature: Feature): SelectionEntry => {
+      const id = feature.getId()?.toString() ?? "";
+      const description = id ? describeFeature?.(id) : undefined;
+      return { id, ...(description ?? { text: (feature.get("info") as string | undefined) ?? "" }) };
+    };
 
-      // If the clicked feature is a cluster, zoom into it
-      if (members.length > 1) {
+    const handler = map.on("click", event => {
+      const hits = map.getFeaturesAtPixel(event.pixel, PICK_OPTIONS);
+
+      // If a clicked feature is a cluster, zoom into it
+      const members = hits.map(getClusterMembers).find(clusterMembers => clusterMembers.length > 1);
+      if (members) {
         const membersExtent = getFeaturesExtent(members);
         const zoom = map.getView().getZoom() ?? 0;
         const separable = getWidth(membersExtent) > 0 || getHeight(membersExtent) > 0;
@@ -365,49 +411,92 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         }
 
         setSelection({
-          entries: members.map(member => ({
-            id: member.getId()?.toString() ?? "",
-            text: (member.get("info") as string | undefined) ?? "",
-          })),
+          entries: members.map(toEntry),
           position: getCenter(membersExtent),
         });
         return;
       }
 
-      const feature = members[0];
-      const info = feature?.get("info") as string | undefined;
-      const featureId = feature?.getId()?.toString();
-      if (showMapSelectionPopup && feature && info) {
-        const geometry = feature.getGeometry();
+      // Features that overlap are offered, the preferred one first, and that one is selected right away.
+      const candidates = getPopupFeatures(getPickOrder(hits), map.getView().getResolution() ?? 1);
+      const [preferred] = candidates;
+      const featureId = preferred?.getId()?.toString();
+      const entries = candidates.map(toEntry);
+      if (showMapSelectionPopup && preferred && entries.some(entry => entry.text)) {
+        const geometry = preferred.getGeometry();
+        // A point anchors the popup, a line or an area where it was clicked, as its center can lie far off.
         setSelection({
-          entries: [{ id: featureId ?? "", text: info }],
-          position: geometry ? getCenter(geometry.getExtent()) : event.coordinate,
+          entries,
+          position: geometry instanceof Point ? getCenter(geometry.getExtent()) : event.coordinate,
         });
       } else {
         setSelection(null);
       }
       if (featureId) onSelectFeature?.(featureId);
+      else onClearSelection?.();
     });
 
     return () => {
       unByKey(handler);
     };
-  }, [map, onSelectFeature, showMapSelectionPopup]);
+  }, [map, onSelectFeature, onClearSelection, showMapSelectionPopup, describeFeature]);
 
   useEffect(() => {
+    if (!map || !onHoverFeatures) return;
+
+    // Reports a change only, so moving the pointer within a feature does not re-render on every pointer event.
+    const report = (featureIds: string[]) => {
+      const key = featureIds.join("\n");
+      if (key === hoveredIdsKeyRef.current) return;
+      hoveredIdsKeyRef.current = key;
+      onHoverFeatures(featureIds);
+    };
+    const moveKey = map.on("pointermove", event => {
+      if (event.dragging) return;
+      const hits = map.getFeaturesAtPixel(event.pixel, PICK_OPTIONS);
+      // A cluster stands for all its members, otherwise the feature a click would pick.
+      const hovered = hits.map(getClusterMembers).find(members => members.length > 1) ?? getPickOrder(hits).slice(0, 1);
+      report(
+        hovered.flatMap(member => {
+          const id = member.getId()?.toString();
+          return id ? [id] : [];
+        }),
+      );
+    });
+    const viewport = map.getViewport();
+    const onLeave = () => report([]);
+    viewport.addEventListener("pointerleave", onLeave);
+
+    return () => {
+      unByKey(moveKey);
+      viewport.removeEventListener("pointerleave", onLeave);
+    };
+  }, [map, onHoverFeatures]);
+
+  // The filter decides which features a cluster gathers, so it re-clusters the point layers.
+  useEffect(() => {
     visibleIdsRef.current = visibleFeatureIds;
-    highlightedIdsRef.current = highlightedFeatureIds;
     featureLayers.forEach(refreshFeatureLayer);
-  }, [visibleFeatureIds, highlightedFeatureIds, featureLayers]);
+  }, [visibleFeatureIds, featureLayers]);
+
+  // Selection and hover only change the styles, so a redraw suffices; re-clustering on every hover would be costly.
+  useEffect(() => {
+    highlightedIdsRef.current = highlightedFeatureIds;
+    hoveredIdsRef.current = hoveredFeatureIds;
+    featureLayers.forEach(layer => layer.changed());
+  }, [highlightedFeatureIds, hoveredFeatureIds, featureLayers]);
 
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
     lastZoomTokenRef.current = zoomRequest.token;
-    fitToFeatures(map, new Set(zoomRequest.featureIds), {
+    const options = {
       padding: fitOptions.current.padding,
       maxZoom: ZOOM_TO_NODE_MAX_ZOOM,
       duration: ZOOM_TO_NODE_DURATION,
-    });
+    };
+    if (zoomRequest.extent && isFittableExtent(zoomRequest.extent) && map.getSize()) {
+      map.getView().fit(zoomRequest.extent, options);
+    } else fitToFeatures(map, new Set(zoomRequest.featureIds), options);
   }, [map, zoomRequest]);
 
   const contextValue = useMemo<MapVisualizationContextInterface>(
@@ -422,7 +511,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
           <MapSelectionPopup
             entries={shownSelection.entries}
             onSelect={featureId => {
-              if (featureId) onSelectFeature?.(featureId);
+              if (featureId) onSelectPopupEntry?.(featureId);
             }}
           />,
           selectionOverlayElement,

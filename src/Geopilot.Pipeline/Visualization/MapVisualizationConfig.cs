@@ -1,7 +1,7 @@
-﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
+﻿namespace Geopilot.Pipeline.Visualization;
 
 /// <summary>
-/// Describes what is displayed in the map visualization on the client. Serializes to the custom
+/// Describes what is displayed in the map of a visualization on the client. Serializes to the custom
 /// map-visualization JSON: a list of <see cref="Layers"/>, each either a WMTS map service layer
 /// (<see cref="MapLayer.Wmts"/>) or a feature layer carrying features inline (<see cref="MapLayer.Features"/>).
 /// </summary>
@@ -54,6 +54,29 @@ internal class MapLayer
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.
     /// </summary>
     public IList<MapFeature>? Features { get; set; }
+
+    /// <summary>
+    /// The state of a diff the features of a feature layer show. The client draws such a layer by the change
+    /// type of each feature and compares the two states. <see langword="null"/> for a layer outside a diff,
+    /// drawn in the default map color.
+    /// </summary>
+    public DiffState? State { get; set; }
+}
+
+/// <summary>
+/// The state before or after a diff.
+/// </summary>
+internal enum DiffState
+{
+    /// <summary>
+    /// The old state of something that changed.
+    /// </summary>
+    Old,
+
+    /// <summary>
+    /// The new state of something that changed.
+    /// </summary>
+    New,
 }
 
 /// <summary>
@@ -62,10 +85,10 @@ internal class MapLayer
 internal class MapFeature
 {
     /// <summary>
-    /// Stable id of the validation error this feature represents, shared with the error's tree node so the
-    /// frontend can cross-select map and tree.
+    /// Stable id of what this feature represents, for example a validation error, shared with its entry in
+    /// the list or tree next to the map so the frontend can cross-select the two.
     /// </summary>
-    public required string ErrorId { get; set; }
+    public required string Id { get; set; }
 
     /// <summary>
     /// The feature geometry as Well-Known Text (WKT), for example <c>POINT(2600000 1200000)</c>.
