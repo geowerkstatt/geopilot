@@ -2,7 +2,7 @@ import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { DiffChange, MapLayer, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
+import { DiffChange, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
 import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
@@ -11,7 +11,7 @@ import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
 import { DiffMapLegendButton, DiffMapSlider, DiffMapSliderButton } from "./diff/diffMapControls";
-import { DiffMapFocus, getChangeExtent, getFocus, inferObjectTypes } from "./diff/diffMapGeometry";
+import { DiffMapFocus, getChangeExtent, getFocus } from "./diff/diffMapGeometry";
 import { DiffMapLayers } from "./diff/diffMapLayers";
 import { DiffObjectList } from "./diff/diffObjectList";
 import {
@@ -38,10 +38,10 @@ import { scrollIntoFullView } from "./scrollIntoFullView";
  * the object's features.
  */
 export interface XtfDiffVisualizationConfig {
-  /** The map of the changes with a location; absent when the map is not included or no change has a location. */
+  /** The map of the changes with a location; absent when no change has a location. */
   map?: MapVisualizationConfig;
-  /** The changes for the list and its filter; absent when not included. */
-  table?: TableVisualizationConfig;
+  /** The changes for the list and its filter, always there, as the list also shows the changes without a location. */
+  table: TableVisualizationConfig;
 }
 
 interface XtfDiffVisualizationProps {
@@ -72,22 +72,14 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const groupElements = useRef(new Map<string, HTMLDivElement>());
   const inlineMap = useRef<HTMLDivElement>(null);
 
-  const changes = useMemo(() => config.table?.changes ?? [], [config.table]);
+  const changes = config.table.changes;
   const mappedObjectIds = useMemo(
     () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.id) ?? [])),
     [config.map],
   );
   const objects = useMemo(() => groupByObject(changes, mappedObjectIds), [changes, mappedObjectIds]);
   const objectsById = useMemo(() => new Map(objects.map(object => [object.objectId, object])), [objects]);
-  const objectTypes = useMemo(() => {
-    if (config.table) return new Map(objects.map(object => [object.objectId, object.kind]));
-    const idsOf = (style: MapLayer["style"]) =>
-      (config.map?.layers ?? [])
-        .filter(layer => layer.style === style)
-        .flatMap(layer => layer.features ?? [])
-        .map(feature => feature.id);
-    return inferObjectTypes(idsOf("old"), idsOf("new"));
-  }, [config.table, config.map, objects]);
+  const objectTypes = useMemo(() => new Map(objects.map(object => [object.objectId, object.kind])), [objects]);
 
   const label = useCallback<ChangeLabeler>(
     (field: DiffFilterField, change: DiffChange) => {
@@ -244,16 +236,12 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     setFieldFilters({});
   };
 
-  if (config.table && changes.length === 0) {
+  if (changes.length === 0) {
     return <Typography data-cy="diff-no-changes">{t("diffNoChanges")}</Typography>;
-  }
-  // Only the map is included, but it has nothing to show: no change has a location, or there is no change at all.
-  if (!config.table && !config.map) {
-    return <Typography data-cy="diff-no-locations">{t("diffNoLocations")}</Typography>;
   }
 
   const layout = fullscreen || isPhone ? "narrow" : "wide";
-  const filter = config.table && (
+  const filter = (
     <FilterBar
       attributes={attributes}
       searchPlaceholder="diffSearch"
@@ -268,7 +256,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const map = config.map && (
     <MapVisualization
       config={config.map}
-      reserveSpaceForFilters={!!config.table}
+      reserveSpaceForFilters
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
       controls={<DiffMapSliderButton slider={slider} onSliderChange={setSlider} />}
@@ -276,7 +264,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       {slider !== null && <DiffMapSlider value={slider} onChange={setSlider} />}
     </MapVisualization>
   );
-  const list = config.table && (
+  const list = (
     <DiffObjectList
       objects={filteredObjects}
       totalChangeCount={changes.length}
@@ -340,22 +328,20 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
             <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
               {map}
               {/* Beside the map: the filter and the list, scrolling together when they outgrow it. */}
-              {config.table && (
-                <GeopilotBox
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    m: 2,
-                    gap: 2,
-                    width: px2rem(440),
-                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                    overflowY: "auto",
-                  }}>
-                  {filter}
-                  {list}
-                </GeopilotBox>
-              )}
+              <GeopilotBox
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  m: 2,
+                  gap: 2,
+                  width: px2rem(440),
+                  maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                  overflowY: "auto",
+                }}>
+                {filter}
+                {list}
+              </GeopilotBox>
             </Box>
           </Modal>
         </ScrollMarginProvider>

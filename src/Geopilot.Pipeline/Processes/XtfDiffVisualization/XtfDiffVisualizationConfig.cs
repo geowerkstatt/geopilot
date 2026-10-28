@@ -3,21 +3,22 @@
 namespace Geopilot.Pipeline.Processes.XtfDiffVisualization;
 
 /// <summary>
-/// Payload of the XTF diff visualization: the changed objects on a map and every change in a table. As with the map
-/// and the tree of the XTF error visualization, the frontend shows the views that are present.
+/// Payload of the XTF diff visualization: every change in a table and the changed objects on a map, wherever a
+/// change has a location.
 /// </summary>
 internal sealed record XtfDiffVisualizationConfig
 {
     /// <summary>
-    /// Gets the map with the old and the new state of the changed objects, or <see langword="null"/> when the map
-    /// is not included or no change has a location.
+    /// Gets the map with the old and the new state of the changed objects, or <see langword="null"/> when no change
+    /// has a location.
     /// </summary>
     public MapVisualizationConfig? Map { get; init; }
 
     /// <summary>
-    /// Gets the table of the changes, or <see langword="null"/> when the table is not included.
+    /// Gets the table of the changes. Unlike the map it is always there, because it also lists the changes without a
+    /// location.
     /// </summary>
-    public TableVisualizationConfig? Table { get; init; }
+    public required TableVisualizationConfig Table { get; init; }
 
     /// <summary>
     /// Wraps this config in its visualization envelope, binding it to the <c>xtfDiff</c> discriminator in one

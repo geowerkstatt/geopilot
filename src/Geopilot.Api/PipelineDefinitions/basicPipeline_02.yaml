@@ -58,10 +58,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfDiff.XtfDiffProcess
   - id: xtf_diff_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfDiffVisualization.XtfDiffVisualizationProcess
-    default_config:
-      include:
-        - map
-        - table
   - id: gpkg_data_import
     implementation: Geopilot.Pipeline.Processes.Gpkg.Ili2GpkgDataImportProcess
     default_config:

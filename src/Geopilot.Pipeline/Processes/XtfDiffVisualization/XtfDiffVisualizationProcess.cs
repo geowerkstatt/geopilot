@@ -35,22 +35,16 @@ internal class XtfDiffVisualizationProcess
         { "en", "After" },
     };
 
-    private readonly bool includeMap;
-    private readonly bool includeTable;
     private readonly MapLayer baseMapLayer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfDiffVisualizationProcess"/> class.
     /// </summary>
-    /// <param name="include">The views to show (<see cref="DiffView"/> names, case-insensitive). Null or empty means all of them.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    public XtfDiffVisualizationProcess(IReadOnlyList<DiffView>? include = null, string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
+    public XtfDiffVisualizationProcess(string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
     {
-        var selected = include is { Count: > 0 } ? include : null;
-        includeMap = selected?.Contains(DiffView.Map) ?? true;
-        includeTable = selected?.Contains(DiffView.Table) ?? true;
         baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl);
     }
 
@@ -66,10 +60,8 @@ internal class XtfDiffVisualizationProcess
         var entries = await DiffFileReader.ReadAsync(diff, cancellationToken);
         var config = new XtfDiffVisualizationConfig
         {
-            Map = includeMap ? BuildMap(entries) : null,
-            Table = includeTable
-                ? new TableVisualizationConfig { Changes = entries.Select(entry => includeMap ? WithLocation(entry) : entry.Change).ToList() }
-                : null,
+            Map = BuildMap(entries),
+            Table = new TableVisualizationConfig { Changes = entries.Select(WithLocation).ToList() },
         };
 
         return new XtfDiffVisualizationResult

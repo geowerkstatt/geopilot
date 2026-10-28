@@ -98,15 +98,6 @@ public class XtfDiffVisualizationProcessTest
     }
 
     [TestMethod]
-    public async Task LeavesTheLocationsOutWithoutTheMap()
-    {
-        var changes = Changes(await VisualizeAsync("changes.json", new XtfDiffVisualizationProcess(include: [DiffView.Table])));
-
-        Assert.IsNull(changes[1].OldLocation);
-        Assert.IsNull(changes[1].NewLocation);
-    }
-
-    [TestMethod]
     public async Task UsesTheConfiguredBaseMap()
     {
         var process = new XtfDiffVisualizationProcess(baseMapWmtsCapabilitiesUrl: "https://wmts.example.ch/WMTSCapabilities.xml");
@@ -115,36 +106,6 @@ public class XtfDiffVisualizationProcessTest
 
         Assert.IsNotNull(map);
         Assert.AreEqual("https://wmts.example.ch/WMTSCapabilities.xml", map.Layers[0].Wmts);
-    }
-
-    [TestMethod]
-    public async Task ShowsTheMapAndTheTableWithoutAnInclude()
-    {
-        foreach (var process in new[] { new XtfDiffVisualizationProcess(), new XtfDiffVisualizationProcess(include: []) })
-        {
-            var config = await VisualizeAsync("changes.json", process);
-
-            Assert.IsNotNull(config.Map);
-            Assert.IsNotNull(config.Table);
-        }
-    }
-
-    [TestMethod]
-    public async Task LeavesTheTableOutWhenOnlyTheMapIsIncluded()
-    {
-        var config = await VisualizeAsync("changes.json", new XtfDiffVisualizationProcess(include: [DiffView.Map]));
-
-        Assert.IsNotNull(config.Map);
-        Assert.IsNull(config.Table);
-    }
-
-    [TestMethod]
-    public async Task LeavesTheMapOutWhenOnlyTheTableIsIncluded()
-    {
-        var config = await VisualizeAsync("changes.json", new XtfDiffVisualizationProcess(include: [DiffView.Table]));
-
-        Assert.IsNull(config.Map);
-        Assert.IsNotNull(config.Table);
     }
 
     [TestMethod]
@@ -216,11 +177,7 @@ public class XtfDiffVisualizationProcessTest
         return result.Visualization.Data;
     }
 
-    private static IReadOnlyList<DiffChange> Changes(XtfDiffVisualizationConfig config)
-    {
-        Assert.IsNotNull(config.Table);
-        return config.Table.Changes;
-    }
+    private static IReadOnlyList<DiffChange> Changes(XtfDiffVisualizationConfig config) => config.Table.Changes;
 
     private static (string Id, string Geom)[] Features(MapLayer layer)
     {
