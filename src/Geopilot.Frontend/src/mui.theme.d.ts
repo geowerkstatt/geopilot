@@ -61,8 +61,6 @@ declare module "@mui/material/styles" {
     changed: string;
     /** Text and icons of what a diff removed. */
     deleted: string;
-    /** Icons of what a diff changed. */
-    changed: string;
     /** Behind the added part of a value. */
     insertBackground: string;
     /** Behind the removed part of a value. */

@@ -82,16 +82,6 @@ export const resolvePartType = (
   objectType: DiffChangeType,
 ): DiffChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
 
-/** Without the list the map knows no change types: an object only before was deleted, only after added. */
-export const inferObjectTypes = (oldIds: Iterable<string>, newIds: Iterable<string>): Map<string, DiffChangeType> => {
-  const oldSet = new Set(oldIds);
-  const newSet = new Set(newIds);
-  const types = new Map<string, DiffChangeType>();
-  for (const id of oldSet) types.set(id, newSet.has(id) ? "changed" : "deleted");
-  for (const id of newSet) if (!oldSet.has(id)) types.set(id, "added");
-  return types;
-};
-
 export const getChangeExtent = (change: LocatedChange, side: DiffSide): Extent | undefined => {
   const extent = locationOf(change, side)?.getExtent();
   return extent && isFittableExtent(extent) ? extent : undefined;

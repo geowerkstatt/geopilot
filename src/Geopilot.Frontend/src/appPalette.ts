@@ -77,7 +77,6 @@ export const themePalette = {
     added: "#2E7D32",
     changed: "#0072B2",
     deleted: "#C62828",
-    changed: "#0072B2",
     insertBackground: "#CDEBCF",
     deleteBackground: "#F9D0D0",
   },

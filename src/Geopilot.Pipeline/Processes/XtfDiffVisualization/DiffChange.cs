@@ -51,13 +51,13 @@ internal sealed record DiffChange
 
     /// <summary>
     /// Gets the location in the old state as WKT, or <see langword="null"/> without one. The table carries it
-    /// only for a geometry change when the map is included.
+    /// only for a geometry change.
     /// </summary>
     public string? OldLocation { get; init; }
 
     /// <summary>
     /// Gets the location in the new state as WKT, or <see langword="null"/> without one. The table carries it
-    /// only for a geometry change when the map is included.
+    /// only for a geometry change.
     /// </summary>
     public string? NewLocation { get; init; }
 }

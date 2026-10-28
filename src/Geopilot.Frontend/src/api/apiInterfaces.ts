@@ -144,16 +144,13 @@ export interface DiffChange {
   oldValue?: string;
   /** Value in the new state as text, lists and structures as compact JSON; absent when the new state has none. */
   newValue?: string;
-  /** Location in the old state as WKT, for a geometry change when the map is included. */
+  /** Location in the old state as WKT, for a geometry change that has one. */
   oldLocation?: string;
-  /** Location in the new state as WKT, for a geometry change when the map is included. */
+  /** Location in the new state as WKT, for a geometry change that has one. */
   newLocation?: string;
 }
 
-/**
- * The table of the diff visualization. The map beside it reads the same changes for its popup and its filter, so a
- * map without the table shows only the class of each object and offers no filter.
- */
+/** The table of the diff visualization. The map beside it reads the same changes for its popup and its filter. */
 export interface TableVisualizationConfig {
   /** Every change of the diff, in the order of the diff. */
   changes: DiffChange[];

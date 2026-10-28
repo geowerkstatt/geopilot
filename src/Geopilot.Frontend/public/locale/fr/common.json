@@ -78,7 +78,6 @@
   "diffMapLegend": "Légende",
   "diffMapSlider": "Comparer avant et après",
   "diffNoChanges": "Les deux états ne diffèrent pas.",
-  "diffNoLocations": "Aucune modification à afficher sur la carte.",
   "diffReferenceFiltered": "Masqué par le filtre",
   "diffReferenceNotInDiff": "Ne fait pas partie des modifications",
   "diffSearch": "Rechercher dans les modifications",

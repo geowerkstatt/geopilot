@@ -469,30 +469,6 @@ public class PipelineProcessFactoryValidateTest
     }
 
     [TestMethod]
-    public void RejectsUnknownDiffViewInInclude()
-    {
-        using var factory = CreateFactory();
-        var step = new StepConfig
-        {
-            Id = "visualize_diff",
-            DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Visualize diff" }),
-            ProcessId = "xtf_diff_visualizer",
-        };
-        var process = new ProcessConfig
-        {
-            Id = "xtf_diff_visualizer",
-            Implementation = "Geopilot.Pipeline.Processes.XtfDiffVisualization.XtfDiffVisualizationProcess",
-            DefaultConfig = new Parameterization { ["include"] = new List<object> { "map", "list" } },
-        };
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            factory.Builder().StepConfig(step).Processes([process]).Validate());
-
-        Assert.Contains("include", exception.Message);
-        Assert.Contains("list", exception.Message);
-    }
-
-    [TestMethod]
     public void AcceptsProcessWithInjectedIlitoolsClients()
     {
         using var factory = CreateFactoryWithTestProcesses();

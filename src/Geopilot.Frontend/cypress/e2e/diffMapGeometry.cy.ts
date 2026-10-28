@@ -8,7 +8,6 @@ import {
   getFocus,
   getLook,
   getParts,
-  inferObjectTypes,
   LocatedChange,
   readLocation,
   resolvePartType,
@@ -72,14 +71,6 @@ describe("diff map geometry", () => {
     const [part] = partsOf("POINT (1 1)");
 
     expect(resolvePartType(index, "o", "new", part, "changed")).to.equal("changed");
-  });
-
-  it("infers the type from the layers", () => {
-    const types = inferObjectTypes(["a", "c"], ["b", "c"]);
-
-    expect(types.get("a")).to.equal("deleted");
-    expect(types.get("b")).to.equal("added");
-    expect(types.get("c")).to.equal("changed");
   });
 
   it("connects moved points only", () => {

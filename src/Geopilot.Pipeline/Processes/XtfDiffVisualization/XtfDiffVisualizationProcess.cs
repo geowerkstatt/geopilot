@@ -35,22 +35,16 @@ internal class XtfDiffVisualizationProcess
         { "en", "After" },
     };
 
-    private readonly bool includeMap;
-    private readonly bool includeTable;
     private readonly MapLayer baseMapLayer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfDiffVisualizationProcess"/> class.
     /// </summary>
-    /// <param name="include">The views to show (<see cref="DiffView"/> names, case-insensitive). Null or empty means all of them.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    public XtfDiffVisualizationProcess(IReadOnlyList<DiffView>? include = null, string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
+    public XtfDiffVisualizationProcess(string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
     {
-        var selected = include is { Count: > 0 } ? include : null;
-        includeMap = selected?.Contains(DiffView.Map) ?? true;
-        includeTable = selected?.Contains(DiffView.Table) ?? true;
         baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl);
     }
 
@@ -66,8 +60,8 @@ internal class XtfDiffVisualizationProcess
         var changes = await DiffFileReader.ReadAsync(diff, cancellationToken);
         var config = new XtfDiffVisualizationConfig
         {
-            Map = includeMap ? BuildMap(changes) : null,
-            Table = includeTable ? new TableVisualizationConfig { Changes = changes.Select(ForTable).ToList() } : null,
+            Map = BuildMap(changes),
+            Table = new TableVisualizationConfig { Changes = changes.Select(ForTable).ToList() },
         };
 
         return new XtfDiffVisualizationResult
@@ -78,8 +72,8 @@ internal class XtfDiffVisualizationProcess
     }
 
     // Only a geometry change has a map button of its own, so only its locations are sent twice: here and in the map.
-    private DiffChange ForTable(DiffChange change) =>
-        includeMap && change.ValueType == DiffValueType.Geometry ? change : change with { OldLocation = null, NewLocation = null };
+    private static DiffChange ForTable(DiffChange change) =>
+        change.ValueType == DiffValueType.Geometry ? change : change with { OldLocation = null, NewLocation = null };
 
     private MapVisualizationConfig? BuildMap(IReadOnlyList<DiffChange> changes)
     {

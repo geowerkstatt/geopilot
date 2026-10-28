@@ -10,7 +10,6 @@ Eine XTF Diff Visualisierung muss unter `processes[X].implementation` den Wert `
 
 ## Konfiguration
 
-- `include`: Optionaler Parameter vom Typ `IReadOnlyList<DiffView>`, die gezeigten Ansichten wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md): `map` (die Karte mit dem Popup) und `table` (die Liste der Objekte mit dem Filter). Die Gross-/Kleinschreibung ist unerheblich, ein anderer Wert lässt die Validierung beim Applikationsstart scheitern. Wenn `null` oder leer, werden beide gezeigt. Ohne Liste verhält sich die Karte wie die Karte der Fehlervisualisierung ohne Baum: Das Popup nennt nur die Klasse der Objekte, und es gibt keinen Filter. Ist nur die Karte gewählt und hat keine Änderung eine Lage, zeigt die Visualisierung einen Hinweis.
 - `baseMapWmtsCapabilitiesUrl`, `baseMapAttribution`, `baseMapAttributionUrl`: Optional, die Hintergrundkarte, gleich wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md).
 
 ## Input
@@ -71,7 +70,7 @@ pipelines:
 
 ## Format des `Visualization`-Outputs
 
-Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Wie bei der Fehlervisualisierung enthält die Nutzlast nur die Ansichten, die erscheinen: die Liste (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), sofern `include` sie enthält, und die Karte (`map`), sofern `include` sie enthält und eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `style` sagt dem Frontend, wie es eine Ebene zeichnet: `old` und `new` nach der Art jeder Änderung, ohne `style` in der Standardfarbe der Karte. Ohne Liste kennt die Karte die Arten nicht und leitet sie aus den Ebenen ab: nur unter "Vorher" gelöscht, nur unter "Nachher" hinzugefügt, unter beiden geändert. Eine Geometrieänderung trägt zudem ihre Lagen (`oldLocation`, `newLocation`), sofern die Karte erscheint, damit die Karte zu ihr allein zoomt und jeden Teil eines Features seiner Änderung zuordnet; die übrigen Änderungen tragen keine. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
+Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die Nutzlast enthält immer die Liste (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), die Karte (`map`) nur, sofern eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `style` sagt dem Frontend, wie es eine Ebene zeichnet: `old` und `new` nach der Art jeder Änderung, ohne `style` in der Standardfarbe der Karte. Eine Geometrieänderung trägt zudem ihre Lagen (`oldLocation`, `newLocation`), damit die Karte zu ihr allein zoomt und jeden Teil eines Features seiner Änderung zuordnet; die übrigen Änderungen tragen keine. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
 
 ```json
 {

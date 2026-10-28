@@ -22,12 +22,12 @@ interface FixtureChange {
 
 interface Visualization {
   type: "xtfDiff";
-  data: { map?: unknown; table?: { changes: FixtureChange[] } };
+  data: { map?: unknown; table: { changes: FixtureChange[] } };
 }
 
 type Transform = (visualization: Visualization) => Visualization;
 
-const openDiffVisualization = (transform: Transform = visualization => visualization, ready = "diff-object") => {
+const openDiffVisualization = (transform: Transform = visualization => visualization) => {
   cy.fixture<Visualization>("xtfDiffVisualization.json").then(fixture => {
     cy.intercept("GET", VISUALIZATION_URL, { statusCode: 200, body: transform(fixture) });
   });
@@ -59,12 +59,12 @@ const openDiffVisualization = (transform: Transform = visualization => visualiza
     });
   // Once unfolded, the page centres the step; scrolling of a test must not race with that.
   cy.dataCy("processing-step-diff_visualization").find(".MuiCollapse-entered").should("exist");
-  cy.dataCy(ready).should("exist");
+  cy.dataCy("diff-object").should("exist");
 };
 
 /** Adds thirty attribute changes to the entrance, so it is taller than a small viewport. */
 const withManyChanges: Transform = visualization => {
-  const table = visualization.data.table!;
+  const table = visualization.data.table;
   const template = table.changes.find(change => change.objectId === ENTRANCE)!;
   const extra = Array.from({ length: 30 }, (_, index) => ({
     ...template,
@@ -206,7 +206,7 @@ describe("XTF diff visualization", () => {
     cy.viewport(1000, 400);
     openDiffVisualization(visualization => {
       const withChanges = withManyChanges(visualization);
-      const template = withChanges.data.table!.changes.find(change => change.objectId === NOTED_LOCALISATION)!;
+      const template = withChanges.data.table.changes.find(change => change.objectId === NOTED_LOCALISATION)!;
       const reference = {
         ...template,
         id: "c200",
@@ -218,7 +218,7 @@ describe("XTF diff visualization", () => {
       };
       return {
         ...withChanges,
-        data: { ...withChanges.data, table: { changes: [...withChanges.data.table!.changes, reference] } },
+        data: { ...withChanges.data, table: { changes: [...withChanges.data.table.changes, reference] } },
       };
     });
     expand(ENTRANCE);
@@ -292,14 +292,6 @@ describe("XTF diff visualization", () => {
     slider().should("not.have.attr", "aria-valuenow", "0");
     cy.dataCy("diffMapSlider-button").click();
     cy.dataCy("diff-map-slider").should("not.exist");
-  });
-
-  it("offers legend and slider on a map without the list", () => {
-    openDiffVisualization(
-      visualization => ({ ...visualization, data: { map: visualization.data.map } }),
-      "diffMapLegend-button",
-    );
-    cy.dataCy("diffMapSlider-button").should("exist");
   });
 
   it("stacks before and after on a phone", () => {
