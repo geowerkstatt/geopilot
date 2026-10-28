@@ -10,7 +10,7 @@ namespace Geopilot.Pipeline.Processes.XtfDiffVisualization;
 /// </summary>
 internal static class DiffFileReader
 {
-    // Lists and structures become display text for the table, so the relaxed encoder keeps ä instead of ä. That is
+    // Lists and structures become display text for the table, so the relaxed encoder keeps ä instead of \u00E4. That is
     // safe here: the visualization is serialized again with the default encoder, and the frontend renders it as text.
     private static readonly JsonSerializerOptions CompactValueOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
