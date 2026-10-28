@@ -12,7 +12,6 @@ import { DiffObject, getPropertyChanges } from "./diffObjects";
 interface DiffObjectListProps {
   /** The objects to list, already filtered. */
   objects: DiffObject[];
-  /** The number of changes of the whole diff, before filtering. */
   totalChangeCount: number;
   filterActive: boolean;
   expandedObjectIds: ReadonlySet<string>;

@@ -61,9 +61,7 @@ interface DiffObjectGroupProps {
   hovered: boolean;
   layout: DiffLayout;
   onExpand: (objectIds: string[], expanded: boolean) => void;
-  /** Zooms the map to the object; undefined when the object is not on the map. */
   onShowOnMap?: (objectId: string) => void;
-  /** Zooms the map to one change in one state; undefined when the object is not on the map. */
   onShowChangeOnMap?: (change: DiffChange, side: DiffSide) => void;
   onHover: (objectIds: string[]) => void;
   lookupReference: (oid: string) => ReferenceTarget;

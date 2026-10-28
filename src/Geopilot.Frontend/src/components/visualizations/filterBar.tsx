@@ -17,7 +17,6 @@ export interface FilterAttribute<F extends string> {
 
 interface FilterBarProps<F extends string> {
   attributes: FilterAttribute<F>[];
-  /** The placeholder of the search field (translation key). */
   searchPlaceholder: TranslationKey;
   messageQuery: string;
   onMessageQueryChange: (value: string) => void;

@@ -23,13 +23,9 @@ declare module "@mui/material/styles" {
   }
 
   interface PaletteMap {
-    /** Outline of the map features, apart from the base map. */
     stroke: string;
-    /** The hint over the map, for example how to zoom. */
     hint: { background: string; text: string };
-    /** The features of the error visualization. */
     error: { fill: string; highlight: string };
-    /** The features of a diff by change type. */
     diff: { added: string; changed: string; deleted: string };
   }
 
@@ -55,15 +51,10 @@ declare module "@mui/material/styles" {
   }
 
   interface PaletteDiff {
-    /** Text and icons of what a diff added. */
     added: string;
-    /** Icons of what a diff changed. */
     changed: string;
-    /** Text and icons of what a diff removed. */
     deleted: string;
-    /** Behind the added part of a value. */
     insertBackground: string;
-    /** Behind the removed part of a value. */
     deleteBackground: string;
   }
 

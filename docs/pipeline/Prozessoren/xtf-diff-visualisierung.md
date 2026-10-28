@@ -1,6 +1,6 @@
 # XTF Diff Visualisierung
 
-Zeigt die Änderungen eines Diffs des [XTF Diff](xtf-diff.md) in der Lieferansicht: eine Tabelle mit den geänderten Objekten und ihren Werten vorher und nachher, und eine Karte mit dem alten und dem neuen Stand. Tabelle und Karte sind verknüpft und lassen sich gemeinsam filtern, wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md).
+Zeigt die Änderungen eines Diffs des [XTF Diff](xtf-diff.md) in der Lieferansicht: eine Tabelle mit den geänderten Objekten und ihren Werten vorher und nachher, und eine Karte mit dem alten und dem neuen Stand. Tabelle und Karte sind verknüpft und lassen sich gemeinsam filtern.
 
 Die Karte zeigt die Lagen des Diffs unverändert, der Prozess rechnet keine Geometrie um. Eine Änderung ohne Lage steht nur in der Tabelle. Hat keine Änderung eine Lage, entfällt die Karte, ohne Änderungen zeigt die Visualisierung einen Hinweis.
 

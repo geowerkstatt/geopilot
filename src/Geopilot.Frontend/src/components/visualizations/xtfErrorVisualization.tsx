@@ -31,7 +31,10 @@ interface XtfErrorVisualizationProps {
 interface NodeSelectionState {
   selectedNodeId: string | null;
   selectionToken: number;
-  /** Off after a zoom from the tree, which scrolls to the map instead of the tree's panel. */
+  /**
+   * Whether selecting the node scrolls the page to its details panel. Off when the node was selected by its map
+   * button, so the page scrolls to the map instead.
+   */
   scrollToSelection: boolean;
 }
 

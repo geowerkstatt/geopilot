@@ -73,7 +73,6 @@ interface DiffChangeRowProps {
   layout: DiffLayout;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
-  /** Zooms the map to the change in one state; undefined when the object is not on the map. */
   onShowOnMap?: (side: DiffSide) => void;
 }
 

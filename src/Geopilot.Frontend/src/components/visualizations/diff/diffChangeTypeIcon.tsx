@@ -12,7 +12,6 @@ const ICONS = {
   changed: SwapHorizontalCircleOutlinedIcon,
 } satisfies Record<DiffChangeType, typeof SwapHorizontalCircleOutlinedIcon>;
 
-// The changed icon in the blue of the map; the summary text of a changed property stays gray.
 const ICON_COLORS: Record<DiffChangeType, string> = { ...DIFF_CHANGE_TYPE_COLORS, changed: "diff.changed" };
 
 interface DiffChangeTypeIconProps {

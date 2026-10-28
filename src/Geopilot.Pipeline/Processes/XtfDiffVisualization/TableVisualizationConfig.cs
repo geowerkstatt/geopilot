@@ -2,7 +2,7 @@
 
 /// <summary>
 /// The table view of the XTF diff visualization. The map beside it reads the same changes for its popup and its
-/// filter, so a map without the table shows only the class of each object and offers no filter.
+/// filter.
 /// </summary>
 internal sealed record TableVisualizationConfig
 {
