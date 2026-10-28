@@ -1,7 +1,6 @@
-import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Typography, useMediaQuery, useTheme } from "@mui/material";
 import {
   DiffChange,
   DiffSide,
@@ -10,11 +9,6 @@ import {
   TableVisualizationConfig,
 } from "../../api/apiInterfaces";
 import { px2rem } from "../../appTheme";
-import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
-import { IconButton } from "../buttons";
-import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
-import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
-import { GeopilotBox } from "../styledComponents";
 import { ReferenceTarget } from "./diff/diffChangeRow";
 import { DiffMapLegendButton, DiffMapSlider, DiffMapSliderButton } from "./diff/diffMapControls";
 import { DiffMapFocus, getChangeExtent, getFocus, inferObjectTypes } from "./diff/diffMapGeometry";
@@ -36,6 +30,7 @@ import {
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
+import { MapListLayout } from "./mapListLayout";
 import { scrollIntoFullView } from "./scrollIntoFullView";
 
 /**
@@ -61,7 +56,6 @@ interface RevealRequest {
 
 export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
-  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const [fullscreen, setFullscreen] = useState(false);
@@ -310,55 +304,16 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
           slider={slider}
         />
       )}
-      {config.map && (
-        <IconButton
-          size="small"
-          label="fullscreen"
-          icon={<OpenInFullIcon />}
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: theme.spacing(6),
-            padding: theme.spacing(2),
-            display: { xs: "none", md: "block" },
-          }}
-          onClick={() => setFullscreen(previous => !previous)}
-        />
-      )}
-      {map && fullscreen ? (
-        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
-          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-              {map}
-              {/* Beside the map: the filter and the list, scrolling together when they outgrow it. */}
-              {config.table && (
-                <GeopilotBox
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    m: 2,
-                    gap: 2,
-                    width: px2rem(440),
-                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                    overflowY: "auto",
-                  }}>
-                  {filter}
-                  {list}
-                </GeopilotBox>
-              )}
-            </Box>
-          </Modal>
-        </ScrollMarginProvider>
-      ) : (
-        <Stack sx={{ width: "100%", gap: 2 }}>
-          {filter}
-          <Box ref={inlineMap} sx={{ scrollMarginTop, scrollMarginBottom }}>
-            {map}
-          </Box>
-          {list}
-        </Stack>
-      )}
+      <MapListLayout
+        map={map}
+        filter={filter}
+        list={list}
+        fullscreen={fullscreen}
+        setFullscreen={setFullscreen}
+        inlineMapRef={inlineMap}
+        gap={2}
+        panelSx={{ gap: 2, width: px2rem(440), overflowY: "auto" }}
+      />
     </MapVisualizationProvider>
   );
 };

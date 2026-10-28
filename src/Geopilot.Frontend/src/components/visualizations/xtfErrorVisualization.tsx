@@ -1,17 +1,11 @@
-import { FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { Box, Modal, Stack, useTheme } from "@mui/material";
 import { MapVisualizationConfig, TreeField, TreeVisualizationConfig } from "../../api/apiInterfaces";
-import { IconButton } from "../../components/buttons";
-import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
-import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
-import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
-import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
+import { MapListLayout } from "./mapListLayout";
 import { scrollIntoFullView } from "./scrollIntoFullView";
 import { buildErrorIdIndex, buildTree, collectFilterAttributes, filterItems } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
@@ -49,7 +43,6 @@ interface NodeSelection {
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters<TreeField>>({});
   const [{ selectedNodeId, selectionToken, scrollToSelection }, dispatchSelection] = useReducer(
@@ -72,7 +65,6 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   useEffect(() => {
     if (zoomRequest && inlineMap.current) scrollIntoFullView(inlineMap.current);
   }, [zoomRequest]);
-  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -181,52 +173,15 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       onSelectFeature={handleSelectFeature}
       showMapSelectionPopup={!config.tree}
       fullscreen={fullscreen}>
-      {config.map && (
-        <IconButton
-          size="small"
-          label="fullscreen"
-          icon={<OpenInFullIcon />}
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: theme.spacing(6),
-            padding: theme.spacing(2),
-            display: { xs: "none", md: "block" },
-          }}
-          onClick={() => setFullscreen(prev => !prev)}
-        />
-      )}
-      {config.map && fullscreen ? (
-        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
-          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-              {map}
-              {config.tree && (
-                <GeopilotBox
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    m: 2,
-                    width: "400px",
-                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                  }}>
-                  {filter}
-                  {tree}
-                </GeopilotBox>
-              )}
-            </Box>
-          </Modal>
-        </ScrollMarginProvider>
-      ) : (
-        <Stack sx={{ width: "100%" }}>
-          {filter}
-          <Box ref={inlineMap} sx={{ scrollMarginTop, scrollMarginBottom }}>
-            {map}
-          </Box>
-          {tree}
-        </Stack>
-      )}
+      <MapListLayout
+        map={map}
+        filter={filter}
+        list={tree}
+        fullscreen={fullscreen}
+        setFullscreen={setFullscreen}
+        inlineMapRef={inlineMap}
+        panelSx={{ width: "400px" }}
+      />
     </MapVisualizationProvider>
   );
 };
