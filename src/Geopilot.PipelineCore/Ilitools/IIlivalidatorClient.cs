@@ -30,6 +30,13 @@ public interface IIlivalidatorClient
     /// <see cref="IlivalidatorArgs.ModelDirs"/>; its position decides the precedence against the other sources,
     /// unreviewed content belongs at the end.
     /// </param>
+    /// <param name="referenceDataFiles">
+    /// Optional reference data (XTF or XML, not ITF) the tool loads next to the transfer file without validating it,
+    /// such as a catalog the transfer file references. References into them are only checked with
+    /// <see cref="IlivalidatorArgs.AllObjectsAccessible"/>. Unlike a repository they name no further sources, so they
+    /// may come from an upload; whether delivered reference data count is up to whoever wires them. Requires
+    /// ilivalidator 1.15.0 or newer, the service rejects them for an older version before the tool runs.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
     Task<IlivalidatorResult> ValidateAsync(
@@ -39,5 +46,6 @@ public interface IIlivalidatorClient
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
+        IReadOnlyList<IPipelineFile>? referenceDataFiles = null,
         CancellationToken cancellationToken = default);
 }
