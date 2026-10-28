@@ -126,6 +126,7 @@
 - When the pipelines fail to load on the mandate page, the error message is now shown in the selected language instead of as the raw text `pipelinesLoadingError`.
 - A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
 - A write request that authenticates with the sign-in cookie of the web frontend is refused with `403` unless it comes from the geopilot page itself. Before, a page on another subdomain of the same domain could make the browser of a signed-in person send such a request, for example a machine delivery in that person's name. Requests with an `Authorization` header are not affected. For browsers that send no `Sec-Fetch-Site` header (versions from before 2023), geopilot compares the `Origin` header with the `Host` header, so a reverse proxy in front of it must pass the `Host` header on unchanged.
+- The mandates offered for a delivery are listed alphabetically by their name in the selected language. Until now a mandate moved to the end of the list once it was edited.
 
 ## v3.0.341 - 2026-06-17
 
