@@ -143,7 +143,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
         onClick={() => setOpen(previous => !previous)}
         tooltipPlacement="left"
       />
-      {/* No higher than the map. */}
+      {/* Within the map, which holds the panel: no higher or wider than it, less the margin around the buttons. */}
       <MapPanelPopper
         id={panelId}
         open={open}
