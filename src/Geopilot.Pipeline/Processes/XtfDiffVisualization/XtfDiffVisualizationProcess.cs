@@ -63,13 +63,11 @@ internal class XtfDiffVisualizationProcess
     [PipelineProcessRun]
     public async Task<XtfDiffVisualizationResult> RunAsync(IPipelineFile diff, CancellationToken cancellationToken)
     {
-        var entries = await DiffFileReader.ReadAsync(diff, cancellationToken);
+        var changes = await DiffFileReader.ReadAsync(diff, cancellationToken);
         var config = new XtfDiffVisualizationConfig
         {
-            Map = includeMap ? BuildMap(entries) : null,
-            Table = includeTable
-                ? new TableVisualizationConfig { Changes = entries.Select(entry => includeMap ? WithLocation(entry) : entry.Change).ToList() }
-                : null,
+            Map = includeMap ? BuildMap(changes) : null,
+            Table = includeTable ? new TableVisualizationConfig { Changes = changes.Select(ForTable).ToList() } : null,
         };
 
         return new XtfDiffVisualizationResult
@@ -80,17 +78,13 @@ internal class XtfDiffVisualizationProcess
     }
 
     // Only a geometry change has a map button of its own, so only its locations are sent twice: here and in the map.
-    private static DiffChange WithLocation(DiffEntry entry) =>
-        entry.Change.ValueType == DiffValueType.Geometry
-            ? entry.Change with { OldLocation = NullIfBlank(entry.OldLocation), NewLocation = NullIfBlank(entry.NewLocation) }
-            : entry.Change;
+    private DiffChange ForTable(DiffChange change) =>
+        includeMap && change.ValueType == DiffValueType.Geometry ? change : change with { OldLocation = null, NewLocation = null };
 
-    private static string? NullIfBlank(string? location) => string.IsNullOrWhiteSpace(location) ? null : location;
-
-    private MapVisualizationConfig? BuildMap(IReadOnlyList<DiffEntry> entries)
+    private MapVisualizationConfig? BuildMap(IReadOnlyList<DiffChange> changes)
     {
-        var oldFeatures = BuildFeatures(entries, entry => entry.OldLocation);
-        var newFeatures = BuildFeatures(entries, entry => entry.NewLocation);
+        var oldFeatures = BuildFeatures(changes, change => change.OldLocation);
+        var newFeatures = BuildFeatures(changes, change => change.NewLocation);
         if (oldFeatures.Count == 0 && newFeatures.Count == 0)
             return null;
 
@@ -105,22 +99,22 @@ internal class XtfDiffVisualizationProcess
         };
     }
 
-    private static List<MapFeature> BuildFeatures(IReadOnlyList<DiffEntry> entries, Func<DiffEntry, string?> locationOf)
+    private static List<MapFeature> BuildFeatures(IReadOnlyList<DiffChange> changes, Func<DiffChange, string?> locationOf)
     {
         // The map knows a feature id once per layer, so the locations of an object form one feature per state.
         var locationsByObjectId = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         var firstChanges = new List<DiffChange>();
-        foreach (var entry in entries)
+        foreach (var change in changes)
         {
-            var location = locationOf(entry);
-            if (string.IsNullOrWhiteSpace(location))
+            var location = locationOf(change);
+            if (location is null)
                 continue;
 
-            if (!locationsByObjectId.TryGetValue(entry.Change.ObjectId, out var locations))
+            if (!locationsByObjectId.TryGetValue(change.ObjectId, out var locations))
             {
                 locations = [];
-                locationsByObjectId.Add(entry.Change.ObjectId, locations);
-                firstChanges.Add(entry.Change);
+                locationsByObjectId.Add(change.ObjectId, locations);
+                firstChanges.Add(change);
             }
 
             if (!locations.Contains(location, StringComparer.Ordinal))

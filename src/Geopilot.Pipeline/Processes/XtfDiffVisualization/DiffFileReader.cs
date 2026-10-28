@@ -21,7 +21,7 @@ internal static class DiffFileReader
     /// <param name="cancellationToken">Cancels reading the file.</param>
     /// <returns>The changes with their locations.</returns>
     /// <exception cref="InvalidOperationException">The file is not a diff of the XTF-Diff-Tool.</exception>
-    public static async Task<IReadOnlyList<DiffEntry>> ReadAsync(IPipelineFile diff, CancellationToken cancellationToken)
+    public static async Task<IReadOnlyList<DiffChange>> ReadAsync(IPipelineFile diff, CancellationToken cancellationToken)
     {
         await using var stream = await diff.OpenReadAsync(cancellationToken);
         JsonDocument document;
@@ -43,18 +43,18 @@ internal static class DiffFileReader
 
             return document.RootElement
                 .EnumerateArray()
-                .Select((element, index) => ReadEntry(element, index, diff.OriginalFileName))
+                .Select((element, index) => ReadChange(element, index, diff.OriginalFileName))
                 .ToList();
         }
     }
 
-    private static DiffEntry ReadEntry(JsonElement element, int index, string fileName)
+    private static DiffChange ReadChange(JsonElement element, int index, string fileName)
     {
         var position = $"Change {index + 1} of the diff <{fileName}>";
         if (element.ValueKind != JsonValueKind.Object)
             throw new InvalidOperationException($"{position} is not a JSON object.");
 
-        var change = new DiffChange
+        return new DiffChange
         {
             Id = $"c{index}",
             ObjectId = ReadRequiredText(element, "oid", position),
@@ -77,9 +77,9 @@ internal static class DiffFileReader
             AttributePath = ReadOptionalText(element, "attributePath", position),
             OldValue = ReadValue(element, "oldValue"),
             NewValue = ReadValue(element, "newValue"),
+            OldLocation = ReadLocation(element, "oldLocation", position),
+            NewLocation = ReadLocation(element, "newLocation", position),
         };
-
-        return new DiffEntry(change, ReadOptionalText(element, "oldLocation", position), ReadOptionalText(element, "newLocation", position));
     }
 
     private static string ReadRequiredText(JsonElement element, string property, string position) =>
@@ -97,6 +97,9 @@ internal static class DiffFileReader
             : throw new InvalidOperationException($"{position} has a {property} that is not text.");
     }
 
+    private static string? ReadLocation(JsonElement element, string property, string position) =>
+        ReadOptionalText(element, property, position) is { } location && !string.IsNullOrWhiteSpace(location) ? location : null;
+
     private static string? ReadValue(JsonElement element, string property)
     {
         if (!element.TryGetProperty(property, out var value))
@@ -110,11 +113,3 @@ internal static class DiffFileReader
         };
     }
 }
-
-/// <summary>
-/// A change of the diff with its location in the old and the new state, where the diff has one.
-/// </summary>
-/// <param name="Change">The change as the list shows it.</param>
-/// <param name="OldLocation">The location in the old state as WKT, or <see langword="null"/> without one.</param>
-/// <param name="NewLocation">The location in the new state as WKT, or <see langword="null"/> without one.</param>
-internal sealed record DiffEntry(DiffChange Change, string? OldLocation, string? NewLocation);
