@@ -19,7 +19,7 @@ internal sealed class UniqueReactionIdsAttribute : ValidationAttribute
             return new ValidationResult("validation object is not of type IEnumerable<ReactionSetConfig>");
 
         var duplicates = sets
-            .SelectMany(set => set.Transfers ?? [])
+            .SelectMany(set => set.AllReactions())
             .GroupBy(reaction => reaction.Id, StringComparer.Ordinal)
             .Where(group => group.Count() > 1)
             .Select(group => $"The reaction id '{group.Key}' is used more than once.")

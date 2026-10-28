@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Validation;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -8,6 +9,7 @@ namespace Geopilot.Pipeline.Config;
 /// A named set of reactions that run once a delivery can no longer be withdrawn (ADR 0015). A mandate chooses one set
 /// by its id and fills the values the set asks of it.
 /// </summary>
+[AtLeastOneReaction]
 public class ReactionSetConfig
 {
     /// <summary>
@@ -26,10 +28,21 @@ public class ReactionSetConfig
     public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
-    /// The reactions that forward the delivery. The delivery counts as forwarded once all of them are done.
+    /// The reactions that forward the delivery. The delivery counts as forwarded once all of them are done, and right
+    /// away when the set has none.
     /// </summary>
     [YamlMember(Alias = "transfers")]
-    [Required(ErrorMessage = "Transfers are required.")]
-    [MinLength(1, ErrorMessage = "At least one Transfer is required.")]
-    public required List<ReactionConfig> Transfers { get; set; }
+    public List<ReactionConfig>? Transfers { get; set; }
+
+    /// <summary>
+    /// The reactions that report on the delivery, such as a mail to the recipients the mandate names. They run once the
+    /// delivery is forwarded and never change its state.
+    /// </summary>
+    [YamlMember(Alias = "notifications")]
+    public List<ReactionConfig>? Notifications { get; set; }
+
+    /// <summary>
+    /// The transfers and then the notifications of the set.
+    /// </summary>
+    internal IEnumerable<ReactionConfig> AllReactions() => (Transfers ?? []).Concat(Notifications ?? []);
 }

@@ -62,20 +62,24 @@ internal sealed class NoChannelBaseConfigOverwriteAttribute : ValidationAttribut
     {
         foreach (var set in pipelineProcessConfig.ReactionSets ?? [])
         {
-            foreach (var reaction in set.Transfers ?? [])
+            // The message names the list a reaction stands in, so the operator finds it in the definition.
+            foreach (var (reactionList, reactions) in new[] { ("transfers", set.Transfers), ("notifications", set.Notifications) })
             {
-                var channel = pipelineProcessConfig.Channels?.Find(candidate => candidate.Id == reaction.ChannelId);
-                if (channel == null)
-                    continue;
-
-                foreach (var key in KeysInBaseConfig(channel, reaction.ChannelConfigOverwrites?.Keys, baseConfigs))
+                foreach (var reaction in reactions ?? [])
                 {
-                    yield return ChannelConfigCollision.InReactionOverwrite(channel.Implementation, set.Id, reaction.Id, key);
-                }
+                    var channel = pipelineProcessConfig.Channels?.Find(candidate => candidate.Id == reaction.ChannelId);
+                    if (channel == null)
+                        continue;
 
-                foreach (var key in KeysInBaseConfig(channel, reaction.MandateConfig?.Select(entry => entry.Key), baseConfigs))
-                {
-                    yield return ChannelConfigCollision.InMandateConfig(channel.Implementation, set.Id, reaction.Id, key);
+                    foreach (var key in KeysInBaseConfig(channel, reaction.ChannelConfigOverwrites?.Keys, baseConfigs))
+                    {
+                        yield return ChannelConfigCollision.InReactionOverwrite(channel.Implementation, set.Id, reactionList, reaction.Id, key);
+                    }
+
+                    foreach (var key in KeysInBaseConfig(channel, reaction.MandateConfig?.Select(entry => entry.Key), baseConfigs))
+                    {
+                        yield return ChannelConfigCollision.InMandateConfig(channel.Implementation, set.Id, reactionList, reaction.Id, key);
+                    }
                 }
             }
         }

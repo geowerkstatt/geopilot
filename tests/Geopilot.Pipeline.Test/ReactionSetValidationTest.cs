@@ -73,6 +73,29 @@ public class ReactionSetValidationTest
                   subfolder: kanton-a
         """;
 
+    // A set may hold notifications without a single transfer.
+    private const string NotificationSet = """
+        reaction_sets:
+          - id: kanton_a
+            display_name:
+              de: Kanton A
+            notifications:
+              - id: meldung
+                channel_id: ablage
+        """;
+
+    private const string OverwritingNotificationSet = """
+        reaction_sets:
+          - id: kanton_a
+            display_name:
+              de: Kanton A
+            notifications:
+              - id: meldung
+                channel_id: ablage
+                channel_config_overwrites:
+                  subfolder: kanton-a
+        """;
+
     private const string CollisionOrigin =
         "Channel configuration collision for implementation '" + FileDrop + "': " +
         "the key 'subfolder' is set in the base configuration " +
@@ -189,17 +212,73 @@ public class ReactionSetValidationTest
     }
 
     [TestMethod]
-    public void RejectsASetWithoutTransfers()
+    [DataRow("")]
+    [DataRow("transfers: []")]
+    [DataRow("notifications: []")]
+    public void RejectsASetWithoutReactions(string reactions)
     {
-        var sets = """
+        var sets = $"""
             reaction_sets:
               - id: ablage
                 display_name:
                   de: Ablage
-                transfers: []
+                {reactions}
             """;
 
-        AssertInvalid(Factory(sets), "ReactionSetConfig (Transfers): At least one Transfer is required.");
+        AssertInvalid(Factory(sets), "ReactionSetConfig: A reaction set needs at least one transfer or notification.");
+    }
+
+    [TestMethod]
+    public void AcceptsASetWithOnlyNotifications()
+    {
+        var result = Factory(FileDropChannelWithSubfolder + NotificationSet).ValidateDefinition();
+
+        Assert.IsTrue(result.IsValid, result.ErrorMessage);
+    }
+
+    [TestMethod]
+    public void RejectsAReactionIdUsedForATransferAndANotification()
+    {
+        var sets = """
+            reaction_sets:
+              - id: kanton_a
+                display_name:
+                  de: Kanton A
+                transfers:
+                  - id: weitergabe
+                    channel_id: ablage
+                notifications:
+                  - id: weitergabe
+                    channel_id: ablage
+            """;
+
+        AssertInvalid(Factory(FileDropChannelWithSubfolder + sets), "PipelineProcessConfig: The reaction id 'weitergabe' is used more than once. Reaction ids must be unique across all reaction sets.");
+    }
+
+    [TestMethod]
+    public void RejectsANotificationReferencingAnUndefinedChannel()
+    {
+        var sets = NotificationSet.Replace("channel_id: ablage", "channel_id: archiv", StringComparison.Ordinal);
+
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder + sets),
+            "PipelineProcessConfig: One or more reactions reference a channel that is not defined in the channels collection: archiv.");
+    }
+
+    [TestMethod]
+    public void RejectsANotificationMandateKeyTheChannelDoesNotMark()
+    {
+        var sets = NotificationSet + """
+
+                    mandate_config:
+                      - key: baseDirectory
+                        display_name:
+                          de: Basisverzeichnis
+            """;
+
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder + sets),
+            $"reaction set kanton_a, reaction meldung, channel ablage, error: Channel <{FileDrop}>: the mandate value 'baseDirectory' is not a constructor parameter marked [MandateValue].");
     }
 
     [TestMethod]
@@ -328,6 +407,14 @@ public class ReactionSetValidationTest
     }
 
     [TestMethod]
+    public void RejectsANotificationOverwritingAKeyTheDefaultConfigLacks()
+    {
+        AssertInvalid(
+            Factory(FileDropChannel + OverwritingNotificationSet),
+            "PipelineProcessConfig: Reaction 'meldung' in reaction set 'kanton_a' is trying to overwrite channel config parameter 'subfolder' which is not defined in the default config.");
+    }
+
+    [TestMethod]
     public void RejectsAMandateValueTheDefaultConfigSets()
     {
         AssertInvalid(
@@ -361,6 +448,30 @@ public class ReactionSetValidationTest
     }
 
     [TestMethod]
+    public void RejectsANotificationOverwriteTheBaseConfigurationSets()
+    {
+        AssertInvalid(
+            Factory(FileDropChannelWithSubfolder + OverwritingNotificationSet, BaseConfigsWithSubfolder),
+            CollisionOrigin + " and overwritten in the pipeline definition ('reaction_sets[id=kanton_a].notifications[id=meldung].channel_config_overwrites.subfolder')." + CollisionRemedy);
+    }
+
+    [TestMethod]
+    public void RejectsANotificationMandateValueTheBaseConfigurationSets()
+    {
+        var sets = NotificationSet + """
+
+                    mandate_config:
+                      - key: subfolder
+                        display_name:
+                          de: Unterordner
+            """;
+
+        AssertInvalid(
+            Factory(FileDropChannel + sets, BaseConfigsWithSubfolder),
+            CollisionOrigin + " and declared as a mandate value in the pipeline definition ('reaction_sets[id=kanton_a].notifications[id=meldung].mandate_config[key=subfolder]')." + CollisionRemedy);
+    }
+
+    [TestMethod]
     public void UniqueReactionIdsAcceptsNoSets()
     {
         Assert.IsNull(new UniqueReactionIdsAttribute().GetValidationResult(null, new ValidationContext(new object())));
@@ -390,6 +501,18 @@ public class ReactionSetValidationTest
         var transfer = Assert.ContainsSingle(Factory(FileDropChannelWithSubfolder + OverwritingSet).ResolveTransfers("kanton_a"));
 
         Assert.AreEqual("kanton-a", transfer.Config["subfolder"]);
+    }
+
+    [TestMethod]
+    public void ResolvesANotificationApartFromTheTransfers()
+    {
+        var factory = Factory(FileDropChannelWithSubfolder + OverwritingNotificationSet);
+
+        var notification = Assert.ContainsSingle(factory.ResolveNotifications("kanton_a"));
+        Assert.AreEqual("meldung", notification.ReactionId);
+        Assert.AreEqual(FileDrop, notification.Implementation);
+        Assert.AreEqual("kanton-a", notification.Config["subfolder"]);
+        Assert.IsEmpty(factory.ResolveTransfers("kanton_a"));
     }
 
     [TestMethod]

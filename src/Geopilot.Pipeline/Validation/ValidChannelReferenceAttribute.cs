@@ -19,7 +19,7 @@ internal sealed class ValidChannelReferenceAttribute : ValidationAttribute
 
         var channelIds = (pipelineProcessConfig.Channels ?? []).Select(channel => channel.Id).ToHashSet(StringComparer.Ordinal);
         var missingChannelReferences = (pipelineProcessConfig.ReactionSets ?? [])
-            .SelectMany(set => set.Transfers ?? [])
+            .SelectMany(set => set.AllReactions())
             .Select(reaction => reaction.ChannelId)
             .Where(channelId => !string.IsNullOrEmpty(channelId) && !channelIds.Contains(channelId))
             .ToList();
