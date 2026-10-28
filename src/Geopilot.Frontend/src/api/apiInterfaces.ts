@@ -79,7 +79,7 @@ export interface MapLayer {
 }
 
 /** A way of drawing the features of a feature layer other than in the default map color. */
-export type MapLayerStyle = "old" | "new";
+type MapLayerStyle = "old" | "new";
 
 /** The state before or after a diff. */
 export type DiffSide = "old" | "new";
