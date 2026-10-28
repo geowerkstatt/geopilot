@@ -14,6 +14,15 @@ internal sealed class DeliveryChannelFactory
 {
     private const string Subject = "Channel";
 
+    // The administration offers a text field, a list of texts or a switch for a mandate value, nothing else.
+    private static readonly Dictionary<Type, MandateValueType> MandateValueTypes = new()
+    {
+        [typeof(string)] = MandateValueType.Text,
+        [typeof(IReadOnlyList<string>)] = MandateValueType.TextList,
+        [typeof(bool)] = MandateValueType.Switch,
+        [typeof(bool?)] = MandateValueType.Switch,
+    };
+
     private readonly IReadOnlyDictionary<string, Parameterization>? baseConfigs;
 
     /// <summary>
@@ -30,7 +39,7 @@ internal sealed class DeliveryChannelFactory
     /// Checks a reaction without constructing its channel: the implementation is a channel with one public
     /// constructor, every key of the definition is a parameter not marked as base configuration value, every declared
     /// mandate key a parameter marked as mandate value that the definition does not set, every parameter marked as
-    /// mandate value takes a text or a list of texts, every value converts to its parameter, and, with a base
+    /// mandate value takes a text, a list of texts or a switch, every value converts to its parameter, and, with a base
     /// configuration, every parameter that needs a value gets one. A key the base configuration pins is the concern
     /// of the definition validation.
     /// </summary>
@@ -72,8 +81,8 @@ internal sealed class DeliveryChannelFactory
                 .Where(parameter => parameter.IsDefined(typeof(BaseConfigValueAttribute)) && config.ContainsKey(parameter.Name ?? string.Empty))
                 .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition."))
             .Concat(parameters
-                .Where(parameter => IsMandateValue(parameter) && !IsTextOrTextList(parameter.ParameterType))
-                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [MandateValue] but takes {parameter.ParameterType.Name}. A mandate value is a text (string) or a list of texts (IReadOnlyList<string>)."))
+                .Where(parameter => IsMandateValue(parameter) && !MandateValueTypes.ContainsKey(parameter.ParameterType))
+                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [MandateValue] but takes {parameter.ParameterType.Name}. A mandate value is a text (string), a list of texts (IReadOnlyList<string>) or a switch (bool)."))
             .ToList();
 
         foreach (var parameter in parameters)
@@ -146,7 +155,7 @@ internal sealed class DeliveryChannelFactory
 
     /// <summary>
     /// Describes the parameters of a channel marked as mandate values: what each one takes and whether the mandate must
-    /// supply it. The start ensures they take a text or a list of texts.
+    /// supply it. The start ensures they take a text, a list of texts or a switch.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <returns>The type and whether it is required, per parameter name.</returns>
@@ -157,12 +166,9 @@ internal sealed class DeliveryChannelFactory
             .Where(IsMandateValue)
             .ToDictionary(
                 parameter => parameter.Name ?? string.Empty,
-                parameter => (parameter.ParameterType == typeof(string) ? MandateValueType.Text : MandateValueType.TextList, !ConstructorBinding.IsNullable(parameter)));
+                parameter => (MandateValueTypes[parameter.ParameterType], !ConstructorBinding.IsNullable(parameter)));
 
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
-
-    // The administration offers a text field or a list of texts for a mandate value, nothing else.
-    private static bool IsTextOrTextList(Type type) => type == typeof(string) || type == typeof(IReadOnlyList<string>);
 
     private static object? Bind(ParameterInfo parameter, params Parameterization[] places)
     {

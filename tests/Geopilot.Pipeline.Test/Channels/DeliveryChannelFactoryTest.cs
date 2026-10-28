@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
+using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test.Channels;
 
@@ -7,6 +8,7 @@ namespace Geopilot.Pipeline.Test.Channels;
 public class DeliveryChannelFactoryTest
 {
     private const string TargetChannel = "Geopilot.Pipeline.Test.Channels.TargetChannel";
+    private const string SwitchChannel = "Geopilot.Pipeline.Test.Channels.SwitchChannel";
 
     private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
@@ -132,12 +134,20 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
-    public void ValidateRejectsAMandateValueThatIsNoText()
+    public void ValidateRejectsAMandateValueOfAnotherType()
     {
         var factory = new DeliveryChannelFactory(null);
 
         var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.CountChannel", null, ["count"]));
-        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.CountChannel>: the parameter 'count' is marked [MandateValue] but takes Int32. A mandate value is a text (string) or a list of texts (IReadOnlyList<string>).", error);
+        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.CountChannel>: the parameter 'count' is marked [MandateValue] but takes Int32. A mandate value is a text (string), a list of texts (IReadOnlyList<string>) or a switch (bool).", error);
+    }
+
+    [TestMethod]
+    public void ValidateAcceptsASwitchAsMandateValue()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        Assert.IsEmpty(factory.Validate(SwitchChannel, null, ["copyToDeclarer", "confirmed"]));
     }
 
     [TestMethod]
@@ -235,6 +245,39 @@ public class DeliveryChannelFactoryTest
         Assert.AreEqual((MandateValueType.Text, true), values["folder"]);
         Assert.AreEqual((MandateValueType.TextList, false), values["recipients"]);
     }
+
+    [TestMethod]
+    public void DescribeMandateValuesTellsASwitch()
+    {
+        var values = new DeliveryChannelFactory(null).DescribeMandateValues(SwitchChannel);
+
+        Assert.AreEqual((MandateValueType.Switch, false), values["copyToDeclarer"]);
+        Assert.AreEqual((MandateValueType.Switch, true), values["confirmed"]);
+    }
+
+    [TestMethod]
+    public void CreateBindsASwitchFromTheJsonOfTheMandate()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var channel = factory.Create(SwitchChannel, null, new Parameterization
+        {
+            ["copyToDeclarer"] = JsonSerializer.SerializeToElement(true),
+            ["confirmed"] = JsonSerializer.SerializeToElement(false),
+        });
+
+        var switches = Assert.IsInstanceOfType<SwitchChannel>(channel);
+        Assert.IsTrue(switches.CopyToDeclarer);
+        Assert.IsFalse(switches.Confirmed);
+    }
+
+    [TestMethod]
+    public void CreateLeavesAnOptionalSwitchUnsetWithoutAValue()
+    {
+        var channel = new DeliveryChannelFactory(null).Create(SwitchChannel, null, new Parameterization { ["confirmed"] = JsonSerializer.SerializeToElement(true) });
+
+        Assert.IsNull(Assert.IsInstanceOfType<SwitchChannel>(channel).CopyToDeclarer);
+    }
 }
 
 internal sealed class TargetChannel : IDeliveryChannel
@@ -284,6 +327,22 @@ internal sealed class SecretChannel : IDeliveryChannel
     {
         _ = password;
     }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
+}
+
+internal sealed class SwitchChannel : IDeliveryChannel
+{
+    public SwitchChannel([MandateValue] bool? copyToDeclarer, [MandateValue] bool confirmed)
+    {
+        CopyToDeclarer = copyToDeclarer;
+        Confirmed = confirmed;
+    }
+
+    public bool? CopyToDeclarer { get; }
+
+    public bool Confirmed { get; }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
         => Task.FromResult(ChannelResult.Success("Delivered."));
