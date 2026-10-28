@@ -6,13 +6,14 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutl
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import { CircularProgress, Stack } from "@mui/material";
 import { ReactionState } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 import { px2rem } from "../../appTheme.ts";
 
 interface ReactionStateLabelProps {
   state: ReactionState;
 }
 
-const stateLabelKey: Record<ReactionState, string> = {
+const stateLabelKey: Record<ReactionState, TranslationKey> = {
   [ReactionState.Pending]: "forwardingStatePending",
   [ReactionState.Running]: "forwardingStateRunning",
   [ReactionState.Done]: "forwardingStateDone",
