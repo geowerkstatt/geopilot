@@ -122,16 +122,21 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     element.focus({ preventScroll: true });
   }, [revealRequest]);
 
+  // A click on the map only selects, so checking several geometries one after the other leaves the list in place.
+  const selectObject = useCallback((objectId: string) => {
+    setSelectedObjectId(objectId);
+    setFocus(null);
+  }, []);
+
   /** Selects an object and, when it is listed, expands it and scrolls to it with the focus on it. */
   const revealObject = useCallback(
     (objectId: string) => {
-      setSelectedObjectId(objectId);
-      setFocus(null);
+      selectObject(objectId);
       if (!listedObjectIds.has(objectId)) return;
       setExpandedObjectIds(previous => new Set(previous).add(objectId));
       setRevealRequest(previous => ({ objectId, token: (previous?.token ?? 0) + 1 }));
     },
-    [listedObjectIds],
+    [listedObjectIds, selectObject],
   );
 
   const lookupReference = useCallback(
@@ -274,7 +279,8 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       highlightedFeatureIds={highlightedObjectIds}
       hoveredFeatureIds={hoveredObjectIds}
       zoomRequest={zoomRequest}
-      onSelectFeature={revealObject}
+      onSelectFeature={selectObject}
+      onSelectPopupEntry={revealObject}
       onClearSelection={clearSelection}
       onHoverFeatures={hoverFeatures}
       showMapSelectionPopup

@@ -148,6 +148,8 @@ interface MapVisualizationProviderProps {
   zoomRequest?: MapZoomRequest | null;
   /** Called with the feature id when a feature is clicked. */
   onSelectFeature?: (featureId: string) => void;
+  /** Called with the feature id of the popup row the user clicked; without it, that click selects like one on the map. */
+  onSelectPopupEntry?: (featureId: string) => void;
   /** Called when the map is clicked where there is no feature. */
   onClearSelection?: () => void;
   /** Called with the ids of the features under the pointer whenever they change, with none once it leaves them. */
@@ -175,6 +177,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   hoveredFeatureIds = NO_FEATURE_IDS,
   zoomRequest,
   onSelectFeature,
+  onSelectPopupEntry = onSelectFeature,
   onClearSelection,
   onHoverFeatures,
   showMapSelectionPopup = false,
@@ -508,7 +511,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
           <MapSelectionPopup
             entries={shownSelection.entries}
             onSelect={featureId => {
-              if (featureId) onSelectFeature?.(featureId);
+              if (featureId) onSelectPopupEntry?.(featureId);
             }}
           />,
           selectionOverlayElement,
