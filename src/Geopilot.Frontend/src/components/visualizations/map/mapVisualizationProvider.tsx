@@ -100,8 +100,8 @@ const createInteractionHint = (
     textAlign: "center",
     padding: theme.spacing(2),
     fontSize: px2rem(20),
-    color: theme.palette.map.hintText,
-    backgroundColor: theme.palette.map.hintBackground,
+    color: theme.palette.map.hint.text,
+    backgroundColor: theme.palette.map.hint.background,
     opacity: "0",
     transition: "opacity 0.2s ease",
     pointerEvents: "none",
@@ -330,7 +330,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         .map(layer =>
           buildFeatureLayer(
             layer,
-            theme.palette.map,
+            { ...theme.palette.map.error, stroke: theme.palette.map.stroke },
             layer.title,
             SWISS_PROJECTION,
             visibleIdsRef,

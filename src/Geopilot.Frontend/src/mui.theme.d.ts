@@ -22,23 +22,15 @@ declare module "@mui/material/styles" {
     disabledBackground: string;
   }
 
-  interface PaletteMapFeature {
-    fill: string;
+  interface PaletteMap {
+    /** Outline of the map features, apart from the base map. */
     stroke: string;
-    highlight: string;
-  }
-
-  interface PaletteMap extends PaletteMapFeature {
-    hintBackground: string;
-    hintText: string;
+    /** The hint over the map, for example how to zoom. */
+    hint: { background: string; text: string };
+    /** The features of the error visualization. */
+    error: { fill: string; highlight: string };
     /** The features of a diff by change type. */
-    diff: PaletteMapDiff;
-  }
-
-  interface PaletteMapDiff {
-    added: string;
-    deleted: string;
-    changed: string;
+    diff: { added: string; changed: string; deleted: string };
   }
 
   interface PaletteColor {
@@ -65,6 +57,8 @@ declare module "@mui/material/styles" {
   interface PaletteDiff {
     /** Text and icons of what a diff added. */
     added: string;
+    /** Icons of what a diff changed. */
+    changed: string;
     /** Text and icons of what a diff removed. */
     deleted: string;
     /** Icons of what a diff changed. */
