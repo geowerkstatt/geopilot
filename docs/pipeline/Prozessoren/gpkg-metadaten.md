@@ -26,7 +26,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 - `FileState`: Wie weit die Datei gelesen werden konnte:
   - `Readable`: Die Modelle wurden gelesen.
   - `MissingData`: Die Datei ist eine lesbare SQLite-Datenbank, aber die Tabelle `T_ILI2DB_MODEL` fehlt oder ist leer.
-  - `Unreadable`: Die Datei ist keine lesbare SQLite-Datenbank, etwa weil ein falscher Dateityp hochgeladen wurde, oder die Tabelle `T_ILI2DB_MODEL` liess sich nicht lesen.
+  - `Unreadable`: Die Datei ist keine lesbare SQLite-Datenbank, etwa weil ein falscher Dateityp hochgeladen wurde, oder die Tabelle `T_ILI2DB_MODEL` liess sich nicht lesen oder beinhaltet ungültige Modellnamen.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche die gelesenen Modelle nennt oder erklärt, warum keine gelesen wurden.
 
 Keine Modelle sind kein Fehler des Schrittes: Ob sie Pflicht sind, entscheidet die Pipeline mit einer Condition. Für `FileState` empfiehlt sich die Form `!= 'Readable'`. Sie deckt beide Fehlerzustände ab, und ein Tippfehler im Vergleichswert lässt die Condition immer greifen, statt sie still wirkungslos zu machen.

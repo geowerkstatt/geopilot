@@ -91,6 +91,12 @@ internal partial class GpkgMetadataExtractorProcess(ILogger logger)
         }
 
         var modelNames = ExtractModelNames(rawModels);
+        if (!modelNames.All(IsValidInterlisModelName))
+        {
+            logger.LogInformation("The GPKG file <{FileName}> contains invalid interlis model names", gpkgFile.OriginalFileName);
+            return UnreadableResult;
+        }
+
         var modelsDisplayString = string.Join(", ", modelNames);
         logger.LogInformation("Found {Count} model(s) in the GPKG file <{FileName}>", modelNames.Count, gpkgFile.OriginalFileName);
         return new GpkgMetadataExtractorResult
@@ -148,6 +154,14 @@ internal partial class GpkgMetadataExtractorProcess(ILogger logger)
         return modelNames;
     }
 
+    internal static bool IsValidInterlisModelName(string modelName)
+    {
+        return InterlisNameRegex().IsMatch(modelName);
+    }
+
     [GeneratedRegex("{[^}]*}", RegexOptions.NonBacktracking)]
     private static partial Regex ReferencedModelsRegex();
+
+    [GeneratedRegex("^[A-Za-z][A-Za-z0-9_]*$", RegexOptions.NonBacktracking)]
+    private static partial Regex InterlisNameRegex();
 }
