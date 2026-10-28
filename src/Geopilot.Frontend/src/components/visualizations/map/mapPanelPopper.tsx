@@ -1,6 +1,7 @@
-import { FC, ReactNode, useEffect } from "react";
+import { FC, ReactNode, useContext, useEffect } from "react";
 import { ClickAwayListener, Popper } from "@mui/material";
 import { SxProps, Theme } from "@mui/material/styles";
+import { MapPanelContainerContext } from "./mapVisualizationContext";
 
 interface MapPanelPopperProps {
   id: string;
@@ -17,6 +18,7 @@ interface MapPanelPopperProps {
  * button, and on a click anywhere else, so two panels never overlap.
  */
 export const MapPanelPopper: FC<MapPanelPopperProps> = ({ id, open, anchorEl, onClose, sx, children }) => {
+  const container = useContext(MapPanelContainerContext);
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -38,7 +40,7 @@ export const MapPanelPopper: FC<MapPanelPopperProps> = ({ id, open, anchorEl, on
         open={open}
         anchorEl={anchorEl}
         placement="left-end"
-        disablePortal
+        container={container}
         modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
         sx={[{ zIndex: 1 }, ...(Array.isArray(sx) ? sx : [sx])]}>
         {children}

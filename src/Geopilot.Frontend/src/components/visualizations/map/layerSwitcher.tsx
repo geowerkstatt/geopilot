@@ -1,8 +1,8 @@
-import { ReactNode, useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { ButtonGroup, Stack, useTheme } from "@mui/material";
+import { Stack, useTheme } from "@mui/material";
 import Collection from "ol/Collection";
 import { EventsKey } from "ol/events";
 import BaseLayer from "ol/layer/Base";
@@ -82,19 +82,15 @@ const hasOpenGroup = (layers: BaseLayer[]): boolean => {
 };
 
 interface LayerSwitcherProps {
-  /** The OpenLayers map whose layer tree is managed. Null while the map is still initializing. */
-  map: OlMap | null;
-  /** Further buttons, grouped above the layers button. */
-  controls?: ReactNode;
-  /** Further buttons in a group of their own, above those. */
-  separateControls?: ReactNode;
+  /** The OpenLayers map whose layer tree is managed. */
+  map: OlMap;
 }
 
 /**
- * A layer switcher overlay for the OpenLayers map. Shows the full layer tree with expand/collapse,
+ * The layers button of the map and its panel. Shows the full layer tree with expand/collapse,
  * visibility (with group cascade), opacity, zoom-to-extent, search and drag-to-reorder.
  */
-export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcherProps) => {
+export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
   const [open, setOpen] = useState(false);
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const [searchValue, setSearchValue] = useState("");
@@ -105,7 +101,6 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
 
   // Re-render when any group's expanded state changes so the header can switch between the expand-all and collapse-all buttons
   useEffect(() => {
-    if (!map) return;
     const keys: EventsKey[] = [];
     const collections: Collection<BaseLayer>[] = [map.getLayers()];
     while (collections.length > 0) {
@@ -124,8 +119,6 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
     return () => unByKey(keys);
   }, [map, forceUpdate]);
 
-  if (!map) return null;
-
   const rootCollection = map.getLayers();
   const rootLayers = rootCollection.getArray();
 
@@ -139,23 +132,17 @@ export const LayerSwitcher = ({ map, controls, separateControls }: LayerSwitcher
 
   return (
     <>
-      <Stack sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
-        {separateControls}
-        <ButtonGroup orientation="vertical">
-          {controls}
-          <IconButton
-            ref={setButton}
-            color="primaryOutlined"
-            icon={<LayersOutlinedIcon />}
-            label="layers"
-            aria-expanded={open}
-            aria-controls={open ? panelId : undefined}
-            sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
-            onClick={() => setOpen(previous => !previous)}
-            tooltipPlacement="left"
-          />
-        </ButtonGroup>
-      </Stack>
+      <IconButton
+        ref={setButton}
+        color="primaryOutlined"
+        icon={<LayersOutlinedIcon />}
+        label="layers"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
+        onClick={() => setOpen(previous => !previous)}
+        tooltipPlacement="left"
+      />
       {/* No higher than the map. */}
       <MapPanelPopper
         id={panelId}

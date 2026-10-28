@@ -246,7 +246,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
       controls={<DiffMapSliderButton slider={slider} onSliderChange={setSlider} disabled={!bothStatesChanged} />}
-      layerControls={<DiffMapLegendButton />}>
+      panelControls={<DiffMapLegendButton />}>
       {slider !== null && <DiffMapSlider value={slider} onChange={setSlider} />}
     </MapVisualization>
   );
