@@ -46,29 +46,27 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
     const label = localized(field.displayName, field.key);
 
     return (
-      <FormContainer key={fieldName}>
-        <FormContainerHalfWidth>
-          {field.type === MandateValueType.TextList ? (
-            <FormChipInput
-              fieldName={fieldName}
-              label={label}
-              required={field.required}
-              selected={
-                Array.isArray(stored) ? stored.filter((entry): entry is string => typeof entry === "string") : undefined
-              }
-              parse={parseEntry}
-              errorMessage="entryRequiresText"
-            />
-          ) : (
-            <FormInput
-              fieldName={fieldName}
-              label={label}
-              required={field.required}
-              value={typeof stored === "string" ? stored : undefined}
-            />
-          )}
-        </FormContainerHalfWidth>
-      </FormContainer>
+      <FormContainerHalfWidth key={fieldName}>
+        {field.type === MandateValueType.TextList ? (
+          <FormChipInput
+            fieldName={fieldName}
+            label={label}
+            required={field.required}
+            selected={
+              Array.isArray(stored) ? stored.filter((entry): entry is string => typeof entry === "string") : undefined
+            }
+            parse={parseEntry}
+            errorMessage="entryRequiresText"
+          />
+        ) : (
+          <FormInput
+            fieldName={fieldName}
+            label={label}
+            required={field.required}
+            value={typeof stored === "string" ? stored : undefined}
+          />
+        )}
+      </FormContainerHalfWidth>
     );
   };
 
@@ -87,7 +85,9 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
           />
         </FormContainerHalfWidth>
       </FormContainer>
-      {selectedSet?.mandateFields.map(renderField)}
+      {selectedSet && selectedSet.mandateFields.length > 0 && (
+        <FormContainer sx={{ flexWrap: "wrap" }}>{selectedSet.mandateFields.map(renderField)}</FormContainer>
+      )}
     </>
   );
 };
