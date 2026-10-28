@@ -75,11 +75,11 @@ export interface MapLayer {
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
   /** How the features of a feature layer are drawn; absent draws them in the default map colour. */
-  style?: MapLayerStyle;
+  style?: DiffSide;
 }
 
-/** A way to draw the features of a feature layer other than in the default map colour. */
-type MapLayerStyle = "old" | "new";
+/** The state before or after a diff; a feature layer in one of them is drawn in the style of the diff. */
+export type DiffSide = "old" | "new";
 
 /** The map-visualization payload produced by the map visualization pipeline step. */
 export interface MapVisualizationConfig {

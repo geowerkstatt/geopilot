@@ -4,7 +4,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
-import { DiffChange } from "../../../api/apiInterfaces";
+import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
 import { IconButton } from "../../buttons";
 import { ScrollMarginContext } from "../../scrollMargin/ScrollMarginContext";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
@@ -18,7 +18,6 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diffObjects";
-import { DiffSide } from "./diffValue";
 
 /** The width of the toggle slot; with the gap after it, the rows below are indented as much, so all change icons line up. */
 const TOGGLE_WIDTH = 4.5;

@@ -6,37 +6,29 @@ import GeometryCollection from "ol/geom/GeometryCollection";
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
 import SimpleGeometry from "ol/geom/SimpleGeometry";
+import type { DiffChange, DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
 import { isFittableExtent } from "../map/picking";
 
-// Free of React, MUI and the app's types, so a Cypress spec can test it on its own.
+// Free of React and MUI, so a Cypress spec can test it on its own.
 
-export type MapState = "old" | "new";
-export type ChangeType = "added" | "deleted" | "changed";
-
-/** The part of a diff change the map needs; a `DiffChange` satisfies it. */
-export interface LocatedChange {
-  objectId: string;
-  changeType: ChangeType;
-  valueType: string;
-  oldLocation?: string;
-  newLocation?: string;
-}
+/** The part of a diff change the map needs. */
+export type LocatedChange = Pick<DiffChange, "objectId" | "changeType" | "valueType" | "oldLocation" | "newLocation">;
 
 /** A jump to one change in one state. */
 export interface DiffMapFocus {
   change: LocatedChange;
-  side: MapState;
+  side: DiffSide;
 }
 
 /** Per object and state, the change type of each part that has a geometry change of its own, by part key. */
-export type PartTypeIndex = ReadonlyMap<string, Record<MapState, ReadonlyMap<string, ChangeType>>>;
+export type PartTypeIndex = ReadonlyMap<string, Record<DiffSide, ReadonlyMap<string, DiffChangeType>>>;
 
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
 /** How a geometry is drawn: the shape carries the change type, so the map stays readable without colour. */
 export type DiffLook = "crisp" | "dotted" | "ghost" | "dashed";
 
-export const getLook = (changeType: ChangeType, state: MapState): DiffLook => {
+export const getLook = (changeType: DiffChangeType, state: DiffSide): DiffLook => {
   if (changeType === "added") return "dotted";
   if (changeType === "deleted") return "dashed";
   return state === "old" ? "ghost" : "crisp";
@@ -53,7 +45,7 @@ export const readLocation = (location: string | undefined): Geometry | undefined
   }
 };
 
-const locationOf = (change: LocatedChange, state: MapState) =>
+const locationOf = (change: LocatedChange, state: DiffSide) =>
   readLocation(state === "old" ? change.oldLocation : change.newLocation);
 
 export const getParts = (geometry: Geometry): Geometry[] =>
@@ -64,7 +56,7 @@ const getPartKey = (geometry: Geometry): string =>
   geometry instanceof SimpleGeometry ? `${geometry.getType()}:${geometry.getFlatCoordinates().join(",")}` : "";
 
 export const buildPartTypeIndex = (changes: LocatedChange[]): PartTypeIndex => {
-  const index = new Map<string, Record<MapState, Map<string, ChangeType>>>();
+  const index = new Map<string, Record<DiffSide, Map<string, DiffChangeType>>>();
   for (const change of changes) {
     if (change.valueType !== "geometry") continue;
     for (const state of ["old", "new"] as const) {
@@ -85,28 +77,28 @@ export const buildPartTypeIndex = (changes: LocatedChange[]): PartTypeIndex => {
 export const resolvePartType = (
   index: PartTypeIndex,
   objectId: string,
-  state: MapState,
+  state: DiffSide,
   part: Geometry,
-  objectType: ChangeType,
-): ChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
+  objectType: DiffChangeType,
+): DiffChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
 
 /** Without the list the map knows no change types: an object only before was deleted, only after added. */
-export const inferObjectTypes = (oldIds: Iterable<string>, newIds: Iterable<string>): Map<string, ChangeType> => {
+export const inferObjectTypes = (oldIds: Iterable<string>, newIds: Iterable<string>): Map<string, DiffChangeType> => {
   const oldSet = new Set(oldIds);
   const newSet = new Set(newIds);
-  const types = new Map<string, ChangeType>();
+  const types = new Map<string, DiffChangeType>();
   for (const id of oldSet) types.set(id, newSet.has(id) ? "changed" : "deleted");
   for (const id of newSet) if (!oldSet.has(id)) types.set(id, "added");
   return types;
 };
 
-export const getChangeExtent = (change: LocatedChange, side: MapState): Extent | undefined => {
+export const getChangeExtent = (change: LocatedChange, side: DiffSide): Extent | undefined => {
   const extent = locationOf(change, side)?.getExtent();
   return extent && isFittableExtent(extent) ? extent : undefined;
 };
 
 /** A jump to the change in that state, or none without a location there to jump to. */
-export const getFocus = (change: LocatedChange, side: MapState): DiffMapFocus | null =>
+export const getFocus = (change: LocatedChange, side: DiffSide): DiffMapFocus | null =>
   getChangeExtent(change, side) ? { change, side } : null;
 
 const buildConnector = (change: LocatedChange): Feature | undefined => {

@@ -1,7 +1,6 @@
-import { DiffChange, DiffChangeType, DiffValueType } from "../../../api/apiInterfaces";
+import { DiffChange, DiffChangeType, DiffSide, DiffValueType } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { FieldFilters, FilterAttribute } from "../filterBar";
-import { DiffSide } from "./diffValue";
 
 export const DIFF_CHANGE_TYPE_LABEL_KEYS: Record<DiffChangeType, TranslationKey> = {
   added: "diffChangeAdded",

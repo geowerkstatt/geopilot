@@ -3,12 +3,11 @@ import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Stack, Typography } from "@mui/material";
-import { DiffChange } from "../../../api/apiInterfaces";
+import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
 import { Button } from "../../buttons";
 import { DiffLayout, ReferenceTarget } from "./diffChangeRow";
 import { DiffObjectGroup } from "./diffObjectGroup";
 import { DiffObject, getPropertyChanges } from "./diffObjects";
-import { DiffSide } from "./diffValue";
 
 interface DiffObjectListProps {
   /** The objects to list, already filtered. */

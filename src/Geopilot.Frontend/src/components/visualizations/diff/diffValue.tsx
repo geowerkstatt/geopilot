@@ -1,12 +1,11 @@
 import { FC, useLayoutEffect, useRef, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
+import { DiffSide } from "../../../api/apiInterfaces";
 import { Button } from "../../buttons";
 import { MARK_BACKGROUNDS } from "./diffObjects";
 import { ValueSegment } from "./valueDiff";
 
 const CLAMPED_LINES = 4;
-
-export type DiffSide = "old" | "new";
 
 interface DiffValueTextProps {
   segments: ValueSegment[];

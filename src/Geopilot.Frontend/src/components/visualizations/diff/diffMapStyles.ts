@@ -4,17 +4,9 @@ import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
 import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
+import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
 import { getClusterMembers, getRank } from "../map/picking";
-import {
-  ChangeType,
-  DecorationRole,
-  DiffLook,
-  getLook,
-  getParts,
-  MapState,
-  PartTypeIndex,
-  resolvePartType,
-} from "./diffMapGeometry";
+import { DecorationRole, DiffLook, getLook, getParts, PartTypeIndex, resolvePartType } from "./diffMapGeometry";
 
 export interface DiffMapColors {
   added: string;
@@ -29,7 +21,7 @@ export interface DiffMapColors {
 }
 
 export interface DiffStyleInputs {
-  objectTypes: ReadonlyMap<string, ChangeType>;
+  objectTypes: ReadonlyMap<string, DiffChangeType>;
   partTypes: PartTypeIndex;
   /** The filter result; undefined means no filter. */
   visibleIds?: ReadonlySet<string>;
@@ -131,7 +123,7 @@ const getEmphasis = (ids: string[], inputs: DiffStyleInputs): Emphasis => {
 
 /** The style of an old or a new layer of the diff: each part of a feature in the look and colour of its change type. */
 export const buildDiffStyleFunction = (
-  state: MapState,
+  state: DiffSide,
   inputs: { readonly current: DiffStyleInputs },
   colors: DiffMapColors,
 ): StyleFunction => {
@@ -211,7 +203,7 @@ export const buildDecorationStyleFunction = (
     const geometry = feature.getGeometry();
     if (!(geometry instanceof Geometry)) return undefined;
     const objectId: string = feature.get("objectId");
-    const side: MapState = feature.get("side");
+    const side: DiffSide = feature.get("side");
     const current = inputs.current;
     const objectType = current.objectTypes.get(objectId) ?? "changed";
     const look = getLook(resolvePartType(current.partTypes, objectId, side, geometry, objectType), side);

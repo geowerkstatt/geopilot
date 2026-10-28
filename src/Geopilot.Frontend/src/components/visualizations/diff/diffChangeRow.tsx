@@ -2,13 +2,13 @@ import { FC, ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
-import { DiffChange } from "../../../api/apiInterfaces";
+import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
 import { DiffChangeTypeIcon } from "./diffChangeTypeIcon";
 import { MARK_BACKGROUNDS } from "./diffObjects";
-import { DiffSide, DiffValueText } from "./diffValue";
+import { DiffValueText } from "./diffValue";
 import { diffValueSegments, parseReferences, ValueSegment } from "./valueDiff";
 
 /** Wide: before and after side by side. Narrow (fullscreen panel, phone): one below the other. */

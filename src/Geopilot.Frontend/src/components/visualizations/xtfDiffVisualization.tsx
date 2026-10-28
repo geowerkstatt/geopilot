@@ -2,7 +2,13 @@ import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { DiffChange, MapLayer, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
+import {
+  DiffChange,
+  DiffSide,
+  MapLayer,
+  MapVisualizationConfig,
+  TableVisualizationConfig,
+} from "../../api/apiInterfaces";
 import { px2rem } from "../../appTheme";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { IconButton } from "../buttons";
@@ -27,7 +33,6 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diff/diffObjects";
-import { DiffSide } from "./diff/diffValue";
 import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";

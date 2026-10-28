@@ -4,24 +4,17 @@ import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import { unByKey } from "ol/Observable";
 import VectorSource from "ol/source/Vector";
+import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
 import { MAP_LAYER_STYLE_PROPERTY } from "../map/layers";
 import { LayerSwitcherProperties } from "../map/layerSwitcherProps";
 import { useMapVisualization } from "../map/mapVisualizationContext";
 import { DECORATION_LAYER_PROPERTY } from "../map/picking";
-import {
-  buildConnectors,
-  buildDecorations,
-  buildPartTypeIndex,
-  ChangeType,
-  DiffMapFocus,
-  LocatedChange,
-  MapState,
-} from "./diffMapGeometry";
+import { buildConnectors, buildDecorations, buildPartTypeIndex, DiffMapFocus, LocatedChange } from "./diffMapGeometry";
 import { buildDecorationStyleFunction, buildDiffStyleFunction, DiffMapColors, DiffStyleInputs } from "./diffMapStyles";
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
-const isStateLayer = (layer: BaseLayer, state: MapState): layer is VectorLayer<VectorSource> =>
+const isStateLayer = (layer: BaseLayer, state: DiffSide): layer is VectorLayer<VectorSource> =>
   layer instanceof VectorLayer && layer.get(MAP_LAYER_STYLE_PROPERTY) === state;
 
 /**
@@ -36,7 +29,7 @@ const getStateLayers = (layers: BaseLayer[]) =>
 
 interface DiffMapLayersProps {
   changes: LocatedChange[];
-  objectTypes: ReadonlyMap<string, ChangeType>;
+  objectTypes: ReadonlyMap<string, DiffChangeType>;
   /** The filter result; undefined means no filter. */
   visibleIds?: ReadonlySet<string>;
   /** The selected object, highlighted as a whole unless a pair is focused. */
