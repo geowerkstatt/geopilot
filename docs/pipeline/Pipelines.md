@@ -561,7 +561,7 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Weitergabe des Mandats. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
 
 ```yaml
 channels:
@@ -569,6 +569,11 @@ channels:
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
 reaction_sets:
   - id: ablage
+    display_name:
+      de: Ablage
+      fr: Dépôt
+      it: Deposito
+      en: File drop
     transfers:
       - id: ablage
         channel_id: ablage
@@ -586,6 +591,7 @@ reaction_sets:
   - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
   - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
 - `reaction_sets[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
+- `reaction_sets[X].display_name`: Der Name des Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
 - `reaction_sets[X].transfers`: Die Lieferungs-Schritte des Satzes, mindestens einer. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben.
   - `transfers[X].id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein und folgt denselben Regeln wie die Id des Satzes.
   - `transfers[X].channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
@@ -598,7 +604,7 @@ Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer
 
 Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Weil die Lieferungs-Schritte erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet einer mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Lieferungs-Schritte erscheint gleich nach der Abgabe.
 
-Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel; das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
+Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel. Der Löschdialog der Administration nennt deshalb vorher die erfolgten Weitergaben, und das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
 
 Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
 
@@ -622,6 +628,8 @@ channels:
       subfolder: allgemein
 reaction_sets:
   - id: ablage_kanton_a
+    display_name:
+      de: Ablage Kanton A
     transfers:
       - id: ablage_kanton_a
         channel_id: ablage
@@ -635,7 +643,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 
 - zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
 - die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
-- ein Satz keinen Lieferungs-Schritt hat,
+- ein Satz keinen Namen (`display_name`) oder keinen Lieferungs-Schritt hat,
 - ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
 - die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,

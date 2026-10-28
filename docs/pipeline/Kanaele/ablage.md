@@ -41,6 +41,8 @@ channels:
       subfolder: allgemein
 reaction_sets:
   - id: ablage_kanton_a
+    display_name:
+      de: Ablage Kanton A
     transfers:
       - id: ablage_kanton_a
         channel_id: ablage
@@ -56,6 +58,8 @@ channels:
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
 reaction_sets:
   - id: ablage_pro_mandat
+    display_name:
+      de: Ablage pro Mandat
     transfers:
       - id: ablage_pro_mandat
         channel_id: ablage_pro_mandat
