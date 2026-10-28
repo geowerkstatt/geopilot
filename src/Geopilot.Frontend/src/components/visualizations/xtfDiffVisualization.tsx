@@ -190,15 +190,6 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
     setFocus(null);
   }, []);
 
-  const toggleObject = useCallback(
-    (objectId: string) =>
-      setExpandedObjectIds(previous => {
-        const next = new Set(previous);
-        if (!next.delete(objectId)) next.add(objectId);
-        return next;
-      }),
-    [],
-  );
   const expandObjects = useCallback(
     (objectIds: string[], expanded: boolean) =>
       setExpandedObjectIds(previous => {
@@ -218,10 +209,6 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   }, []);
 
   const hoverFeatures = useCallback((objectIds: string[]) => setHoveredObjectIds(new Set(objectIds)), []);
-  const hoverObject = useCallback(
-    (objectId: string | null) => hoverFeatures(objectId ? [objectId] : []),
-    [hoverFeatures],
-  );
 
   // The popup on the map names the class of the object and below it what changed. Without the list there are no
   // changes, and the popup falls back to the info of the feature, the qualified name of the class.
@@ -287,10 +274,9 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
       totalChangeCount={changes.length}
       filterActive={hasActiveFilters}
       expandedObjectIds={expandedObjectIds}
-      onToggleObject={toggleObject}
       onExpandObjects={expandObjects}
       hoveredObjectIds={hoveredObjectIds}
-      onHoverObject={hoverObject}
+      onHoverObjects={hoverFeatures}
       onShowObjectOnMap={showObjectOnMap}
       onShowChangeOnMap={showChangeOnMap}
       lookupReference={lookupReference}

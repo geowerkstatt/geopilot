@@ -16,11 +16,10 @@ interface DiffObjectListProps {
   totalChangeCount: number;
   filterActive: boolean;
   expandedObjectIds: ReadonlySet<string>;
-  onToggleObject: (objectId: string) => void;
   onExpandObjects: (objectIds: string[], expanded: boolean) => void;
   /** The objects under the pointer, here or on the map. */
   hoveredObjectIds: ReadonlySet<string>;
-  onHoverObject: (objectId: string | null) => void;
+  onHoverObjects: (objectIds: string[]) => void;
   onShowObjectOnMap: (objectId: string) => void;
   onShowChangeOnMap: (change: DiffChange, side: DiffSide) => void;
   lookupReference: (oid: string) => ReferenceTarget;
@@ -34,10 +33,9 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
   totalChangeCount,
   filterActive,
   expandedObjectIds,
-  onToggleObject,
   onExpandObjects,
   hoveredObjectIds,
-  onHoverObject,
+  onHoverObjects,
   onShowObjectOnMap,
   onShowChangeOnMap,
   lookupReference,
@@ -75,10 +73,10 @@ export const DiffObjectList: FC<DiffObjectListProps> = ({
           expanded={expandedObjectIds.has(object.objectId)}
           hovered={hoveredObjectIds.has(object.objectId)}
           layout={layout}
-          onToggle={onToggleObject}
+          onExpand={onExpandObjects}
           onShowOnMap={object.onMap ? onShowObjectOnMap : undefined}
           onShowChangeOnMap={object.onMap ? onShowChangeOnMap : undefined}
-          onHover={onHoverObject}
+          onHover={onHoverObjects}
           lookupReference={lookupReference}
           onReference={onReference}
           registerObject={registerObject}

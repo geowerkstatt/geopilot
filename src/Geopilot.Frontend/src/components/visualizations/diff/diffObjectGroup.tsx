@@ -60,12 +60,12 @@ interface DiffObjectGroupProps {
   /** The object is under the pointer, here or on the map. */
   hovered: boolean;
   layout: DiffLayout;
-  onToggle: (objectId: string) => void;
+  onExpand: (objectIds: string[], expanded: boolean) => void;
   /** Zooms the map to the object; undefined when the object is not on the map. */
   onShowOnMap?: (objectId: string) => void;
   /** Zooms the map to one change in one state; undefined when the object is not on the map. */
   onShowChangeOnMap?: (change: DiffChange, side: DiffSide) => void;
-  onHover: (objectId: string | null) => void;
+  onHover: (objectIds: string[]) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
   /** Receives the root, so a jump to the object can scroll to it and focus it. */
@@ -77,7 +77,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   expanded,
   hovered,
   layout,
-  onToggle,
+  onExpand,
   onShowOnMap,
   onShowChangeOnMap,
   onHover,
@@ -91,8 +91,9 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
   const expandable = propertyChanges.length > 0;
   const showOnMap = onShowOnMap && (() => onShowOnMap(object.objectId));
   // Selecting text in the header, the object id to copy it for example, leaves the object as it is.
+  const toggle = () => onExpand([object.objectId], !expanded);
   const toggleByHeader = () => {
-    if (!window.getSelection()?.toString()) onToggle(object.objectId);
+    if (!window.getSelection()?.toString()) toggle();
   };
   const register = useCallback(
     (element: HTMLDivElement | null) => registerObject(object.objectId, element),
@@ -115,8 +116,8 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
       tabIndex={-1}
       data-cy="diff-object"
       data-object-id={object.objectId}
-      onMouseEnter={() => onHover(object.objectId)}
-      onMouseLeave={() => onHover(null)}
+      onMouseEnter={() => onHover([object.objectId])}
+      onMouseLeave={() => onHover([])}
       sx={{
         border: 1,
         borderColor: hovered ? "primary.main" : "primary.light",
@@ -144,7 +145,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
                 aria-expanded={expanded}
                 onClick={event => {
                   event.stopPropagation();
-                  onToggle(object.objectId);
+                  toggle();
                 }}
                 data-cy="diff-object-toggle"
               />
