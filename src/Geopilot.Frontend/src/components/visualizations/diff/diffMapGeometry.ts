@@ -6,7 +6,7 @@ import GeometryCollection from "ol/geom/GeometryCollection";
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
 import SimpleGeometry from "ol/geom/SimpleGeometry";
-import type { DiffChange, DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
+import type { DiffChange, DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { isFittableExtent } from "../map/picking";
 
 // Free of React and MUI, so a Cypress spec can test it on its own.
@@ -17,18 +17,18 @@ export type LocatedChange = Pick<DiffChange, "objectId" | "changeType" | "valueT
 /** A jump to one change in one state. */
 export interface DiffMapFocus {
   change: LocatedChange;
-  side: DiffSide;
+  state: DiffState;
 }
 
 /** Per object and state, the change type of each part that has a geometry change of its own, by part key. */
-export type PartTypeIndex = ReadonlyMap<string, Record<DiffSide, ReadonlyMap<string, DiffChangeType>>>;
+export type PartTypeIndex = ReadonlyMap<string, Record<DiffState, ReadonlyMap<string, DiffChangeType>>>;
 
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
 /** How a geometry is drawn: the shape carries the change type, so the map stays readable without color. */
 export type DiffLook = "crisp" | "dotted" | "ghost" | "dashed";
 
-export const getLook = (changeType: DiffChangeType, state: DiffSide): DiffLook => {
+export const getLook = (changeType: DiffChangeType, state: DiffState): DiffLook => {
   if (changeType === "added") return "dotted";
   if (changeType === "deleted") return "dashed";
   return state === "old" ? "ghost" : "crisp";
@@ -45,7 +45,7 @@ export const readLocation = (location: string | undefined): Geometry | undefined
   }
 };
 
-const locationOf = (change: LocatedChange, state: DiffSide) =>
+const locationOf = (change: LocatedChange, state: DiffState) =>
   readLocation(state === "old" ? change.oldLocation : change.newLocation);
 
 export const getParts = (geometry: Geometry): Geometry[] =>
@@ -56,7 +56,7 @@ const getPartKey = (geometry: Geometry): string =>
   geometry instanceof SimpleGeometry ? `${geometry.getType()}:${geometry.getFlatCoordinates().join(",")}` : "";
 
 export const buildPartTypeIndex = (changes: LocatedChange[]): PartTypeIndex => {
-  const index = new Map<string, Record<DiffSide, Map<string, DiffChangeType>>>();
+  const index = new Map<string, Record<DiffState, Map<string, DiffChangeType>>>();
   for (const change of changes) {
     if (change.valueType !== "geometry") continue;
     for (const state of ["old", "new"] as const) {
@@ -77,19 +77,19 @@ export const buildPartTypeIndex = (changes: LocatedChange[]): PartTypeIndex => {
 export const resolvePartType = (
   index: PartTypeIndex,
   objectId: string,
-  state: DiffSide,
+  state: DiffState,
   part: Geometry,
   objectType: DiffChangeType,
 ): DiffChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
 
-export const getChangeExtent = (change: LocatedChange, side: DiffSide): Extent | undefined => {
-  const extent = locationOf(change, side)?.getExtent();
+export const getChangeExtent = (change: LocatedChange, state: DiffState): Extent | undefined => {
+  const extent = locationOf(change, state)?.getExtent();
   return extent && isFittableExtent(extent) ? extent : undefined;
 };
 
 /** A jump to the change in that state, or none without a location there to jump to. */
-export const getFocus = (change: LocatedChange, side: DiffSide): DiffMapFocus | null =>
-  getChangeExtent(change, side) ? { change, side } : null;
+export const getFocus = (change: LocatedChange, state: DiffState): DiffMapFocus | null =>
+  getChangeExtent(change, state) ? { change, state } : null;
 
 const buildConnector = (change: LocatedChange): Feature | undefined => {
   const before = locationOf(change, "old");
@@ -103,17 +103,17 @@ const buildConnector = (change: LocatedChange): Feature | undefined => {
 };
 
 const buildFocusFeatures = (focus: DiffMapFocus): Feature[] =>
-  (["old", "new"] as const).flatMap(side => {
-    const geometry = locationOf(focus.change, side);
-    const role: DecorationRole = side === focus.side ? "focus" : "counterpart";
-    return geometry ? [new Feature({ geometry, role, side, objectId: focus.change.objectId })] : [];
+  (["old", "new"] as const).flatMap(state => {
+    const geometry = locationOf(focus.change, state);
+    const role: DecorationRole = state === focus.state ? "focus" : "counterpart";
+    return geometry ? [new Feature({ geometry, role, state, objectId: focus.change.objectId })] : [];
   });
 
 /** Lines from the old to the new position of each moved point; features carry `role` and `objectId`. */
 export const buildConnectors = (changes: LocatedChange[]): Feature[] =>
   changes.flatMap(change => buildConnector(change) ?? []);
 
-/** The connectors and, when given, the focused pair of the objects the filter shows; features carry `role`, `objectId` and `side`. */
+/** The connectors and, when given, the focused pair of the objects the filter shows; features carry `role`, `objectId` and `state`. */
 export const buildDecorations = (
   connectors: Feature[],
   focus: DiffMapFocus | null,

@@ -2,7 +2,7 @@ import { FC, ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Chip, Stack, Tooltip, Typography } from "@mui/material";
-import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
+import { DiffChange, DiffState } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme";
 import { IconButton } from "../../buttons";
@@ -33,14 +33,14 @@ const REFERENCE_REASONS: Record<ReferenceTarget["state"], TranslationKey | undef
 
 interface ReferenceChipProps {
   oid: string;
-  side: DiffSide;
-  /** The reference is only on this side of the change. */
+  state: DiffState;
+  /** The reference is only in this state of the change. */
   changed: boolean;
   target: ReferenceTarget;
   onReference: (oid: string) => void;
 }
 
-const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onReference }) => {
+const ReferenceChip: FC<ReferenceChipProps> = ({ oid, state, changed, target, onReference }) => {
   const { t } = useTranslation();
   const shortOid = `…${oid.slice(-SHORT_OID_LENGTH)}`;
   const listed = target.state === "listed";
@@ -57,7 +57,7 @@ const ReferenceChip: FC<ReferenceChipProps> = ({ oid, side, changed, target, onR
         aria-label={listed ? undefined : description}
         data-cy="diff-reference"
         sx={{
-          bgcolor: changed ? MARK_BACKGROUNDS[side] : "transparent",
+          bgcolor: changed ? MARK_BACKGROUNDS[state] : "transparent",
           borderStyle: listed ? "solid" : "dashed",
           color: listed ? "primary.main" : "text.secondary",
           textDecoration: listed ? "underline" : "none",
@@ -73,7 +73,7 @@ interface DiffChangeRowProps {
   layout: DiffLayout;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
-  onShowOnMap?: (side: DiffSide) => void;
+  onShowOnMap?: (state: DiffState) => void;
 }
 
 export const DiffChangeRow: FC<DiffChangeRowProps> = ({
@@ -101,8 +101,8 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
     [change.valueType, change.oldValue, change.newValue],
   );
 
-  const renderValue = (side: DiffSide): ReactNode => {
-    const value = side === "old" ? change.oldValue : change.newValue;
+  const renderValue = (state: DiffState): ReactNode => {
+    const value = state === "old" ? change.oldValue : change.newValue;
     if (value === undefined) {
       return (
         <Typography variant="body2" sx={{ fontStyle: "italic", color: "text.secondary" }}>
@@ -110,17 +110,17 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
         </Typography>
       );
     }
-    const oids = references?.[side];
+    const oids = references?.[state];
     if (oids) {
-      const otherSide = references?.[side === "old" ? "new" : "old"] ?? [];
+      const otherState = references?.[state === "old" ? "new" : "old"] ?? [];
       return (
         <Stack direction="row" sx={{ gap: 0.5, flexWrap: "wrap", minWidth: 0 }}>
           {oids.map(oid => (
             <ReferenceChip
               key={oid}
               oid={oid}
-              side={side}
-              changed={!otherSide.includes(oid)}
+              state={state}
+              changed={!otherState.includes(oid)}
               target={lookupReference(oid)}
               onReference={onReference}
             />
@@ -128,17 +128,17 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
         </Stack>
       );
     }
-    const text = <DiffValueText segments={segments[side]} side={side} monospace={change.valueType === "geometry"} />;
+    const text = <DiffValueText segments={segments[state]} state={state} monospace={change.valueType === "geometry"} />;
     if (change.valueType !== "geometry" || !onShowOnMap) return text;
     return (
       <Stack direction="row" sx={{ gap: 0.5, alignItems: "flex-start", justifyContent: "space-between", minWidth: 0 }}>
         {text}
         <IconButton
           size="small"
-          label={side === "old" ? "diffShowBeforeOnMap" : "diffShowAfterOnMap"}
+          label={state === "old" ? "diffShowBeforeOnMap" : "diffShowAfterOnMap"}
           icon={<MapOutlinedIcon fontSize="small" />}
-          onClick={() => onShowOnMap(side)}
-          data-cy={`diff-geometry-map-${side}`}
+          onClick={() => onShowOnMap(state)}
+          data-cy={`diff-geometry-map-${state}`}
           sx={{ mt: -0.5 }}
         />
       </Stack>
@@ -159,12 +159,12 @@ export const DiffChangeRow: FC<DiffChangeRowProps> = ({
       <Stack data-cy="diff-change" data-change-id={change.id} sx={{ gap: 0.5, py: 1 }}>
         {attribute}
         <Stack sx={{ gap: 1.5, pl: 3.5, minWidth: 0 }}>
-          {(["old", "new"] as const).map(side => (
-            <Stack key={side} sx={{ gap: 0.5, minWidth: 0 }} data-cy={`diff-value-${side}`}>
+          {(["old", "new"] as const).map(state => (
+            <Stack key={state} sx={{ gap: 0.5, minWidth: 0 }} data-cy={`diff-value-${state}`}>
               <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
-                {t(side === "old" ? "diffColumnOldValue" : "diffColumnNewValue")}
+                {t(state === "old" ? "diffColumnOldValue" : "diffColumnNewValue")}
               </Typography>
-              {renderValue(side)}
+              {renderValue(state)}
             </Stack>
           ))}
         </Stack>

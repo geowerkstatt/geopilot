@@ -21,7 +21,7 @@ interface FixtureChange {
 }
 
 interface FixtureLayer {
-  style?: "old" | "new";
+  state?: "old" | "new";
   features?: unknown[];
 }
 
@@ -320,7 +320,7 @@ describe("XTF diff visualization", () => {
         ...visualization.data,
         map: {
           layers: visualization.data.map!.layers.map(layer =>
-            layer.style === "new" ? { ...layer, features: [] } : layer,
+            layer.state === "new" ? { ...layer, features: [] } : layer,
           ),
         },
       },

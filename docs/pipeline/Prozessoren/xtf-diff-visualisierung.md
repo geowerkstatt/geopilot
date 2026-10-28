@@ -70,7 +70,7 @@ pipelines:
 
 ## Format des `Visualization`-Outputs
 
-Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die Nutzlast enthält immer die Tabelle (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), die Karte (`map`) nur, sofern eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `style` sagt dem Frontend, wie es eine Ebene zeichnet: `old` und `new` nach der Art jeder Änderung, ohne `style` in der Standardfarbe der Karte. Eine Geometrieänderung trägt zudem ihre Lagen (`oldLocation`, `newLocation`), damit die Karte zu ihr allein zoomt und jeden Teil eines Features seiner Änderung zuordnet; die übrigen Änderungen tragen keine. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
+Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die Nutzlast enthält immer die Tabelle (`table`) mit jeder Änderung des Diffs in seiner Reihenfolge (`changes`), die Karte (`map`) nur, sofern eine Änderung eine Lage hat. Die Karte besteht aus der Hintergrundkarte und den Ebenen "Vorher" und "Nachher" mit einem Feature pro Objekt, dessen Id die OID des Objekts ist und das mehrere Lagen als `GEOMETRYCOLLECTION` trägt; über diese Id verweisen die Änderungen auf ihre Features. `state` sagt dem Frontend, welchen Zustand des Diffs eine Ebene zeigt: `old` oder `new`, gezeichnet nach der Art jeder Änderung; eine Ebene ohne `state` zeichnet es in der Standardfarbe der Karte. Eine Geometrieänderung trägt zudem ihre Lagen (`oldLocation`, `newLocation`), damit die Karte zu ihr allein zoomt und jeden Teil eines Features seiner Änderung zuordnet; die übrigen Änderungen tragen keine. Listen und Strukturen stehen in `oldValue` und `newValue` als kompaktes JSON. Serialisiert wird als camelCase-JSON, `null`-Felder werden weggelassen:
 
 ```json
 {
@@ -94,7 +94,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die
               "info": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche"
             }
           ],
-          "style": "old"
+          "state": "old"
         },
         {
           "title": { "de": "Nachher", "fr": "Après", "it": "Dopo", "en": "After" },
@@ -105,7 +105,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die
               "info": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche"
             }
           ],
-          "style": "new"
+          "state": "new"
         }
       ]
     },

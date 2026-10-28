@@ -56,16 +56,17 @@ internal class MapLayer
     public IList<MapFeature>? Features { get; set; }
 
     /// <summary>
-    /// How the client draws the features of a feature layer, for example the old and the new state of a diff
-    /// in colors of their own. <see langword="null"/> draws them in the default map color.
+    /// The state of a diff the features of a feature layer show. The client draws such a layer by the change
+    /// type of each feature and compares the two states. <see langword="null"/> for a layer outside a diff,
+    /// drawn in the default map color.
     /// </summary>
-    public MapLayerStyle? Style { get; set; }
+    public DiffState? State { get; set; }
 }
 
 /// <summary>
-/// A way the client draws the features of a feature layer other than in the default map color.
+/// The state before or after a diff.
 /// </summary>
-internal enum MapLayerStyle
+internal enum DiffState
 {
     /// <summary>
     /// The old state of something that changed.

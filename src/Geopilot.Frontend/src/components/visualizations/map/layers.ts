@@ -110,7 +110,7 @@ const CLUSTER_DISTANCE = 40;
 const CLUSTER_MIN_DISTANCE = 24;
 
 /** The layer property holding the `style` of the map layer a feature layer was built from. */
-export const MAP_LAYER_STYLE_PROPERTY = "mapLayerStyle";
+export const MAP_LAYER_STATE_PROPERTY = "mapLayerState";
 
 /**
  * The area a feature covers, in m² as the map is in EPSG:2056. Other geometries, a collection for example, fall back
@@ -172,7 +172,7 @@ export const buildFeatureLayer = (
   // Clustering keeps markers of nearby errors from covering each other. It reduces every feature to a
   // point, so a layer holding any other geometry is left unclustered instead of losing those shapes. A diff layer is
   // never clustered: it holds one state only, so a cluster could not join an object's before and after.
-  const clusterable = !layer.style && source.getFeatures().every(feature => feature.getGeometry() instanceof Point);
+  const clusterable = !layer.state && source.getFeatures().every(feature => feature.getGeometry() instanceof Point);
   const layerSource = clusterable
     ? new Cluster({
         source,
@@ -226,7 +226,7 @@ export const buildFeatureLayer = (
 
   return new VectorLayer({
     source: layerSource,
-    properties: { [LOCALIZABLE_TITLE_PROPERTY]: title, [MAP_LAYER_STYLE_PROPERTY]: layer.style },
+    properties: { [LOCALIZABLE_TITLE_PROPERTY]: title, [MAP_LAYER_STATE_PROPERTY]: layer.state },
     // A style function (not a static style): filtering hides non-matching features and selection emphasizes
     // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
     // so changing filter/selection only restyles the existing layer instead of rebuilding the map.

@@ -4,7 +4,7 @@ import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
 import { Circle, Fill, Stroke, Style } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
-import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
+import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { getRank } from "../map/picking";
 import { DecorationRole, DiffLook, getLook, getParts, PartTypeIndex, resolvePartType } from "./diffMapGeometry";
 
@@ -121,7 +121,7 @@ const getEmphasis = (id: string, inputs: DiffStyleInputs): Emphasis => {
 
 /** The style of an old or a new layer of the diff: each part of a feature in the look and color of its change type. */
 export const buildDiffStyleFunction = (
-  state: DiffSide,
+  state: DiffState,
   inputs: { readonly current: DiffStyleInputs },
   colors: DiffMapColors,
 ): StyleFunction => {
@@ -182,10 +182,10 @@ export const buildDecorationStyleFunction = (
     const geometry = feature.getGeometry();
     if (!(geometry instanceof Geometry)) return undefined;
     const objectId: string = feature.get("objectId");
-    const side: DiffSide = feature.get("side");
+    const state: DiffState = feature.get("state");
     const current = inputs.current;
     const objectType = current.objectTypes.get(objectId) ?? "changed";
-    const look = getLook(resolvePartType(current.partTypes, objectId, side, geometry, objectType), side);
+    const look = getLook(resolvePartType(current.partTypes, objectId, state, geometry, objectType), state);
     const emphasis = role === "focus" ? 2 : 1;
     const zIndex = getRank(geometry) * 3 + emphasis;
     return cached(`${look}|${zIndex}|${emphasis}`, () => [buildUnderlayStyle(look, colors.outline, emphasis, zIndex)]);

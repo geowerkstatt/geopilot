@@ -1,6 +1,6 @@
 import { FC, useLayoutEffect, useRef, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
-import { DiffSide } from "../../../api/apiInterfaces";
+import { DiffState } from "../../../api/apiInterfaces";
 import { Button } from "../../buttons";
 import { MARK_BACKGROUNDS } from "./diffObjects";
 import { ValueSegment } from "./valueDiff";
@@ -9,12 +9,12 @@ const CLAMPED_LINES = 4;
 
 interface DiffValueTextProps {
   segments: ValueSegment[];
-  side: DiffSide;
+  state: DiffState;
   monospace?: boolean;
 }
 
 /** Offers "show more" only when the value actually overflows four lines at the current width. */
-export const DiffValueText: FC<DiffValueTextProps> = ({ segments, side, monospace = false }) => {
+export const DiffValueText: FC<DiffValueTextProps> = ({ segments, state, monospace = false }) => {
   const textRef = useRef<HTMLSpanElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
@@ -50,7 +50,7 @@ export const DiffValueText: FC<DiffValueTextProps> = ({ segments, side, monospac
             <Box
               key={index}
               component="mark"
-              sx={{ bgcolor: MARK_BACKGROUNDS[side], color: "inherit", borderRadius: theme => theme.radius.default }}>
+              sx={{ bgcolor: MARK_BACKGROUNDS[state], color: "inherit", borderRadius: theme => theme.radius.default }}>
               {segment.text}
             </Box>
           ) : (

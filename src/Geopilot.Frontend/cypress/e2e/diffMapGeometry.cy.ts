@@ -87,7 +87,7 @@ describe("diff map geometry", () => {
 
   it("drops the decorations of filtered objects", () => {
     const change = geometryChange({ oldLocation: "POINT (0 0)", newLocation: "POINT (3 4)" });
-    const focus = { change, side: "old" as const };
+    const focus = { change, state: "old" as const };
     const connectors = buildConnectors([change]);
 
     expect(buildDecorations(connectors, focus, new Set(["other"]))).to.have.length(0);
@@ -98,7 +98,7 @@ describe("diff map geometry", () => {
     ]);
   });
 
-  it("zooms to the location of one side", () => {
+  it("zooms to the location of one state", () => {
     const change = geometryChange({ oldLocation: "POINT (1 2)", newLocation: "LINESTRING (0 0, 4 3)" });
 
     expect(getChangeExtent(change, "old")).to.deep.equal([1, 2, 1, 2]);
@@ -113,7 +113,7 @@ describe("diff map geometry", () => {
   it("focuses a change only where its location can be read", () => {
     const change = geometryChange({ oldLocation: "POINT (1 2)" });
 
-    expect(getFocus(change, "old")).to.deep.equal({ change, side: "old" });
+    expect(getFocus(change, "old")).to.deep.equal({ change, state: "old" });
     expect(getFocus(change, "new")).to.equal(null);
     expect(getFocus(geometryChange({ oldLocation: "NOT WKT" }), "old")).to.equal(null);
   });

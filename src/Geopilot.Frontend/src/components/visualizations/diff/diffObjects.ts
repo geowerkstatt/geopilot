@@ -1,4 +1,4 @@
-import { DiffChange, DiffChangeType, DiffSide, DiffValueType } from "../../../api/apiInterfaces";
+import { DiffChange, DiffChangeType, DiffState, DiffValueType } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { FieldFilters, FilterAttribute } from "../filterBar";
 
@@ -14,7 +14,7 @@ export const DIFF_CHANGE_TYPE_COLORS: Record<DiffChangeType, string> = {
   changed: "text.secondary",
 };
 
-export const MARK_BACKGROUNDS: Record<DiffSide, string> = {
+export const MARK_BACKGROUNDS: Record<DiffState, string> = {
   old: "diff.deleteBackground",
   new: "diff.insertBackground",
 };

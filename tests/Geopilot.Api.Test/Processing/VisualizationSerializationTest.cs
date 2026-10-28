@@ -72,7 +72,7 @@ public class VisualizationSerializationTest
                     new MapLayer
                     {
                         Title = new Dictionary<string, string> { ["de"] = "Vorher" },
-                        Style = MapLayerStyle.Old,
+                        State = DiffState.Old,
                         Features = [new MapFeature { Id = "building", Geom = "POINT(2600000 1200000)", Info = "Model.Topic.Class" }],
                     },
                 ],
@@ -111,7 +111,7 @@ public class VisualizationSerializationTest
             "{\"type\":\"xtfDiff\",\"data\":{" +
             "\"map\":{\"layers\":[{\"title\":{\"de\":\"Vorher\"}," +
             "\"features\":[{\"id\":\"building\",\"geom\":\"POINT(2600000 1200000)\",\"info\":\"Model.Topic.Class\"}]," +
-            "\"style\":\"old\"}]}," +
+            "\"state\":\"old\"}]}," +
             "\"table\":{\"changes\":[" +
             "{\"id\":\"c0\",\"objectId\":\"building\",\"changeType\":\"changed\",\"valueType\":\"attribute\"," +
             "\"interlisName\":\"Model.Topic.Class\",\"attributePath\":\"EGID\",\"oldValue\":\"190001\",\"newValue\":\"190002\"}," +

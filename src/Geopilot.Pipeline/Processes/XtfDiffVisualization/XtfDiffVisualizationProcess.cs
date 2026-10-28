@@ -87,8 +87,8 @@ internal class XtfDiffVisualizationProcess
             Layers =
             [
                 baseMapLayer,
-                new MapLayer { Title = OldLayerTitle, Style = MapLayerStyle.Old, Features = oldFeatures },
-                new MapLayer { Title = NewLayerTitle, Style = MapLayerStyle.New, Features = newFeatures },
+                new MapLayer { Title = OldLayerTitle, State = DiffState.Old, Features = oldFeatures },
+                new MapLayer { Title = NewLayerTitle, State = DiffState.New, Features = newFeatures },
             ],
         };
     }

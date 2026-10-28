@@ -4,7 +4,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
-import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
+import { DiffChange, DiffState } from "../../../api/apiInterfaces";
 import { IconButton } from "../../buttons";
 import { ScrollMarginContext } from "../../scrollMargin/ScrollMarginContext";
 import { DiffChangeRow, DiffLayout, ReferenceTarget, WIDE_CHANGE_COLUMNS } from "./diffChangeRow";
@@ -62,7 +62,7 @@ interface DiffObjectGroupProps {
   layout: DiffLayout;
   onExpand: (objectIds: string[], expanded: boolean) => void;
   onShowOnMap?: (objectId: string) => void;
-  onShowChangeOnMap?: (change: DiffChange, side: DiffSide) => void;
+  onShowChangeOnMap?: (change: DiffChange, state: DiffState) => void;
   onHover: (objectIds: string[]) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
@@ -196,7 +196,7 @@ const DiffObjectGroupContent: FC<DiffObjectGroupProps> = ({
                 layout={layout}
                 lookupReference={lookupReference}
                 onReference={onReference}
-                onShowOnMap={onShowChangeOnMap && (side => onShowChangeOnMap(change, side))}
+                onShowOnMap={onShowChangeOnMap && (state => onShowChangeOnMap(change, state))}
               />
             </Fragment>
           ))}

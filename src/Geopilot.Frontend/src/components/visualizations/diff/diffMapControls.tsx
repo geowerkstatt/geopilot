@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import CompareIcon from "@mui/icons-material/Compare";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import { Box, ButtonGroup, Slider, Stack, Typography, useTheme } from "@mui/material";
-import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
+import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { IconButton } from "../../buttons";
 import { MapPanelPopper } from "../map/mapPanelPopper";
@@ -11,11 +11,11 @@ import { DiffLook, getLook } from "./diffMapGeometry";
 
 type LegendGeometry = "point" | "line" | "area";
 
-const LINES: Record<DiffSide, string> = { old: "5,19 16,10 28,15 39,7", new: "5,22 16,14 28,19 39,11" };
-const AREAS: Record<DiffSide, { x: number; y: number }> = { old: { x: 8, y: 7 }, new: { x: 12, y: 5 } };
+const LINES: Record<DiffState, string> = { old: "5,19 16,10 28,15 39,7", new: "5,22 16,14 28,19 39,11" };
+const AREAS: Record<DiffState, { x: number; y: number }> = { old: { x: 8, y: 7 }, new: { x: 12, y: 5 } };
 
 /** Where a change type has a geometry: added only after, deleted only before, changed in both. */
-const STATES_OF: Record<DiffChangeType, DiffSide[]> = { added: ["new"], deleted: ["old"], changed: ["old", "new"] };
+const STATES_OF: Record<DiffChangeType, DiffState[]> = { added: ["new"], deleted: ["old"], changed: ["old", "new"] };
 
 const LEGEND_ROWS: { changeType: DiffChangeType; label: TranslationKey }[] = [
   { changeType: "added", label: "diffChangeAdded" },
@@ -32,7 +32,7 @@ const LEGEND_GEOMETRIES: { geometry: LegendGeometry; label: TranslationKey }[] =
 interface LookShapeProps {
   look: DiffLook;
   geometry: LegendGeometry;
-  state: DiffSide;
+  state: DiffState;
   color: string;
   rim: string;
 }

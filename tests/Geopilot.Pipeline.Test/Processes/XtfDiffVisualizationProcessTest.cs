@@ -63,11 +63,11 @@ public class XtfDiffVisualizationProcessTest
 
         // The building has two entries but one location per state, the added point exists in the new state only.
         var oldLayer = map.Layers[1];
-        Assert.AreEqual(MapLayerStyle.Old, oldLayer.Style);
+        Assert.AreEqual(DiffState.Old, oldLayer.State);
         CollectionAssert.AreEqual(new[] { ("building", OldBuilding) }, Features(oldLayer));
 
         var newLayer = map.Layers[2];
-        Assert.AreEqual(MapLayerStyle.New, newLayer.Style);
+        Assert.AreEqual(DiffState.New, newLayer.State);
         CollectionAssert.AreEqual(new[] { ("building", NewBuilding), ("boundary-point", "POINT(2600005 1200005)") }, Features(newLayer));
     }
 

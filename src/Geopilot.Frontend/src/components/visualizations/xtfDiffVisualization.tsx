@@ -1,7 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Typography, useMediaQuery, useTheme } from "@mui/material";
-import { DiffChange, DiffSide, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
+import { DiffChange, DiffState, MapVisualizationConfig, TableVisualizationConfig } from "../../api/apiInterfaces";
 import { ReferenceTarget } from "./diff/diffChangeRow";
 import { DiffMapLegendButton, DiffMapSlider, DiffMapSliderButton } from "./diff/diffMapControls";
 import { DiffMapFocus, getChangeExtent, getFocus } from "./diff/diffMapGeometry";
@@ -73,7 +73,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   const bothStatesChanged = useMemo(
     () =>
       (["old", "new"] as const).every(state =>
-        config.map?.layers.some(layer => layer.style === state && (layer.features?.length ?? 0) > 0),
+        config.map?.layers.some(layer => layer.state === state && (layer.features?.length ?? 0) > 0),
       ),
     [config.map],
   );
@@ -158,12 +158,12 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
   );
 
   const showChangeOnMap = useCallback(
-    (change: DiffChange, side: DiffSide) => {
+    (change: DiffChange, state: DiffState) => {
       setSelectedObjectId(change.objectId);
-      setFocus(getFocus(change, side));
+      setFocus(getFocus(change, state));
       setZoomRequest(previous => ({
         featureIds: [change.objectId],
-        extent: getChangeExtent(change, side),
+        extent: getChangeExtent(change, state),
         token: (previous?.token ?? 0) + 1,
       }));
       scrollToInlineMap();

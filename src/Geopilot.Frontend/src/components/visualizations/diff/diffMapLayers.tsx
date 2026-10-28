@@ -4,8 +4,8 @@ import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import { unByKey } from "ol/Observable";
 import VectorSource from "ol/source/Vector";
-import { DiffChangeType, DiffSide } from "../../../api/apiInterfaces";
-import { MAP_LAYER_STYLE_PROPERTY } from "../map/layers";
+import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
+import { MAP_LAYER_STATE_PROPERTY } from "../map/layers";
 import { LayerSwitcherProperties } from "../map/layerSwitcherProps";
 import { useMapVisualization } from "../map/mapVisualizationContext";
 import { DECORATION_LAYER_PROPERTY } from "../map/picking";
@@ -14,8 +14,8 @@ import { buildDecorationStyleFunction, buildDiffStyleFunction, DiffMapColors, Di
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
-const isStateLayer = (layer: BaseLayer, state: DiffSide): layer is VectorLayer<VectorSource> =>
-  layer instanceof VectorLayer && layer.get(MAP_LAYER_STYLE_PROPERTY) === state;
+const isStateLayer = (layer: BaseLayer, state: DiffState): layer is VectorLayer<VectorSource> =>
+  layer instanceof VectorLayer && layer.get(MAP_LAYER_STATE_PROPERTY) === state;
 
 /**
  * Connectors and pairs join both states, so they show only while both state layers do, and never while the slider

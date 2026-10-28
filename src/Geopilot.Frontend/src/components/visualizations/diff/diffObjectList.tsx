@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Stack, Typography } from "@mui/material";
-import { DiffChange, DiffSide } from "../../../api/apiInterfaces";
+import { DiffChange, DiffState } from "../../../api/apiInterfaces";
 import { Button } from "../../buttons";
 import { DiffLayout, ReferenceTarget } from "./diffChangeRow";
 import { DiffObjectGroup } from "./diffObjectGroup";
@@ -20,7 +20,7 @@ interface DiffObjectListProps {
   hoveredObjectIds: ReadonlySet<string>;
   onHoverObjects: (objectIds: string[]) => void;
   onShowObjectOnMap: (objectId: string) => void;
-  onShowChangeOnMap: (change: DiffChange, side: DiffSide) => void;
+  onShowChangeOnMap: (change: DiffChange, state: DiffState) => void;
   lookupReference: (oid: string) => ReferenceTarget;
   onReference: (oid: string) => void;
   registerObject: (objectId: string, element: HTMLDivElement | null) => void;
