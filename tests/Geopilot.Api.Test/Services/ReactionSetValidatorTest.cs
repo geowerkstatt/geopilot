@@ -11,6 +11,7 @@ public class ReactionSetValidatorTest
 {
     private const string SetId = "ablage_pro_mandat";
     private const string ReactionId = "weitergabe";
+    private const string NotificationId = "meldung";
 
     private static readonly ReactionSetConfig Set = new()
     {
@@ -23,6 +24,15 @@ public class ReactionSetValidatorTest
                 Id = ReactionId,
                 ChannelId = "ablage",
                 MandateConfig = [new MandateConfigEntry { Key = "subfolder", DisplayName = new Dictionary<string, string> { ["de"] = "Unterordner" } }],
+            },
+        ],
+        Notifications =
+        [
+            new ReactionConfig
+            {
+                Id = NotificationId,
+                ChannelId = "ablage",
+                MandateConfig = [new MandateConfigEntry { Key = "subfolder", DisplayName = new Dictionary<string, string> { ["de"] = "Unterordner der Meldung" } }],
             },
         ],
     };
@@ -95,6 +105,17 @@ public class ReactionSetValidatorTest
         var checkedReaction = Assert.ContainsSingle(checkedValues);
         Assert.AreEqual(ReactionId, checkedReaction.Key);
         CollectionAssert.AreEqual(new[] { "subfolder" }, checkedReaction.Value.Keys.ToArray());
+    }
+
+    [TestMethod]
+    public void CheckKeepsTheValuesOfTheNotifications()
+    {
+        var values = Values(NotificationId, "subfolder", "meldungen");
+
+        var check = Validator().Check(SetId, values);
+
+        Assert.IsTrue(check.IsValid);
+        Assert.AreEqual(Json(values), Json(check.Values));
     }
 
     [TestMethod]

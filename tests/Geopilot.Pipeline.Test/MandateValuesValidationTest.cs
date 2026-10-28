@@ -15,6 +15,7 @@ public class MandateValuesValidationTest
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
     private const string SetId = "ablage_pro_mandat";
     private const string ReactionId = "weitergabe";
+    private const string NotificationId = "meldung";
 
     private const string Definition = $$"""
         processes:
@@ -45,6 +46,17 @@ public class MandateValuesValidationTest
                   - key: subfolder
                     display_name:
                       de: Unterordner
+        """;
+
+    private const string DefinitionWithNotification = Definition + """
+
+            notifications:
+              - id: meldung
+                channel_id: ablage
+                mandate_config:
+                  - key: subfolder
+                    display_name:
+                      de: Unterordner der Meldung
         """;
 
     private PipelineProcessFactory processFactory;
@@ -87,6 +99,26 @@ public class MandateValuesValidationTest
         Assert.AreEqual("Unterordner", field.DisplayName["de"]);
         Assert.AreEqual(MandateValueType.Text, field.Type);
         Assert.IsTrue(field.Required);
+    }
+
+    [TestMethod]
+    public void DescribesTheValuesOfTheNotificationsAfterThoseOfTheTransfers()
+    {
+        var fields = Factory(DefinitionWithNotification).DescribeMandateFields(SetId);
+
+        CollectionAssert.AreEqual(new[] { ReactionId, NotificationId }, fields.Select(field => field.ReactionId).ToArray());
+        Assert.AreEqual("Unterordner der Meldung", fields[1].DisplayName["de"]);
+    }
+
+    [TestMethod]
+    public void ChecksTheValuesOfTheNotifications()
+    {
+        var values = Values("\"kanton-a\"");
+        values[NotificationId] = new Parameterization { ["subfolder"] = JsonSerializer.Deserialize<JsonElement>("\"../anderswo\"") };
+
+        var error = Assert.ContainsSingle(Factory(DefinitionWithNotification).ValidateMandateValues(SetId, values));
+
+        Assert.AreEqual($"reaction {NotificationId}: The subfolder <../anderswo> is not a relative path without '..'. (Parameter 'subfolder')", error);
     }
 
     [TestMethod]
@@ -139,10 +171,10 @@ public class MandateValuesValidationTest
     private static Dictionary<string, Parameterization> Values(string subfolderJson)
         => new() { [ReactionId] = new Parameterization { ["subfolder"] = JsonSerializer.Deserialize<JsonElement>(subfolderJson) } };
 
-    private PipelineFactory Factory()
+    private PipelineFactory Factory(string definition = Definition)
         => PipelineFactory
             .Builder()
-            .Yaml(Definition)
+            .Yaml(definition)
             .PipelineProcessFactory(processFactory)
             .LoggerFactory(loggerFactoryMock.Object)
             .PipelineTempDirectory(Path.Combine(Path.GetTempPath(), "Pipeline"))
