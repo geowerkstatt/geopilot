@@ -32,7 +32,7 @@ internal static class BaseMap
     private const string DefaultLayerId = "ch.swisstopo.pixelkarte-farbe";
 
     /// <summary>
-    /// Identifier of the swisstopo grey national map, offered as an additional base layer beneath the
+    /// Identifier of the swisstopo gray national map, offered as an additional base layer beneath the
     /// colored one and selectable in the layer switcher.
     /// </summary>
     private const string GrayLayerId = "ch.swisstopo.pixelkarte-grau";
@@ -47,7 +47,7 @@ internal static class BaseMap
 
     /// <summary>
     /// Creates the base map layer. A value that is not configured falls back to the swisstopo default. The
-    /// colored map is listed last so it stays the default base map; the grey map sits beneath it and can be
+    /// colored map is listed last so it stays the default base map; the gray map sits beneath it and can be
     /// selected in the layer switcher.
     /// </summary>
     /// <param name="wmtsCapabilitiesUrl">The configured WMTS capabilities URL, if any.</param>

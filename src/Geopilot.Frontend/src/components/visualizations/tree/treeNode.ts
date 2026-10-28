@@ -7,7 +7,7 @@ import { FieldFilters, FilterAttribute } from "../filterBar";
 export interface TreeNode {
   /** The text shown for this node (a group value, or a leaf's text). */
   message: string;
-  /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and colour. */
+  /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and color. */
   color?: string;
   /** Number of contained leaf nodes (errors) in this node's subtree; 0 for a leaf. Shown next to group labels. */
   count: number;

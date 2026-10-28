@@ -92,7 +92,7 @@ const buildLookStyle = (look: DiffLook, color: string, rim: string, emphasis: Em
   }
 };
 
-/** A dark rim beneath a feature's own style, so emphasis never competes with the change colours. */
+/** A dark rim beneath a feature's own style, so emphasis never competes with the change colors. */
 const buildUnderlayStyle = (look: DiffLook, outline: string, emphasis: Exclude<Emphasis, 0>, zIndex: number): Style => {
   const { radius, width } = getSizes(look, emphasis);
   const color = withAlpha(outline, emphasis === 2 ? 0.9 : 0.45);
@@ -103,7 +103,7 @@ const buildUnderlayStyle = (look: DiffLook, outline: string, emphasis: Exclude<E
   });
 };
 
-/** Builds styles once per look, colour, rank and emphasis; a style function runs for every feature on every frame. */
+/** Builds styles once per look, color, rank and emphasis; a style function runs for every feature on every frame. */
 const createStyleCache = () => {
   const cache = new Map<string, Style[]>();
   return (key: string, build: () => Style[]): Style[] => {
@@ -121,7 +121,7 @@ const getEmphasis = (ids: string[], inputs: DiffStyleInputs): Emphasis => {
   return ids.some(id => inputs.hoveredIds.has(id)) ? 1 : 0;
 };
 
-/** The style of an old or a new layer of the diff: each part of a feature in the look and colour of its change type. */
+/** The style of an old or a new layer of the diff: each part of a feature in the look and color of its change type. */
 export const buildDiffStyleFunction = (
   state: DiffSide,
   inputs: { readonly current: DiffStyleInputs },

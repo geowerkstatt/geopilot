@@ -67,7 +67,7 @@ public class XtfErrorVisualizationProcessTest
         var itemIds = config.Tree.Items.Where(i => i.Id is not null).Select(i => i.Id!).ToHashSet();
         Assert.IsTrue(featureIds.All(itemIds.Contains), "every feature's errorId is present on a tree item");
 
-        // Each item carries a severity for the icon/colour and the raw validator message.
+        // Each item carries a severity for the icon/color and the raw validator message.
         foreach (var item in config.Tree.Items)
         {
             Assert.IsTrue(item.Severity is "error" or "warning", "item carries an error or warning severity");

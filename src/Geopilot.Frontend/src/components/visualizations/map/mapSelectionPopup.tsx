@@ -40,7 +40,7 @@ export const MapSelectionPopup: FC<MapSelectionPopupProps> = ({ entries, onSelec
         // The overlay hosting the popup is click-through, the list rows need the clicks.
         pointerEvents: "auto",
         // The arrow pointing at the marker, as two stacked triangles: the outer one carries the border
-        // colour, the smaller inner one covers its face and leaves only the border edge visible.
+        // color, the smaller inner one covers its face and leaves only the border edge visible.
         "&::before, &::after": {
           content: '""',
           position: "absolute",

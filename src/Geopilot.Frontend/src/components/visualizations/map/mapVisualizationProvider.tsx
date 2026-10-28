@@ -421,7 +421,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       const entries = candidates.map(toEntry);
       if (showMapSelectionPopup && preferred && entries.some(entry => entry.text)) {
         const geometry = preferred.getGeometry();
-        // A point anchors the popup, a line or an area where it was clicked, as its centre can lie far off.
+        // A point anchors the popup, a line or an area where it was clicked, as its center can lie far off.
         setSelection({
           entries,
           position: geometry instanceof Point ? getCenter(geometry.getExtent()) : event.coordinate,

@@ -25,7 +25,7 @@ export type PartTypeIndex = ReadonlyMap<string, Record<DiffSide, ReadonlyMap<str
 
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
-/** How a geometry is drawn: the shape carries the change type, so the map stays readable without colour. */
+/** How a geometry is drawn: the shape carries the change type, so the map stays readable without color. */
 export type DiffLook = "crisp" | "dotted" | "ghost" | "dashed";
 
 export const getLook = (changeType: DiffChangeType, state: DiffSide): DiffLook => {

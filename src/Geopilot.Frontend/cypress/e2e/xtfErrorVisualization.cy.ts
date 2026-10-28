@@ -63,7 +63,7 @@ const openErrorVisualization = () => {
     .then(summary => {
       if (summary.attr("aria-expanded") !== "true") cy.wrap(summary).click();
     });
-  // Once unfolded, the page centres the step; scrolling of a test must not race with that.
+  // Once unfolded, the page centers the step; scrolling of a test must not race with that.
   cy.dataCy("processing-step-error_visualization").find(".MuiCollapse-entered").should("exist");
   cy.get(".ol-viewport").should("exist");
 };

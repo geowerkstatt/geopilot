@@ -96,7 +96,7 @@ export const buildWmtsLayer = async (
   }
 };
 
-/** Colours used to render features: the marker fill, its outline, and the fill of a selected marker. */
+/** Colors used to render features: the marker fill, its outline, and the fill of a selected marker. */
 interface MapFeatureColors {
   fill: string;
   stroke: string;
@@ -184,7 +184,7 @@ export const buildFeatureLayer = (
 
   // One style per emphasis and geometry rank. The rank keeps areas beneath lines and points, the emphasis lifts the
   // hovered and above it the selected feature over the others of its rank, so nearby markers cannot cover them while
-  // an area still never covers a point. Hovered is a lighter version of selected: the usual colour, drawn larger.
+  // an area still never covers a point. Hovered is a lighter version of selected: the usual color, drawn larger.
   const geometryRanks = [0, 1, 2];
   const buildStyles = (
     color: string,

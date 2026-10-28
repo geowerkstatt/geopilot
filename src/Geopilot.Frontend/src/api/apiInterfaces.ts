@@ -97,7 +97,7 @@ export type TreeField = "errorType" | "model" | "topic" | "class";
 export interface TreeItem {
   /** Stable id correlating this item with its map feature for cross-select. Absent on items without a feature. */
   id?: string;
-  /** Error or warning; drives the leaf's icon and colour. */
+  /** Error or warning; drives the leaf's icon and color. */
   severity: "error" | "warning";
   /** The classified error category as a localized label. Absent when the message matches no known category. */
   errorType?: LocalizedText;
