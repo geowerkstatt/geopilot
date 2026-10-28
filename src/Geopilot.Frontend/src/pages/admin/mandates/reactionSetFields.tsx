@@ -41,9 +41,9 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
   const renderField = (field: MandateField) => {
     const fieldName = `reactionSetValues.${field.reactionId}.${field.key}`;
     const stored = mandate?.reactionSetValues?.[field.reactionId]?.[field.key];
-    // The label comes from the pipeline definition, already in the active language. The form components translate
-    // their label, and i18next returns a text it has no key for unchanged.
-    const label = localized(field.displayName, field.key);
+    // The label comes from the pipeline definition, already in the active language, so it goes to the form components
+    // as an element, which they show as it is instead of looking it up as a translation key.
+    const label = <>{localized(field.displayName, field.key)}</>;
 
     return (
       <FormContainerHalfWidth key={fieldName}>

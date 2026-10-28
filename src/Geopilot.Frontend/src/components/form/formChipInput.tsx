@@ -1,4 +1,4 @@
-import { FC, KeyboardEvent, useRef, useState } from "react";
+import { FC, KeyboardEvent, ReactElement, useRef, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Stack, TextField } from "@mui/material";
@@ -7,7 +7,7 @@ import { SelectedChips } from "./selectedChips";
 
 export interface FormChipInputProps {
   fieldName: string;
-  label: TranslationKey;
+  label: TranslationKey | ReactElement;
   placeholder?: TranslationKey;
   required?: boolean;
   disabled?: boolean;
@@ -153,7 +153,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   return (
     <Stack spacing={1} sx={{ width: "100%" }}>
       <TextField
-        label={t(label)}
+        label={typeof label === "string" ? t(label) : label}
         placeholder={placeholder ? t(placeholder) : undefined}
         required={required ?? false}
         disabled={disabled ?? false}
