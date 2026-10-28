@@ -66,7 +66,8 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
   );
   const partTypes = useMemo(() => buildPartTypeIndex(changes), [changes]);
   const connectors = useMemo(() => buildConnectors(changes), [changes]);
-  const opacitiesBeforeSlider = useRef<Map<BaseLayer, number> | null>(null);
+  /** Per state layer, its opacity before the slider and the one the slider set last. */
+  const sliderOpacities = useRef<Map<BaseLayer, { before: number; set: number }> | null>(null);
   const sliderOn = useRef(slider !== null);
   const inputs = useRef<DiffStyleInputs>({ objectTypes, partTypes, visibleIds, highlightedIds, hoveredIds });
   const decorations = useMemo(
@@ -119,12 +120,19 @@ export const DiffMapLayers: FC<DiffMapLayersProps> = ({
     const stateLayers = getStateLayers(map.getLayers().getArray());
     showDecorations(decorations, stateLayers, sliderOn.current);
     if (slider === null) {
-      opacitiesBeforeSlider.current?.forEach((opacity, layer) => layer.setOpacity(opacity));
-      opacitiesBeforeSlider.current = null;
+      // An opacity set in the layer switcher while the slider was on stays.
+      sliderOpacities.current?.forEach(({ before, set }, layer) => {
+        if (layer.getOpacity() === set) layer.setOpacity(before);
+      });
+      sliderOpacities.current = null;
       return;
     }
-    opacitiesBeforeSlider.current ??= new Map(stateLayers.map(layer => [layer, layer.getOpacity()]));
-    stateLayers.forEach(layer => layer.setOpacity(isStateLayer(layer, "old") ? 1 - slider : slider));
+    const opacities = (sliderOpacities.current ??= new Map());
+    stateLayers.forEach(layer => {
+      const set = isStateLayer(layer, "old") ? 1 - slider : slider;
+      opacities.set(layer, { before: opacities.get(layer)?.before ?? layer.getOpacity(), set });
+      layer.setOpacity(set);
+    });
   }, [map, decorations, slider]);
 
   return null;
