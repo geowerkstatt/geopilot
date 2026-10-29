@@ -10,7 +10,7 @@ Eine XTF Diff Visualisierung muss unter `processes[X].implementation` den Wert `
 
 ## Konfiguration
 
-- `baseMapWmtsCapabilitiesUrl`, `baseMapLayerIds`, `baseMapAttribution`, `baseMapAttributionUrl`: Optional, die Hintergrundkarte, gleich wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md). Ein anderer Dienst als swisstopo braucht `baseMapLayerIds` und eine Freigabe im Browser, siehe dort [Hintergrundkarte eines anderen Dienstes](xtf-fehlervisualisierung.md#hintergrundkarte-eines-anderen-dienstes).
+- `baseMapWmtsCapabilitiesUrl`, `baseMapLayerIds`, `baseMapAttribution`, `baseMapAttributionUrl`: Optional, die Hintergrundkarte, gleich wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md). Ein anderer Dienst als swisstopo braucht `baseMapLayerIds`, und sein Host muss in geopilot freigegeben werden, siehe dort [Hintergrundkarte eines anderen Dienstes](xtf-fehlervisualisierung.md#hintergrundkarte-eines-anderen-dienstes).
 
 ## Input
 
