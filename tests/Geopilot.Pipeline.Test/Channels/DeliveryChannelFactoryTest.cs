@@ -9,6 +9,7 @@ public class DeliveryChannelFactoryTest
 {
     private const string TargetChannel = "Geopilot.Pipeline.Test.Channels.TargetChannel";
     private const string SwitchChannel = "Geopilot.Pipeline.Test.Channels.SwitchChannel";
+    private const string TemplateChannel = "Geopilot.Pipeline.Test.Channels.TemplateChannel";
 
     private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
@@ -278,6 +279,70 @@ public class DeliveryChannelFactoryTest
 
         Assert.IsNull(Assert.IsInstanceOfType<SwitchChannel>(channel).CopyToDeclarer);
     }
+
+    [TestMethod]
+    public void ValidateAcceptsAFileBelowTheResourcesDirectory()
+    {
+        var factory = new DeliveryChannelFactory(BaseConfigs, CreateResourcesDirectory());
+
+        Assert.IsEmpty(factory.Validate(TemplateChannel, new Parameterization { ["template"] = "vorlagen/info.html" }, []));
+    }
+
+    [TestMethod]
+    public void ValidateAcceptsAFileTheBaseConfigurationNames()
+    {
+        var factory = new DeliveryChannelFactory(
+            new Dictionary<string, Parameterization> { [TemplateChannel] = new Parameterization { ["template"] = "vorlagen/info.html" } },
+            CreateResourcesDirectory());
+
+        Assert.IsEmpty(factory.Validate(TemplateChannel, null, []));
+    }
+
+    [TestMethod]
+    [DataRow("vorlagen/fehlt.html", "Channel initialization: Parameter <template> references file <vorlagen/fehlt.html>, which does not exist below the resources directory.", DisplayName = "Missing file")]
+    [DataRow("../info.html", "File '../info.html' resolves outside the resources directory.", DisplayName = "Outside the resources directory")]
+    public void ValidateRejectsAFileTheResourcesDirectoryDoesNotHold(string path, string expected)
+    {
+        var factory = new DeliveryChannelFactory(BaseConfigs, CreateResourcesDirectory());
+
+        var error = Assert.ContainsSingle(factory.Validate(TemplateChannel, new Parameterization { ["template"] = path }, []));
+        Assert.AreEqual(expected, error);
+    }
+
+    [TestMethod]
+    public void ValidateRejectsAFileWithoutAResourcesDirectory()
+    {
+        var factory = new DeliveryChannelFactory(BaseConfigs);
+
+        var error = Assert.ContainsSingle(factory.Validate(TemplateChannel, new Parameterization { ["template"] = "vorlagen/info.html" }, []));
+        Assert.AreEqual("Channel initialization: Parameter <template> references file <vorlagen/info.html>, but no resources directory is configured.", error);
+    }
+
+    [TestMethod]
+    public void CreateBindsTheTextOfAFileFromTheJsonOfTheSnapshot()
+    {
+        var factory = new DeliveryChannelFactory(null, CreateResourcesDirectory());
+
+        // The snapshot of a reaction is read back from JSON, so the path arrives as a JsonElement and not as a string.
+        var channel = factory.Create(TemplateChannel, new Parameterization { ["template"] = JsonSerializer.SerializeToElement("vorlagen/info.html") }, null);
+
+        Assert.AreEqual("<title>Neue Lieferung</title>", Assert.IsInstanceOfType<TemplateChannel>(channel).Template);
+    }
+
+    /// <summary>
+    /// A resources root holding <c>vorlagen/info.html</c>, plus <c>info.html</c> one level above it so that a path leaving
+    /// the root fails on the confinement and not on a missing file.
+    /// </summary>
+    private static string CreateResourcesDirectory()
+    {
+        // Unique per call, because the assembly runs test methods in parallel.
+        var parent = Path.Combine(Path.GetTempPath(), $"geopilot-resources-{Guid.NewGuid()}");
+        var root = Path.Combine(parent, "resources");
+        Directory.CreateDirectory(Path.Combine(root, "vorlagen"));
+        File.WriteAllText(Path.Combine(root, "vorlagen", "info.html"), "<title>Neue Lieferung</title>");
+        File.WriteAllText(Path.Combine(parent, "info.html"), "<title>Neue Lieferung</title>");
+        return root;
+    }
 }
 
 internal sealed class TargetChannel : IDeliveryChannel
@@ -343,6 +408,19 @@ internal sealed class SwitchChannel : IDeliveryChannel
     public bool? CopyToDeclarer { get; }
 
     public bool Confirmed { get; }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
+}
+
+internal sealed class TemplateChannel : IDeliveryChannel
+{
+    public TemplateChannel([ResourceFile] string template)
+    {
+        Template = template;
+    }
+
+    public string Template { get; }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
         => Task.FromResult(ChannelResult.Success("Delivered."));

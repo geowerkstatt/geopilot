@@ -77,7 +77,7 @@ public class PipelineFactory : IPipelineFactory
     {
         var set = FindReactionSet(reactionSetId);
         var implementations = Resolve(set.AllReactions()).ToDictionary(reaction => reaction.ReactionId, reaction => reaction.Implementation);
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
 
         return set.AllReactions()
             .Where(reaction => reaction.MandateConfig is { Count: > 0 })
@@ -94,7 +94,7 @@ public class PipelineFactory : IPipelineFactory
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
         var errors = new List<string>();
         foreach (var reaction in Resolve(FindReactionSet(reactionSetId).AllReactions()))
         {
@@ -232,7 +232,7 @@ public class PipelineFactory : IPipelineFactory
     /// </summary>
     private List<string> ValidateReactionSets()
     {
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
         var channels = PipelineProcessConfig.Channels ?? [];
         return (PipelineProcessConfig.ReactionSets ?? [])
             .SelectMany(set => set.AllReactions().SelectMany(reaction =>

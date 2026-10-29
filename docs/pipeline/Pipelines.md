@@ -620,6 +620,8 @@ Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsp
 
 Wie bei den Prozessoren ist die Basis-Konfiguration unveränderbar: Setzt die Pipeline-Definition einen ihrer Schlüssel, ob in `default_config`, `channel_config_overwrites` oder `mandate_config`, startet die Applikation nicht, mit einer Meldung wie unter [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration). Ebenso darf ein Wert nicht zugleich in der Standard-Konfiguration des Kanals stehen und vom Mandat kommen. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
 
+Manche Parameter eines Kanals nennen eine Datei aus dem Ressourcen-Verzeichnis, etwa das Template einer Mail. Konfiguriert wird wie bei den Prozessoren ihr Pfad relativ zu `Storage:ResourcesDirectory` (siehe [Dateien als Konfiguration](#dateien-als-konfiguration)), und der Kanal bekommt ihren Text. Welche Parameter das sind, steht auf der Seite des Kanals. Die Datei wird bei jedem Zustellversuch neu gelesen, eine geänderte Datei gilt also auch für Reaktionen, die schon warten.
+
 Eine Ablage mit einem Unterordner, den ein Satz für sich überschreibt:
 
 ```yaml
@@ -649,6 +651,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 - ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
 - die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
+- eine Datei, die ein Kanal als Konfiguration bekommt, nicht im Ressourcen-Verzeichnis liegt,
 - eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
 - die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,

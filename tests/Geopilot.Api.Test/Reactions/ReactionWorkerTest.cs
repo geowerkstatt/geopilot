@@ -380,6 +380,7 @@ public class ReactionWorkerTest
             new ReactionStore(options, Mock.Of<ILogger<ReactionStore>>()),
             options,
             pipelineOptionsMock.Object,
+            Mock.Of<IDirectoryProvider>(),
             loggerMock.Object);
     }
 
