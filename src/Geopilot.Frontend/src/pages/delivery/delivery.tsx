@@ -6,6 +6,7 @@ import { useApplicationTitle } from "../../hooks/useApplicationTitle.ts";
 import { StepSwipeHandlers, useStepSwipe } from "../../hooks/useStepSwipe.ts";
 import { DeliveryContentCarousel, SLIDE_TRANSITION_MS } from "./deliveryContentCarousel.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
+import { DeliveryNoMandateAlert } from "./deliveryNoMandateAlert.tsx";
 import { DeliveryStepper } from "./deliveryStepper.tsx";
 
 const DeliveryContainer = styled(Stack)(({ theme }) => ({
@@ -21,7 +22,7 @@ interface DeliveryProps {
 }
 
 const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
-  const { steps, activeStep, openCompletedOrNextStep } = useContext(DeliveryContext);
+  const { steps, activeStep, lastCompletedStep, openCompletedOrNextStep, hasNoMandate } = useContext(DeliveryContext);
   const applicationTitle = useApplicationTitle();
 
   const swipeHandlers = useStepSwipe({
@@ -48,6 +49,7 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
           {applicationTitle}
         </Typography>
       )}
+      {hasNoMandate && lastCompletedStep < 0 && <DeliveryNoMandateAlert />}
       <DeliveryContainer direction={{ xs: "column", md: "row" }} sx={{ m: { xs: 0, md: 0 } }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />
