@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 
@@ -49,6 +50,41 @@ internal static class ConstructorBinding
             throw new InvalidOperationException($"{subject} initialization: The configured value <{FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> cannot be converted to type <{FormatTypeName(parameterInfo.ParameterType)}>.");
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves a parameter that names a file the deployment ships. Its configured value is the path of the file
+    /// relative to the resources directory, the root a <c>${file(path)}</c> input reference resolves against. The path
+    /// is read raw, because the conversion of <see cref="TryGetConfiguredValue"/> would treat it as the value itself.
+    /// Returns false when the parameter is not configured.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The value is not a path, no resources directory is configured or the
+    /// file does not exist.</exception>
+    /// <exception cref="PipelineRunException">The path leads out of the resources directory.</exception>
+    internal static bool TryGetResourcePath(ParameterInfo parameterInfo, Parameterization config, string? resourcesRoot, string subject, [NotNullWhen(true)] out string? fullPath)
+    {
+        fullPath = null;
+        if (string.IsNullOrEmpty(parameterInfo.Name) || !config.TryGetValue(parameterInfo.Name, out var rawValue) || rawValue is null)
+            return false;
+
+        // A value read back from JSON, such as the snapshot of a delivery reaction, holds its text as JsonElement.
+        var path = rawValue switch
+        {
+            string text => text,
+            JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
+            _ => null,
+        };
+        if (string.IsNullOrWhiteSpace(path))
+            throw new InvalidOperationException($"{subject} initialization: The configured value <{FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> is not the path of a file below the resources directory.");
+
+        if (string.IsNullOrWhiteSpace(resourcesRoot))
+            throw new InvalidOperationException($"{subject} initialization: Parameter <{parameterInfo.Name}> references file <{path}>, but no resources directory is configured.");
+
+        fullPath = ResourceFileResolver.ResolveFullPath(resourcesRoot, path);
+        if (!File.Exists(fullPath))
+            throw new InvalidOperationException($"{subject} initialization: Parameter <{parameterInfo.Name}> references file <{path}>, which does not exist below the resources directory.");
+
+        return true;
     }
 
     /// <summary>

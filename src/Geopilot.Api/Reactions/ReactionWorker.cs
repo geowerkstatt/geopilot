@@ -23,6 +23,7 @@ public class ReactionWorker : BackgroundService
     private readonly ReactionStore store;
     private readonly DeliveryReactionOptions options;
     private readonly IOptionsMonitor<PipelineOptions> pipelineOptions;
+    private readonly string resourcesDirectory;
     private readonly ILogger<ReactionWorker> logger;
 
     /// <summary>
@@ -33,14 +34,17 @@ public class ReactionWorker : BackgroundService
         ReactionStore store,
         IOptions<DeliveryReactionOptions> options,
         IOptionsMonitor<PipelineOptions> pipelineOptions,
+        IDirectoryProvider directoryProvider,
         ILogger<ReactionWorker> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(directoryProvider);
 
         this.scopeFactory = scopeFactory;
         this.store = store;
         this.options = options.Value;
         this.pipelineOptions = pipelineOptions;
+        this.resourcesDirectory = directoryProvider.ResourcesDirectory;
         this.logger = logger;
     }
 
@@ -170,7 +174,7 @@ public class ReactionWorker : BackgroundService
     {
         try
         {
-            channel = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs)
+            channel = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs, resourcesDirectory)
                 .Create(reaction.Implementation, reaction.Config.Config, reaction.Config.Mandate.ToParameterization());
             refusal = null;
             return true;
