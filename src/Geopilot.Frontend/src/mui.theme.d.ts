@@ -23,11 +23,10 @@ declare module "@mui/material/styles" {
   }
 
   interface PaletteMap {
-    fill: string;
     stroke: string;
-    highlight: string;
-    hintBackground: string;
-    hintText: string;
+    hint: { background: string; text: string };
+    error: { fill: string; highlight: string };
+    diff: { added: string; changed: string; deleted: string };
   }
 
   interface PaletteColor {
@@ -51,13 +50,23 @@ declare module "@mui/material/styles" {
     content: string;
   }
 
+  interface PaletteDiff {
+    added: string;
+    changed: string;
+    deleted: string;
+    insertBackground: string;
+    deleteBackground: string;
+  }
+
   interface Palette {
     map: PaletteMap;
+    diff: PaletteDiff;
     tooltip: { background: string };
   }
 
   interface PaletteOptions {
     map?: PaletteMap;
+    diff?: PaletteDiff;
     tooltip?: { background: string };
   }
 

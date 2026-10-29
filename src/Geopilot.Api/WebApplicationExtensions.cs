@@ -1,5 +1,5 @@
 ﻿using Geopilot.Pipeline;
-using Geopilot.Pipeline.Processes.XtfErrorVisualization;
+using Geopilot.Pipeline.Visualization;
 using Microsoft.Extensions.FileProviders;
 using System.Security.Cryptography;
 
@@ -99,7 +99,7 @@ public static class WebApplicationExtensions
         var mapBaseMapUrl = configuration["MapVisualization:BaseMapWmtsCapabilitiesUrl"];
         if (string.IsNullOrWhiteSpace(mapBaseMapUrl))
         {
-            mapBaseMapUrl = MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl;
+            mapBaseMapUrl = BaseMap.DefaultWmtsCapabilitiesUrl;
         }
 
         if (!Uri.TryCreate(mapBaseMapUrl, UriKind.Absolute, out var mapBaseMapUri))

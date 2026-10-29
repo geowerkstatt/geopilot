@@ -31,7 +31,7 @@ Kommen beide Stände aus dem Upload, braucht die Pipeline davor einen Schritt, d
 
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
-- `Diff`: Die Änderungen vom alten zum neuen Stand vom Typ `IPipelineFile[]`, eine Datei mit einem JSON-Array im Format des XTF-Diff-Tools ([OutputFileDescription.md](https://github.com/geowerkstatt/XTF-Diff-Tool/blob/main/OutputFileDescription.md)). Jede Änderung trägt ihre Lage im alten und im neuen Stand (`oldLocation`, `newLocation`) als WKT für die Karte, sofern es eine gibt. Leer, wenn sich die Stände nicht vergleichen lassen: `Download` bietet dann nichts an, statt wie bei einer fehlenden Datei den Lauf scheitern zu lassen. Mit `Download` wird es zum Herunterladen angeboten, mit `Delivery` geht es in die Lieferung. Ein nachfolgender Schritt bekommt die Datei auch als einzelnen Parameter.
+- `Diff`: Die Änderungen vom alten zum neuen Stand vom Typ `IPipelineFile[]`, eine Datei mit einem JSON-Array im Format des XTF-Diff-Tools ([OutputFileDescription.md](https://github.com/geowerkstatt/XTF-Diff-Tool/blob/main/OutputFileDescription.md)). Jede Änderung trägt ihre Lage im alten und im neuen Stand (`oldLocation`, `newLocation`) als WKT für die Karte, sofern es eine gibt. Leer, wenn sich die Stände nicht vergleichen lassen: `Download` bietet dann nichts an, statt wie bei einer fehlenden Datei den Lauf scheitern zu lassen. Mit `Download` wird es zum Herunterladen angeboten, mit `Delivery` geht es in die Lieferung. Ein nachfolgender Schritt bekommt die Datei auch als einzelnen Parameter, etwa die [XTF Diff Visualisierung](xtf-diff-visualisierung.md), die es als Tabelle und auf einer Karte zeigt.
 - `Log`: Das Log des Tools vom Typ `IPipelineFile`, auch wenn sich die Stände nicht vergleichen lassen. Dann nennt es den Grund, auch einen, den die Status-Nachricht nicht kennt, etwa eine doppelte TID. Nur mit `Download` erfährt ihn der Lieferant.
 - `ComparisonState`: Ob das Tool die beiden Stände vergleichen konnte:
   - `Compared`: verglichen, `Diff` listet die Änderungen, möglicherweise keine.
@@ -71,14 +71,14 @@ pipelines:
       - id: xtf_matching
         display_name:
           de: XTF Zuordnung
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
         input:
           files: "${upload()}"
       - id: old_new
         display_name:
           de: Alter und neuer Stand
-          en: Old and New State
+          en: Old and new state
         process_id: old_new_matcher
         conditions:
           post:
