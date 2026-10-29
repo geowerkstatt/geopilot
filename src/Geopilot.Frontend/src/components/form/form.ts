@@ -64,6 +64,12 @@ export const FormContainerHalfWidth = styled(FormContainer)(({ theme }) => ({
   },
 }));
 
+export const FormColumnHalfWidth = styled(Stack)(({ theme }) => ({
+  [theme.breakpoints.up("md")]: {
+    width: `calc(50% - ${theme.spacing(1)})`,
+  },
+}));
+
 export { FormInput } from "./formInput";
 export { FormSelect } from "./formSelect";
 export { FormCheckbox } from "./formCheckbox";

@@ -13,7 +13,7 @@ public class SearchTest
     public void Initialize()
     {
         app = new GeopilotApiApp();
-        httpClient = app.CreateClient();
+        httpClient = app.CreateAdminClient();
         searchClient = new ItemSearchClient(httpClient);
     }
 
@@ -38,6 +38,19 @@ public class SearchTest
         Assert.AreEqual(2, result.NumberReturned);
 
         CollectionAssert.AreEqual(new[] { "item_6", "item_14" }, result.Items.Select(i => i.Id).ToList());
+    }
+
+    [TestMethod]
+    public async Task AnonymousSearchSkipsAdminOnlyCollections()
+    {
+        using var anonymousClient = app.CreateClient();
+        var result = await new ItemSearchClient(anonymousClient).PostItemSearchAsync(new SearchBody
+        {
+            Collections = new[] { "coll_1" },
+            Limit = 12,
+        });
+
+        Assert.AreEqual(0, result.Items.Count());
     }
 
     [TestMethod]

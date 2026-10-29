@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -12,7 +11,7 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobCleanupService : BackgroundService
 {
     private readonly IProcessingJobStore jobStore;
-    private readonly ISubmissionStore submissionStore;
+    private readonly JobLifecycle lifecycle;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<ProcessingJobCleanupService> logger;
@@ -24,7 +23,7 @@ public class ProcessingJobCleanupService : BackgroundService
     /// </summary>
     public ProcessingJobCleanupService(
         IProcessingJobStore jobStore,
-        ISubmissionStore submissionStore,
+        JobLifecycle lifecycle,
         IDirectoryProvider directoryProvider,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<ProcessingJobCleanupService> logger,
@@ -33,7 +32,7 @@ public class ProcessingJobCleanupService : BackgroundService
         ArgumentNullException.ThrowIfNull(processingOptions);
 
         this.jobStore = jobStore;
-        this.submissionStore = submissionStore;
+        this.lifecycle = lifecycle;
         this.directoryProvider = directoryProvider;
         this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
@@ -75,7 +74,6 @@ public class ProcessingJobCleanupService : BackgroundService
         {
             using var scope = serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
-            var orchestrationService = scope.ServiceProvider.GetRequiredService<IUploadOrchestrationService>();
             var now = DateTime.UtcNow;
             int cleanedDownloads = 0;
             int cleanedVisualizations = 0;
@@ -86,7 +84,7 @@ public class ProcessingJobCleanupService : BackgroundService
             foreach (var jobId in EnumerateJobIds(directoryProvider.DownloadDirectory))
             {
                 var job = jobStore.GetJob(jobId);
-                if (job == null || now - job.CreatedAt > processingOptions.DownloadRetention)
+                if (job is null || HasExpiredSinceFinished(job, now, processingOptions.DownloadRetention))
                 {
                     if (DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId)))
                         cleanedDownloads++;
@@ -98,21 +96,24 @@ public class ProcessingJobCleanupService : BackgroundService
             foreach (var jobId in EnumerateJobIds(directoryProvider.VisualizationDirectory))
             {
                 var job = jobStore.GetJob(jobId);
-                if (job == null || now - job.CreatedAt > processingOptions.VisualizationRetention)
+                if (job is null || HasExpiredSinceFinished(job, now, processingOptions.VisualizationRetention))
                 {
                     if (DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId)))
                         cleanedVisualizations++;
                 }
             }
 
-            // The in-memory job entry and the uploaded blobs age out on JobRetention. The asset directory
-            // is the long-term archive of deliveries, which survive cleanup and are only removed via
-            // DeliveryController.Delete; a job directory there without a delivery is a declaration that
-            // failed after the promotion, and goes. A staged payload (the staging root below the asset
-            // directory) belongs to a deliverable run that was never delivered: once the in-memory job is
-            // gone nobody can declare its delivery any more, so it retires with the job. Pipeline working
-            // directories are normally removed by Pipeline.Dispose, but survive a hard restart (nothing gets
-            // disposed), so they count as retirement candidates too.
+            // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
+            // so retiring a job never cuts their retention short; a job that has not finished counts from its
+            // creation, which is how a stuck one shows up below. Its upload is not released here: it went when
+            // the job ended, or it stays on purpose until its upload session expires (a cancelled run, see
+            // JobLifecycle.Decide). The asset directory is the long-term archive of deliveries, which survive
+            // cleanup and are only removed via DeliveryController.Delete; a job directory there without a
+            // delivery is a declaration that failed after the promotion, and goes. A staged payload (the staging
+            // root below the asset directory) belongs to a deliverable run that was never delivered: once the
+            // in-memory job is gone nobody can declare its delivery any more, so it retires with the job.
+            // Pipeline working directories are normally removed by Pipeline.Dispose, but survive a hard restart
+            // (nothing gets disposed), so they count as retirement candidates too.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetStagingDirectory));
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
@@ -120,14 +121,13 @@ public class ProcessingJobCleanupService : BackgroundService
             foreach (var jobId in retiredCandidates)
             {
                 var job = jobStore.GetJob(jobId);
-                if (job != null && now - job.CreatedAt <= processingOptions.JobRetention)
+                if (job != null && now - (job.FinishedAt ?? job.CreatedAt) <= processingOptions.JobRetention)
                     continue;
 
                 // A job still pending or running past its retention is stuck, not stale: its preflight or
-                // its pipeline is hanging. Retiring it would delete the uploaded blobs, the only remaining
-                // copy of the upload, from under a run that may yet continue, and dispose its pipeline
-                // along with the working directory. Leave it and let UploadCleanupService's age-based sweep
-                // be the backstop.
+                // its pipeline is hanging. Retiring it would delete its working directory and drop the job from
+                // under a run that may yet continue. Leave it; UploadCleanupService's age-based sweep is the
+                // backstop for its upload.
                 if (job != null && job.State is ProcessingState.Pending or ProcessingState.Running)
                 {
                     logger.LogWarning(
@@ -140,12 +140,6 @@ public class ProcessingJobCleanupService : BackgroundService
                 }
 
                 var hasDelivery = dbContext.Deliveries.Any(d => d.JobId == jobId);
-
-                // Only a known job carries the upload id; an orphaned directory from a hard restart
-                // leaves its blobs to the age-based sweep in UploadCleanupService.
-                if (job != null)
-                    await orchestrationService.ReleaseUploadAsync(job.UploadId);
-
                 if (RetireJob(jobId, hasDelivery))
                     retiredJobs++;
             }
@@ -206,8 +200,7 @@ public class ProcessingJobCleanupService : BackgroundService
             DeleteIfExists(directoryProvider.GetAssetStagingDirectoryPath(jobId));
             if (!hasSubmittedDelivery)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
-            jobStore.RemoveJob(jobId);
-            submissionStore.Remove(jobId);
+            lifecycle.Retire(jobId);
             logger.LogTrace("Retired job <{JobId}>. Removed asset directory: {RemovedAssets}.", jobId, !hasSubmittedDelivery);
             return true;
         }
@@ -218,6 +211,13 @@ public class ProcessingJobCleanupService : BackgroundService
 
         return false;
     }
+
+    /// <summary>
+    /// Whether a job's files on a <paramref name="retention"/> are due. Counted from the end of the run, so a job
+    /// that waited long in the queue keeps them for the full window, and a job still running keeps them.
+    /// </summary>
+    private static bool HasExpiredSinceFinished(ProcessingJob job, DateTime now, TimeSpan retention) =>
+        job.FinishedAt is { } finishedAt && now - finishedAt > retention;
 
     private static bool DeleteIfExists(string directory)
     {

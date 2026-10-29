@@ -45,13 +45,19 @@ public class SubmissionHttpTest
         if (context.Mandates.Any(m => m.Key == MandateKey))
             return;
 
-        // Public, so any signed-in caller may deliver to it without wiring up an organisation. Committed rather
-        // than rolled back, because each host reads it through its own connection.
+        // Delivering takes a member of the mandate's organisation, so both callers the tests sign in as belong to
+        // it. Committed rather than rolled back, because each host reads it through its own connection.
+        var organisation = new Organisation
+        {
+            Name = nameof(SubmissionHttpTest),
+            Users = context.Users.Where(u => u.AuthIdentifier == JwtTestTokenBuilder.UserSub).ToList(),
+            MachineClients = context.MachineClients.Where(c => c.AuthIdentifier == JwtTestTokenBuilder.ClientSub).ToList(),
+        };
         context.Mandates.Add(new Mandate
         {
             Name = TestHelpers.Localized(nameof(SubmissionHttpTest)),
             Key = MandateKey,
-            IsPublic = true,
+            Organisations = [organisation],
             AllowDelivery = true,
             PipelineId = "ili_validation",
             FileTypes = [".xtf"],

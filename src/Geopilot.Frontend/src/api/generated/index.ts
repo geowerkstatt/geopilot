@@ -200,6 +200,7 @@ export {
   type PutApiV1UserResponse,
   type PutApiV1UserResponses,
   ScanState,
+  StacAccess,
   type StartJobRequest,
   type StepDownload,
   type StepResultResponse,

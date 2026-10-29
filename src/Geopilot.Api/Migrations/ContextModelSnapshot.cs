@@ -200,6 +200,10 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("geometry");
 
+                    b.Property<string>("StacAccess")
+                        .IsRequired()
+                        .HasColumnType("varchar(12)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Key")

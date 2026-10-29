@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -10,7 +10,7 @@ import { MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { stopStepSwipePropagation } from "../../../hooks/useStepSwipe";
 import { IconButton } from "../../buttons";
 import { LayerSwitcher } from "./layerSwitcher";
-import { useMapVisualization } from "./mapVisualizationContext";
+import { MapPanelContainerContext, useMapVisualization } from "./mapVisualizationContext";
 
 interface MapVisualizationProps {
   /** The map visualization config to render. */
@@ -19,6 +19,12 @@ interface MapVisualizationProps {
   reserveSpaceForFilters?: boolean;
   fullscreen?: boolean;
   setFullscreen: (fullscreen: boolean) => void;
+  /** Further buttons in a group of their own, above the panel buttons. */
+  controls?: ReactNode;
+  /** Buttons that open a panel beside them, grouped above the layers button. */
+  panelControls?: ReactNode;
+  /** Panels laid over the map, positioned by themselves. */
+  children?: ReactNode;
 }
 
 export const MapVisualization = ({
@@ -26,11 +32,15 @@ export const MapVisualization = ({
   reserveSpaceForFilters,
   fullscreen,
   setFullscreen,
+  controls,
+  panelControls,
+  children,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const { map, zoomToExtent, zoomBy, setFitOptions } = useMapVisualization();
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [panelContainer, setPanelContainer] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -50,6 +60,7 @@ export const MapVisualization = ({
 
   return (
     <Box
+      ref={setPanelContainer}
       {...stopStepSwipePropagation}
       sx={{
         position: "relative",
@@ -138,7 +149,16 @@ export const MapVisualization = ({
               />
             </ButtonGroup>
           </Stack>
-          <LayerSwitcher map={map} />
+          <MapPanelContainerContext.Provider value={panelContainer}>
+            <Stack sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
+              {controls}
+              <ButtonGroup orientation="vertical">
+                {panelControls}
+                <LayerSwitcher map={map} />
+              </ButtonGroup>
+            </Stack>
+            {children}
+          </MapPanelContainerContext.Provider>
         </>
       )}
     </Box>

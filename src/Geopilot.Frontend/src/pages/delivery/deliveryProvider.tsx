@@ -13,6 +13,7 @@ import {
   StepState,
   UploadSettingsResponse,
 } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -133,7 +134,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const setStepStatus = useCallback(
-    (key: DeliveryStepEnum, state: DeliveryStepState | undefined, messages?: (string | LocalizedText)[]) => {
+    (key: DeliveryStepEnum, state: DeliveryStepState | undefined, messages?: (TranslationKey | LocalizedText)[]) => {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
         const step = newSteps.get(key);
@@ -209,7 +210,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     (error: ApiError, key: DeliveryStepEnum) => {
       if (error && error.message && !error.message.includes("AbortError")) {
         setStepStatus(key, DeliveryStepState.Error, [
-          deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
+          deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey ||
+            (error.message as TranslationKey),
         ]);
       }
     },
@@ -299,7 +301,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             setStepStatus(
               DeliveryStepEnum.Processing,
               DeliveryStepState.Error,
-              errorMessages.length > 0 ? errorMessages : [response.state],
+              errorMessages.length > 0
+                ? errorMessages
+                : [job.state === StepState.Cancelled ? "stepStateCancelled" : "stepStateFailed"],
             );
           }
         }

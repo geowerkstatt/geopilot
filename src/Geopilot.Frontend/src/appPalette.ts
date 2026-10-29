@@ -58,11 +58,27 @@ export const themePalette = {
     hover: alpha("#e53835", 0.05),
   },
   map: {
-    fill: "#e53835",
     stroke: "#ffffff",
-    highlight: "#980303",
-    hintBackground: alpha("#000000", 0.6),
-    hintText: "#ffffff",
+    hint: {
+      background: alpha("#000000", 0.6),
+      text: "#ffffff",
+    },
+    error: {
+      fill: "#e53835",
+      highlight: "#980303",
+    },
+    diff: {
+      added: "#2CA02C",
+      changed: "#0072B2",
+      deleted: "#D62728",
+    },
+  },
+  diff: {
+    added: "#2E7D32",
+    changed: "#0072B2",
+    deleted: "#C62828",
+    insertBackground: "#CDEBCF",
+    deleteBackground: "#F9D0D0",
   },
   divider: alpha("#124A4F", 0.2),
   tooltip: {

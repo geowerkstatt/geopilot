@@ -5,7 +5,6 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -161,6 +160,24 @@ namespace Geopilot.Api.Controllers
             organisation.MachineClients.Add(client);
             context.SaveChanges();
             mandateController.SetupTestUser(new User { AuthIdentifier = client.AuthIdentifier });
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
+
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
+
+            Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetSummaryAsDeactivatedUserPassesNullUser()
+        {
+            // A deactivated person keeps their memberships, so only the anonymous view keeps them from non-public mandates.
+            var uploadId = Guid.NewGuid();
+            editUser.State = UserState.Inactive;
+            context.SaveChanges();
+            mandateController.SetupTestUser(editUser);
             mandateServiceMock
                 .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
                 .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
@@ -566,14 +583,10 @@ namespace Geopilot.Api.Controllers
 
             var guid = Guid.NewGuid();
             var processingServiceMock = new Mock<IProcessingService>();
-            var pipelineMock = new Mock<IPipeline>();
-            pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-            pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-            pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-
             var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
             {
-                Pipeline = pipelineMock.Object,
+                State = ProcessingState.Success,
+                IsDeclarable = true,
             };
 
             processingServiceMock
@@ -587,9 +600,9 @@ namespace Geopilot.Api.Controllers
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object);
             deliveryController.SetupTestUser(editUser);
-            mandateServiceMock.Setup(s => s.GetMandateForDeclarerAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
+            mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(true);
 
             var request = new DeliveryRequest
             {
@@ -608,6 +621,7 @@ namespace Geopilot.Api.Controllers
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
             mandateToUpdate.AllowDelivery = false;
+            mandateToUpdate.StacAccess = StacAccess.Public;
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
@@ -619,6 +633,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNull(updatedMandate.Key, "Empty key should normalize to null");
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
+            Assert.AreEqual(StacAccess.Public, updatedMandate.StacAccess);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
             Assert.HasCount(mandateToUpdate.Organisations.Count, updatedMandate.Organisations);

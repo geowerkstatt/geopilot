@@ -33,6 +33,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
+        IPipelineFile? refMappingFile = null,
         IReadOnlyList<IPipelineFile>? referenceDataFiles = null,
         CancellationToken cancellationToken = default)
     {
@@ -41,6 +42,14 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         using var call = client.Validate(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateValidateRequest(args), cancellationToken);
+
+        // Sent before the transfer file, because the service refuses an unusable mapping at its start, and the call
+        // then fails before the transfer file is streamed.
+        if (refMappingFile != null)
+        {
+            logger.LogInformation("Sending reference data mapping {FileName}.", refMappingFile.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.RefMappingFile, refMappingFile, cancellationToken);
+        }
 
         // Sent before the transfer file, because the service refuses reference data for a tool version older than
         // 1.15.0 at the start of the first one, and the call then fails before the transfer file is streamed.
@@ -85,6 +94,8 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         var info = new ValidateRequestInfo
         {
             MetaConfig = args.MetaConfig ?? string.Empty,
+            RefMapping = args.RefMapping ?? string.Empty,
+            Scope = args.Scope ?? string.Empty,
             AllObjectsAccessible = args.AllObjectsAccessible,
             ToolVersion = args.ToolVersion ?? string.Empty,
         };

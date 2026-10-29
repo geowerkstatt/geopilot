@@ -1,42 +1,46 @@
 import { useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { Badge, Box, Stack } from "@mui/material";
-import { TreeField } from "../../api/apiInterfaces";
+import { TranslationKey } from "../../appInterfaces";
 import { Button, IconButton } from "../buttons";
 import { FormAutocomplete } from "../form/formAutocomplete";
 import { SearchField } from "../searchField";
-import { FieldFilters, FilterAttribute } from "./tree/treeNode";
 
-/** The filter dropdown label (translation key) per field. */
-const FIELD_LABEL_KEYS: Record<TreeField, string> = {
-  errorType: "treeFieldErrorType",
-  model: "treeFieldModel",
-  topic: "treeFieldTopic",
-  class: "treeFieldClass",
-};
+export type FieldFilters<F extends string> = Partial<Record<F, string[]>>;
 
-interface FilterBarProps {
-  attributes: FilterAttribute[];
+/** A filterable field together with its label (translation key) and its distinct value options. */
+export interface FilterAttribute<F extends string> {
+  field: F;
+  label: TranslationKey;
+  options: string[];
+}
+
+interface FilterBarProps<F extends string> {
+  attributes: FilterAttribute<F>[];
+  searchPlaceholder: TranslationKey;
   messageQuery: string;
   onMessageQueryChange: (value: string) => void;
-  fieldFilters: FieldFilters;
-  onFieldFilterChange: (field: TreeField, selected: string[]) => void;
+  fieldFilters: FieldFilters<F>;
+  onFieldFilterChange: (field: F, selected: string[]) => void;
   onClearFilters: () => void;
   forceMobileView?: boolean;
 }
 
-export const FilterBar = ({
+export const FilterBar = <F extends string>({
   attributes,
+  searchPlaceholder,
   messageQuery,
   onMessageQueryChange,
   fieldFilters,
   onFieldFilterChange,
   onClearFilters,
   forceMobileView,
-}: FilterBarProps) => {
+}: FilterBarProps<F>) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const activeFilterCount = Object.values(fieldFilters).filter(values => (values?.length ?? 0) > 0).length;
+  const activeFilterCount = Object.values<string[] | undefined>(fieldFilters).filter(
+    values => (values?.length ?? 0) > 0,
+  ).length;
   const hasActiveFilters = messageQuery.trim().length > 0 || activeFilterCount > 0;
   // Emphasize the toggle (filled) while the filter panel is open or filters are in effect.
   const toggleActive = showFilters || activeFilterCount > 0;
@@ -46,7 +50,7 @@ export const FilterBar = ({
       <Stack>
         <Stack direction="row" sx={{ alignItems: "stretch" }}>
           <SearchField
-            placeholder="treeVisualizationMessageSearch"
+            placeholder={searchPlaceholder}
             sx={{ flex: 1 }}
             value={messageQuery}
             onChange={onMessageQueryChange}
@@ -74,7 +78,7 @@ export const FilterBar = ({
             {attributes.map(attribute => (
               <FormAutocomplete
                 key={attribute.field}
-                label={FIELD_LABEL_KEYS[attribute.field]}
+                label={attribute.label}
                 values={attribute.options}
                 selected={fieldFilters[attribute.field] ?? []}
                 onChange={value => onFieldFilterChange(attribute.field, value as string[])}

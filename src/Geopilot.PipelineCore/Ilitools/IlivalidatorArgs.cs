@@ -10,7 +10,9 @@ public sealed record IlivalidatorArgs
     /// The INTERLIS model repositories the models and the meta configuration are resolved from, searched in the
     /// given order. Allowed entries are <c>http(s)</c> URLs and the tool placeholder <c>%ITF_DIR</c>, alone or with
     /// a relative subfolder: the service keeps delivered model files in <c>%ITF_DIR/models</c> and an extracted
-    /// repository archive in <c>%ITF_DIR/repository</c>, each visible only through its own entry.
+    /// repository archive in <c>%ITF_DIR/repository</c>, each visible only through its own entry. A repository the
+    /// deployment of the service offers is named as <c>%REPOSITORIES/&lt;id&gt;</c>; the service replaces it with its
+    /// directory, which the tool reads in place, and rejects an id it does not offer.
     /// Setting this replaces the default of the tool entirely, so the standard repositories have to be listed
     /// explicitly if they should still apply.
     /// Maps to the ilivalidator option <c>--modeldir</c>, joined by a semicolon.
@@ -23,6 +25,29 @@ public sealed record IlivalidatorArgs
     /// Maps to the ilivalidator option <c>--metaConfig</c>.
     /// </summary>
     public string? MetaConfig { get; init; }
+
+    /// <summary>
+    /// The mapping that names the reference data the tool loads for the extent of a validation, in the form
+    /// <c>ilidata:&lt;DatasetId&gt;</c>, resolved by the tool through <see cref="ModelDirs"/>. Reference data is loaded
+    /// but not validated itself, and references into it are only checked with <see cref="AllObjectsAccessible"/>.
+    /// Maps to the ilivalidator option <c>--refmapping</c>. A mapping that is not published in a repository is sent as a
+    /// file through <see cref="IIlivalidatorClient.ValidateAsync"/> instead.
+    /// </summary>
+    /// <remarks>
+    /// Requires ilivalidator 1.15.0 or newer, like <see cref="Scope"/>.
+    /// </remarks>
+    public string? RefMapping { get; init; }
+
+    /// <summary>
+    /// The extent of the validation, for example the BFS number of a municipality. Selects the entries of
+    /// <see cref="RefMapping"/> and is available to constraints as the runtime parameter <c>IliVRuntime_V1_0.Scope</c>.
+    /// Maps to the ilivalidator option <c>--scope</c>.
+    /// </summary>
+    /// <remarks>
+    /// Requires ilivalidator 1.15.0 or newer. The ilitools-wrapper rejects it for an older version before the tool
+    /// runs, whether that version was selected through <see cref="ToolVersion"/> or is the deployment default.
+    /// </remarks>
+    public string? Scope { get; init; }
 
     /// <summary>
     /// Whether the validator may assume that every object it needs is contained in the validated file. A reference

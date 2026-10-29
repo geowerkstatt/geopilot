@@ -16,6 +16,7 @@ public class PreflightBackgroundService : BackgroundService
     private readonly ChannelReader<PreflightRequest> preflightQueue;
     private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<PreflightBackgroundService> logger;
+    private readonly JobLifecycle lifecycle;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PreflightBackgroundService"/> class.
@@ -23,11 +24,13 @@ public class PreflightBackgroundService : BackgroundService
     public PreflightBackgroundService(
         ChannelReader<PreflightRequest> preflightQueue,
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<PreflightBackgroundService> logger)
+        ILogger<PreflightBackgroundService> logger,
+        JobLifecycle lifecycle)
     {
         this.preflightQueue = preflightQueue;
         this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
+        this.lifecycle = lifecycle;
     }
 
     /// <inheritdoc/>
@@ -58,76 +61,33 @@ public class PreflightBackgroundService : BackgroundService
             return;
         }
 
+        ScanResult? scanResult = null;
         try
         {
-            var scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId);
-            await RecordProtocolAsync(scope, request.JobId, recorder => recorder.RecordScanOutcomeAsync(request.JobId, scanResult));
+            scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId, cancellationToken);
 
             // Nothing is transferred here: each file is fetched from the upload storage the first time a step
             // reads it, so the job starts without waiting for the whole upload.
             var pipelineFiles = orchestrationService.RegisterJobFiles(request.UploadId, request.JobId);
-
-            jobStore.EnqueueForProcessing(request.JobId, pipelineFiles);
+            await lifecycle.PreflightPassedAsync(request.JobId, scanResult, pipelineFiles);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Host shutdown: only the process ends, nothing is wrong with the upload. Job, files and protocol
+            // stay as they are; the run reads as "outcome unknown", like any other restart victim.
+            logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Preflight failed for job <{JobId}>.", request.JobId);
 
-            // The forensically relevant case: a rejected upload must leave its trace, including the scan
-            // outcome and hashes when the scan itself found the threat.
-            await RecordProtocolAsync(scope, request.JobId, async recorder =>
-            {
-                if (ex is UploadPreflightException { ScanResult: { } scanResult })
-                    await recorder.RecordScanOutcomeAsync(request.JobId, scanResult);
+            var failureReason = ex is UploadPreflightException preflightException
+                ? $"{preflightException.FailureReason}: {preflightException.Message}"
+                : ex.Message;
 
-                var failureReason = ex is UploadPreflightException preflightException
-                    ? $"{preflightException.FailureReason}: {preflightException.Message}"
-                    : ex.Message;
-                await recorder.RecordPreflightFailedAsync(request.JobId, failureReason);
-            });
-
-            if (!jobStore.TryMarkAsFailed(request.JobId))
-                logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", request.JobId);
-
-            try
-            {
-                // The pipeline was instantiated up front but never queued, so the runner will not dispose it.
-                job.Pipeline?.Dispose();
-            }
-            catch (Exception disposeEx)
-            {
-                logger.LogError(disposeEx, "Failed to dispose the pipeline of job <{JobId}>.", request.JobId);
-            }
-
-            try
-            {
-                await orchestrationService.ReleaseUploadAsync(request.UploadId);
-            }
-            catch (Exception cleanupEx)
-            {
-                // This method is the body of the channel loop: letting anything escape here would stop
-                // the background service and leave every later upload stuck in Pending.
-                logger.LogError(cleanupEx, "Failed to release the files of upload <{UploadId}>.", request.UploadId);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Runs one protocol write. The recorder swallows its own write failures; this additionally guards
-    /// its resolution, because a protocol problem must never stop the preflight loop.
-    /// </summary>
-    private async Task RecordProtocolAsync(IServiceScope scope, Guid jobId, Func<IPipelineRunRecorder, Task> record)
-    {
-        try
-        {
-            var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
-            await record(recorder);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; preflight continues.", jobId);
+            await lifecycle.PreflightFailedAsync(request.JobId, failureReason, scanResult ?? (ex as UploadPreflightException)?.ScanResult);
         }
     }
 }

@@ -1,7 +1,6 @@
 import { FC, useEffect, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, PipelineSummary } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -9,6 +8,7 @@ import {
   FormAutocomplete,
   FormCheckbox,
   FormChipInput,
+  FormColumnHalfWidth,
   FormContainer,
   FormContainerHalfWidth,
   FormInput,
@@ -40,7 +40,6 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
   const { fetchApi } = useFetch();
   const { trigger } = useFormContext();
   const { machineDeliveryEnabled } = useCapabilities();
-  const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
   const [usedKeys, setUsedKeys] = useState<string[]>();
 
   useEffect(() => {
@@ -70,22 +69,23 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   return (
     <>
-      {machineDeliveryEnabled && (
-        <FormContainer>
-          <FormInput
-            label="mandateKey"
-            fieldName="key"
-            value={mandate?.key ?? ""}
-            helperText={t("mandateKeyHelperText")}
-            validate={validateUniqueKey}
-          />
-        </FormContainer>
-      )}
       <FormContainer>
-        <FormContainerHalfWidth>
+        <FormColumnHalfWidth>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
-        </FormContainerHalfWidth>
-        <FormContainerHalfWidth>
+          <FormAutocomplete<Organisation>
+            fieldName={"organisations"}
+            label={"eligibleOrganisations"}
+            required={false}
+            values={organisations}
+            selected={mandate?.organisations}
+            valueFormatter={org => ({
+              id: org.id,
+              primaryText: org.name,
+              detailText: `${org.name} (ID: ${org.id})`,
+            })}
+          />
+        </FormColumnHalfWidth>
+        <FormColumnHalfWidth>
           <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
@@ -95,29 +95,25 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             parse={parseFileType}
             errorMessage="invalidFileExtension"
           />
+        </FormColumnHalfWidth>
+      </FormContainer>
+      <FormContainer>
+        <FormContainerHalfWidth>
+          <FormCheckbox fieldName={"isPublic"} label={"allowPublicProcessing"} checked={mandate?.isPublic ?? false} />
+        </FormContainerHalfWidth>
+        <FormContainerHalfWidth>
+          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
         </FormContainerHalfWidth>
       </FormContainer>
-      <FormContainer sx={{ alignItems: "center" }}>
-        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-      </FormContainer>
-      {!isPublic && (
+      {machineDeliveryEnabled && (
         <FormContainer>
-          <FormContainerHalfWidth>
-            <FormAutocomplete<Organisation>
-              fieldName={"organisations"}
-              label={"eligibleOrganisations"}
-              required={false}
-              values={organisations}
-              selected={mandate?.organisations}
-              valueFormatter={org => ({
-                id: org.id,
-                primaryText: org.name,
-                detailText: `${org.name} (ID: ${org.id})`,
-              })}
-            />
-          </FormContainerHalfWidth>
-          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
+          <FormInput
+            label="mandateKey"
+            fieldName="key"
+            value={mandate?.key ?? ""}
+            helperText={t("mandateKeyHelperText")}
+            validate={validateUniqueKey}
+          />
         </FormContainer>
       )}
     </>

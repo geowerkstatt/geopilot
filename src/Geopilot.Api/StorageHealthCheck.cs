@@ -1,42 +1,45 @@
 ﻿using Geopilot.Api.FileAccess;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
-namespace Geopilot.Api
+namespace Geopilot.Api;
+
+/// <summary>
+/// Health check for the local data directories listed by <see cref="DataDirectories.Local"/>. Only checks
+/// that they exist; whether they are writable is proven once at startup, not on every probe.
+/// </summary>
+public class StorageHealthCheck : IHealthCheck
 {
+    private readonly IOptions<FileAccessOptions> fileAccessOptions;
+    private readonly ILogger<StorageHealthCheck> logger;
+
     /// <summary>
-    /// Health check for the local storage directories.
+    /// Initializes a new instance of the <see cref="StorageHealthCheck"/> class.
     /// </summary>
-    public class StorageHealthCheck : IHealthCheck
+    public StorageHealthCheck(IOptions<FileAccessOptions> fileAccessOptions, ILogger<StorageHealthCheck> logger)
     {
-        private readonly IDirectoryProvider directoryProvider;
+        this.fileAccessOptions = fileAccessOptions;
+        this.logger = logger;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="StorageHealthCheck"/> class.
-        /// </summary>
-        /// <param name="directoryProvider">The <see cref="IDirectoryProvider"/>.</param>
-        public StorageHealthCheck(IDirectoryProvider directoryProvider) => this.directoryProvider = directoryProvider;
+    /// <inheritdoc/>
+    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+        => Task.FromResult(Check(DataDirectories.Local(fileAccessOptions.Value), logger));
 
-        /// <inheritdoc/>
-        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-        {
-            var healthCheckResult = HealthCheckResult.Healthy();
+    /// <summary>
+    /// Reports the directories that do not exist. The description names their configuration keys only, because
+    /// the health endpoints answer anonymously; the paths go to the log.
+    /// </summary>
+    internal static HealthCheckResult Check(IReadOnlyList<DataDirectory> directories, ILogger logger)
+    {
+        var missing = directories.Where(directory => !Directory.Exists(directory.Path)).ToList();
+        if (missing.Count == 0)
+            return HealthCheckResult.Healthy();
 
-            try
-            {
-                // Simply check if all configured storage directories exist.
-                if (!Directory.Exists(directoryProvider.DownloadDirectory)
-                    || !Directory.Exists(directoryProvider.AssetDirectory)
-                    || !Directory.Exists(directoryProvider.PipelineDirectory))
-                {
-                    healthCheckResult = HealthCheckResult.Unhealthy();
-                }
-            }
-            catch (Exception)
-            {
-                healthCheckResult = HealthCheckResult.Unhealthy();
-            }
+        logger.LogWarning(
+            "Storage directories missing: {MissingDirectories}",
+            string.Join(", ", missing.Select(directory => $"{directory.Key} <{Path.GetFullPath(directory.Path)}>")));
 
-            return await Task.FromResult(healthCheckResult).ConfigureAwait(false);
-        }
+        return HealthCheckResult.Unhealthy($"Missing: {string.Join(", ", missing.Select(directory => directory.Key))}");
     }
 }

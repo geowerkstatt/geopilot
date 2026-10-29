@@ -14,7 +14,7 @@ public class CatalogTest
     public void Initialize()
     {
         app = new GeopilotApiApp();
-        httpClient = app.CreateClient();
+        httpClient = app.CreateAdminClient();
     }
 
     [TestCleanup]

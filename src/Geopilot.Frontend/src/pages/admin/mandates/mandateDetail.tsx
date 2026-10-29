@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { FormHelperText, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
@@ -11,6 +11,7 @@ import {
   Mandate,
   Organisation,
   PipelineSummary,
+  StacAccess,
 } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
@@ -69,6 +70,7 @@ const MandateDetail = () => {
         description: {},
         isPublic: false,
         allowDelivery: false,
+        stacAccess: StacAccess.AdminsOnly,
         organisations: [],
         fileTypes: [],
         // Prefill coordinates to allow editing them in the form
@@ -86,15 +88,9 @@ const MandateDetail = () => {
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
-    // Clear eligible organisations and allowDelivery if mandate is public
-    if (formData["isPublic"]) {
-      mandate.organisations = [];
-      mandate.allowDelivery = false;
-    } else {
-      mandate.organisations = formData["organisations"]?.map(
-        (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
-      );
-    }
+    mandate.organisations = formData["organisations"]?.map(
+      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
+    );
 
     return mandate;
   };
@@ -184,12 +180,22 @@ const MandateDetail = () => {
         </FormContainerHalfWidth>
       </GeopilotBox>
       <GeopilotBox>
-        <Stack direction="row">
-          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
-            {t("spatialExtent")}
-          </Typography>
-          <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>
-        </Stack>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+          {t("stacBrowser")}
+        </Typography>
+        <FormContainer>
+          <FormSelect
+            fieldName={"stacAccess"}
+            label={"stacAccess"}
+            required={true}
+            selected={mandate?.stacAccess}
+            values={[
+              { key: 0, value: StacAccess.AdminsOnly, name: t("stacAccessAdminsOnly") },
+              { key: 1, value: StacAccess.Public, name: t("stacAccessPublic") },
+            ]}
+          />
+        </FormContainer>
+        <Typography variant={"body1"}>{t("spatialExtent")}</Typography>
         <FormContainer>
           <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
         </FormContainer>

@@ -19,7 +19,7 @@ Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsda
 
 ## Wer darf eine Pipeline ausführen?
 
-Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein solches Mandat kann entweder öffentlich sein oder über die Organisation einem Benutzer zugeordnet werden.
+Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
 
 ## Wie ist der Ablauf einer Pipeline-Ausführung?
 
@@ -58,7 +58,7 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 
 Ein Schritt und somit auch ein Prozess kann 1-n Inputs und 1-n Outputs haben. Die Inputs eines Schrittes werden von vorherigen Schritten bezogen. Ein Input kann zudem die hochgeladenen Dateien über `${upload()}` beziehen. Ebenso kann ein Input über eine Datei-Referenz `${file(pfad)}` eine Datei aus dem konfigurierten Ressourcen-Verzeichnis beziehen. Die Outputs eines Schrittes sind implizit alle öffentlichen, lesbaren Properties seines Prozess-Ergebnisses; sie stehen den darauffolgenden Schritten unter ihrem Property-Namen (PascalCase) zur Verfügung, ohne einzeln deklariert werden zu müssen.
 
-Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Am Ende der Pipeline-Ausführung stehen die Ergebnisse zur Datenlieferung oder zum Download bereit. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
+Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Downloads und Visualisierungen stehen bereit, sobald der jeweilige Schritt abgeschlossen ist. Die Dateien für die Datenlieferung werden erst am Ende der Pipeline-Ausführung bereitgestellt, und nur wenn die Lieferung möglich ist. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
 
 - `Download`: Die Daten werden zum Download bereitgestellt, und können von den Anwendern heruntergeladen werden. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein. Der deklarierte Typ der Property wird beim Laden geprüft: Eine Property, die gar keine Datei liefern kann, verhindert den Start. Ist der Wert zur Laufzeit nicht gesetzt (`null`), schlägt der Schritt fehl.
 - `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; auch hier wird der deklarierte Typ beim Laden geprüft. Ist der Wert zur Laufzeit nicht gesetzt (`null`), wird nichts geliefert, und der Schritt schlägt anders als bei `Download` nicht fehl. Die Lieferung enthält nur **genau** die Dateien, die von einem Schritt als `Delivery` getaggt wurden. Um hochgeladene Dateien in der Lieferung zu berücksichtigen, wird üblicherweise ein Matcher-Schritt verwendet, der die Uploads als `${upload()}` erhält und seine Treffer und optional seine `UnmatchedFiles` als `Delivery` taggt. Der Asset-Typ einer gelieferten Datei ergibt sich aus ihrer Herkunft: kam sie als Upload in die Pipeline, wird sie als `PrimaryData` geführt, wurde sie innerhalb der Pipeline erzeugt oder bearbeitet, als `ProcessedData`. Enthält eine Lieferung keine einzige `Delivery`-getaggte Datei, wird die Deklaration mit einem Fehler abgelehnt.
@@ -70,6 +70,56 @@ Der Zugriff auf diese Daten erfolgt über eine Referenz in der Form `${step_outp
 Die Daten können dabei verschiedene Typen haben. Dies können einfache Datentypen wie Strings oder Zahlen sein, aber auch komplexe Datentypen wie Dateien (z.B. `IPipelineFile`) oder Listen. Es ist dabei zu beachten, dass die Daten, welche von einem Schritt bereitgestellt werden, von den darauffolgenden Schritten verarbeitet werden können. Um dies zu gewährleisten muss die Dokumentation des jeweilig verwendeten Prozessors konsultiert werden. Dabei muss sowohl der Typ, als auch der Namen, unter welchem die Daten dem Prozessor bereitgestellt werden, übereinstimmen. Stimmt dies nicht überein, startet die Applikation nicht (siehe [Validierungen](#validierungen)).
 
 Es ist möglich, dass die Daten von einem Schritt von mehreren darauffolgenden Schritten verarbeitet werden können. Ebenso ist es möglich, dass sich mehrere Schritte auf den gleichen Datensatz beziehen. Durch diese Möglichkeiten lassen sich Ausführungsstränge öffnen und wieder zusammenführen.
+
+Das folgende Beispiel zeigt diese Verknüpfungen an einer Pipeline mit drei Schritten. Der Output `Dateien` des Schrittes `zuordnung` wird von zwei Schritten verwendet, und `paket` führt ihn mit dem `Protokoll` aus `pruefung` und einer Ressourcen-Datei in seinem Parameter `dateien` zusammen. Schritt-IDs, Parameter und Property-Namen sind frei gewählt; welche Inputs und Outputs ein Prozessor hat, steht in seiner Dokumentation.
+
+```mermaid
+flowchart TB
+    hochgeladen[/"Hochgeladene Dateien"/]
+    literal("Literal in der Definition")
+    ressourcen[/"Ressourcen-Verzeichnis"/]
+
+    ctx_upload[("Pipeline-Context<br/>Upload")]
+    ctx_zuordnung[("Pipeline-Context<br/>+ zuordnung: Dateien")]
+    ctx_pruefung[("Pipeline-Context<br/>+ pruefung: Protokoll, Meldung, Karte")]
+    ctx_paket[("Pipeline-Context<br/>+ paket: Paket")]
+
+    zuordnung["Schritt zuordnung"]
+    pruefung["Schritt pruefung"]
+    paket["Schritt paket"]
+
+    download{{"Download<br/>nach dem Schritt herunterladbar"}}
+    visualisierung{{"Visualization<br/>nach dem Schritt zur Anzeige bereit"}}
+    statusmeldung{{"StatusMessage<br/>als Statusnachricht des Schrittes angezeigt"}}
+    lieferung{{"Delivery<br/>nach dem letzten Schritt in die Lieferung,<br/>sofern die Lieferung möglich ist"}}
+
+    hochgeladen ==> ctx_upload
+    ctx_upload -- "dateien: ${upload()}" --> zuordnung
+    zuordnung ==> ctx_zuordnung
+    ctx_zuordnung -- "datei: ${step_output(zuordnung.Dateien)}" --> pruefung
+    literal -- "umfang: 449" --> pruefung
+    pruefung ==> ctx_pruefung
+    ctx_zuordnung -- "dateien: ${step_output(zuordnung.Dateien)}" --> paket
+    ctx_pruefung -- "dateien: ${step_output(pruefung.Protokoll)}" --> paket
+    ressourcen -- "dateien: ${file(vorlagen/liesmich.txt)}" --> paket
+    paket ==> ctx_paket
+
+    pruefung -. "Protokoll" .-> download
+    pruefung -. "Karte" .-> visualisierung
+    pruefung -. "Meldung" .-> statusmeldung
+    paket -. "Paket" .-> lieferung
+```
+
+Legende:
+
+- Parallelogramm: Datenquelle ausserhalb der Definition (Upload, Ressourcen-Verzeichnis)
+- Abgerundetes Rechteck: Literal, direkt in der Definition geschrieben
+- Rechteck: Schritt
+- Zylinder: Pipeline-Context nach einem Schritt
+- Sechseck: Output-Action
+- Dicker Pfeil: legt Daten im Pipeline-Context ab
+- Durchgezogener Pfeil: Input, beschriftet mit `parameter: quelle`
+- Gestrichelter Pfeil: weist einer Property über `output_actions` eine Action zu
 
 ## Wie ist eine Pipeline-Definition aufgebaut?
 
@@ -94,17 +144,19 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -162,6 +214,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Innerhalb der `output_actions` eines Schrittes darf dieselbe `property` nicht mehrfach vorkommen.
 - Ein Schritt darf höchstens eine Property mit der Action `StatusMessage` taggen.
 - Eine in den `output_actions` referenzierte Property muss auf dem Ergebnistyp existieren und lesbar sein, und ihr deklarierter Typ muss zur Action passen: `Download` und `Delivery` verlangen ein `IPipelineFile` oder eine Sammlung davon, `StatusMessage` einen `LocalizedText` oder ein `Dictionary<string, string>`, `Visualization` ein `IVisualization`.
+- Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
 
@@ -175,7 +228,7 @@ Eine Konfiguration besteht immer aus einem Key-Value-Paar, wobei der Key der Nam
 
 #### Parameter-Typen
 
-Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, schlägt die Pipeline-Ausführung fehl. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
+Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, startet die Anwendung nicht; ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt dabei als nicht gesetzt. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
 
 Es gibt folgende mögliche Typen von Konfigurationsparametern:
 
@@ -231,7 +284,7 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -291,9 +344,9 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
-Der vierte, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
+Zwei weitere, `modelRepository` und `refMappingFile`, sind vom Typ `IPipelineFile` und nennen je eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
@@ -302,7 +355,18 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(
+    string? validationProfile,
+    string? refMapping,
+    string? modelDirs,
+    bool? allObjectsAccessible,
+    string? pluginIds,
+    string? toolVersion,
+    IPipelineFile? modelRepository,
+    IPipelineFile? refMappingFile,
+    IIlivalidatorClient ilivalidatorClient,
+    IPipelineFileManager pipelineFileManager,
+    ILogger logger)
 {
 }
 ```
@@ -331,11 +395,11 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         conditions:
           post:
@@ -348,7 +412,7 @@ pipelines:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
         display_name:
-          en: Zip Package
+          en: ZIP package
         process_id: zip_package_process
         conditions:
           pre:
@@ -498,7 +562,10 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 
 - [XTF Matcher](Prozessoren/xtf-matcher.md)
 - [File Matcher](Prozessoren/file-matcher.md)
+- [Alt/Neu Matcher](Prozessoren/alt-neu-matcher.md)
+- [XTF Metadaten-Extraktor](Prozessoren/xtf-metadaten.md)
 - [XTF Validierung](Prozessoren/xtf-validierung.md)
+- [XTF Diff](Prozessoren/xtf-diff.md)
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)
 - [XTF Fehlervisualisierung](Prozessoren/xtf-fehlervisualisierung.md)
@@ -507,3 +574,4 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
 - [GPKG Export](Prozessoren/gpkg-export.md)
 - [GPKG Validierung](Prozessoren/gpkg-validierung.md)
+- [XTF Diff Visualisierung](Prozessoren/xtf-diff-visualisierung.md)

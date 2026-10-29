@@ -28,11 +28,11 @@ const Footer = () => {
           size={isXs ? "small" : "medium"}
           variant="text"
           data-cy="home-nav"
-          label="geopilot"
           component={RouterLink}
           to="/"
-          onClick={linkClick("/")}
-        />
+          onClick={linkClick("/")}>
+          geopilot
+        </Button>
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"
@@ -59,6 +59,16 @@ const Footer = () => {
           component={RouterLink}
           to="/about"
           onClick={linkClick("/about")}
+        />
+        <Button
+          size={isXs ? "small" : "medium"}
+          variant="text"
+          data-cy="stac-browser-footer-nav"
+          label="stacBrowser"
+          component="a"
+          href="/browser"
+          target="_blank"
+          rel="noopener"
         />
       </Stack>
     </Stack>

@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
@@ -47,7 +48,6 @@ public class SubmissionController : ControllerBase
     private readonly Context context;
     private readonly IMandateService mandateService;
     private readonly IProcessingService processingService;
-    private readonly ISubmissionStore submissionStore;
     private readonly IUploadStore uploadStore;
     private readonly IUploadStorage uploadStorage;
     private readonly IUploadOrchestrationService uploadOrchestration;
@@ -63,7 +63,6 @@ public class SubmissionController : ControllerBase
         Context context,
         IMandateService mandateService,
         IProcessingService processingService,
-        ISubmissionStore submissionStore,
         IUploadStore uploadStore,
         IUploadStorage uploadStorage,
         IUploadOrchestrationService uploadOrchestration,
@@ -77,7 +76,6 @@ public class SubmissionController : ControllerBase
         this.context = context;
         this.mandateService = mandateService;
         this.processingService = processingService;
-        this.submissionStore = submissionStore;
         this.uploadStore = uploadStore;
         this.uploadStorage = uploadStorage;
         this.uploadOrchestration = uploadOrchestration;
@@ -98,7 +96,7 @@ public class SubmissionController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No mandate with the given key is accessible, or the upload does not exist.")]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate cannot take a delivery.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate cannot take a delivery, or the upload is still being processed by an earlier attempt.")]
     public async Task<IActionResult> Create(SubmissionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -163,16 +161,21 @@ public class SubmissionController : ControllerBase
         }
 
         // Started on the request thread: the execution protocol classifies the client from the current request,
-        // and without it every machine delivery would be recorded as coming from an unknown client.
-        var job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer);
-
-        // The stored key is the one the mandate carries, not the one the request spelled: both routes echo the
-        // same value back, whatever whitespace the caller sent.
-        var submission = new Submission(job.Id, mandate.Key ?? string.Empty, declarer, fields);
-        submissionStore.Add(submission);
+        // and without it every machine delivery would be recorded as coming from an unknown client. The delivery
+        // fields make the job an attempt whose delivery geopilot declares itself.
+        ProcessingJob job;
+        try
+        {
+            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer, fields);
+        }
+        catch (JobAlreadyActiveException)
+        {
+            logger.LogInformation("A machine delivery was refused because upload <{UploadId}> is still being processed.", request.UploadId);
+            return Conflict($"Upload <{request.UploadId}> is still being processed by an earlier attempt. Poll that attempt instead of submitting the upload again.");
+        }
 
         logger.LogInformation("Accepted machine delivery <{JobId}> for mandate <{MandateId}>.", job.Id, mandate.Id);
-        return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, submission));
+        return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, deliveryId: null));
     }
 
     /// <summary>
@@ -282,16 +285,11 @@ public class SubmissionController : ControllerBase
             var (mandate, deliveryFields) = declaration.Value;
             uploadStore.CreateUpload(uploadId, storedFiles.ToImmutableList());
 
-            // The job is started before the attempt is remembered, because the job id is the identity of the
-            // attempt. Nothing can finish the job in between: preflight, scanning and the run all happen on
-            // other threads after this call returns.
-            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer);
-            var submission = new Submission(job.Id, mandate.Key ?? string.Empty, declarer, deliveryFields);
-            submissionStore.Add(submission);
+            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer, deliveryFields);
             accepted = true;
 
             logger.LogInformation("Accepted machine delivery <{JobId}> with {FileCount} files for mandate <{MandateId}>.", job.Id, storedFiles.Count, mandate.Id);
-            return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, submission));
+            return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, deliveryId: null));
         }
         catch (Exception ex) when (ex is InvalidDataException or RequestBodyException)
         {
@@ -325,11 +323,11 @@ public class SubmissionController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "This process knows no such attempt. It never existed, it expired with its job, or it belongs to another caller.")]
     public async Task<IActionResult> GetSubmissionStatus(Guid id)
     {
-        var (submission, job) = await ResolveAttemptAsync(id);
-        if (submission is null || job is null)
+        var job = await ResolveAttemptAsync(id);
+        if (job is null)
             return NotFound($"No submission with id <{id}> found.");
 
-        return Ok(BuildResponse(job, submission));
+        return Ok(BuildResponse(job, await FindDeliveryIdAsync(id)));
     }
 
     /// <summary>
@@ -344,8 +342,8 @@ public class SubmissionController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The attempt or the file cannot be found.")]
     public async Task<IActionResult> GetDownload(Guid id, string name)
     {
-        var (submission, job) = await ResolveAttemptAsync(id);
-        if (submission is null)
+        var job = await ResolveAttemptAsync(id);
+        if (job is null)
             return NotFound($"No submission with id <{id}> found.");
 
         if (!downloadFileStore.Exists(id, name))
@@ -359,25 +357,39 @@ public class SubmissionController : ControllerBase
         return File(stream, contentTypeProvider.GetContentTypeAsString(name), downloadName);
     }
 
-    private static string? ResolveOriginalFileName(ProcessingJob? job, string persistedFileName)
-        => job?.Pipeline?.Steps
+    private static string? ResolveOriginalFileName(ProcessingJob job, string persistedFileName)
+        => job.Pipeline?.Steps
             .SelectMany(step => step.Downloads)
             .FirstOrDefault(file => file.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
 
-    private async Task<(Submission? Submission, ProcessingJob? Job)> ResolveAttemptAsync(Guid id)
+    /// <summary>
+    /// The job of an attempt, if the caller started it. Only a job started as a machine delivery is an attempt,
+    /// and another caller must not learn its state.
+    /// </summary>
+    private async Task<ProcessingJob?> ResolveAttemptAsync(Guid id)
     {
-        var submission = submissionStore.GetSubmission(id);
-        if (submission is null)
-            return (null, null);
+        if (processingService.GetJob(id) is not { DeliveryIntent: { } deliveryIntent } job)
+            return null;
 
-        // An attempt belongs to the caller that started it; another caller must not learn its state.
         var declarer = await context.GetDeclarerAsync(User);
-        if (submission.Declarer != declarer)
-            return (null, null);
-
-        return (submission, processingService.GetJob(id));
+        return deliveryIntent.Declarer == declarer ? job : null;
     }
+
+    /// <summary>
+    /// The delivery declared for the job, by geopilot or by the caller itself. A job yields at most one in place,
+    /// which the unique index on the job id of a delivery ensures, so the delivery is the record of a declaration.
+    /// A delivery deleted later counts as well, otherwise the attempt would fall back to processing; one still in
+    /// place comes first.
+    /// </summary>
+    private Task<int?> FindDeliveryIdAsync(Guid jobId)
+        => context.Deliveries
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(d => d.JobId == jobId)
+            .OrderBy(d => d.Deleted)
+            .Select(d => (int?)d.Id)
+            .FirstOrDefaultAsync();
 
     private async Task<Dictionary<string, string[]>> ValidateDeliveryFieldsAsync(int mandateId, DeliveryFields fields, CancellationToken cancellationToken)
     {
@@ -391,7 +403,7 @@ public class SubmissionController : ControllerBase
         return DeliveryFieldValidator.Validate(mandate, fields, precursor);
     }
 
-    private SubmissionResponse BuildResponse(ProcessingJob job, Submission submission)
+    private SubmissionResponse BuildResponse(ProcessingJob job, int? deliveryId)
     {
         // Both builders produce the download URL of this resource: visualizations are not part of the machine
         // contract and are dropped right after, so they never need a URL of their own.
@@ -411,26 +423,27 @@ public class SubmissionController : ControllerBase
             downloads.AddRange(step.Downloads.Select(download => new SubmissionDownload(step.Id, download.OriginalFileName, download.Url)));
         }
 
-        if (submission.DeclarationFailure is not null)
+        // A delivery the caller declared by hand after geopilot could not supersedes the failure.
+        if (deliveryId is null && job.DeclarationFailure is not null)
         {
             messages.Add(new SubmissionMessage(
                 "delivery",
                 SubmissionMessageSeverity.Error,
-                new Dictionary<string, string> { ["en"] = submission.DeclarationFailure }));
+                new Dictionary<string, string> { ["en"] = job.DeclarationFailure }));
         }
 
-        return new SubmissionResponse(job.Id, DeriveState(job, submission), submission.MandateKey, submission.DeliveryId, messages, downloads);
+        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, deliveryId, messages, downloads);
     }
 
-    private static SubmissionState DeriveState(ProcessingJob job, Submission submission)
+    private static SubmissionState DeriveState(ProcessingJob job, int? deliveryId)
     {
-        if (submission.DeliveryId is not null)
+        if (deliveryId is not null)
             return SubmissionState.Delivered;
 
         // A declaration that failed after a run the pipeline allowed is not the fault of the delivered data,
         // so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
         // messages.
-        if (submission.DeclarationFailure is not null)
+        if (job.DeclarationFailure is not null)
             return SubmissionState.Failed;
 
         return job.State switch

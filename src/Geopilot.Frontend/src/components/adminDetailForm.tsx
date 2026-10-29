@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "@mui/icons-material";
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { TranslationKey } from "../appInterfaces";
 import useFetch from "../hooks/useFetch.ts";
 import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -21,10 +22,10 @@ const resetOptions: KeepStateOptions = { keepFieldsRef: true };
 
 interface AdminDetailFormProps<T> {
   basePath: string;
-  backLabel: string;
+  backLabel: TranslationKey;
   data: T | undefined;
   apiEndpoint: string;
-  saveErrorLabel: string;
+  saveErrorLabel: TranslationKey;
   prepareDataForSave: (data: FieldValues) => T;
   children: ReactNode;
 }

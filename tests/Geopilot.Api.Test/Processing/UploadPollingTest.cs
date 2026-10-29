@@ -8,6 +8,7 @@ using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
 using System.Threading.Channels;
@@ -27,6 +28,7 @@ public class UploadPollingTest
     private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
+    private Mock<IPipelineRunRecorder> runRecorderMock;
     private Context context;
 
     [TestInitialize]
@@ -43,15 +45,7 @@ public class UploadPollingTest
         uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
-        var runRecorderMock = new Mock<IPipelineRunRecorder>();
-
-        processingService = new ProcessingService(
-            jobStore,
-            uploadStore,
-            mandateServiceMock.Object,
-            pipelineFactoryMock.Object,
-            runRecorderMock.Object,
-            preflightChannel.Writer);
+        runRecorderMock = new Mock<IPipelineRunRecorder>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
@@ -67,10 +61,15 @@ public class UploadPollingTest
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+
+        processingService = new ProcessingService(jobStore, uploadStore, mandateServiceMock.Object, lifecycle);
+
         backgroundService = new PreflightBackgroundService(
             preflightChannel.Reader,
             scopeFactoryMock.Object,
-            new Mock<ILogger<PreflightBackgroundService>>().Object);
+            new Mock<ILogger<PreflightBackgroundService>>().Object,
+            lifecycle);
     }
 
     [TestCleanup]
@@ -88,6 +87,50 @@ public class UploadPollingTest
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
+    }
+
+    [TestMethod]
+    public async Task StartRecordsWhoStartedTheJob()
+    {
+        var (jobId, uploadId, mandate, user) = await CreateAndStartJobAsync();
+
+        // Through the real service, so a declarer lost on the way to the lifecycle shows here: the execution
+        // protocol would no longer name who started a run.
+        runRecorderMock.Verify(
+            r => r.RecordJobStartedAsync(
+                It.Is<ProcessingJob>(job => job.Id == jobId),
+                mandate,
+                Declarer.ForUser(user.Id),
+                It.Is<UploadInfo>(upload => upload.Id == uploadId)),
+            Times.Once);
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable)
+    {
+        // Started by a signed in user, so a service that settled for a known declarer instead of asking the rule
+        // would mark the run declarable here, and a staging that nobody can declare would be back.
+        var (jobId, _, _, _) = await CreateAndStartJobAsync(isDeclarable);
+
+        var job = processingService.GetJob(jobId);
+        Assert.IsNotNull(job);
+        Assert.AreEqual(isDeclarable, job.IsDeclarable);
+    }
+
+    [TestMethod]
+    public async Task StartBindsTheDeliveryFieldsToTheJob()
+    {
+        var fields = new DeliveryFields(PartialDelivery: null, PrecursorDeliveryId: null, Comment: "declared by geopilot");
+
+        // Through the real service, so fields lost on the way to the lifecycle show here: the job would be no
+        // attempt, geopilot would never declare its delivery, and polling it would answer 404.
+        var (jobId, _, _, _) = await CreateAndStartJobAsync(deliveryFields: fields);
+
+        var job = processingService.GetJob(jobId);
+        Assert.IsNotNull(job);
+        Assert.AreEqual(fields, job.DeliveryIntent?.Fields);
     }
 
     [TestMethod]
@@ -152,28 +195,7 @@ public class UploadPollingTest
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
-    [TestMethod]
-    public async Task PollReturnsFailedEvenWhenCleanupFails()
-    {
-        var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
-
-        orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
-            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.ThreatDetected, "Threat detected."));
-        orchestrationServiceMock
-            .Setup(x => x.ReleaseUploadAsync(uploadId))
-            .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
-
-        var request = await preflightChannel.Reader.ReadAsync();
-        await backgroundService.ProcessRequestAsync(request);
-
-        var polledJob = processingService.GetJob(jobId);
-
-        Assert.IsNotNull(polledJob);
-        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
-    }
-
-    private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartJobAsync()
+    private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartJobAsync(bool isDeclarable = true, DeliveryFields? deliveryFields = null)
     {
         var pipelineId = "pipeline1";
         var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized("Test Mandate"), PipelineId = pipelineId };
@@ -186,15 +208,16 @@ public class UploadPollingTest
         uploadStore.CreateUpload(uploadId, uploadedFiles);
 
         mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.IsDeclarableAsync(mandate.Id, Declarer.ForUser(user.Id))).ReturnsAsync(isDeclarable);
 
-        // The pipeline is now instantiated up front in StartJobAsync (without files) and attached to the job.
-        // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
+        // The start instantiates the pipeline up front (without files) and attaches it to the job. On a preflight
+        // failure the job lifecycle disposes the attached pipeline, so allow Dispose on the strict mock.
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
         pipeline.SetupGet(p => p.Id).Returns(pipelineId);
         pipeline.Setup(p => p.Dispose());
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id));
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), deliveryFields);
 
         return (job.Id, uploadId, mandate, user);
     }

@@ -1,6 +1,7 @@
 import { FC, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { TFunction } from "i18next";
 import { PipelineSummary } from "../../../api/generated";
 import { FormSelect } from "../../../components/form/form";
 import { FormSelectValue } from "../../../components/form/formSelect";
@@ -16,7 +17,7 @@ const getPipelineSelectMenuItems = (
   pipelines: PipelineSummary[] | undefined,
   selected: string | undefined,
   localized: LocalizedResolver,
-  t: (key: string) => string,
+  t: TFunction,
 ): FormSelectValue[] => {
   const items: FormSelectValue[] =
     pipelines?.map((pipeline, idx) => {

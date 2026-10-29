@@ -366,6 +366,7 @@ export type Mandate = {
    * Gets or sets a value indicating whether delivery is permitted.
    */
   allowDelivery: boolean;
+  stacAccess: StacAccess;
   /**
    * List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
    */
@@ -416,7 +417,9 @@ export type MandateSummary = {
     [key: string]: string;
   };
   /**
-   * Indicates whether delivery is allowed for this mandate.
+   * Indicates whether the caller may deliver to this mandate: it allows deliveries and
+   * the caller belongs to one of its organisations. A public mandate is listed for everyone, but delivers for its
+   * members only.
    */
   allowDelivery: boolean;
   evaluatePrecursorDelivery: FieldEvaluationType;
@@ -735,6 +738,16 @@ export const ScanState = {
  * The outcome of the malware scan of a run's uploaded files. Persisted as text.
  */
 export type ScanState = (typeof ScanState)[keyof typeof ScanState];
+
+/**
+ * Who may see the deliveries of a Geopilot.Api.Models.Mandate in the STAC catalog and download their assets.
+ */
+export const StacAccess = { AdminsOnly: "adminsOnly", Public: "public" } as const;
+
+/**
+ * Who may see the deliveries of a Geopilot.Api.Models.Mandate in the STAC catalog and download their assets.
+ */
+export type StacAccess = (typeof StacAccess)[keyof typeof StacAccess];
 
 /**
  * Request to start a job.
@@ -1809,6 +1822,10 @@ export type PostApiV2ProcessingErrors = {
    */
   404: ProblemDetails;
   /**
+   * A job for the upload is still pending or running. Retry once it has ended.
+   */
+  409: ProblemDetails;
+  /**
    * The server encountered an unexpected error while starting the job.
    */
   500: ProblemDetails;
@@ -1943,7 +1960,7 @@ export type PostApiV1SubmissionErrors = {
    */
   404: unknown;
   /**
-   * The mandate cannot take a delivery.
+   * The mandate cannot take a delivery, or the upload is still being processed by an earlier attempt.
    */
   409: unknown;
 };

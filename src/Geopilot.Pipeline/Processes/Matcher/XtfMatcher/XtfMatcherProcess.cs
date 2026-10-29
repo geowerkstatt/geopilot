@@ -1,6 +1,7 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Globalization;
+using System.Text;
 using System.Xml.Linq;
 
 namespace Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
@@ -41,7 +42,7 @@ internal class XtfMatcherProcess
     /// Initializes a new instance of the <see cref="XtfMatcherProcess"/> class with the given filter configuration.
     /// </summary>
     /// <param name="fileExtensions">Set of file extensions to match (e.g. "xtf", "itf"). Case-insensitive. Null or empty means no extension filter.</param>
-    /// <param name="iliModels">Set of ILI model names to match against the <c>ili:model</c> elements in the XTF header. Null or empty means no model filter.</param>
+    /// <param name="iliModels">Set of ILI model names to match against the models declared in the transfer file header (XTF or ITF). Null or empty means no model filter.</param>
     /// <param name="fileNamePatterns">Set of regex patterns matched against the original file name (e.g. "Road.*", "Map.*"). Null or empty means no name filter.</param>
     public XtfMatcherProcess(HashSet<string>? fileExtensions, HashSet<string>? iliModels, HashSet<string>? fileNamePatterns)
     {
@@ -98,50 +99,82 @@ internal class XtfMatcherProcess
     }
 
     /// <summary>
-    /// Reads the ILI model names declared in the XTF header of the given file.
-    /// Supports two XTF formats:
+    /// Reads the ILI model names declared in the header of the given transfer file.
+    /// The extension decides the format, as it does for the validation: <c>itf</c> is INTERLIS 1, anything else XTF.
+    /// Supports three formats:
     /// <list type="bullet">
     /// <item>INTERLIS 2.4: elements in the <c>http://www.interlis.ch/xtf/2.4/INTERLIS</c> namespace (any prefix or default namespace), model name as element text of <c>model</c>.</item>
     /// <item>INTERLIS 2.3: <c>TRANSFER/HEADERSECTION/MODELS/MODEL</c> (default namespace, uppercase) with model name in the <c>NAME</c> attribute.</item>
+    /// <item>INTERLIS 1: the <c>MODL</c> line that follows <c>MTID</c> after the <c>SCNT</c> comment section.</item>
     /// </list>
-    /// Returns an empty set if the file cannot be parsed or matches neither format.
+    /// Returns an empty set if the file cannot be parsed or matches none of the formats.
     /// </summary>
     private static async Task<HashSet<string>> ExtractIliModelsAsync(IPipelineFile file, CancellationToken cancellationToken)
     {
         try
         {
             using var stream = await file.OpenReadAsync(cancellationToken);
-            var doc = XDocument.Load(stream);
-            var root = doc.Root;
-            if (root == null)
-                return new HashSet<string>();
-
-            // INTERLIS 2.4: elements are bound to the INTERLIS 2.4 namespace URI.
-            // The XML prefix is arbitrary per the INTERLIS 2.4 reference manual — match by namespace URI, not by prefix.
-            if (root.Name.Namespace == Interlis24Namespace)
-            {
-                return root
-                    .Element(Interlis24Namespace + "headersection")?
-                    .Element(Interlis24Namespace + "models")?
-                    .Elements(Interlis24Namespace + "model")
-                    .Select(e => e.Value)
-                    .ToHashSet() ?? new HashSet<string>();
-            }
-
-            // INTERLIS 2.3: unprefixed uppercase elements in the default namespace, model name is the NAME attribute.
-            var defaultNamespace = root.GetDefaultNamespace();
-            return root
-                .Element(defaultNamespace + "HEADERSECTION")?
-                .Element(defaultNamespace + "MODELS")?
-                .Elements(defaultNamespace + "MODEL")
-                .Select(e => e.Attribute("NAME")?.Value)
-                .OfType<string>()
-                .ToHashSet() ?? new HashSet<string>();
+            return string.Equals(file.FileExtension, "itf", StringComparison.OrdinalIgnoreCase)
+                ? await ReadInterlis1ModelsAsync(stream, cancellationToken)
+                : ReadXtfModels(stream);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            // A file that is not readable as XTF simply does not match; a cancelled job must still cancel.
+            // A file that is not readable as a transfer file simply does not match; a cancelled job must still cancel.
             return new HashSet<string>();
         }
+    }
+
+    private static HashSet<string> ReadXtfModels(Stream stream)
+    {
+        var doc = XDocument.Load(stream);
+        var root = doc.Root;
+        if (root == null)
+            return new HashSet<string>();
+
+        // INTERLIS 2.4: elements are bound to the INTERLIS 2.4 namespace URI.
+        // The XML prefix is arbitrary per the INTERLIS 2.4 reference manual, so match by namespace URI, not by prefix.
+        if (root.Name.Namespace == Interlis24Namespace)
+        {
+            return root
+                .Element(Interlis24Namespace + "headersection")?
+                .Element(Interlis24Namespace + "models")?
+                .Elements(Interlis24Namespace + "model")
+                .Select(e => e.Value)
+                .ToHashSet() ?? new HashSet<string>();
+        }
+
+        // INTERLIS 2.3: unprefixed uppercase elements in the default namespace, model name is the NAME attribute.
+        var defaultNamespace = root.GetDefaultNamespace();
+        return root
+            .Element(defaultNamespace + "HEADERSECTION")?
+            .Element(defaultNamespace + "MODELS")?
+            .Elements(defaultNamespace + "MODEL")
+            .Select(e => e.Attribute("NAME")?.Value)
+            .OfType<string>()
+            .ToHashSet() ?? new HashSet<string>();
+    }
+
+    private static async Task<HashSet<string>> ReadInterlis1ModelsAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        // INTERLIS 1 transfers are ISO 8859-1 text and name exactly one model. Only the header is read, never the data.
+        using var reader = new StreamReader(stream, Encoding.Latin1);
+        if ((await reader.ReadLineAsync(cancellationToken))?.TrimEnd() != "SCNT")
+            return new HashSet<string>();
+
+        // The comment lines up to "////" are free text and may themselves contain "MODL".
+        string? line;
+        do
+        {
+            line = await reader.ReadLineAsync(cancellationToken);
+        }
+        while (line != null && line.TrimEnd() != "////");
+
+        await reader.ReadLineAsync(cancellationToken); // MTID
+        var modelLine = await reader.ReadLineAsync(cancellationToken);
+        if (modelLine == null || !modelLine.StartsWith("MODL ", StringComparison.Ordinal))
+            return new HashSet<string>();
+
+        return new HashSet<string> { modelLine["MODL ".Length..].Trim() };
     }
 }

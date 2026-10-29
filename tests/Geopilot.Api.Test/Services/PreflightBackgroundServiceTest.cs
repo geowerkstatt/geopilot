@@ -6,6 +6,7 @@ using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Threading.Channels;
 
@@ -39,8 +40,12 @@ public class PreflightBackgroundServiceTest
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
+        // The real lifecycle, not a mock: it resolves the recorder and the orchestration from the same scope
+        // factory, so these tests still see every consequence of a preflight.
         var channel = Channel.CreateUnbounded<PreflightRequest>();
-        service = new PreflightBackgroundService(channel.Reader, scopeFactoryMock.Object, loggerMock.Object);
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, Mock.Of<IPipelineFactory>(), channel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+
+        service = new PreflightBackgroundService(channel.Reader, scopeFactoryMock.Object, loggerMock.Object, lifecycle);
     }
 
     [TestMethod]
@@ -62,13 +67,37 @@ public class PreflightBackgroundServiceTest
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
+        // The preflight runs the checks and hands the registered files on; what follows is JobLifecycleTest's.
         orchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(uploadId), Times.Once);
         orchestrationServiceMock.Verify(x => x.RegisterJobFiles(uploadId, jobId), Times.Once);
         jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, registeredFiles), Times.Once);
-        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(jobId, scanResult), Times.Once);
+    }
 
-        // Nothing is transferred and the blobs stay: the files are fetched when a step reads them.
-        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    [TestMethod]
+    public async Task ProcessRequestAsyncLeavesJobAndUploadUntouchedWhenTheHostShutsDown()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>(MockBehavior.Strict).Object);
+        using var shutdown = new CancellationTokenSource();
+
+        // The scan only ends when the shutdown cancels it, like a scan over several gigabytes would.
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        orchestrationServiceMock
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
+            .Returns<Guid, CancellationToken>(async (_, cancellationToken) =>
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return new ScanResult(true);
+            });
+
+        var processing = service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId), shutdown.Token);
+        await shutdown.CancelAsync();
+        await processing.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // The strict mocks refuse any other call, so the job is neither failed nor queued and no file is released.
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(It.IsAny<Guid>(), It.IsAny<ScanResult>()), Times.Never);
     }
 
     [TestMethod]
@@ -95,12 +124,11 @@ public class PreflightBackgroundServiceTest
     }
 
     [TestMethod]
-    public async Task ProcessRequestAsyncSetsFailedOnPreflightFailure()
+    public async Task ProcessRequestAsyncReportsTheReasonOfAPreflightException()
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>().Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
@@ -110,21 +138,15 @@ public class PreflightBackgroundServiceTest
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
-        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
-        pipeline.Verify(p => p.Dispose(), Times.Once);
-        runRecorderMock.Verify(
-            r => r.RecordPreflightFailedAsync(jobId, It.Is<string>(reason => reason.Contains(nameof(PreflightFailureReason.IncompleteUpload)) && reason.Contains("File missing."))),
-            Times.Once);
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(jobId, "IncompleteUpload: File missing."), Times.Once);
     }
 
     [TestMethod]
-    public async Task ProcessRequestAsyncSetsFailedOnGenericException()
+    public async Task ProcessRequestAsyncReportsTheMessageOfAnUnexpectedException()
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>().Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
@@ -134,21 +156,19 @@ public class PreflightBackgroundServiceTest
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
-        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
-        pipeline.Verify(p => p.Dispose(), Times.Once);
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(jobId, "Network timeout"), Times.Once);
     }
 
     [TestMethod]
-    public async Task ProcessRequestAsyncSetsFailedWhenRegisteringTheFilesFails()
+    public async Task ProcessRequestAsyncKeepsThePassedScanWhenRegisteringTheFilesFails()
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>().Object);
+        var scanResult = new ScanResult(true, Hashes: new Dictionary<string, string> { ["uploads/key"] = "abc123" });
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(new ScanResult(true));
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(scanResult);
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Throws(new InvalidOperationException($"Upload <{uploadId}> has no files to register."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
@@ -156,56 +176,10 @@ public class PreflightBackgroundServiceTest
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
+        // The scan passed before registering failed, so its outcome and hashes still belong in the protocol.
+        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(jobId, scanResult), Times.Once);
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(jobId, $"Upload <{uploadId}> has no files to register."), Times.Once);
         jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineFile>>()), Times.Never);
-        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
-        pipeline.Verify(p => p.Dispose(), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task ProcessRequestAsyncSetsFailedEvenWhenCleanupFails()
-    {
-        var jobId = Guid.NewGuid();
-        var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
-
-        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
-            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
-        orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId))
-            .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
-        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
-
-        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
-
-        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
-        pipeline.Verify(p => p.Dispose(), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task ProcessRequestAsyncContinuesCleanupWhenTheJobCannotBeMarkedAsFailed()
-    {
-        var jobId = Guid.NewGuid();
-        var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
-
-        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
-            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
-        orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
-
-        // The job moved on since the preflight read it, so the store rejects the transition.
-        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(false);
-
-        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
-
-        pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline is released even when the job could not be marked as failed.");
-        orchestrationServiceMock.Verify(
-            x => x.ReleaseUploadAsync(uploadId),
-            Times.Once,
-            "The upload is released even when the job could not be marked as failed.");
     }
 
     [TestMethod]

@@ -23,7 +23,9 @@ public class UploadCleanupServiceTest
         uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<UploadCleanupService>>();
 
-        uploadOptions = new UploadOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
+        uploadStoreMock.Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>())).Returns(new List<UploadInfo>());
+
+        uploadOptions = new UploadOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048, UploadUrlExpiryMinutes = 60 };
 
         var optionsMock = new Mock<IOptions<UploadOptions>>();
         optionsMock.Setup(o => o.Value).Returns(uploadOptions);
@@ -365,6 +367,58 @@ public class UploadCleanupServiceTest
         uploadStorageMock.Verify(s => s.DeleteAsync("rogue-blob.txt"), Times.Once);
         uploadStorageMock.Verify(s => s.DeleteAsync("other/stuff.bin"), Times.Once);
         uploadStorageMock.Verify(s => s.DeleteAsync("uploads/some-valid-path"), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupAsyncExpiresSessionWithoutFiles()
+    {
+        var emptyUpload = CreateUpload(Guid.NewGuid());
+        DateTime? cutoff = null;
+
+        uploadStorageMock
+            .Setup(s => s.ListFilesAsync("uploads/"))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
+
+        uploadStoreMock
+            .Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>()))
+            .Callback<DateTime>(c => cutoff = c)
+            .Returns(new List<UploadInfo> { emptyUpload });
+
+        SetupEmptyContainerListing();
+
+        await service.RunCleanupAsync();
+
+        // Twice the URL lifetime: the upload window, then the same span again for an upload still running.
+        Assert.IsNotNull(cutoff);
+        var expectedCutoff = DateTime.UtcNow.AddMinutes(-2 * uploadOptions.UploadUrlExpiryMinutes);
+        Assert.IsTrue((expectedCutoff - cutoff.Value).Duration() < TimeSpan.FromMinutes(1));
+        uploadStoreMock.Verify(s => s.RemoveUpload(emptyUpload.Id), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupAsyncKeepsOldSessionWithFiles()
+    {
+        var uploadId = Guid.NewGuid();
+        var upload = CreateUpload(uploadId);
+
+        uploadStorageMock
+            .Setup(s => s.ListFilesAsync("uploads/"))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
+            {
+                ($"uploads/{uploadId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-1)),
+            });
+
+        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(upload);
+        uploadStoreMock
+            .Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>()))
+            .Returns(new List<UploadInfo> { upload });
+
+        SetupEmptyContainerListing();
+
+        await service.RunCleanupAsync();
+
+        // A session with files goes with its files, once they are older than CleanupAgeHours.
+        uploadStoreMock.Verify(s => s.RemoveUpload(uploadId), Times.Never);
     }
 
     private static UploadInfo CreateUpload(Guid uploadId) =>

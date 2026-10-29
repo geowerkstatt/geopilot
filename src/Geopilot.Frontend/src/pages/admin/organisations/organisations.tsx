@@ -59,7 +59,7 @@ const Organisations = () => {
     },
     {
       field: "users",
-      headerName: t("users"),
+      headerName: t("members"),
       flex: 1,
       minWidth: 400,
       valueGetter: (users: User[]) => {
