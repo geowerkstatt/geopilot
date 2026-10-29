@@ -137,4 +137,17 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNotNull(visualization.Data.FilterBy);
         CollectionAssert.AreEqual(new[] { TreeField.Class, TreeField.ErrorType }, visualization.Data.FilterBy.ToList());
     }
+
+    [TestMethod]
+    public async Task MapUsesConfiguredBaseMapLayerIds()
+    {
+        var process = new XtfErrorVisualizationProcess(include: ["map"], baseMapLayerIds: ["ch.kantone.cadastralwebmap-farbe"]);
+        var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
+
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
+
+        var baseMapLayerIds = processResult.Visualization?.Data.Map?.Layers[0].LayerIds;
+        Assert.IsNotNull(baseMapLayerIds);
+        CollectionAssert.AreEqual(new[] { "ch.kantone.cadastralwebmap-farbe" }, baseMapLayerIds.ToList());
+    }
 }

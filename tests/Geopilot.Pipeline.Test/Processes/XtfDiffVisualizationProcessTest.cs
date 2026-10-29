@@ -100,12 +100,15 @@ public class XtfDiffVisualizationProcessTest
     [TestMethod]
     public async Task UsesTheConfiguredBaseMap()
     {
-        var process = new XtfDiffVisualizationProcess(baseMapWmtsCapabilitiesUrl: "https://wmts.example.ch/WMTSCapabilities.xml");
+        var process = new XtfDiffVisualizationProcess(baseMapWmtsCapabilitiesUrl: "https://wmts.example.ch/WMTSCapabilities.xml", baseMapLayerIds: ["grundkarte"]);
 
         var map = (await VisualizeAsync("changes.json", process)).Map;
 
         Assert.IsNotNull(map);
         Assert.AreEqual("https://wmts.example.ch/WMTSCapabilities.xml", map.Layers[0].Wmts);
+        var baseMapLayerIds = map.Layers[0].LayerIds;
+        Assert.IsNotNull(baseMapLayerIds);
+        CollectionAssert.AreEqual(new[] { "grundkarte" }, baseMapLayerIds.ToArray());
     }
 
     [TestMethod]
