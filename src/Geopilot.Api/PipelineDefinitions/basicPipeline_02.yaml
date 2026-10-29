@@ -63,6 +63,10 @@ processes:
     default_config:
       doSchemaImport: true
       createBasketCol: true
+  - id: gpkg_metadata_extractor
+    implementation: Geopilot.Pipeline.Processes.Gpkg.GpkgMetadataExtractorProcess
+  - id: gpkg_data_validator
+    implementation: Geopilot.Pipeline.Processes.Gpkg.Ili2GpkgValidatorProcess
 
 pipelines:
   - id: ili_validation
@@ -817,6 +821,97 @@ pipelines:
             actions:
               - Download
               - Delivery
+          - property: ErrorLog
+            actions:
+              - Download
+              - Delivery
+          - property: XtfLog
+            actions:
+              - Download
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+  - id: gpkg_validation
+    display_name:
+      en: GPKG Data Validation
+      de: GPKG-Datenvalidierung
+      it: Validazione dei dati GPKG
+      fr: Validation des données GPKG
+    steps:
+      - id: file_matching
+        display_name:
+          en: Analyzing uploaded files
+          de: Hochgeladene Dateien werden analysiert
+          it: Analisi dei file caricati
+          fr: Analyse des fichiers téléversés
+        process_id: file_matcher
+        process_config_overwrites:
+          fileExtensions:
+            - gpkg
+        conditions:
+          post:
+            fail_conditions:
+              - id: one-gpkg-required
+                expression: "Length([file_matching.MatchedFiles]) != 1"
+                message:
+                  de: "Es muss genau eine GPKG-Datei hochgeladen werden."
+                  en: "Exactly one GPKG file must be uploaded."
+                  fr: "Exactement un fichier GPKG doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file GPKG."
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: MatchedFiles
+            actions:
+              - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: gpkg_metadata
+        display_name:
+          en: Extracting GPKG metadata
+          de: GPKG-Metadaten werden extrahiert
+          it: Estrazione dei metadati GPKG
+          fr: Extraction des métadonnées GPKG
+        process_id: gpkg_metadata_extractor
+        conditions:
+          post:
+            fail_conditions:
+              - id: gpkg-not-readable
+                expression: "[gpkg_metadata.FileState] != 'Readable'"
+                message:
+                  de: "Aus der GeoPackage-Datei liessen sich keine Modelle lesen."
+                  en: "No models could be read from the GeoPackage file."
+                  fr: "Aucun modèle n'a pu être lu dans le fichier GeoPackage."
+                  it: "Non è stato possibile leggere alcun modello dal file GeoPackage."
+        input:
+          gpkgFile: "${step_output(file_matching.MatchedFiles)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      - id: gpkg_validation
+        display_name:
+          en: Validating GPKG data
+          de: GPKG-Daten validieren
+          it: Validazione dei dati GPKG
+          fr: Validation des données GPKG
+        process_id: gpkg_data_validator
+        conditions:
+          post:
+            fail_conditions:
+              - id: not-successful
+                expression: "[gpkg_validation.ValidationSuccessful] == false"
+                message:
+                  de: "Die Daten-Validierung war nicht erfolgreich."
+                  en: "The data validation was not successful."
+                  fr: "La validation des données n'a pas réussi."
+                  it: "La validazione dei dati non è riuscita."
+        input:
+          dbFile: "${step_output(file_matching.MatchedFiles)}"
+          models: "${step_output(gpkg_metadata.Models)}"
+        output_actions:
           - property: ErrorLog
             actions:
               - Download

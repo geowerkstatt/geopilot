@@ -20,7 +20,7 @@ Ein GPKG Export Prozess muss unter `processes[X].implementation` den Wert `Geopi
 Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
 - `dbFile`: Die zu exportierende GeoPackage-Datei vom Typ `IPipelineFile`, Pflicht.
-- `models`, `topics`, `baskets`, `dataset`, `exportModels`: Optionale Werte vom Typ `string`, je mit Semikolon getrennt. Sie grenzen ein, was exportiert wird, bzw. in welchem Modell (`--exportModels`).
+- `models`, `topics`, `baskets`, `dataset`, `exportModels`: Optionale Listen vom Typ `string[]`; ein Eintrag darf auch mehrere Werte mit Semikolon getrennt enthalten (`ModelA;ModelB`). Sie grenzen ein, was exportiert wird, bzw. in welchem Modell (`--exportModels`).
 - `transferFormat`: Optionales Format vom Typ `Ili2GpkgTransferFormat`. Erlaubte Werte: `xtf` (Voreinstellung), `itf`, `gml` oder `gml20`; die Gross-/Kleinschreibung ist unerheblich, ein anderer Wert schlägt bei der Validierung beim Applikationsstart fehl.
 
 ## Output

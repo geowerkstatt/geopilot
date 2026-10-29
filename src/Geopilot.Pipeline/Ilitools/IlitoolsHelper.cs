@@ -55,6 +55,16 @@ internal static class IlitoolsHelper
     }
 
     /// <summary>
+    /// Splits a collection of semicolon separated lists in the same way as <see cref="SplitConfiguredList(string?)"/>,
+    /// returning null if <paramref name="value"/> is null or the resulting list would contain no entries.
+    /// </summary>
+    internal static string[]? SplitConfiguredListEntries(IEnumerable<string?>? value)
+    {
+        var entries = value?.SelectMany(entry => SplitConfiguredList(entry) ?? []).ToArray();
+        return entries is { Length: > 0 } ? entries : null;
+    }
+
+    /// <summary>
     /// Turns a configured dataset id into the <c>ilidata:</c> reference the tool expects. An existing prefix is kept.
     /// Returns null for a blank value.
     /// </summary>
