@@ -502,6 +502,7 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual("myFile.pdf", first.DeliveryFiles.Single().PersistedFileName, "The first file keeps its name.");
         Assert.AreEqual("myFile_2.pdf", second.DeliveryFiles.Single().PersistedFileName);
+        Assert.AreEqual("myFile_2.pdf", second.DeliveryFiles.Single().OriginalFileName, "A delivered file is shown under the name it is stored under.");
         Assert.AreEqual("MYFILE_3.pdf", third.DeliveryFiles.Single().PersistedFileName, "Names differing only in case collide as well.");
         using var reader = new StreamReader(stagingStore.OpenFile(jobId, "myFile_2.pdf"));
         Assert.AreEqual("second-content", await reader.ReadToEndAsync());

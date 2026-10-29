@@ -14,6 +14,7 @@ public class StringExtensionsTest
     [DataRow("SILLY,MONKEY.docx", "SILLY,MONKEY.docx")]
     [DataRow("CamelCase.bat", "CamelCase.bat")]
     [DataRow("SLICKER-CHIPMUNK.bat", "SLICKER-CHIPMUNK.bat")]
+    [DataRow("ZANYWATER$", "ZANYWATER$")]
     public void SanitizeFileNameForValidFileNames(string expected, string fileName)
         => Assert.AreEqual(expected, fileName.SanitizeFileName());
 
@@ -27,10 +28,12 @@ public class StringExtensionsTest
     [DataRow("TRAWLSOUFFLE", "/TRAWLSOUFFLE*")]
     [DataRow("VIOLENTIRON", "><VIOLENTIRON\"|")]
     [DataRow("YELLOWBAGEL", "YELLOWBAGEL://")]
-    [DataRow("ZANYWATER", "ZANYWATER$")]
     [DataRow("SLICKERCANDID", "..\\SLICKERCANDID")]
     [DataRow("DIREFOOT", "./DIREFOOT:")]
     [DataRow("FIREFOOT", ".../...//FIREFOOT\\")]
+    [DataRow("JUNIORGLEE", "JUNIOR\tGLEE")]
+    [DataRow("INVOICEfdp.exe", "INVOICE‮fdp.exe")]
+    [DataRow("SNEAKYDOTS.xtf", "SNEAKY.?.DOTS.xtf")]
     public void SanitizeFileNameForInvalidFileNames(string expected, string fileName)
         => Assert.AreEqual(expected, fileName.SanitizeFileName());
 

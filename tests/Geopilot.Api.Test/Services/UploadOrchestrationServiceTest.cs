@@ -134,6 +134,13 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
+    public async Task InitiateUploadAsyncThrowsForFileNameThatSanitizingChanges()
+    {
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("invoice‮fdp.exe", 1024)] };
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
+    }
+
+    [TestMethod]
     public async Task RunPreflightChecksAsyncSucceeds()
     {
         var upload = CreateUpload("test.xtf", 1024);

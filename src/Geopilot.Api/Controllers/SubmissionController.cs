@@ -544,6 +544,9 @@ public class SubmissionController : ControllerBase
         if (string.IsNullOrWhiteSpace(fileName))
             return BadRequest("Every file part must carry a file name.");
 
+        if (!fileName.IsSanitizedFileName())
+            return BadRequest($"The file <{fileName}> has a name geopilot would have to change: remove control and invisible characters, \\ / : * ? \" < > |, '..' and spaces at the start or end.");
+
         if (storedFiles.Any(file => string.Equals(file.FileName, fileName, StringComparison.OrdinalIgnoreCase)))
             return BadRequest($"The file <{fileName}> is sent more than once.");
 

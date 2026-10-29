@@ -240,7 +240,9 @@ public class ProcessingRunner : BackgroundService
                     var fileName = MakeUniqueDeliveryFileName(step.Id, deliveryFile.OriginalFileName, usedNames);
                     await CopyToAsync(stagingFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
                     var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
-                    step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
+
+                    // The stored name twice on purpose: a delivered file is shown under the name it is stored under.
+                    step.AddDeliveryFile(new PersistedFile(fileName, fileName, fromUpload));
                 }
             }
         }

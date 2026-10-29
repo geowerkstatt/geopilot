@@ -97,6 +97,8 @@
 - The OpenAPI documentation now combines all API versions in a single document `/swagger/all/swagger.json`. The old `v1` and `v2` documents are no longer provided.
 - The first user of an installation is no longer automatically granted admin access. The first administrator should be assigned manually in the database instead.
 - The uploaded files of a processing run cancelled by the job timeout or a shutdown now stay until their upload session expires (`Upload:CleanupAgeHours`) instead of being deleted with the job once `Processing:JobRetention` has passed. Every other run releases its upload when it ends.
+- An upload or a machine delivery is refused with `400` when geopilot would have to change a file name to store the file: names with control or invisible formatting characters, with `\ / : * ? " < > |`, with `..` or with spaces at the start or end. Such names used to be accepted and stored under a shortened name. File names are now cleaned the same way on every operating system, and a `$` in a file name is kept.
+- A delivered file has one name: the STAC catalog, the asset download and the list of files before declaring show the name the file is stored under. A second file with the same name therefore appears with a counter, for example `data_2.xtf`, and a file a step produced, for example from a ZIP archive, appears under its cleaned name. Deliveries declared before keep the names they were shown with.
 
 ### Removed
 
@@ -134,6 +136,7 @@
 - When the pipelines fail to load on the mandate page, the error message is now shown in the selected language instead of as the raw text `pipelinesLoadingError`.
 - A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
 - The mandates offered for a delivery are listed alphabetically by their name in the selected language. Until now a mandate moved to the end of the list once it was edited.
+- A delivered file whose name had to be cleaned around two dots, such as `a.?.b.xtf`, can be downloaded again. It was stored under a different name than the one recorded, so its download failed, and it could overwrite another file of the same delivery.
 
 ## v3.0.341 - 2026-06-17
 
