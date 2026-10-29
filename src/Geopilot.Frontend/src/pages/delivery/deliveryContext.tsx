@@ -26,4 +26,5 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   continueToNextStep: () => {},
   openCompletedOrNextStep: () => false,
   submittedData: undefined,
+  hasNoMandate: false,
 });
