@@ -96,6 +96,7 @@ public static class WebApplicationExtensions
         // capabilities document (connect-src) and loads tile images (img-src) from the base map host, so
         // that origin has to be allow-listed. Defaults to the swisstopo base map; keep this in sync with
         // any override of the map visualization base map URL.
+        // shortcut: one base map host per installation, derive the hosts from the pipeline definition if pipelines need different base maps
         var mapBaseMapUrl = configuration["MapVisualization:BaseMapWmtsCapabilitiesUrl"];
         if (string.IsNullOrWhiteSpace(mapBaseMapUrl))
         {

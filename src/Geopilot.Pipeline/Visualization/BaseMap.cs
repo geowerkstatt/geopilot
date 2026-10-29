@@ -51,14 +51,17 @@ internal static class BaseMap
     /// selected in the layer switcher.
     /// </summary>
     /// <param name="wmtsCapabilitiesUrl">The configured WMTS capabilities URL, if any.</param>
+    /// <param name="layerIds">The configured layers to request from the service, drawn in this order (the last on top), if any.</param>
     /// <param name="attribution">The configured copyright/attribution text, if any.</param>
     /// <param name="attributionUrl">The configured URL the attribution links to, if any.</param>
     /// <returns>The base map layer.</returns>
-    public static MapLayer CreateLayer(string? wmtsCapabilitiesUrl, string? attribution, string? attributionUrl) => new()
+    public static MapLayer CreateLayer(string? wmtsCapabilitiesUrl, IReadOnlyList<string>? layerIds, string? attribution, string? attributionUrl) => new()
     {
         Title = Title,
         Wmts = OrDefault(wmtsCapabilitiesUrl, DefaultWmtsCapabilitiesUrl),
-        LayerIds = [GrayLayerId, DefaultLayerId],
+
+        // An empty list must not reach the client, which would then show every layer the service advertises.
+        LayerIds = layerIds is { Count: > 0 } ? [.. layerIds] : [GrayLayerId, DefaultLayerId],
         Attribution = OrDefault(attribution, DefaultAttribution),
         AttributionUrl = OrDefault(attributionUrl, DefaultAttributionUrl),
     };
