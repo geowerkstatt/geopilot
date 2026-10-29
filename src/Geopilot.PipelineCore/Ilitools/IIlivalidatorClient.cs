@@ -36,6 +36,13 @@ public interface IIlivalidatorClient
     /// still resolve through <see cref="IlivalidatorArgs.ModelDirs"/>. Its content is trusted as configuration like the
     /// repository archive, because the tool fetches whatever it names, so it never comes from an upload.
     /// </param>
+    /// <param name="referenceDataFiles">
+    /// Optional reference data (XTF or XML, not ITF) the tool loads next to the transfer file without validating it,
+    /// such as a catalog the transfer file references. References into them are only checked with
+    /// <see cref="IlivalidatorArgs.AllObjectsAccessible"/>. Unlike a repository they name no further sources, so they
+    /// may come from an upload; whether delivered reference data count is up to whoever wires them. Requires
+    /// ilivalidator 1.15.0 or newer, the service rejects them for an older version before the tool runs.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -47,5 +54,6 @@ public interface IIlivalidatorClient
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         IPipelineFile? refMappingFile = null,
+        IReadOnlyList<IPipelineFile>? referenceDataFiles = null,
         CancellationToken cancellationToken = default);
 }

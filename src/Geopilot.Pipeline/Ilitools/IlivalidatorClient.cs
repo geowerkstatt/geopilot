@@ -34,6 +34,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
         IPipelineFile? refMappingFile = null,
+        IReadOnlyList<IPipelineFile>? referenceDataFiles = null,
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting ilivalidator validation of {FileName}.", transferFile.OriginalFileName);
@@ -48,6 +49,14 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         {
             logger.LogInformation("Sending reference data mapping {FileName}.", refMappingFile.OriginalFileName);
             await SendFileAsync(call.RequestStream, IlivalidatorFileType.RefMappingFile, refMappingFile, cancellationToken);
+        }
+
+        // Sent before the transfer file, because the service refuses reference data for a tool version older than
+        // 1.15.0 at the start of the first one, and the call then fails before the transfer file is streamed.
+        foreach (var referenceDataFile in referenceDataFiles ?? [])
+        {
+            logger.LogInformation("Sending reference data file {FileName}.", referenceDataFile.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.ReferenceDataFile, referenceDataFile, cancellationToken);
         }
 
         await SendFileAsync(call.RequestStream, TransferFileType(transferFile), transferFile, cancellationToken);

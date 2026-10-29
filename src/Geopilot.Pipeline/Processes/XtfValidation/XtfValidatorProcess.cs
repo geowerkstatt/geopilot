@@ -88,6 +88,11 @@ internal class XtfValidatorProcess
     /// upload. They only take part in the validation when <c>modelDirs</c> contains the entry <c>%ITF_DIR/models</c>,
     /// whose position ranks them against the other model sources. Unwired, no models are sent.
     /// </param>
+    /// <param name="referenceDataFiles">
+    /// The delivered reference data (XTF or XML, such as a supplier's catalog) the tool loads next to the transfer
+    /// file, handed on verbatim. The pipeline decides what counts as reference data by what it wires, and with it
+    /// whether delivered reference data count at all. Unwired, none are sent.
+    /// </param>
     /// <param name="scope">
     /// The extent of this validation, for example the BFS number of the delivered municipality, passed to the tool as
     /// <c>--scope</c>. An input rather than configuration, because it belongs to the delivery: a literal in the step,
@@ -96,10 +101,11 @@ internal class XtfValidatorProcess
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
-    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, string? scope, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, IPipelineFile[] referenceDataFiles, string? scope, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transferFile);
         ArgumentNullException.ThrowIfNull(modelFiles);
+        ArgumentNullException.ThrowIfNull(referenceDataFiles);
 
         var runArgs = validatorArgs with { Scope = string.IsNullOrWhiteSpace(scope) ? null : scope.Trim() };
 
@@ -113,7 +119,12 @@ internal class XtfValidatorProcess
             logger.LogInformation($"Forwarding {modelFiles.Length} delivered model file(s) to the validation.");
         }
 
-        var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, refMappingFile, cancellationToken);
+        if (referenceDataFiles.Length > 0)
+        {
+            logger.LogInformation($"Forwarding {referenceDataFiles.Length} delivered reference data file(s) to the validation.");
+        }
+
+        var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, refMappingFile, referenceDataFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 

@@ -115,6 +115,41 @@ public class IlivalidatorClientIntegrationTest
 
     [TestMethod]
     [Timeout(30_000, CooperativeCancellation = true)]
+    [DataRow(true, DisplayName = "with catalog")]
+    [DataRow(false, DisplayName = "without catalog")]
+    public async Task ValidateAsyncResolvesReferencesIntoDeliveredReferenceData(bool sendCatalog)
+    {
+        var transferFile = GetTestPipelineFile("transfer_refdata.xtf");
+        var modelFile = GetTestPipelineFile("model_refdata.ili");
+        var catalog = GetTestPipelineFile("refdata_catalog.xtf");
+        var logFile = GetTestPipelineFile($"validation_refdata_{sendCatalog}.log");
+        var xtfLogFile = GetTestPipelineFile($"validation_refdata_{sendCatalog}.xtf");
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // The transfer file references a municipality only the catalog holds. With all objects accessible that
+        // reference only resolves when the catalog arrives as reference data, so both outcomes together prove the
+        // file type reaches the tool; an image that does not know it rejects the request instead.
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR/models"], AllObjectsAccessible = true };
+        PipelineFile[] referenceDataFiles = sendCatalog ? [catalog] : [];
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], referenceDataFiles: referenceDataFiles, cancellationToken: TestContext.CancellationToken);
+
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        if (sendCatalog)
+        {
+            Assert.IsTrue(result.Success, "The reference should resolve against the delivered catalog. Log:\n" + log);
+            Assert.Contains("refDataFile <", log, "The log should name the reference data file.");
+        }
+        else
+        {
+            Assert.IsFalse(result.Success, "Without the catalog the reference cannot resolve.");
+            Assert.Contains("No object found with OID m449", log, "The log should report the unresolved reference.");
+        }
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncReportsAnUnresolvableProfileInTheLog()
     {
         var transferFile = GetTestPipelineFile("transfer.xtf");

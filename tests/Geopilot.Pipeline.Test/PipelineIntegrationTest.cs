@@ -286,6 +286,7 @@ public class PipelineIntegrationTest
                 It.IsAny<IPipelineFile?>(),
                 It.IsAny<IReadOnlyList<IPipelineFile>?>(),
                 It.IsAny<IPipelineFile?>(),
+                It.IsAny<IReadOnlyList<IPipelineFile>?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -316,6 +317,7 @@ public class PipelineIntegrationTest
                 It.IsAny<IPipelineFile?>(),
                 It.IsAny<IReadOnlyList<IPipelineFile>?>(),
                 It.IsAny<IPipelineFile?>(),
+                It.IsAny<IReadOnlyList<IPipelineFile>?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -423,8 +425,8 @@ public class PipelineIntegrationTest
     private void SetUpIlivalidatorClient(bool validationSuccessful)
     {
         ilivalidatorClientMock
-            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IPipelineFile?>(), It.IsAny<CancellationToken>()))
-            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, IPipelineFile?, CancellationToken>((_, _, logFile, xtfLogFile, _, _, _, _) =>
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, IPipelineFile?, IReadOnlyList<IPipelineFile>?, CancellationToken>((_, _, logFile, xtfLogFile, _, _, _, _, _) =>
             {
                 CopyInto("TestData/DownloadFiles/ilicop/log.log", logFile);
                 CopyInto("TestData/DownloadFiles/ilicop/log.xtf", xtfLogFile);
