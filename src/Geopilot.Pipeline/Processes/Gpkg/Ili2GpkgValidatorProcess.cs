@@ -80,7 +80,7 @@ internal class Ili2GpkgValidatorProcess
             Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             Topics = IlitoolsHelper.SplitConfiguredListEntries(topics),
             Baskets = IlitoolsHelper.SplitConfiguredListEntries(baskets),
-            Dataset = dataset == null ? null : string.Join(';', dataset),
+            Dataset = IlitoolsHelper.SplitConfiguredListEntries(dataset) is { } datasets ? string.Join(';', datasets) : null,
         };
 
         var errorLogFile = pipelineFileManager.GeneratePipelineFile("validate", "log");

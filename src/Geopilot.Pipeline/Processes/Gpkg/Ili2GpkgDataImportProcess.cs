@@ -104,7 +104,7 @@ internal class Ili2GpkgDataImportProcess
         IPipelineFile? dbFile,
         string[]? models,
         int? defaultSrsCode,
-        string[]? dataset,
+        string? dataset,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transferFiles);
@@ -127,7 +127,7 @@ internal class Ili2GpkgDataImportProcess
         {
             Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             DefaultSrsCode = defaultSrsCode,
-            Dataset = dataset == null ? null : string.Join(';', dataset),
+            Dataset = dataset,
             TransferFormat = transferFormat,
         };
 

@@ -175,7 +175,7 @@ public class Ili2GpkgExportProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync(CreateDbFile(), models: ["ModelA; ModelB; ;"], topics: ["ModelA.TopicA; ModelB.TopicB"], baskets: ["b1; b2"], dataset: ["dataset1;dataset2"], exportModels: ["BaseModelA; BaseModelB"], transferFormat: null, CancellationToken.None);
+        await process.RunAsync(CreateDbFile(), models: ["ModelA; ModelB; ;"], topics: ["ModelA.TopicA; ModelB.TopicB"], baskets: ["b1; b2"], dataset: ["dataset1; dataset2"], exportModels: ["BaseModelA; BaseModelB"], transferFormat: null, CancellationToken.None);
 
         var args = calls.Single().Args;
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());

@@ -25,7 +25,7 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 - `dbFile`: Bestehende GeoPackage-Datei vom Typ `IPipelineFile`, etwa aus dem [GPKG Schema-Import](gpkg-schema-import.md). Optional, wenn `doSchemaImport` verwendet wird.
 - `models`: Optionale Modellnamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--models`).
 - `defaultSrsCode`: Optionaler EPSG-Code vom Typ `int` (`--defaultSrsCode`).
-- `dataset`: Optionale Datensatznamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--dataset`).
+- `dataset`: Optionaler Datensatzname vom Typ `string` (`--dataset`).
 
 ## Output
 

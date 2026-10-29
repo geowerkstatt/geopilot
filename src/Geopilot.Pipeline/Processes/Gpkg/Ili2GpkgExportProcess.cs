@@ -88,7 +88,7 @@ internal class Ili2GpkgExportProcess
             Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             Topics = IlitoolsHelper.SplitConfiguredListEntries(topics),
             Baskets = IlitoolsHelper.SplitConfiguredListEntries(baskets),
-            Dataset = dataset == null ? null : string.Join(';', dataset),
+            Dataset = IlitoolsHelper.SplitConfiguredListEntries(dataset) is { } datasets ? string.Join(';', datasets) : null,
             ExportModels = IlitoolsHelper.SplitConfiguredListEntries(exportModels),
             TransferFormat = transferFormat,
         };

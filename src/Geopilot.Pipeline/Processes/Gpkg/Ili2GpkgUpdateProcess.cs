@@ -71,7 +71,7 @@ internal class Ili2GpkgUpdateProcess
         IPipelineFile[] transferFiles,
         IPipelineFile dbFile,
         string[]? models,
-        string[]? dataset,
+        string? dataset,
         int? defaultSrsCode,
         CancellationToken cancellationToken)
     {
@@ -95,7 +95,7 @@ internal class Ili2GpkgUpdateProcess
         var args = ili2GpkgArgs with
         {
             Models = IlitoolsHelper.SplitConfiguredListEntries(models),
-            Dataset = dataset == null ? null : string.Join(';', dataset),
+            Dataset = dataset,
             DefaultSrsCode = defaultSrsCode,
             TransferFormat = transferFormat,
         };
