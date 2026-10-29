@@ -213,6 +213,9 @@ public class GpkgMetadataExtractorProcessTest
     [DataRow("0")]
     [DataRow("Ä")]
     [DataRow("Flächen")]
+    [DataRow("Units\n")]
+    [DataRow("\nUnits")]
+    [DataRow("Un\nits")]
     public void IsInvalidInterlisModelName(string modelName)
     {
         Assert.IsFalse(GpkgMetadataExtractorProcess.IsValidInterlisModelName(modelName));

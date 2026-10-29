@@ -162,6 +162,6 @@ internal partial class GpkgMetadataExtractorProcess(ILogger logger)
     [GeneratedRegex("{[^}]*}", RegexOptions.NonBacktracking)]
     private static partial Regex ReferencedModelsRegex();
 
-    [GeneratedRegex("^[A-Za-z][A-Za-z0-9_]*$", RegexOptions.NonBacktracking)]
+    [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9_]*\z", RegexOptions.NonBacktracking)]
     private static partial Regex InterlisNameRegex();
 }
