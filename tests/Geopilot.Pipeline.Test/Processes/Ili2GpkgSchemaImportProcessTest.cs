@@ -159,7 +159,7 @@ public class Ili2GpkgSchemaImportProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync([CreateModelFile("model.ili")], dbFile: null, models: "ModelA;ModelB", defaultSrsCode: 2056, CancellationToken.None);
+        await process.RunAsync([CreateModelFile("model.ili")], dbFile: null, models: ["ModelA", "ModelB"], defaultSrsCode: 2056, CancellationToken.None);
 
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, calls[^1].Args.Models?.ToArray());
         Assert.AreEqual(2056, calls[^1].Args.DefaultSrsCode);
@@ -169,6 +169,16 @@ public class Ili2GpkgSchemaImportProcessTest
 
         Assert.IsNull(calls[^1].Args.Models);
         Assert.IsNull(calls[^1].Args.DefaultSrsCode);
+    }
+
+    [TestMethod]
+    public async Task PassesTheSemicolonSeparatedFormOfTheModels()
+    {
+        var process = CreateProcess();
+
+        await process.RunAsync([CreateModelFile("model.ili")], dbFile: null, models: ["ModelA; ModelB;"], defaultSrsCode: null, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, calls.Single().Args.Models?.ToArray());
     }
 
     [TestMethod]
