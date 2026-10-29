@@ -9,6 +9,7 @@ import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appH
 import {
   addFile,
   deliverableMandate,
+  fileNameExists,
   nonDeliverableMandate,
   processingJob,
   processingStep,
@@ -53,6 +54,13 @@ describe("Delivery tests", () => {
 
     addFile("deliveryFiles/picture-type.png", false);
     stepHasError("files", true, "The file type is not supported");
+
+    cy.dataCy("file-dropzone").selectFile(
+      { contents: Cypress.Buffer.from("<TRANSFER/>"), fileName: "v1..2.xtf" },
+      { action: "drag-drop" },
+    );
+    fileNameExists("v1..2.xtf", false);
+    stepHasError("files", true, "The file name contains invalid characters");
 
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     stepHasError("files", false);

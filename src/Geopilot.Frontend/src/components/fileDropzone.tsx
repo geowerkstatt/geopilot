@@ -10,6 +10,11 @@ import { FileListItem } from "./fileListItem.tsx";
 
 const defaultMaxFileSizeMB = 100;
 
+// The names the API stores unchanged and therefore accepts, see StringExtensions.IsSanitizedFileName.
+const invalidFileNameCharacters = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\\/:*?"<>|]/u;
+const isStorableFileName = (name: string) =>
+  name === name.trim() && !name.includes("..") && !invalidFileNameCharacters.test(name);
+
 interface FileDropzoneProps {
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
@@ -62,6 +67,9 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           case "file-invalid-type":
             errorKey = "fileDropzoneErrorNotSupported";
             break;
+          case "file-invalid-name":
+            errorKey = "fileDropzoneErrorInvalidName";
+            break;
           case "too-many-files":
             errorKey = "fileDropzoneErrorTooManyFiles";
             break;
@@ -104,12 +112,20 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   // This workaround can be removed/adjusted should the Issue be closed.
   const restrictNativePicker = !acceptsAllFileTypes && !isIosDevice();
 
+  const validateFile = useCallback(
+    (file: File): FileError | null => {
+      if (!isStorableFileName(file.name)) return { code: "file-invalid-name", message: "File name not allowed" };
+      return restrictNativePicker ? null : validateExtension(file);
+    },
+    [restrictNativePicker, validateExtension],
+  );
+
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     maxFiles,
     maxSize: maxFileSizeMB * 1024 * 1024,
     accept: restrictNativePicker ? { "application/x-geopilot-files": fileExtensions ?? [] } : undefined,
-    validator: restrictNativePicker ? undefined : validateExtension,
+    validator: validateFile,
     disabled,
   });
 
