@@ -23,7 +23,10 @@ export interface FormChipInputProps {
   errorMessage: TranslationKey;
 }
 
-/** Collects free text values as removable chips below the input. Every value stays visible. */
+/**
+ * Collects free text values as removable chips below the input. Every value stays visible. Text still in the input
+ * when the field loses focus is taken in as if confirmed, so a typed value is never lost on saving.
+ */
 export const FormChipInput: FC<FormChipInputProps> = ({
   fieldName,
   label,
@@ -150,6 +153,14 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     confirmInput();
   };
 
+  const handleBlur = () => {
+    if (input.trim()) {
+      confirmInput();
+    }
+
+    field.onBlur();
+  };
+
   return (
     <Stack spacing={1} sx={{ width: "100%" }}>
       <TextField
@@ -161,7 +172,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
         helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : undefined}
         value={input}
         onChange={event => handleInput(event.target.value)}
-        onBlur={field.onBlur}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         data-cy={`${fieldName}-formChipInput`}
       />

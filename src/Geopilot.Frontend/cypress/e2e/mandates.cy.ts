@@ -763,6 +763,23 @@ describe("Mandate with a reaction set", () => {
     });
   });
 
+  it("takes in an address typed without confirming it once the field loses focus", () => {
+    stubCapabilities(true);
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    cy.dataCy("reactionSetValues.ablage_pro_mandat.recipients-formChipInput").find("input").type("someone@example.com");
+    cy.dataCy("reactionSetValues.ablage_pro_mandat.recipients-formChipInput").find("input").blur();
+    evaluateChipInput("reactionSetValues.ablage_pro_mandat.recipients", ["someone@example.com"]);
+
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetValues?.ablage_pro_mandat?.recipients).to.deep.equal(["someone@example.com"]);
+    });
+  });
+
   it("removes the set with its values when none is chosen", () => {
     stubCapabilities(true);
 
