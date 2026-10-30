@@ -16,6 +16,7 @@ import {
 } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormContainer,
   FormContainerHalfWidth,
@@ -33,6 +34,7 @@ import ReactionSetFields from "./reactionSetFields.tsx";
 const MandateDetail = () => {
   const { t, i18n } = useTranslation();
   const { fetchApi } = useFetch();
+  const { reactionSetsEnabled } = useCapabilities();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [mandate, setMandate] = useState<MandateFormValues>();
@@ -109,7 +111,9 @@ const MandateDetail = () => {
     <AdminDetailForm<MandateFormValues>
       basePath="/admin/mandates"
       backLabel="backToMandates"
-      data={mandate}
+      // Waits for the sets as well: a choice of a set that mounted late would be missing from the payload and clear
+      // the set of the mandate.
+      data={reactionSets ? mandate : undefined}
       apiEndpoint="/api/v1/mandate"
       saveErrorLabel="mandateSaveError"
       prepareDataForSave={prepareMandateForSave}>
@@ -148,12 +152,15 @@ const MandateDetail = () => {
         </Typography>
         <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
       </GeopilotBox>
-      <GeopilotBox>
-        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
-          {t("forwarding")}
-        </Typography>
-        <ReactionSetFields mandate={mandate} reactionSets={reactionSets} />
-      </GeopilotBox>
+      {/* Hiding loses nothing: where no set can be chosen, no mandate holds one, or geopilot would not start. */}
+      {reactionSetsEnabled && reactionSets && reactionSets.length > 0 && (
+        <GeopilotBox>
+          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+            {t("reactions")}
+          </Typography>
+          <ReactionSetFields mandate={mandate} reactionSets={reactionSets} />
+        </GeopilotBox>
+      )}
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>
           {t("deliveryForm")}

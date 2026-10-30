@@ -8,7 +8,6 @@ import { SelectedChips } from "./selectedChips";
 export interface FormChipInputProps {
   fieldName: string;
   label: TranslationKey | ReactElement;
-  placeholder?: TranslationKey;
   required?: boolean;
   disabled?: boolean;
   /** The values the field starts with, typically the stored ones. */
@@ -30,7 +29,6 @@ export interface FormChipInputProps {
 export const FormChipInput: FC<FormChipInputProps> = ({
   fieldName,
   label,
-  placeholder,
   required,
   disabled,
   selected,
@@ -165,7 +163,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     <Stack spacing={1} sx={{ width: "100%" }}>
       <TextField
         label={typeof label === "string" ? t(label) : label}
-        placeholder={placeholder ? t(placeholder) : undefined}
+        placeholder={t("chipInputPlaceholder")}
         required={required ?? false}
         disabled={disabled ?? false}
         error={!!fieldState.error}

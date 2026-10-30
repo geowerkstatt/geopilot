@@ -561,7 +561,7 @@ steps:
 
 ## Weitergabe nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Weitergabe des Mandats. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
 
 ```yaml
 channels:
@@ -601,7 +601,7 @@ reaction_sets:
 - `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Lieferungs-Schritte, und die Betriebssicht zeigt sie mit ihnen.
 - Ein Satz braucht mindestens eine Reaktion, einen Lieferungs-Schritt oder eine Benachrichtigung. Beide sind gleich aufgebaut:
   - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
-  - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa im Dialog einer Lieferung. Die Id steht klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.
+  - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa im Dialog einer Lieferung oder im Mandat über den Werten, die sie verlangt. Im Dialog steht die Id klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.
   - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
   - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
   - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.

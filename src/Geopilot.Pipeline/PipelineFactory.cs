@@ -84,7 +84,7 @@ public class PipelineFactory : IPipelineFactory
             .SelectMany(reaction =>
             {
                 var values = channelFactory.DescribeMandateValues(implementations[reaction.Id]);
-                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
+                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, reaction.DisplayName, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
             })
             .ToList();
     }

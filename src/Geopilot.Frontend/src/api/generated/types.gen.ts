@@ -481,6 +481,9 @@ export type Mandate = {
 
 export type MandateField = {
   reactionId: string;
+  reactionDisplayName: {
+    [key: string]: string;
+  };
   key: string;
   displayName: {
     [key: string]: string;

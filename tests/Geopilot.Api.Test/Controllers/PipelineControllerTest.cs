@@ -80,7 +80,7 @@ public sealed class PipelineControllerTest
     public async Task GetAvailablePipelinesListsTheReactionSetsWithTheValuesTheyAskTheMandateFor()
     {
         var set = new ReactionSetConfig { Id = "ablage_pro_mandat", DisplayName = new Dictionary<string, string> { ["de"] = "Ablage pro Mandat" }, Transfers = [] };
-        var field = new MandateField("weitergabe", "subfolder", new Dictionary<string, string> { ["de"] = "Unterordner" }, MandateValueType.Text, true);
+        var field = new MandateField("weitergabe", new Dictionary<string, string> { ["de"] = "Ablage" }, "subfolder", new Dictionary<string, string> { ["de"] = "Unterordner" }, MandateValueType.Text, true);
         pipelineServiceMock.Setup(s => s.GetAvailablePipelines()).Returns([]);
         pipelineServiceMock.Setup(s => s.GetReactionSets()).Returns([set]);
         pipelineServiceMock.Setup(s => s.DescribeMandateFields("ablage_pro_mandat")).Returns([field]);
