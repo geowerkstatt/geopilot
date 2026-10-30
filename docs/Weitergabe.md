@@ -45,7 +45,7 @@ Delivery__Reactions__TimeLimit=00:10:00
 - Läuft die Applikation durch, ist eine Reaktion spätestens erledigt oder aufgegeben, wenn nach dem Ende des Löschfensters die Summe aller Abstände verstrichen und ihr letzter Versuch beendet ist.
 - `TimeLimit` sollte grosszügig über der Dauer des längsten normalen Versuchs liegen, etwa einer grossen Lieferung auf ein langsames Netzlaufwerk.
 
-Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat.
+Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat, und auch dort nicht in eine appsettings-Datei, sondern in eine Umgebungsvariable oder einen Vault.
 
 ## Neustart und Ausfall
 
