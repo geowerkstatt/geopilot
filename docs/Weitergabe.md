@@ -1,6 +1,6 @@
 # Weitergabe betreiben
 
-Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md). Wie ein Satz definiert wird, steht unter [Weitergabe nach dem Abschluss](pipeline/Pipelines.md#weitergabe-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
+Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Satz definiert wird, steht unter [Weitergabe nach dem Abschluss](pipeline/Pipelines.md#weitergabe-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
 
 ## Ablauf
 
@@ -45,7 +45,7 @@ Delivery__Reactions__TimeLimit=00:10:00
 - Läuft die Applikation durch, ist eine Reaktion spätestens erledigt oder aufgegeben, wenn nach dem Ende des Löschfensters die Summe aller Abstände verstrichen und ihr letzter Versuch beendet ist.
 - `TimeLimit` sollte grosszügig über der Dauer des längsten normalen Versuchs liegen, etwa einer grossen Lieferung auf ein langsames Netzlaufwerk.
 
-Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat.
+Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat, und auch dort nicht in eine appsettings-Datei, sondern in eine Umgebungsvariable oder einen Vault.
 
 ## Neustart und Ausfall
 
@@ -55,7 +55,7 @@ Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangs
 
 ## Stand ablesen
 
-In der Administration zeigt die Lieferungsübersicht in der Spalte Weitergabe den zusammengefassten Zustand der Lieferungs-Schritte jeder Lieferung: `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick darauf öffnet die Reaktionen der Lieferung, Lieferungs-Schritte und Benachrichtigungen, mit Zustand, Versuchen, Zeitpunkt und Meldung. Hat eine Lieferung nur Benachrichtigungen, bleibt die Spalte vorerst leer; ihre Reaktionen liefert `GET api/v1/delivery`. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"). Dieselben Angaben liefert `GET api/v1/delivery` mit `forwardingState` und `reactions`.
+In der Administration zeigt die Lieferungsübersicht in der Spalte Weitergabe den zusammengefassten Zustand der Lieferungs-Schritte jeder Lieferung: `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick darauf öffnet die Reaktionen der Lieferung, Lieferungs-Schritte und Benachrichtigungen, mit Namen, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Hat eine Lieferung nur Benachrichtigungen, bleibt die Spalte vorerst leer; ihre Reaktionen liefert `GET api/v1/delivery`. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"). Dieselben Angaben liefert `GET api/v1/delivery` mit `forwardingState` und `reactions`.
 
 Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
 

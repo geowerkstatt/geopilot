@@ -41,6 +41,8 @@ public class MandateValuesValidationTest
               de: Ablage pro Mandat
             transfers:
               - id: {{ReactionId}}
+                display_name:
+                  de: Ablage
                 channel_id: ablage
                 mandate_config:
                   - key: subfolder
@@ -52,6 +54,8 @@ public class MandateValuesValidationTest
 
             notifications:
               - id: meldung
+                display_name:
+                  de: Meldung
                 channel_id: ablage
                 mandate_config:
                   - key: subfolder
@@ -95,6 +99,7 @@ public class MandateValuesValidationTest
         var field = Assert.ContainsSingle(Factory().DescribeMandateFields(SetId));
 
         Assert.AreEqual(ReactionId, field.ReactionId);
+        Assert.AreEqual("Ablage", field.ReactionDisplayName["de"]);
         Assert.AreEqual("subfolder", field.Key);
         Assert.AreEqual("Unterordner", field.DisplayName["de"]);
         Assert.AreEqual(MandateValueType.Text, field.Type);
@@ -107,6 +112,7 @@ public class MandateValuesValidationTest
         var fields = Factory(DefinitionWithNotification).DescribeMandateFields(SetId);
 
         CollectionAssert.AreEqual(new[] { ReactionId, NotificationId }, fields.Select(field => field.ReactionId).ToArray());
+        Assert.AreEqual("Meldung", fields[1].ReactionDisplayName["de"]);
         Assert.AreEqual("Unterordner der Meldung", fields[1].DisplayName["de"]);
     }
 

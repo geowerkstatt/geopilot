@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Contracts;
 
@@ -22,6 +23,8 @@ public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, 
 /// How far a reaction to a delivery got.
 /// </summary>
 /// <param name="ReactionId">The id of the reaction in the reaction set of the mandate.</param>
+/// <param name="DisplayName">The name of the reaction in the pipeline definition as it is now, or
+/// <see langword="null"/> when the definition no longer has the reaction.</param>
 /// <param name="Kind">Whether the reaction forwards the delivery or reports on it.</param>
 /// <param name="State">The state of the reaction.</param>
 /// <param name="Attempts">How many attempts the reaction has started. A reaction still on hold has none.</param>
@@ -30,4 +33,4 @@ public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, 
 /// <param name="FinishedAt">When it ended as <see cref="ReactionState.Done"/>, <see cref="ReactionState.Error"/> or
 /// <see cref="ReactionState.Deleted"/>.</param>
 /// <param name="Message">What its channel last reported, or why its last attempt failed.</param>
-public record DeliveryReactionResponse(string ReactionId, ReactionKind Kind, ReactionState State, int Attempts, DateTime? NextAttemptAt, DateTime? LastAttemptAt, DateTime? FinishedAt, string? Message);
+public record DeliveryReactionResponse(string ReactionId, LocalizedText? DisplayName, ReactionKind Kind, ReactionState State, int Attempts, DateTime? NextAttemptAt, DateTime? LastAttemptAt, DateTime? FinishedAt, string? Message);

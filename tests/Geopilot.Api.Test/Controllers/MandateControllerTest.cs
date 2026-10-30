@@ -718,7 +718,7 @@ namespace Geopilot.Api.Controllers
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
             var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()));
             var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IPipelineRunRecorder>());
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IPipelineRunRecorder>(), Mock.Of<IPipelineFactory>());
             deliveryController.SetupTestUser(editUser);
             mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(true);
 

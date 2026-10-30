@@ -8,7 +8,6 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
-  isDisabled,
   pasteIntoChipInput,
   removeChipInputValue,
   setAutocomplete,
@@ -678,6 +677,7 @@ describe("Mandate with a reaction set", () => {
         mandateFields: [
           {
             reactionId: "ablage_pro_mandat",
+            reactionDisplayName: { de: "Ablage", en: "File drop" },
             key: "subfolder",
             displayName: { de: "Unterordner der Ablage", en: "Subfolder of the file drop" },
             type: MandateValueType.Text,
@@ -685,6 +685,7 @@ describe("Mandate with a reaction set", () => {
           },
           {
             reactionId: "ablage_pro_mandat",
+            reactionDisplayName: { de: "Ablage", en: "File drop" },
             key: "recipients",
             displayName: { de: "Empfänger", en: "Recipients" },
             type: MandateValueType.TextList,
@@ -692,6 +693,7 @@ describe("Mandate with a reaction set", () => {
           },
           {
             reactionId: "ablage_pro_mandat",
+            reactionDisplayName: { de: "Ablage", en: "File drop" },
             key: "copyToDeclarer",
             displayName: { de: "Lieferant ins To", en: "Deliverer in To" },
             type: MandateValueType.Switch,
@@ -748,6 +750,8 @@ describe("Mandate with a reaction set", () => {
     cy.wait("@getMandate");
     cy.wait("@getPipelines");
 
+    // The values are grouped under the name of their reaction.
+    cy.contains("p", /^File drop$/).should("be.visible");
     evaluateInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
     setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-b");
     setChipInput("reactionSetValues.ablage_pro_mandat.recipients", "someone@example.com");
@@ -760,6 +764,51 @@ describe("Mandate with a reaction set", () => {
       expect(body.reactionSetValues).to.deep.equal({
         ablage_pro_mandat: { subfolder: "kanton-b", recipients: ["someone@example.com"], copyToDeclarer: true },
       });
+    });
+  });
+
+  it("takes in an address typed without confirming it once the field loses focus", () => {
+    stubCapabilities(true);
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    cy.dataCy("reactionSetValues.ablage_pro_mandat.recipients-formChipInput").find("input").type("someone@example.com");
+    cy.dataCy("reactionSetValues.ablage_pro_mandat.recipients-formChipInput").find("input").blur();
+    evaluateChipInput("reactionSetValues.ablage_pro_mandat.recipients", ["someone@example.com"]);
+
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetValues?.ablage_pro_mandat?.recipients).to.deep.equal(["someone@example.com"]);
+    });
+  });
+
+  it("refuses to save the set without a value it requires", () => {
+    stubCapabilities(true);
+    cy.intercept("GET", "/api/v1/mandate/9995", {
+      statusCode: 200,
+      body: { ...mandateWithReactionSet, reactionSetId: null, reactionSetValues: {} },
+    }).as("getMandate");
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    // The first entry clears the choice, the last is the set that asks for a subfolder. An untouched field shows no
+    // error yet, the first save checks every field.
+    setSelect("reactionSetId", 2, 3);
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", false);
+    cy.dataCy("save-button").click();
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", true);
+    cy.dataCy("save-button").should("be.disabled");
+    cy.get("@updateMandate.all").should("have.length", 0);
+
+    setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", false);
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetValues?.ablage_pro_mandat?.subfolder).to.equal("kanton-a");
     });
   });
 
@@ -781,7 +830,7 @@ describe("Mandate with a reaction set", () => {
     });
   });
 
-  it("locks the choice while the delete window never closes", () => {
+  it("hides the reactions while the delete window never closes", () => {
     stubCapabilities(false);
     cy.intercept("GET", "/api/v1/mandate/9995", {
       statusCode: 200,
@@ -792,7 +841,27 @@ describe("Mandate with a reaction set", () => {
     cy.wait("@getMandate");
     cy.wait("@getPipelines");
 
-    isDisabled("reactionSetId");
-    cy.dataCy("reactionSetId-formSelect").contains("Delivery:DeleteDuration").should("be.visible");
+    cy.dataCy("stacAccess-formSelect").should("exist");
+    cy.dataCy("reactionSetId-formSelect").should("not.exist");
+    cy.contains("h3", "Reactions").should("not.exist");
+  });
+
+  it("hides the reactions when the definition has no sets", () => {
+    stubCapabilities(true);
+    cy.intercept("GET", "/api/v1/pipeline", {
+      statusCode: 200,
+      body: { ...availablePipelines, reactionSets: [] },
+    }).as("getPipelines");
+    cy.intercept("GET", "/api/v1/mandate/9995", {
+      statusCode: 200,
+      body: { ...mandateWithReactionSet, reactionSetId: null, reactionSetValues: {} },
+    }).as("getMandate");
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    cy.dataCy("stacAccess-formSelect").should("exist");
+    cy.dataCy("reactionSetId-formSelect").should("not.exist");
   });
 });

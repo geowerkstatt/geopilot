@@ -114,6 +114,7 @@ public class ReactionWorkerTest
         Assert.IsNotNull(info);
         Assert.AreEqual(withPrecursor.Id, info.Id);
         Assert.AreEqual(withPrecursor.JobId, info.JobId);
+        Assert.AreEqual("weitergabe", info.ReactionId);
         Assert.AreEqual(new DateTimeOffset(DateTime.SpecifyKind(withPrecursor.Date, DateTimeKind.Utc)), info.DeclaredAt);
         Assert.IsTrue(info.Partial);
         Assert.AreEqual(precursor.Id, info.PrecursorDeliveryId);
@@ -380,6 +381,7 @@ public class ReactionWorkerTest
             new ReactionStore(options, Mock.Of<ILogger<ReactionStore>>()),
             options,
             pipelineOptionsMock.Object,
+            Mock.Of<IDirectoryProvider>(),
             loggerMock.Object);
     }
 

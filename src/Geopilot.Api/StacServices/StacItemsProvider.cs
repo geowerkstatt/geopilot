@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Api.Reactions;
 using Microsoft.EntityFrameworkCore;
 using Stac;
 using Stac.Api.Interfaces;
@@ -65,6 +66,13 @@ public class StacItemsProvider : IItemsProvider
                 .AsEnumerable()
                 .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && d.Mandate != null && stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First())
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
+
+            // The catalog hides a delivery until it is forwarded, so the item of its successor must not give its time away.
+            if (delivery.PrecursorDelivery is not null && db.DeliveryReactions.UnforwardedDeliveryIds().Contains(delivery.PrecursorDelivery.Id))
+            {
+                delivery.PrecursorDelivery = null;
+            }
+
             var item = stacConverter.ToStacItem(delivery, isAdmin);
             return Task.FromResult(item);
         }

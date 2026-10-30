@@ -523,11 +523,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 return;
             }
 
-            if (parameterInfo.ParameterType == typeof(IPipelineFile) && TryGetResourcePath(parameterInfo, processConfig, out var resourcePath))
-            {
-                ResolveResourceFullPath(parameterInfo, resourcePath, resourcesRoot);
+            if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesRoot, "Process", out _))
                 return;
-            }
 
             if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out _))
                 return;
@@ -536,40 +533,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 return;
 
             throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
-        }
-
-        /// <summary>
-        /// Whether the parameter is configured with the relative path of a file the deployment ships. A file valued
-        /// configuration parameter carries a path and not a value, so it is read raw here: the conversion of
-        /// <see cref="ConstructorBinding.TryGetConfiguredValue"/> would reject a string for an <see cref="IPipelineFile"/> target.
-        /// </summary>
-        private static bool TryGetResourcePath(ParameterInfo parameterInfo, Parameterization processConfig, out string resourcePath)
-        {
-            resourcePath = string.Empty;
-            if (string.IsNullOrEmpty(parameterInfo.Name) || !processConfig.TryGetValue(parameterInfo.Name, out var rawValue) || rawValue is null)
-                return false;
-
-            if (rawValue is not string path || string.IsNullOrWhiteSpace(path))
-                throw new InvalidOperationException($"Process initialization: The configured value <{ConstructorBinding.FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> is not the path of a file below the resources directory.");
-
-            resourcePath = path;
-            return true;
-        }
-
-        /// <summary>
-        /// Resolves a configured resource path against the resources root, with the same confinement a
-        /// <c>${file(path)}</c> input reference gets, and refuses a path that names no existing file.
-        /// </summary>
-        private static string ResolveResourceFullPath(ParameterInfo parameterInfo, string resourcePath, string? resourcesRoot)
-        {
-            if (string.IsNullOrWhiteSpace(resourcesRoot))
-                throw new InvalidOperationException($"Process initialization: Parameter <{parameterInfo.Name}> references file <{resourcePath}>, but no resources directory is configured.");
-
-            var fullPath = ResourceFileResolver.ResolveFullPath(resourcesRoot, resourcePath);
-            if (!File.Exists(fullPath))
-                throw new InvalidOperationException($"Process initialization: Parameter <{parameterInfo.Name}> references file <{resourcePath}>, which does not exist below the resources directory.");
-
-            return fullPath;
         }
 
         private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
@@ -600,10 +563,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 return new XtfDiffClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<XtfDiffClient>());
             }
-            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && TryGetResourcePath(parameterInfo, processConfig, out var resourcePath))
+            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath))
             {
-                var fullPath = ResolveResourceFullPath(parameterInfo, resourcePath, resourcesDirectory);
-                return new PipelineFile(fullPath, Path.GetFileName(fullPath));
+                return new PipelineFile(resourcePath, Path.GetFileName(resourcePath));
             }
             else if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out var convertedValue))
             {

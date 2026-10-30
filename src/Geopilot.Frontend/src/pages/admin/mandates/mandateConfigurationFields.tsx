@@ -89,7 +89,6 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
-            placeholder={"fileTypesPlaceholder"}
             required={true}
             selected={mandate?.fileTypes}
             parse={parseFileType}

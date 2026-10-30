@@ -58,6 +58,8 @@ public class ReactionSetValidationTest
               de: Kanton A
             transfers:
               - id: weitergabe
+                display_name:
+                  de: Weitergabe
                 channel_id: ablage
         """;
 
@@ -68,6 +70,8 @@ public class ReactionSetValidationTest
               de: Kanton A
             transfers:
               - id: weitergabe
+                display_name:
+                  de: Weitergabe
                 channel_id: ablage
                 channel_config_overwrites:
                   subfolder: kanton-a
@@ -81,6 +85,8 @@ public class ReactionSetValidationTest
               de: Kanton A
             notifications:
               - id: meldung
+                display_name:
+                  de: Meldung
                 channel_id: ablage
         """;
 
@@ -91,6 +97,8 @@ public class ReactionSetValidationTest
               de: Kanton A
             notifications:
               - id: meldung
+                display_name:
+                  de: Meldung
                 channel_id: ablage
                 channel_config_overwrites:
                   subfolder: kanton-a
@@ -182,6 +190,8 @@ public class ReactionSetValidationTest
                   de: Ablage
                 transfers:
                   - id: ablage
+                    display_name:
+                      de: Ablage
             """;
 
         AssertInvalid(Factory(FileDropChannel + sets), "ReactionConfig (ChannelId): Channel Reference is required.");
@@ -246,9 +256,13 @@ public class ReactionSetValidationTest
                   de: Kanton A
                 transfers:
                   - id: weitergabe
+                    display_name:
+                      de: Weitergabe
                     channel_id: ablage
                 notifications:
                   - id: weitergabe
+                    display_name:
+                      de: Meldung
                     channel_id: ablage
             """;
 
@@ -289,10 +303,30 @@ public class ReactionSetValidationTest
               - id: ablage
                 transfers:
                   - id: ablage
+                    display_name:
+                      de: Ablage
                     channel_id: ablage
             """;
 
         AssertInvalid(Factory(FileDropChannel + sets), "ReactionSetConfig (DisplayName): Reaction Set Display Name is required.");
+    }
+
+    [TestMethod]
+    [DataRow("transfers")]
+    [DataRow("notifications")]
+    public void RejectsAReactionWithoutDisplayName(string reactions)
+    {
+        var sets = $"""
+            reaction_sets:
+              - id: kanton_a
+                display_name:
+                  de: Kanton A
+                {reactions}:
+                  - id: weitergabe
+                    channel_id: ablage
+            """;
+
+        AssertInvalid(Factory(FileDropChannelWithSubfolder + sets), "ReactionConfig (DisplayName): Reaction Display Name is required.");
     }
 
     [TestMethod]
@@ -314,6 +348,8 @@ public class ReactionSetValidationTest
                   de: Ablage
                 transfers:
                   - id: ablage
+                    display_name:
+                      de: Ablage
                     channel_id: ablage
                     mandate_config:
                       - key: subfolder
@@ -337,6 +373,8 @@ public class ReactionSetValidationTest
                   de: Ablage
                 transfers:
                   - id: ablage
+                    display_name:
+                      de: Ablage
                     channel_id: ablage
                     mandate_config:
                       - key: subfolder
@@ -538,6 +576,8 @@ public class ReactionSetValidationTest
                   de: Ablage
                 transfers:
                   - id: "{{reactionId}}"
+                    display_name:
+                      de: Ablage
                     channel_id: {{channelId}}
                     mandate_config:
                       - key: {{mandateKey}}

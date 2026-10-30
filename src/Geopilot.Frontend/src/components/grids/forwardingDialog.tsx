@@ -10,9 +10,11 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  Typography,
 } from "@mui/material";
 import { DeliveryReactionResponse, ReactionKind, ReactionState } from "../../api/generated";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "../alert/alertContext";
 import { Button } from "../buttons";
 import { ReactionStateLabel } from "./reactionStateLabel.tsx";
@@ -30,6 +32,7 @@ const formatTime = (value: string) => new Date(value).toLocaleString();
 /** The reactions of a delivery with how far each got, and the reset of those that gave up. */
 export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reactions, onClose, onReset }) => {
   const { t } = useTranslation();
+  const { localized } = useLocalized();
   const { fetchApi } = useFetch();
   const { showAlert } = useContext(AlertContext);
   const canReset = reactions.some(reaction => reaction.state === ReactionState.Error);
@@ -76,7 +79,15 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
           <TableBody>
             {reactions.map(reaction => (
               <TableRow key={reaction.reactionId} data-cy={`reaction-${reaction.reactionId}`}>
-                <TableCell>{reaction.reactionId}</TableCell>
+                <TableCell>
+                  {localized(reaction.displayName ?? undefined, reaction.reactionId)}
+                  {/* The log and the execution protocol name a reaction by its id. */}
+                  {reaction.displayName && (
+                    <Typography variant="caption" component="div" color="text.secondary">
+                      {reaction.reactionId}
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell>
                   {t(reaction.kind === ReactionKind.Transfer ? "reactionKindTransfer" : "reactionKindNotification")}
                 </TableCell>

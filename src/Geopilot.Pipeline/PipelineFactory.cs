@@ -77,14 +77,14 @@ public class PipelineFactory : IPipelineFactory
     {
         var set = FindReactionSet(reactionSetId);
         var implementations = Resolve(set.AllReactions()).ToDictionary(reaction => reaction.ReactionId, reaction => reaction.Implementation);
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
 
         return set.AllReactions()
             .Where(reaction => reaction.MandateConfig is { Count: > 0 })
             .SelectMany(reaction =>
             {
                 var values = channelFactory.DescribeMandateValues(implementations[reaction.Id]);
-                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
+                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, reaction.DisplayName, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
             })
             .ToList();
     }
@@ -94,7 +94,7 @@ public class PipelineFactory : IPipelineFactory
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
         var errors = new List<string>();
         foreach (var reaction in Resolve(FindReactionSet(reactionSetId).AllReactions()))
         {
@@ -228,11 +228,12 @@ public class PipelineFactory : IPipelineFactory
 
     /// <summary>
     /// Checks the channel of every reaction against its default configuration with the reaction's overwrites, the
-    /// declared mandate values and, with a base configuration, the base values, without constructing a channel.
+    /// declared mandate values and, with a base configuration, the base values. A channel that needs nothing from the
+    /// mandate is built once on the way, so what its constructor refuses stops the start as well.
     /// </summary>
     private List<string> ValidateReactionSets()
     {
-        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs, resourcesDirectory);
         var channels = PipelineProcessConfig.Channels ?? [];
         return (PipelineProcessConfig.ReactionSets ?? [])
             .SelectMany(set => set.AllReactions().SelectMany(reaction =>

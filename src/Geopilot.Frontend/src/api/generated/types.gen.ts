@@ -210,6 +210,13 @@ export type DeliveryReactionResponse = {
    * The id of the reaction in the reaction set of the mandate.
    */
   reactionId: string;
+  /**
+   * The name of the reaction in the pipeline definition as it is now, or
+   * null when the definition no longer has the reaction.
+   */
+  displayName?: {
+    [key: string]: string;
+  } | null;
   kind: ReactionKind;
   state: ReactionState;
   /**
@@ -474,6 +481,9 @@ export type Mandate = {
 
 export type MandateField = {
   reactionId: string;
+  reactionDisplayName: {
+    [key: string]: string;
+  };
   key: string;
   displayName: {
     [key: string]: string;

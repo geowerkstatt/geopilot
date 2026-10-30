@@ -17,6 +17,12 @@ internal sealed record DeliveryInfo
     public required Guid JobId { get; init; }
 
     /// <summary>
+    /// The id of the reaction the attempt belongs to. It stays the same in every attempt, so a channel can mark what
+    /// it sends as one and the same thing.
+    /// </summary>
+    public required string ReactionId { get; init; }
+
+    /// <summary>
     /// When the delivery was declared.
     /// </summary>
     public required DateTimeOffset DeclaredAt { get; init; }

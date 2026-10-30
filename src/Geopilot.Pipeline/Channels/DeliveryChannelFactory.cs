@@ -8,7 +8,9 @@ namespace Geopilot.Pipeline.Channels;
 /// comes from exactly one of three places: the base configuration (<c>Pipeline:ChannelConfigs:&lt;implementation&gt;</c>),
 /// the pipeline definition (<c>default_config</c> of the channel with the reaction's <c>channel_config_overwrites</c>)
 /// or the mandate (<c>mandate_config</c>), the last only for parameters marked <see cref="MandateValueAttribute"/>.
-/// A parameter marked <see cref="BaseConfigValueAttribute"/> comes from the base configuration only.
+/// A parameter marked <see cref="BaseConfigValueAttribute"/> comes from the base configuration only. A parameter marked
+/// <see cref="ResourceFileAttribute"/> gets the text of the file its path names below the resources directory, resolved
+/// as for a process.
 /// </summary>
 internal sealed class DeliveryChannelFactory
 {
@@ -24,24 +26,29 @@ internal sealed class DeliveryChannelFactory
     };
 
     private readonly IReadOnlyDictionary<string, Parameterization>? baseConfigs;
+    private readonly string? resourcesDirectory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryChannelFactory"/> class.
     /// </summary>
     /// <param name="baseConfigs">The base configuration per channel implementation, or <see langword="null"/>
     /// without one, which leaves the values unchecked that only the base configuration could provide.</param>
-    public DeliveryChannelFactory(IReadOnlyDictionary<string, Parameterization>? baseConfigs)
+    /// <param name="resourcesDirectory">The resources root the path of a parameter marked as resource file resolves
+    /// against, or <see langword="null"/> when the deployment ships none.</param>
+    public DeliveryChannelFactory(IReadOnlyDictionary<string, Parameterization>? baseConfigs, string? resourcesDirectory = null)
     {
         this.baseConfigs = baseConfigs;
+        this.resourcesDirectory = resourcesDirectory;
     }
 
     /// <summary>
-    /// Checks a reaction without constructing its channel: the implementation is a channel with one public
-    /// constructor, every key of the definition is a parameter not marked as base configuration value, every declared
-    /// mandate key a parameter marked as mandate value that the definition does not set, every parameter marked as
-    /// mandate value takes a text, a list of texts or a switch, every value converts to its parameter, and, with a base
-    /// configuration, every parameter that needs a value gets one. A key the base configuration pins is the concern
-    /// of the definition validation.
+    /// Checks a reaction: the implementation is a channel with one public constructor, every key of the definition is a
+    /// parameter not marked as base configuration value, every declared mandate key a parameter marked as mandate value
+    /// that the definition does not set, every parameter marked as mandate value takes a text, a list of texts or a
+    /// switch, every value converts to its parameter, every file lies below the resources directory, and, with a base
+    /// configuration, every parameter that needs a value gets one. When all that holds and the channel needs no value
+    /// from the mandate, it is built once and discarded, so what its constructor refuses shows as well. A key the base
+    /// configuration pins is the concern of the definition validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
@@ -93,20 +100,35 @@ internal sealed class DeliveryChannelFactory
 
             try
             {
-                if (ConstructorBinding.TryGetConfiguredValue(parameter, config, Subject, out _))
+                if (TryBind(parameter, config, out _))
                     continue;
 
                 // Without a base configuration, a value nobody else provides may still come from there.
-                if (baseConfig is null || ConstructorBinding.TryGetConfiguredValue(parameter, baseConfig, Subject, out _) || ConstructorBinding.IsNullable(parameter))
+                if (baseConfig is null || TryBind(parameter, baseConfig, out _) || ConstructorBinding.IsNullable(parameter))
                     continue;
 
                 errors.Add(IsMandateValue(parameter)
                     ? $"Channel <{implementation}>: the parameter '{parameter.Name}' has no value. Set it in default_config or declare it in mandate_config."
                     : MissingValueMessage(parameter));
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex) when (ex is InvalidOperationException or PipelineRunException)
             {
                 errors.Add(ex.Message);
+            }
+        }
+
+        // A channel checks its values in its constructor, such as the template of a mail. Built once from the base
+        // configuration and the definition, it shows such a problem at the start already, unless it needs a value only
+        // a mandate can supply.
+        if (errors.Count == 0 && baseConfig is not null && !parameters.Any(parameter => mandateKeys.Contains(parameter.Name ?? string.Empty) && !ConstructorBinding.IsNullable(parameter)))
+        {
+            try
+            {
+                Create(implementation, config, null);
+            }
+            catch (TargetInvocationException ex)
+            {
+                errors.Add($"Channel <{implementation}>: {(ex.InnerException ?? ex).Message}");
             }
         }
 
@@ -170,11 +192,11 @@ internal sealed class DeliveryChannelFactory
 
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
 
-    private static object? Bind(ParameterInfo parameter, params Parameterization[] places)
+    private object? Bind(ParameterInfo parameter, params Parameterization[] places)
     {
         foreach (var values in places)
         {
-            if (ConstructorBinding.TryGetConfiguredValue(parameter, values, Subject, out var value))
+            if (TryBind(parameter, values, out var value))
                 return value;
         }
 
@@ -182,6 +204,22 @@ internal sealed class DeliveryChannelFactory
             return null;
 
         throw new InvalidOperationException(MissingValueMessage(parameter));
+    }
+
+    // A parameter marked as resource file gets the text of the file its path names, any other its value.
+    private bool TryBind(ParameterInfo parameter, Parameterization values, out object? value)
+    {
+        if (!parameter.IsDefined(typeof(ResourceFileAttribute)))
+            return ConstructorBinding.TryGetConfiguredValue(parameter, values, Subject, out value);
+
+        if (!ConstructorBinding.TryGetResourcePath(parameter, values, resourcesDirectory, Subject, out var path))
+        {
+            value = null;
+            return false;
+        }
+
+        value = File.ReadAllText(path);
+        return true;
     }
 
     private static string MissingValueMessage(ParameterInfo parameter)

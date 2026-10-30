@@ -23,6 +23,7 @@ public class ReactionWorker : BackgroundService
     private readonly ReactionStore store;
     private readonly DeliveryReactionOptions options;
     private readonly IOptionsMonitor<PipelineOptions> pipelineOptions;
+    private readonly string resourcesDirectory;
     private readonly ILogger<ReactionWorker> logger;
 
     /// <summary>
@@ -33,14 +34,17 @@ public class ReactionWorker : BackgroundService
         ReactionStore store,
         IOptions<DeliveryReactionOptions> options,
         IOptionsMonitor<PipelineOptions> pipelineOptions,
+        IDirectoryProvider directoryProvider,
         ILogger<ReactionWorker> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(directoryProvider);
 
         this.scopeFactory = scopeFactory;
         this.store = store;
         this.options = options.Value;
         this.pipelineOptions = pipelineOptions;
+        this.resourcesDirectory = directoryProvider.ResourcesDirectory;
         this.logger = logger;
     }
 
@@ -129,7 +133,7 @@ public class ReactionWorker : BackgroundService
     {
         try
         {
-            var delivery = await ReadDeliveryAsync(context, reaction.DeliveryId, timeLimit);
+            var delivery = await ReadDeliveryAsync(context, reaction, timeLimit);
             if (delivery is null)
                 return ChannelResult.Failure(DeliveryGoneMessage);
 
@@ -170,7 +174,7 @@ public class ReactionWorker : BackgroundService
     {
         try
         {
-            channel = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs)
+            channel = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs, resourcesDirectory)
                 .Create(reaction.Implementation, reaction.Config.Config, reaction.Config.Mandate.ToParameterization());
             refusal = null;
             return true;
@@ -193,11 +197,11 @@ public class ReactionWorker : BackgroundService
     /// Reads what the channel learns about the delivery, anew for every attempt, so the personal data of the declarer
     /// never goes into the reaction.
     /// </summary>
-    private static async Task<DeliveryToForward?> ReadDeliveryAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    private static async Task<DeliveryToForward?> ReadDeliveryAsync(Context context, DeliveryReaction reaction, CancellationToken cancellationToken)
     {
         var delivery = await context.Deliveries
             .AsNoTracking()
-            .Where(d => d.Id == deliveryId)
+            .Where(d => d.Id == reaction.DeliveryId)
             .Select(d => new
             {
                 d.Id,
@@ -222,6 +226,7 @@ public class ReactionWorker : BackgroundService
         {
             Id = delivery.Id,
             JobId = delivery.JobId,
+            ReactionId = reaction.ReactionId,
             DeclaredAt = new DateTimeOffset(DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc)),
             Partial = delivery.Partial,
             PrecursorDeliveryId = delivery.PrecursorDeliveryId,

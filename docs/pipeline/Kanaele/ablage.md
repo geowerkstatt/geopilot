@@ -45,6 +45,8 @@ reaction_sets:
       de: Ablage Kanton A
     transfers:
       - id: ablage_kanton_a
+        display_name:
+          de: Ablage Kanton A
         channel_id: ablage
         channel_config_overwrites:
           subfolder: kanton-a
@@ -62,6 +64,8 @@ reaction_sets:
       de: Ablage pro Mandat
     transfers:
       - id: ablage_pro_mandat
+        display_name:
+          de: Ablage im Ordner des Mandats
         channel_id: ablage_pro_mandat
         mandate_config:
           - key: subfolder
@@ -85,5 +89,6 @@ reaction_sets:
 - geopilot braucht Schreibrechte auf das Basisverzeichnis. In einer Installation mit Containern ist das ein zusätzlich eingebundenes Volume, und weil der Container nicht als root läuft, muss es für dessen Benutzer beschreibbar sein.
 - Das Basisverzeichnis darf sich weder mit einem Verzeichnis unter `Storage:` noch mit `Upload:Direct:Directory`, `PublicAssetsOverride` oder dem Web-Root überschneiden, sonst startet geopilot nicht. Die Bereinigungen von geopilot löschen, was sie nicht kennen, die Dateien von `PublicAssetsOverride` und dem Web-Root liefert geopilot ohne Anmeldung aus, und wer die Ablage liest, soll die Daten von geopilot nicht sehen.
 - Was abgelegt ist, bleibt in der Ablage, auch wenn ein Admin die Lieferung später löscht.
+- Die Ablage gibt die Dateien weiter, wie sie geliefert wurden. Ohne Virenprüfung (`ClamAV:Enabled`) erreichen sie die Systeme des Empfängers also ungeprüft; wer an Dritte weitergibt, schaltet sie ein.
 - Jede Installation braucht ihr eigenes Basisverzeichnis, auch Test und Produktion. Die Ids der Lieferungen zählen in jeder Installation für sich.
 - Wer die Ablage liest, legt darin keine Verknüpfungen (Symlinks, Junctions) an. Findet die Ablage unterhalb des Basisverzeichnisses eine, scheitert der Versuch, damit sie keine Dateien in ein Verzeichnis umgelenkt schreibt. Das Basisverzeichnis selbst darf eine Verknüpfung oder ein eingebundenes Laufwerk sein.

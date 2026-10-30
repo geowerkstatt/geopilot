@@ -97,7 +97,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     // What a transfer has forwarded stays at its target, so the deletion cannot take it back.
     const forwardedBy = (deliveries.find(delivery => delivery.id === id)?.reactions ?? [])
       .filter(reaction => reaction.kind === ReactionKind.Transfer && reaction.state === ReactionState.Done)
-      .map(reaction => reaction.reactionId);
+      .map(reaction => localized(reaction.displayName ?? undefined, reaction.reactionId));
     if (forwardedBy.length > 0) {
       showPrompt("deleteForwardedDeliveryConfirmation", actions, { reactions: forwardedBy.join(", ") });
     } else {
