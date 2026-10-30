@@ -376,6 +376,18 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
+    public async Task CookieDeleteFromOtherSiteReturns403()
+    {
+        using var request = CreateCookieRequest("DELETE", $"{RepresentativeUserWriteEndpoint}/{int.MaxValue}", JwtTestTokenBuilder.CreateValidUserToken());
+        request.Headers.Add("Sec-Fetch-Site", "same-site");
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(
+            HttpStatusCode.Forbidden,
+            response.StatusCode,
+            $"A DELETE carrying the cookie from another origin must be refused, but got {(int)response.StatusCode}");
+    }
+
+    [TestMethod]
     [DataRow("Sec-Fetch-Site", "same-origin")]
     [DataRow("Origin", "http://localhost")]
     public async Task CookieWriteFromOwnOriginPasses(string header, string value)
@@ -403,6 +415,18 @@ public class JwtSecurityTest
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
         var response = await client.SendAsync(request);
         Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, "A bearer header carries no ambient authority, so its origin does not matter");
+    }
+
+    [TestMethod]
+    [DataRow("same-site")]
+    [DataRow("none")]
+    public async Task CookieReadFromOtherSitePasses(string fetchSite)
+    {
+        using var request = CreateCookieRequest("GET", "/api/v1/user/self", JwtTestTokenBuilder.CreateValidUserToken());
+        request.Headers.Add("Sec-Fetch-Site", fetchSite);
+        var response = await client.SendAsync(request);
+        Assert.AreNotEqual(HttpStatusCode.Unauthorized, response.StatusCode, $"The cookie should authenticate a read with Sec-Fetch-Site: {fetchSite}");
+        Assert.AreNotEqual(HttpStatusCode.Forbidden, response.StatusCode, $"A read with Sec-Fetch-Site: {fetchSite} should pass");
     }
 
     [TestMethod]

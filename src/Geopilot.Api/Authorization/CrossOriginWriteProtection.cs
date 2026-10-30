@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Authorization;
+﻿using System.Web;
+
+namespace Geopilot.Api.Authorization;
 
 /// <summary>
 /// Protects the geopilot.auth cookie against cross-site request forgery. SameSite only keeps the cookie from foreign
@@ -14,12 +16,20 @@ public static class CrossOriginWriteProtection
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(CrossOriginWriteProtection));
         app.Use(async (context, next) =>
         {
             var request = context.Request;
             var isWrite = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method);
             if (isWrite && !string.IsNullOrEmpty(request.Cookies[AuthDefaults.AuthCookieName]) && !IsSameOriginRequest(request))
             {
+                logger.LogWarning(
+                    "Refused {Method} <{Path}> carrying the auth cookie from another origin (Sec-Fetch-Site <{FetchSite}>, Origin <{Origin}>, Host <{Host}>).",
+                    HttpUtility.HtmlEncode(request.Method),
+                    HttpUtility.HtmlEncode(request.Path.Value),
+                    HttpUtility.HtmlEncode(request.Headers["Sec-Fetch-Site"].ToString()),
+                    HttpUtility.HtmlEncode(request.Headers.Origin.ToString()),
+                    HttpUtility.HtmlEncode(request.Host.Value));
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;
             }
