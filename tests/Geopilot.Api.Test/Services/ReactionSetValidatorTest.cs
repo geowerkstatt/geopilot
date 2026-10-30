@@ -22,6 +22,7 @@ public class ReactionSetValidatorTest
             new ReactionConfig
             {
                 Id = ReactionId,
+                DisplayName = new Dictionary<string, string> { ["de"] = "Ablage" },
                 ChannelId = "ablage",
                 MandateConfig = [new MandateConfigEntry { Key = "subfolder", DisplayName = new Dictionary<string, string> { ["de"] = "Unterordner" } }],
             },
@@ -31,6 +32,7 @@ public class ReactionSetValidatorTest
             new ReactionConfig
             {
                 Id = NotificationId,
+                DisplayName = new Dictionary<string, string> { ["de"] = "Meldung" },
                 ChannelId = "ablage",
                 MandateConfig = [new MandateConfigEntry { Key = "subfolder", DisplayName = new Dictionary<string, string> { ["de"] = "Unterordner der Meldung" } }],
             },

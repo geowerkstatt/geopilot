@@ -224,6 +224,7 @@ public class DeliveryDeclarationServiceTest
         => new()
         {
             Id = reactionId,
+            DisplayName = TestHelpers.Localized(reactionId),
             ChannelId = "ablage",
             MandateConfig = mandateKeys.Select(key => new MandateConfigEntry { Key = key, DisplayName = TestHelpers.Localized(key) }).ToList(),
         };

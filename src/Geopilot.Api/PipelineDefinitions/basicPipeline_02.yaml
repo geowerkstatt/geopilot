@@ -943,6 +943,11 @@ reaction_sets:
       en: File drop
     transfers:
       - id: ablage
+        display_name:
+          de: Ablage
+          fr: Dépôt
+          it: Deposito
+          en: File drop
         channel_id: ablage
   - id: ablage_pro_mandat
     display_name:
@@ -952,6 +957,11 @@ reaction_sets:
       en: File drop per mandate
     transfers:
       - id: ablage_pro_mandat
+        display_name:
+          de: Ablage im Ordner des Mandats
+          fr: Dépôt dans le dossier du mandat
+          it: Deposito nella cartella del mandato
+          en: File drop into the folder of the mandate
         channel_id: ablage_pro_mandat
         mandate_config:
           - key: subfolder
@@ -968,9 +978,19 @@ reaction_sets:
       en: File drop with info mail
     transfers:
       - id: ablage_mit_info_mail
+        display_name:
+          de: Ablage
+          fr: Dépôt
+          it: Deposito
+          en: File drop
         channel_id: ablage
     notifications:
       - id: info_mail
+        display_name:
+          de: Info-Mail
+          fr: E-mail d'information
+          it: E-mail informativa
+          en: Info mail
         channel_id: info_mail
         mandate_config:
           - key: to

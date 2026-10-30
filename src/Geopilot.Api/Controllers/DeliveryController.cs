@@ -6,6 +6,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
+using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -32,15 +33,17 @@ public class DeliveryController : ControllerBase
     private readonly IAuthorizationService authorizationService;
     private readonly ReactionStore reactionStore;
     private readonly IPipelineRunRecorder pipelineRunRecorder;
+    private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
     {
         this.authorizationService = authorizationService;
         this.reactionStore = reactionStore;
         this.pipelineRunRecorder = pipelineRunRecorder;
+        this.pipelineFactory = pipelineFactory;
         this.logger = logger;
         this.context = context;
         this.deliveryDeclarationService = deliveryDeclarationService;
@@ -183,6 +186,7 @@ public class DeliveryController : ControllerBase
                     .OrderBy(r => r.Id)
                     .Select(r => new DeliveryReactionResponse(
                         r.ReactionId,
+                        null,
                         r.Kind,
                         r.State,
                         r.Attempts,
@@ -194,6 +198,12 @@ public class DeliveryController : ControllerBase
             })
             .ToListAsync();
 
+        // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
+        // definition no longer has keeps its id only.
+        var displayNames = pipelineFactory.ReactionSets
+            .SelectMany(set => set.AllReactions())
+            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
+
         return Ok(deliveries
             .Select(d => new DeliveryResponse(
                 d.Id,
@@ -202,7 +212,7 @@ public class DeliveryController : ControllerBase
                 d.DeclarerName,
                 d.Comment,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).ForwardingState(),
-                d.Reactions))
+                d.Reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList()))
             .ToList());
     }
 

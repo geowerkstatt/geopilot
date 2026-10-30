@@ -6,6 +6,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -32,6 +33,7 @@ public class DeliveryControllerTest
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private Mock<IAuthorizationService> authorizationServiceMock;
     private Mock<IPipelineRunRecorder> recorderMock;
+    private Mock<IPipelineFactory> pipelineFactoryMock;
     private DeliveryController deliveryController;
     private Context context;
 
@@ -56,7 +58,9 @@ public class DeliveryControllerTest
             .ReturnsAsync(AuthorizationResult.Failed());
         recorderMock = new Mock<IPipelineRunRecorder>();
         var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
-        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object);
+        pipelineFactoryMock = new Mock<IPipelineFactory>();
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -973,6 +977,37 @@ public class DeliveryControllerTest
         Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
         Assert.IsNull(byId[withoutReactions.Id].ForwardingState);
         Assert.IsEmpty(byId[withoutReactions.Id].Reactions);
+    }
+
+    [TestMethod]
+    public async Task GetNamesTheReactionsAfterTheDefinition()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns(
+        [
+            new ReactionSetConfig
+            {
+                Id = "kanton_a",
+                DisplayName = TestHelpers.Localized("Kanton A"),
+                Transfers = [new ReactionConfig { Id = "ablage", DisplayName = TestHelpers.Localized("Ablage"), ChannelId = "ablage" }],
+                Notifications = [new ReactionConfig { Id = "meldung", DisplayName = TestHelpers.Localized("Info-Mail"), ChannelId = "mail" }],
+            },
+        ]);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "ablage", ReactionState.Done),
+            NewReaction(delivery, "meldung", ReactionState.Done, ReactionKind.Notification),
+            NewReaction(delivery, "entfernt", ReactionState.Done));
+        context.SaveChanges();
+
+        var list = ((await deliveryController.Get()) as ObjectResult)?.Value as List<DeliveryResponse>;
+
+        var reactions = list?.Single(d => d.Id == delivery.Id).Reactions;
+        Assert.IsNotNull(reactions);
+        Assert.AreEqual(TestHelpers.Localized("Ablage"), reactions[0].DisplayName);
+        Assert.AreEqual(TestHelpers.Localized("Info-Mail"), reactions[1].DisplayName);
+        Assert.IsNull(reactions[2].DisplayName, "a reaction the definition no longer has is shown by its id only.");
     }
 
     [TestMethod]

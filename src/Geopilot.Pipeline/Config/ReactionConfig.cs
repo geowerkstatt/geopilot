@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Validation;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -22,6 +23,13 @@ public class ReactionConfig
     [Required(AllowEmptyStrings = false, ErrorMessage = "Reaction ID is required.")]
     [RegularExpression(IdPattern, ErrorMessage = "A reaction id consists of lowercase letters, digits, '_' and '-', starts with a letter or digit and has at most 128 characters.")]
     public required string Id { get; set; }
+
+    /// <summary>
+    /// The name of the reaction in the languages of the user interface, under which the administration shows it.
+    /// </summary>
+    [YamlMember(Alias = "display_name")]
+    [Required(ErrorMessage = "Reaction Display Name is required.")]
+    public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
     /// The channel that runs the reaction. References the <see cref="ChannelConfig.Id"/> of a defined channel.
