@@ -33,6 +33,9 @@
     <PackageReference Include="NCalc.Core" Version="6.2.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
     <PackageReference Include="Geowerkstatt.IlitoolsWrapperApi" Version="1.1.26-preview" />
+    <PackageReference Include="MailKit" Version="4.18.1" />
+    <!-- MimeKit brings 10.0.0, which has known vulnerabilities (CVE-2026-84008, CVE-2026-70162). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>

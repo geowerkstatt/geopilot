@@ -228,7 +228,8 @@ public class PipelineFactory : IPipelineFactory
 
     /// <summary>
     /// Checks the channel of every reaction against its default configuration with the reaction's overwrites, the
-    /// declared mandate values and, with a base configuration, the base values, without constructing a channel.
+    /// declared mandate values and, with a base configuration, the base values. A channel that needs nothing from the
+    /// mandate is built once on the way, so what its constructor refuses stops the start as well.
     /// </summary>
     private List<string> ValidateReactionSets()
     {

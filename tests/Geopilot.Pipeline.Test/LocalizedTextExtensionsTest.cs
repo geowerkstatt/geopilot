@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Test;
+namespace Geopilot.Pipeline.Test;
 
 [TestClass]
 public class LocalizedTextExtensionsTest
@@ -58,5 +58,19 @@ public class LocalizedTextExtensionsTest
     public void GetDisplayTextReturnsEmptyStringWhenNoLanguagePresent()
     {
         Assert.AreEqual(string.Empty, LocalizedText.Empty.GetDisplayText());
+    }
+
+    [TestMethod]
+    public void GetDisplayTextTakesThePreferredLanguageFirst()
+    {
+        var text = new LocalizedText(new Dictionary<string, string> { ["de"] = "Hallo", ["en"] = "Hello", ["fr"] = "Bonjour" });
+        Assert.AreEqual("Bonjour", text.GetDisplayText("fr"));
+    }
+
+    [TestMethod]
+    public void GetDisplayTextFollowsTheOrderWhenThePreferredLanguageIsMissing()
+    {
+        var text = new LocalizedText(new Dictionary<string, string> { ["de"] = "Hallo", ["en"] = "Hello" });
+        Assert.AreEqual("Hello", text.GetDisplayText("it"));
     }
 }

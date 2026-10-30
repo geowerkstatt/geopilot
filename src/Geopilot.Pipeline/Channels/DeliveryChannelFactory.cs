@@ -42,12 +42,13 @@ internal sealed class DeliveryChannelFactory
     }
 
     /// <summary>
-    /// Checks a reaction without constructing its channel: the implementation is a channel with one public
-    /// constructor, every key of the definition is a parameter not marked as base configuration value, every declared
-    /// mandate key a parameter marked as mandate value that the definition does not set, every parameter marked as
-    /// mandate value takes a text, a list of texts or a switch, every value converts to its parameter, every file lies
-    /// below the resources directory, and, with a base configuration, every parameter that needs a value gets one. A key
-    /// the base configuration pins is the concern of the definition validation.
+    /// Checks a reaction: the implementation is a channel with one public constructor, every key of the definition is a
+    /// parameter not marked as base configuration value, every declared mandate key a parameter marked as mandate value
+    /// that the definition does not set, every parameter marked as mandate value takes a text, a list of texts or a
+    /// switch, every value converts to its parameter, every file lies below the resources directory, and, with a base
+    /// configuration, every parameter that needs a value gets one. When all that holds and the channel needs no value
+    /// from the mandate, it is built once and discarded, so what its constructor refuses shows as well. A key the base
+    /// configuration pins is the concern of the definition validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
@@ -113,6 +114,21 @@ internal sealed class DeliveryChannelFactory
             catch (Exception ex) when (ex is InvalidOperationException or PipelineRunException)
             {
                 errors.Add(ex.Message);
+            }
+        }
+
+        // A channel checks its values in its constructor, such as the template of a mail. Built once from the base
+        // configuration and the definition, it shows such a problem at the start already, unless it needs a value only
+        // a mandate can supply.
+        if (errors.Count == 0 && baseConfig is not null && !parameters.Any(parameter => mandateKeys.Contains(parameter.Name ?? string.Empty) && !ConstructorBinding.IsNullable(parameter)))
+        {
+            try
+            {
+                Create(implementation, config, null);
+            }
+            catch (TargetInvocationException ex)
+            {
+                errors.Add($"Channel <{implementation}>: {(ex.InnerException ?? ex).Message}");
             }
         }
 
