@@ -81,4 +81,15 @@ public class MailTemplateTest
         // writes an umlaut as a number, which every mail program shows as the letter.
         Assert.AreEqual("<title>Nachf&#252;hrung AV / Nachf&#252;hrung AV</title>", template.RenderBody(Delivery, FileNames, Zurich));
     }
+
+    [TestMethod]
+    public void ParseAcceptsTheShippedExample()
+    {
+        // The definition validation finds the file, but without a base configuration it never builds the mail channel.
+        var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "Resources", "vorlagen", "info-mail.html"));
+
+        var template = MailTemplate.Parse(html);
+
+        Assert.AreEqual("Neue Lieferung 42 / Nouvelle livraison 42", template.RenderSubject(Delivery, FileNames, Zurich));
+    }
 }

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Neue Lieferung {{delivery_id}} / Nouvelle livraison {{delivery_id}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">
+  <!-- Ein Logo bringt das Template selbst mit, als Base64 im src eines Bildes: <img src="data:image/png;base64,..." alt="Logo"> -->
+  <p>Guten Tag</p>
+  <p>{{declarer_name}} hat am {{declared_at}} die Lieferung {{delivery_id}} für {{mandate_name:de}} abgegeben. Sie enthält diese Dateien:</p>
+  {{files}}
+  <p>Kommentar: {{comment}}</p>
+  <p>Freundliche Grüsse<br>geopilot</p>
+  <hr>
+  <div lang="fr">
+    <p>Bonjour</p>
+    <p>{{declarer_name}} a remis la livraison {{delivery_id}} pour {{mandate_name:fr}} le {{declared_at}}. Elle contient ces fichiers :</p>
+    {{files}}
+    <p>Commentaire : {{comment}}</p>
+    <p>Meilleures salutations<br>geopilot</p>
+  </div>
+</body>
+</html>
