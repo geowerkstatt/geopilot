@@ -20,7 +20,7 @@ public class Asset
 #pragma warning restore CA1819 // Properties should not return arrays
 
     /// <summary>
-    /// The name the file is shown and downloaded under.
+    /// The original filename of the file.
     /// </summary>
     public string OriginalFilename { get; set; } = string.Empty;
 
