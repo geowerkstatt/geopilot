@@ -979,11 +979,18 @@ reaction_sets:
     transfers:
       - id: ablage_info
         display_name:
-          de: Ablage
-          fr: Dépôt
-          it: Deposito
-          en: File drop
-        channel_id: ablage
+          de: Ablage im Ordner des Mandats
+          fr: Dépôt dans le dossier du mandat
+          it: Deposito nella cartella del mandato
+          en: File drop into the folder of the mandate
+        channel_id: ablage_pro_mandat
+        mandate_config:
+          - key: subfolder
+            display_name:
+              de: Unterordner der Ablage
+              fr: Sous-dossier du dépôt
+              it: Sottocartella del deposito
+              en: Subfolder of the file drop
     notifications:
       - id: info_mail
         display_name:
