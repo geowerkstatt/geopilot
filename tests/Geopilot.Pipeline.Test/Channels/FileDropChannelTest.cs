@@ -12,6 +12,7 @@ public class FileDropChannelTest
     {
         Id = 42,
         JobId = Guid.NewGuid(),
+        ReactionId = "ablage",
         DeclaredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
         Mandate = new MandateInfo { Id = 7, Name = new Dictionary<string, string> { ["de"] = "Mandat A" } },
         Declarer = new DeclarerInfo { Kind = DeclarerKind.User, Name = "Lieferant", Email = "lieferant@example.com" },

@@ -133,7 +133,7 @@ public class ReactionWorker : BackgroundService
     {
         try
         {
-            var delivery = await ReadDeliveryAsync(context, reaction.DeliveryId, timeLimit);
+            var delivery = await ReadDeliveryAsync(context, reaction, timeLimit);
             if (delivery is null)
                 return ChannelResult.Failure(DeliveryGoneMessage);
 
@@ -197,11 +197,11 @@ public class ReactionWorker : BackgroundService
     /// Reads what the channel learns about the delivery, anew for every attempt, so the personal data of the declarer
     /// never goes into the reaction.
     /// </summary>
-    private static async Task<DeliveryToForward?> ReadDeliveryAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    private static async Task<DeliveryToForward?> ReadDeliveryAsync(Context context, DeliveryReaction reaction, CancellationToken cancellationToken)
     {
         var delivery = await context.Deliveries
             .AsNoTracking()
-            .Where(d => d.Id == deliveryId)
+            .Where(d => d.Id == reaction.DeliveryId)
             .Select(d => new
             {
                 d.Id,
@@ -226,6 +226,7 @@ public class ReactionWorker : BackgroundService
         {
             Id = delivery.Id,
             JobId = delivery.JobId,
+            ReactionId = reaction.ReactionId,
             DeclaredAt = new DateTimeOffset(DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc)),
             Partial = delivery.Partial,
             PrecursorDeliveryId = delivery.PrecursorDeliveryId,

@@ -159,6 +159,29 @@ services:
       - "4011:8080"
     command: start-dev --import-realm
 
+  # Catches the mails of the mail channel: the API sends to it in development, the tests read what arrived through
+  # its API. The second instance demands STARTTLS and a login, with the dev certificate.
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - 1025:1025
+      - 8025:8025
+    environment:
+      MP_ENABLE_CHAOS: "true"
+
+  mailpit-tls:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - 1026:1025
+      - 8026:8025
+    volumes:
+      - ./certs:/certs:ro
+    environment:
+      MP_SMTP_TLS_CERT: /certs/cert.pem
+      MP_SMTP_TLS_KEY: /certs/cert.key
+      MP_SMTP_REQUIRE_STARTTLS: "true"
+      MP_SMTP_AUTH: "geopilot:geopilot"
+
   ilitools-wrapper:
     image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.1.26
     restart: unless-stopped

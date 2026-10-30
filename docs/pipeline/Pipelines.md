@@ -656,6 +656,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
 - die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
 - ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
+- der Kanal einer Reaktion seine Konfiguration abweist, etwa der Mail-Kanal ein Template ohne Titel. Dafür baut geopilot jeden Kanal einmal, der ohne Werte vom Mandat auskommt; einen, der welche braucht, prüft erst das Speichern eines Mandats,
 - ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,
 - ein Mandat einen Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.
 
@@ -666,6 +667,7 @@ Ein Satz lässt sich deshalb erst aus der Definition entfernen, wenn kein Mandat
 Jeder Kanal, der mit geopilot ausgeliefert wird, ist in einer eigenen Datei dokumentiert:
 
 - [Ablage](Kanaele/ablage.md)
+- [Mail](Kanaele/mail.md)
 
 ## Prozesse
 

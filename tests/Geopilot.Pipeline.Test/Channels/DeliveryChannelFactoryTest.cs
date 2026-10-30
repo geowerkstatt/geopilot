@@ -10,6 +10,7 @@ public class DeliveryChannelFactoryTest
     private const string TargetChannel = "Geopilot.Pipeline.Test.Channels.TargetChannel";
     private const string SwitchChannel = "Geopilot.Pipeline.Test.Channels.SwitchChannel";
     private const string TemplateChannel = "Geopilot.Pipeline.Test.Channels.TemplateChannel";
+    private const string RefusingChannel = "Geopilot.Pipeline.Test.Channels.RefusingChannel";
 
     private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
@@ -329,6 +330,32 @@ public class DeliveryChannelFactoryTest
         Assert.AreEqual("<title>Neue Lieferung</title>", Assert.IsInstanceOfType<TemplateChannel>(channel).Template);
     }
 
+    [TestMethod]
+    public void ValidateBuildsTheChannelOnceToShowWhatItsConstructorRefuses()
+    {
+        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>());
+
+        var error = Assert.ContainsSingle(factory.Validate(RefusingChannel, new Parameterization { ["mode"] = "refuse", ["folder"] = "fest" }, []));
+        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.RefusingChannel>: The mode <refuse> is refused.", error);
+    }
+
+    [TestMethod]
+    public void ValidateBuildsNoChannelThatNeedsAValueFromTheMandate()
+    {
+        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>());
+
+        // Without the folder of a mandate the channel cannot be built, so only saving a mandate shows the refusal.
+        Assert.IsEmpty(factory.Validate(RefusingChannel, new Parameterization { ["mode"] = "refuse" }, ["folder"]));
+    }
+
+    [TestMethod]
+    public void ValidateBuildsNoChannelWithoutABaseConfiguration()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        Assert.IsEmpty(factory.Validate(RefusingChannel, new Parameterization { ["mode"] = "refuse", ["folder"] = "fest" }, []));
+    }
+
     /// <summary>
     /// A resources root holding <c>vorlagen/info.html</c>, plus <c>info.html</c> one level above it so that a path leaving
     /// the root fails on the confinement and not on a missing file.
@@ -421,6 +448,20 @@ internal sealed class TemplateChannel : IDeliveryChannel
     }
 
     public string Template { get; }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
+}
+
+internal sealed class RefusingChannel : IDeliveryChannel
+{
+    public RefusingChannel(string mode, [MandateValue] string folder)
+    {
+        if (mode == "refuse")
+            throw new ArgumentException($"The mode <{mode}> is refused.");
+
+        _ = folder;
+    }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
         => Task.FromResult(ChannelResult.Success("Delivered."));
