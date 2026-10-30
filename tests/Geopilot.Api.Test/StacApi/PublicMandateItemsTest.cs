@@ -23,6 +23,7 @@ public class PublicMandateItemsTest
 {
     private const string Comment = "Nur für Admins";
     private const string DeclaredByProperty = "Abgegeben durch";
+    private const string PrecursorProperty = "Vorgängerversion";
 
     // Far apart, so the time span of the collection shows which deliveries it covers.
     private static readonly DateTime ForwardedDate = new(2020, 6, 15, 12, 0, 0, DateTimeKind.Utc);
@@ -153,26 +154,45 @@ public class PublicMandateItemsTest
         }
     }
 
+    [TestMethod]
+    [DataRow(false, DisplayName = "Anonymous")]
+    [DataRow(true, DisplayName = "Administrator")]
+    public async Task AnItemNamesOnlyAForwardedPrecursor(bool asAdmin)
+    {
+        var afterHidden = AddDelivery(ForwardedDate);
+        afterHidden.PrecursorDelivery = AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Error));
+        var afterShown = AddDelivery(ForwardedDate);
+        afterShown.PrecursorDelivery = AddDelivery(ForwardedDate, (ReactionKind.Transfer, ReactionState.Done));
+        context.SaveChanges();
+        using var client = CreateClient(asAdmin);
+        var features = new FeaturesClient(client);
+
+        Assert.IsFalse((await features.GetFeatureAsync(collectionId, ItemId(afterHidden))).Properties.ContainsKey(PrecursorProperty));
+        Assert.IsTrue((await features.GetFeatureAsync(collectionId, ItemId(afterShown))).Properties.ContainsKey(PrecursorProperty));
+    }
+
     // One delivery per forwarding state, as the item ids of those the catalog shows and of those it hides.
     private (List<string> Forwarded, List<string> Unforwarded) AddDeliveriesInEveryForwardingState()
     {
-        var forwarded = new List<string>
+        var forwarded = new[]
         {
             AddDelivery(ForwardedDate),
             AddDelivery(ForwardedDate, (ReactionKind.Transfer, ReactionState.Done), (ReactionKind.Notification, ReactionState.Pending)),
             AddDelivery(ForwardedDate, (ReactionKind.Notification, ReactionState.Error)),
         };
-        var unforwarded = new List<string>
+        var unforwarded = new[]
         {
             AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Pending)),
             AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Running)),
             AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Error)),
             AddDelivery(UnforwardedDate, (ReactionKind.Transfer, ReactionState.Done), (ReactionKind.Transfer, ReactionState.Pending)),
         };
-        return (forwarded, unforwarded);
+        return (forwarded.Select(ItemId).ToList(), unforwarded.Select(ItemId).ToList());
     }
 
-    private string AddDelivery(DateTime date, params (ReactionKind Kind, ReactionState State)[] reactions)
+    private static string ItemId(Delivery delivery) => $"item_{delivery.Id}";
+
+    private Delivery AddDelivery(DateTime date, params (ReactionKind Kind, ReactionState State)[] reactions)
     {
         var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First(), Date = date };
         context.Deliveries.Add(delivery);
@@ -186,7 +206,7 @@ public class PublicMandateItemsTest
             NextAttemptAt = date,
         }));
         context.SaveChanges();
-        return $"item_{delivery.Id}";
+        return delivery;
     }
 
     private HttpClient CreateClient(bool asAdmin)
