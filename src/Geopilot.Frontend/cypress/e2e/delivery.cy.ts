@@ -55,15 +55,21 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/picture-type.png", false);
     stepHasError("files", true, "The file type is not supported");
 
-    cy.dataCy("file-dropzone").selectFile(
-      { contents: Cypress.Buffer.from("<TRANSFER/>"), fileName: "v1..2.xtf" },
-      { action: "drag-drop" },
-    );
-    fileNameExists("v1..2.xtf", false);
+    const dropFileNamed = (fileName: string) =>
+      cy
+        .dataCy("file-dropzone")
+        .selectFile({ contents: Cypress.Buffer.from("<TRANSFER/>"), fileName }, { action: "drag-drop" });
+
+    dropFileNamed("v1..2.xtf");
     stepHasError("files", true, "The file name contains invalid characters");
+    fileNameExists("v1..2.xtf", false);
 
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     stepHasError("files", false);
+
+    dropFileNamed("a:b.xtf");
+    stepHasError("files", true, "The file name contains invalid characters");
+    fileNameExists("a:b.xtf", false);
 
     addFile(["deliveryFiles/ilimodels_invalid.xml", "deliveryFiles/ilimodels_not_conform.xml"], true);
     stepHasError("files", false);
