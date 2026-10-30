@@ -147,6 +147,11 @@ public class Context : DbContext
     public DbSet<Asset> Assets { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="DeliveryReaction"/>, the reactions to deliveries and the queue they are claimed from.
+    /// </summary>
+    public DbSet<DeliveryReaction> DeliveryReactions { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="PipelineRun"/> execution protocol records.
     /// </summary>
     public DbSet<PipelineRun> PipelineRuns { get; set; }
@@ -173,6 +178,11 @@ public class Context : DbContext
     public DbSet<PipelineRunArtifact> PipelineRunArtifacts { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="PipelineRunReactionEvent"/> records.
+    /// </summary>
+    public DbSet<PipelineRunReactionEvent> PipelineRunReactionEvents { get; set; }
+
+    /// <summary>
     /// Gets the <see cref="PipelineRun"/> entity with all includes.
     /// </summary>
     public IQueryable<PipelineRun> PipelineRunsWithIncludes
@@ -184,7 +194,8 @@ public class Context : DbContext
                 .Include(r => r.Steps)
                 .ThenInclude(s => s.Conditions)
                 .Include(r => r.Steps)
-                .ThenInclude(s => s.Artifacts);
+                .ThenInclude(s => s.Artifacts)
+                .Include(r => r.ReactionEvents);
         }
     }
 
@@ -225,6 +236,32 @@ public class Context : DbContext
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
 
+        // The snapshot holds dictionaries, so the comparer compares the JSON, as for the reaction set values of a mandate.
+        var reactionSnapshotConverter = new ValueConverter<ReactionSnapshot, string>(
+            snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null),
+            json => ReactionSnapshot.FromJson(json));
+
+        var reactionSnapshotComparer = new ValueComparer<ReactionSnapshot>(
+            (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+            snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null).GetHashCode(StringComparison.Ordinal),
+            snapshot => ReactionSnapshot.FromJson(JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null)));
+
+        modelBuilder.Entity<DeliveryReaction>(reaction =>
+        {
+            // The reactions of a deleted delivery are never claimed, listed or reset again.
+            reaction.HasQueryFilter(r => !r.Delivery.Deleted);
+            reaction.HasOne(r => r.Delivery).WithMany().HasForeignKey(r => r.DeliveryId);
+            reaction.HasIndex(r => new { r.DeliveryId, r.ReactionId }).IsUnique();
+
+            // The queue looks for open reactions in the order they fall due.
+            reaction.HasIndex(r => r.NextAttemptAt).HasFilter("\"State\" IN ('Pending', 'Running')");
+
+            reaction.Property(r => r.ReactionId).HasMaxLength(128);
+            reaction.Property(r => r.Kind).HasConversion<string>().HasMaxLength(12);
+            reaction.Property(r => r.State).HasConversion<string>().HasMaxLength(12);
+            reaction.Property(r => r.Config).HasColumnType("jsonb").HasConversion(reactionSnapshotConverter, reactionSnapshotComparer);
+        });
+
         var localizedTextConverter = new ValueConverter<LocalizedText, string>(
             localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
             json => JsonSerializer.Deserialize<LocalizedText>(json, (JsonSerializerOptions?)null) ?? LocalizedText.Empty);
@@ -251,6 +288,24 @@ public class Context : DbContext
             .HasDefaultValueSql("jsonb_build_object()")
             .HasConversion(localizedTextConverter, localizedTextComparer);
 
+        // Null only in a request that leaves the values out, which the controller resolves before saving; a new
+        // mandate saved without them gets the default.
+        var reactionSetValuesConverter = new ValueConverter<Dictionary<string, Dictionary<string, JsonElement>>?, string>(
+            values => JsonSerializer.Serialize(values, (JsonSerializerOptions?)null),
+            json => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(json, (JsonSerializerOptions?)null));
+
+        var reactionSetValuesComparer = new ValueComparer<Dictionary<string, Dictionary<string, JsonElement>>?>(
+            (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+            values => JsonSerializer.Serialize(values, (JsonSerializerOptions?)null).GetHashCode(StringComparison.Ordinal),
+            values => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, JsonElement>>>(JsonSerializer.Serialize(values, (JsonSerializerOptions?)null), (JsonSerializerOptions?)null));
+
+        modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.ReactionSetValues)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_object()")
+            .HasConversion(reactionSetValuesConverter, reactionSetValuesComparer)
+            .IsRequired();
+
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
         // text so the tables stay readable in SQL and reordering an enum cannot reinterpret history.
         modelBuilder.Entity<PipelineRun>(run =>
@@ -274,6 +329,18 @@ public class Context : DbContext
 
             run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
             run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
+            run.HasMany(r => r.ReactionEvents).WithOne().HasForeignKey(e => e.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PipelineRunReactionEvent>(reactionEvent =>
+        {
+            reactionEvent.Property(e => e.ReactionId).HasMaxLength(128);
+            reactionEvent.Property(e => e.ReactionKind).HasConversion<string>();
+            reactionEvent.Property(e => e.Event).HasConversion<string>();
+            reactionEvent.Property(e => e.State).HasConversion<string>();
+
+            // Restrict like the user of the run: users are only ever soft-deleted.
+            reactionEvent.HasOne<User>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PipelineRunStep>(step =>

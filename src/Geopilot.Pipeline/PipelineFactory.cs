@@ -1,7 +1,9 @@
-﻿using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Channels;
+using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -27,6 +29,7 @@ public class PipelineFactory : IPipelineFactory
     private readonly string pipelineTempDirectory;
     private readonly string? resourcesDirectory;
     private readonly IReadOnlyDictionary<string, Parameterization>? processBaseConfigs;
+    private readonly IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs;
 
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
@@ -41,6 +44,7 @@ public class PipelineFactory : IPipelineFactory
         string pipelineTempDirectory,
         string? resourcesDirectory,
         IReadOnlyDictionary<string, Parameterization>? processBaseConfigs,
+        IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs,
         ILoggerFactory loggerFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
@@ -48,6 +52,7 @@ public class PipelineFactory : IPipelineFactory
         this.pipelineTempDirectory = pipelineTempDirectory;
         this.resourcesDirectory = resourcesDirectory;
         this.processBaseConfigs = processBaseConfigs;
+        this.channelBaseConfigs = channelBaseConfigs;
 
         this.loggerFactory = loggerFactory;
         this.logger = loggerFactory.CreateLogger<PipelineFactory>();
@@ -55,6 +60,61 @@ public class PipelineFactory : IPipelineFactory
 
     /// <inheritdoc />
     public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
+
+    /// <inheritdoc />
+    public IReadOnlyList<ReactionSetConfig> ReactionSets => PipelineProcessConfig.ReactionSets ?? [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveTransfers(string reactionSetId)
+        => Resolve(FindReactionSet(reactionSetId).Transfers ?? []);
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string ReactionId, string Implementation, Parameterization Config)> ResolveNotifications(string reactionSetId)
+        => Resolve(FindReactionSet(reactionSetId).Notifications ?? []);
+
+    /// <inheritdoc />
+    public IReadOnlyList<MandateField> DescribeMandateFields(string reactionSetId)
+    {
+        var set = FindReactionSet(reactionSetId);
+        var implementations = Resolve(set.AllReactions()).ToDictionary(reaction => reaction.ReactionId, reaction => reaction.Implementation);
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+
+        return set.AllReactions()
+            .Where(reaction => reaction.MandateConfig is { Count: > 0 })
+            .SelectMany(reaction =>
+            {
+                var values = channelFactory.DescribeMandateValues(implementations[reaction.Id]);
+                return (reaction.MandateConfig ?? []).Select(entry => new MandateField(reaction.Id, entry.Key, entry.DisplayName, values[entry.Key].Type, values[entry.Key].Required));
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ValidateMandateValues(string reactionSetId, IReadOnlyDictionary<string, Parameterization> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var errors = new List<string>();
+        foreach (var reaction in Resolve(FindReactionSet(reactionSetId).AllReactions()))
+        {
+            try
+            {
+                channelFactory.Create(reaction.Implementation, reaction.Config, values.GetValueOrDefault(reaction.ReactionId));
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add($"reaction {reaction.ReactionId}: {ex.Message}");
+            }
+            catch (TargetInvocationException ex)
+            {
+                // The constructor of the channel refused a value, such as a subfolder outside the base directory.
+                errors.Add($"reaction {reaction.ReactionId}: {(ex.InnerException ?? ex).Message}");
+            }
+        }
+
+        return errors;
+    }
 
     /// <inheritdoc />
     public IPipeline CreatePipeline(string id, Guid jobId)
@@ -117,7 +177,7 @@ public class PipelineFactory : IPipelineFactory
     /// <inheritdoc />
     public PipelineDefinitionValidationResult ValidateDefinition()
     {
-        var definitionErrors = PipelineProcessConfig.Validate(processBaseConfigs);
+        var definitionErrors = PipelineProcessConfig.Validate(processBaseConfigs, channelBaseConfigs);
         if (definitionErrors.HasErrors)
         {
             return new PipelineDefinitionValidationResult(
@@ -151,13 +211,67 @@ public class PipelineFactory : IPipelineFactory
             }
         }
 
-        if (processErrors.Count > 0)
+        var reactionErrors = ValidateReactionSets();
+        if (processErrors.Count > 0 || reactionErrors.Count > 0)
         {
-            return new PipelineDefinitionValidationResult(
-                $"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, processErrors)}");
+            var sections = new List<string>();
+            if (processErrors.Count > 0)
+                sections.Add($"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, processErrors)}");
+            if (reactionErrors.Count > 0)
+                sections.Add($"Invalid reaction sets found:{Environment.NewLine}{string.Join(Environment.NewLine, reactionErrors)}");
+
+            return new PipelineDefinitionValidationResult(string.Join(Environment.NewLine, sections));
         }
 
         return PipelineDefinitionValidationResult.Valid;
+    }
+
+    /// <summary>
+    /// Checks the channel of every reaction against its default configuration with the reaction's overwrites, the
+    /// declared mandate values and, with a base configuration, the base values, without constructing a channel.
+    /// </summary>
+    private List<string> ValidateReactionSets()
+    {
+        var channelFactory = new DeliveryChannelFactory(channelBaseConfigs);
+        var channels = PipelineProcessConfig.Channels ?? [];
+        return (PipelineProcessConfig.ReactionSets ?? [])
+            .SelectMany(set => set.AllReactions().SelectMany(reaction =>
+            {
+                // The definition validation has already rejected a reaction without a defined channel.
+                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+                return channelFactory
+                    .Validate(channel.Implementation, MergeChannelConfig(channel, reaction), reaction.MandateConfig?.Select(entry => entry.Key).ToList() ?? [])
+                    .Select(error => $"reaction set {set.Id}, reaction {reaction.Id}, channel {channel.Id}, error: {error}");
+            }))
+            .ToList();
+    }
+
+    private ReactionSetConfig FindReactionSet(string reactionSetId)
+        => ReactionSets.FirstOrDefault(candidate => candidate.Id == reactionSetId)
+            ?? throw new InvalidOperationException($"Reaction set <{reactionSetId}> does not exist.");
+
+    // Per reaction its id, the implementation of its channel and the configuration the definition gives it.
+    private List<(string ReactionId, string Implementation, Parameterization Config)> Resolve(IEnumerable<ReactionConfig> reactions)
+    {
+        var channels = PipelineProcessConfig.Channels ?? [];
+        return reactions
+            .Select(reaction =>
+            {
+                var channel = channels.Single(candidate => candidate.Id == reaction.ChannelId);
+                return (reaction.Id, channel.Implementation, MergeChannelConfig(channel, reaction));
+            })
+            .ToList();
+    }
+
+    private static Parameterization MergeChannelConfig(ChannelConfig channel, ReactionConfig reaction)
+    {
+        var config = new Parameterization(channel.DefaultConfig ?? new Parameterization());
+        foreach (var overwrite in reaction.ChannelConfigOverwrites ?? new Parameterization())
+        {
+            config[overwrite.Key] = overwrite.Value;
+        }
+
+        return config;
     }
 
     private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
@@ -214,6 +328,7 @@ public class PipelineFactory : IPipelineFactory
         private string? pipelineTempDirectory;
         private string? resourcesDirectory;
         private IReadOnlyDictionary<string, Parameterization>? processBaseConfigs;
+        private IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs;
         private ILoggerFactory? loggerFactory;
 
         /// <summary>
@@ -301,6 +416,20 @@ public class PipelineFactory : IPipelineFactory
         }
 
         /// <summary>
+        /// Supplies the base configuration of the delivery channels (appsettings <c>Pipeline:ChannelConfigs</c>),
+        /// keyed by channel implementation. That layer cannot be overridden, so <see cref="ValidateDefinition"/>
+        /// rejects a definition setting one of its keys, and it also checks that every channel gets the base values
+        /// it needs. Omitting it skips both, which is what a caller without a hosting layer wants.
+        /// </summary>
+        /// <param name="channelBaseConfigs">The base configuration per channel implementation, or <see langword="null"/> when there is no hosting layer.</param>
+        /// <returns>The same builder instance.</returns>
+        public PipelineFactoryBuilder ChannelBaseConfigs(IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs)
+        {
+            this.channelBaseConfigs = channelBaseConfigs;
+            return this;
+        }
+
+        /// <summary>
         /// Builds the configured <see cref="PipelineFactory"/>.
         /// </summary>
         /// <returns>The configured factory.</returns>
@@ -314,7 +443,7 @@ public class PipelineFactory : IPipelineFactory
             if (this.pipelineTempDirectory == null)
                 throw new InvalidOperationException("Pipeline temp directory is required but was not provided.");
 
-            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, resourcesDirectory, processBaseConfigs, loggerFactory);
+            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, resourcesDirectory, processBaseConfigs, channelBaseConfigs, loggerFactory);
         }
     }
 }

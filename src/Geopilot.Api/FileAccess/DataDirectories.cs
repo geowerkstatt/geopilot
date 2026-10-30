@@ -2,8 +2,8 @@
 
 /// <summary>
 /// The local data directories an installation uses, and the probe that proves them usable at startup. The startup
-/// probe and <see cref="StorageHealthCheck"/> both take the list from <see cref="Local"/>, so it reflects the
-/// configured storage backend in one place.
+/// probe, <see cref="StorageHealthCheck"/> and the overlap checks of <see cref="DirectoryOverlap"/> all take the list
+/// from <see cref="Local"/>, so it reflects the configured storage backend in one place.
 /// </summary>
 public static class DataDirectories
 {

@@ -1,4 +1,5 @@
-import type { AvailablePipelinesResponse, Mandate, Organisation } from "@/api/generated";
+import type { AvailablePipelinesResponse, CapabilitiesResponse, Mandate, Organisation } from "@/api/generated";
+import { MandateValueType } from "@/api/generated";
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
   evaluateAutocomplete,
@@ -7,6 +8,7 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
+  isDisabled,
   pasteIntoChipInput,
   removeChipInputValue,
   setAutocomplete,
@@ -486,6 +488,7 @@ describe("Mandate with a removed pipeline", () => {
   const ghostPipelineId = "ghost-pipeline";
   const availablePipelines: AvailablePipelinesResponse = {
     pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+    reactionSets: [],
   };
   const mandateWithGhostPipeline: Mandate = {
     id: 9999,
@@ -581,6 +584,7 @@ describe("Public mandate with organisations", () => {
       statusCode: 200,
       body: {
         pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+        reactionSets: [],
       } satisfies AvailablePipelinesResponse,
     }).as("getPipelines");
     cy.intercept("GET", "/api/v1/organisation", { statusCode: 200, body: [organisation] });
@@ -639,6 +643,7 @@ describe("Mandate with a file type in upper case", () => {
       statusCode: 200,
       body: {
         pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+        reactionSets: [],
       } satisfies AvailablePipelinesResponse,
     }).as("getPipelines");
     cy.intercept("GET", "/api/v1/mandate/9998", { statusCode: 200, body: mandateWithUpperCaseFileType }).as(
@@ -658,5 +663,136 @@ describe("Mandate with a file type in upper case", () => {
 
     // Nothing was added, so the form must not count as changed either.
     cy.dataCy("reset-button").should("be.disabled");
+  });
+});
+
+describe("Mandate with a reaction set", () => {
+  // The definition of the dev stack has no reaction sets and its delete window never closes, so both are stubbed.
+  const availablePipelines: AvailablePipelinesResponse = {
+    pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+    reactionSets: [
+      { id: "ablage", displayName: { de: "Ablage", en: "File drop" }, mandateFields: [] },
+      {
+        id: "ablage_pro_mandat",
+        displayName: { de: "Ablage pro Mandat", en: "File drop per mandate" },
+        mandateFields: [
+          {
+            reactionId: "ablage_pro_mandat",
+            key: "subfolder",
+            displayName: { de: "Unterordner der Ablage", en: "Subfolder of the file drop" },
+            type: MandateValueType.Text,
+            required: true,
+          },
+          {
+            reactionId: "ablage_pro_mandat",
+            key: "recipients",
+            displayName: { de: "Empfänger", en: "Recipients" },
+            type: MandateValueType.TextList,
+            required: false,
+          },
+          {
+            reactionId: "ablage_pro_mandat",
+            key: "copyToDeclarer",
+            displayName: { de: "Lieferant ins To", en: "Deliverer in To" },
+            type: MandateValueType.Switch,
+            required: false,
+          },
+        ],
+      },
+    ],
+  };
+  const mandateWithReactionSet: Mandate = {
+    id: 9995,
+    name: { de: "Reaction Set Mandate" },
+    description: { de: "Reaction Set Mandate Description" },
+    isPublic: false,
+    stacAccess: "adminsOnly",
+    allowDelivery: true,
+    fileTypes: [".xtf"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [],
+    deliveries: [],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: "valid-pipeline",
+    reactionSetId: "ablage_pro_mandat",
+    reactionSetValues: { ablage_pro_mandat: { subfolder: "kanton-a" } },
+  };
+
+  const stubCapabilities = (reactionSetsEnabled: boolean) =>
+    cy.intercept("GET", "/api/v1/capabilities", {
+      statusCode: 200,
+      body: { machineDeliveryEnabled: false, reactionSetsEnabled } satisfies CapabilitiesResponse,
+    });
+
+  const savedMandate = () =>
+    cy.wait("@updateMandate").then(({ request }) => {
+      return (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
+    });
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", { statusCode: 200, body: availablePipelines }).as("getPipelines");
+    cy.intercept("GET", "/api/v1/mandate/9995", { statusCode: 200, body: mandateWithReactionSet }).as("getMandate");
+    cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
+  });
+
+  it("shows the values the chosen set asks for and saves them", () => {
+    stubCapabilities(true);
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    evaluateInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
+    setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-b");
+    setChipInput("reactionSetValues.ablage_pro_mandat.recipients", "someone@example.com");
+    evaluateCheckbox("reactionSetValues.ablage_pro_mandat.copyToDeclarer", false);
+    toggleCheckbox("reactionSetValues.ablage_pro_mandat.copyToDeclarer");
+
+    cy.dataCy("save-button").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetId).to.equal("ablage_pro_mandat");
+      expect(body.reactionSetValues).to.deep.equal({
+        ablage_pro_mandat: { subfolder: "kanton-b", recipients: ["someone@example.com"], copyToDeclarer: true },
+      });
+    });
+  });
+
+  it("removes the set with its values when none is chosen", () => {
+    stubCapabilities(true);
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    // The first entry clears the choice, the other two are the sets.
+    setSelect("reactionSetId", 0, 3);
+    cy.dataCy("reactionSetValues.ablage_pro_mandat.subfolder-formInput").should("not.exist");
+
+    cy.dataCy("save-button").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetId).to.equal(null);
+      expect(body.reactionSetValues).to.deep.equal({});
+    });
+  });
+
+  it("locks the choice while the delete window never closes", () => {
+    stubCapabilities(false);
+    cy.intercept("GET", "/api/v1/mandate/9995", {
+      statusCode: 200,
+      body: { ...mandateWithReactionSet, reactionSetId: null, reactionSetValues: {} },
+    }).as("getMandate");
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    isDisabled("reactionSetId");
+    cy.dataCy("reactionSetId-formSelect").contains("Delivery:DeleteDuration").should("be.visible");
   });
 });

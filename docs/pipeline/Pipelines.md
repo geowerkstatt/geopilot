@@ -192,6 +192,8 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
+- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
+- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
 
 ## Validierungen
 
@@ -217,6 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
+- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -555,6 +558,111 @@ steps:
 ```
 
 > **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`) oder wird sie abgebrochen (Status `Cancelled`), wird die Datenlieferung automatisch verhindert, unabhängig von den `restrict_delivery_conditions`.
+
+## Weitergabe nach dem Abschluss
+
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Weitergabe des Mandats. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
+
+```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+reaction_sets:
+  - id: ablage
+    display_name:
+      de: Ablage
+      fr: Dépôt
+      it: Deposito
+      en: File drop
+    transfers:
+      - id: ablage
+        channel_id: ablage
+        mandate_config:
+          - key: subfolder
+            display_name:
+              de: Unterordner der Ablage
+              fr: Sous-dossier du dépôt
+              it: Sottocartella del deposito
+              en: Subfolder of the file drop
+```
+
+- `channels`: Liste von Kanälen, welche in den Reaktionen verwendet werden können.
+  - `channels[X].id`: Die eindeutige ID des Kanals, welche in den Reaktionen referenziert werden kann.
+  - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
+  - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
+- `reaction_sets[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
+- `reaction_sets[X].display_name`: Der Name des Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
+- `reaction_sets[X].transfers`: Optional. Die Lieferungs-Schritte des Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Lieferungs-Schritte gilt sie das gleich nach der Abgabe.
+- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Lieferungs-Schritte, und die Betriebssicht zeigt sie mit ihnen.
+- Ein Satz braucht mindestens eine Reaktion, einen Lieferungs-Schritt oder eine Benachrichtigung. Beide sind gleich aufgebaut:
+  - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
+  - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
+  - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
+  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
+
+Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
+
+Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Deklaration fest. Eine spätere Änderung am Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
+
+Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Weil die Lieferungs-Schritte erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet einer mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Lieferungs-Schritte erscheint gleich nach der Abgabe, auch wenn ihr Satz Benachrichtigungen hat.
+
+Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Hat trotzdem schon eine begonnen, etwa weil das Löschfenster nach der Abgabe verlängert oder das Löschen für Lieferanten erst später eingeschaltet wurde, darf er nicht mehr löschen. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel. Der Löschdialog der Administration nennt deshalb vorher die erfolgten Weitergaben, und das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
+
+Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
+
+### Konfiguration eines Kanals
+
+Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
+
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
+3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
+
+Wie bei den Prozessoren ist die Basis-Konfiguration unveränderbar: Setzt die Pipeline-Definition einen ihrer Schlüssel, ob in `default_config`, `channel_config_overwrites` oder `mandate_config`, startet die Applikation nicht, mit einer Meldung wie unter [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration). Ebenso darf ein Wert nicht zugleich in der Standard-Konfiguration des Kanals stehen und vom Mandat kommen. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
+
+Eine Ablage mit einem Unterordner, den ein Satz für sich überschreibt:
+
+```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+    default_config:
+      subfolder: allgemein
+reaction_sets:
+  - id: ablage_kanton_a
+    display_name:
+      de: Ablage Kanton A
+    transfers:
+      - id: ablage_kanton_a
+        channel_id: ablage
+        channel_config_overwrites:
+          subfolder: kanton-a
+```
+
+### Prüfung beim Start
+
+Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines. geopilot startet nicht, wenn
+
+- zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
+- die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
+- ein Satz keinen Namen (`display_name`) oder keine Reaktion hat, weder einen Lieferungs-Schritt noch eine Benachrichtigung,
+- ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
+- der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
+- die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
+- eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
+- `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
+- die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
+- ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
+- ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,
+- ein Mandat einen Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.
+
+Ein Satz lässt sich deshalb erst aus der Definition entfernen, wenn kein Mandat ihn mehr gewählt hat. Werte eines Mandats, die ein Kanal nicht annimmt, etwa weil er nach einem Update einen neuen Wert verlangt, halten den Start nicht an, sondern erscheinen als Warnung im Log, mit Mandat und Reaktion. Das Mandat lässt sich danach nur mit gültigen Werten speichern.
+
+### Kanäle
+
+Jeder Kanal, der mit geopilot ausgeliefert wird, ist in einer eigenen Datei dokumentiert:
+
+- [Ablage](Kanaele/ablage.md)
 
 ## Prozesse
 

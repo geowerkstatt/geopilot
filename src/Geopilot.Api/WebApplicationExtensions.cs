@@ -1,6 +1,9 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Geopilot.Pipeline.Visualization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -23,6 +26,76 @@ public static class WebApplicationExtensions
         {
             throw new InvalidOperationException(validationResult.ErrorMessage);
         }
+    }
+
+    /// <summary>
+    /// Logs the time zone the uploader's delete window closes in, when <see cref="DeliveryOptions.DeleteRestrictInterval"/>
+    /// depends on it: a daily "0 0 * * *" means midnight on the server's clock.
+    /// </summary>
+    public static void LogDeleteWindowTimeZone(this WebApplication app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+
+        var options = app.Services.GetRequiredService<IOptions<DeliveryOptions>>().Value;
+        if (options.UploaderDeleteEnabled && options.DeleteRestrictIntervalExpression is not null)
+        {
+            app.Logger.LogInformation(
+                "Uploaders can delete a delivery until the next '{DeleteRestrictInterval}' in time zone {TimeZone}.",
+                options.DeleteRestrictInterval,
+                options.TimeZone.Id);
+        }
+    }
+
+    /// <summary>
+    /// Checks the reaction set every mandate chose, once the database is migrated. A set the definition no
+    /// longer has and a delete window that never closes stop the start, because both are fixed in the configuration.
+    /// Values a channel refuses only warn, because a mandate can only be corrected while the application runs.
+    /// </summary>
+    public static void ValidateMandateReactionSets(this WebApplication app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+
+        using var scope = app.Services.CreateScope();
+        var errors = CheckMandateReactionSets(
+            scope.ServiceProvider.GetRequiredService<Context>(),
+            scope.ServiceProvider.GetRequiredService<IReactionSetValidator>(),
+            app.Logger);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
+        }
+    }
+
+    /// <summary>
+    /// Returns what stops the start in the reaction sets of the mandates, and logs the values the channels
+    /// refuse as warnings.
+    /// </summary>
+    internal static IReadOnlyList<string> CheckMandateReactionSets(Context context, IReactionSetValidator validator, ILogger logger)
+    {
+        var mandates = context.Mandates
+            .AsNoTracking()
+            .Where(mandate => mandate.ReactionSetId != null)
+            .Select(mandate => new { mandate.Id, mandate.ReactionSetId, mandate.ReactionSetValues })
+            .ToList();
+
+        var errors = new List<string>();
+        foreach (var mandate in mandates)
+        {
+            var check = validator.Check(mandate.ReactionSetId, mandate.ReactionSetValues ?? []);
+            if (check.SetError is not null)
+                errors.Add($"Mandate {mandate.Id}: {check.SetError}");
+
+            foreach (var valueError in check.ValueErrors)
+            {
+                logger.LogWarning(
+                    "Mandate {MandateId} supplies values its reaction set {ReactionSetId} refuses: {Error}",
+                    mandate.Id,
+                    mandate.ReactionSetId,
+                    valueError);
+            }
+        }
+
+        return errors;
     }
 
     /// <summary>

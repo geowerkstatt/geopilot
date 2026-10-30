@@ -68,6 +68,10 @@ export type AvailablePipelinesResponse = {
    * The list of available pipelines.
    */
   pipelines: Array<PipelineSummary>;
+  /**
+   * The reaction sets a mandate can choose, each with the values it asks the mandate for.
+   */
+  reactionSets: Array<ReactionSetSummary>;
 };
 
 /**
@@ -96,6 +100,11 @@ export type CapabilitiesResponse = {
    * Whether this installation offers machine based delivery.
    */
   machineDeliveryEnabled: boolean;
+  /**
+   * Whether a mandate can choose a reaction set, which needs a delete window of the
+   * uploaders that closes: the reactions only run once it has.
+   */
+  reactionSetsEnabled: boolean;
 };
 
 /**
@@ -191,10 +200,39 @@ export type Delivery = {
    * The deletion status of the delivery.
    */
   deleted: boolean;
+};
+
+/**
+ * How far a reaction to a delivery got.
+ */
+export type DeliveryReactionResponse = {
   /**
-   * Indicates whether the delivery can be deleted by the uploader.
+   * The id of the reaction in the reaction set of the mandate.
    */
-  canDelete?: boolean | null;
+  reactionId: string;
+  kind: ReactionKind;
+  state: ReactionState;
+  /**
+   * How many attempts the reaction has started. A reaction still on hold has none.
+   */
+  attempts: number;
+  /**
+   * When its next attempt is due, set only while it is Geopilot.Api.Models.ReactionState.Pending.
+   */
+  nextAttemptAt?: string | null;
+  /**
+   * When its last attempt started.
+   */
+  lastAttemptAt?: string | null;
+  /**
+   * When it ended as Geopilot.Api.Models.ReactionState.Done, Geopilot.Api.Models.ReactionState.Error or
+   * Geopilot.Api.Models.ReactionState.Deleted.
+   */
+  finishedAt?: string | null;
+  /**
+   * What its channel last reported, or why its last attempt failed.
+   */
+  message?: string | null;
 };
 
 /**
@@ -217,6 +255,35 @@ export type DeliveryRequest = {
    * Optional. Comment to describe the delivery.
    */
   comment?: string | null;
+};
+
+/**
+ * A delivery as the administration lists it, with how far its reactions got. Of the mandate it carries no more than
+ * its id and name.
+ */
+export type DeliveryResponse = {
+  /**
+   * The unique identifier of the delivery.
+   */
+  id: number;
+  /**
+   * The date the delivery was declared.
+   */
+  date: string;
+  mandate: MandateReference;
+  /**
+   * Who declared the delivery, a person or a machine client.
+   */
+  declarerName: string;
+  /**
+   * The comment that came with the delivery.
+   */
+  comment: string;
+  forwardingState?: ReactionState;
+  /**
+   * The reactions of the delivery, in the order they were created.
+   */
+  reactions: Array<DeliveryReactionResponse>;
 };
 
 /**
@@ -376,6 +443,19 @@ export type Mandate = {
    */
   pipelineId?: string | null;
   /**
+   * The id of the reaction set the mandate chose in the pipeline definition, or null
+   * for none. The set decides what happens to a delivery once the uploader can no longer delete it.
+   */
+  reactionSetId?: string | null;
+  /**
+   * The values the mandate supplies to the reactions of its set, per reaction id and key: a text or a list of texts.
+   */
+  reactionSetValues?: {
+    [key: string]: {
+      [key: string]: unknown;
+    };
+  } | null;
+  /**
    * The coordinates representing the spatial extent of the mandate.
    */
   coordinates: Array<Coordinate>;
@@ -390,6 +470,32 @@ export type Mandate = {
    * Data deliveries that have been declared fulfilling the mandate.
    */
   deliveries: Array<Delivery>;
+};
+
+export type MandateField = {
+  reactionId: string;
+  key: string;
+  displayName: {
+    [key: string]: string;
+  };
+  type: MandateValueType;
+  required: boolean;
+};
+
+/**
+ * Names a mandate without describing it, for answers that only point at one.
+ */
+export type MandateReference = {
+  /**
+   * The unique identifier of the mandate.
+   */
+  id: number;
+  /**
+   * The display name of the mandate.
+   */
+  name: {
+    [key: string]: string;
+  };
 };
 
 /**
@@ -426,6 +532,14 @@ export type MandateSummary = {
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
 };
+
+export const MandateValueType = {
+  Text: "text",
+  TextList: "textList",
+  Switch: "switch",
+} as const;
+
+export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateValueType];
 
 /**
  * A company or group of users that may have a mandate for delivering data to the system owner.
@@ -521,6 +635,49 @@ export type PipelineRunFileResponse = {
 };
 
 /**
+ * Something that happened to a reaction of the delivery the run produced. An attempt with the state
+ * Geopilot.Api.Models.ReactionState.Running and no Geopilot.Api.Contracts.PipelineRunReactionEventResponse.FinishedAt whose instance has stopped never reported back:
+ * its outcome is unknown.
+ */
+export type PipelineRunReactionEventResponse = {
+  /**
+   * The id of the delivery the reaction belongs to.
+   */
+  deliveryId: number;
+  /**
+   * The id of the reaction in its set.
+   */
+  reactionId: string;
+  reactionKind: ReactionKind;
+  /**
+   * The channel that runs the reaction.
+   */
+  implementation: string;
+  event: ReactionEvent;
+  /**
+   * The number of the attempt.
+   */
+  attempt?: number | null;
+  /**
+   * When it happened (UTC); for an attempt, when it started.
+   */
+  occurredAt: string;
+  /**
+   * When the attempt reported back (UTC).
+   */
+  finishedAt?: string | null;
+  state?: ReactionState;
+  /**
+   * What the channel reported, or why the attempt failed.
+   */
+  message?: string | null;
+  /**
+   * The user who caused the event, such as the one who deleted the delivery, or null when the application did.
+   */
+  userId?: number | null;
+};
+
+/**
  * The execution protocol of one processing job: what ran, on which definition version, for whom, and how
  * it ended. A Geopilot.Api.Contracts.PipelineRunResponse.TerminalState of null means the outcome is unknown, the
  * instance died while the job ran. The definition snapshot itself is served by its own endpoint.
@@ -589,6 +746,10 @@ export type PipelineRunResponse = {
    * The per-step records, in pipeline order.
    */
   steps: Array<PipelineRunStepResponse>;
+  /**
+   * What happened to the reactions of the delivery the run produced, in the order it happened.
+   */
+  reactionEvents: Array<PipelineRunReactionEventResponse>;
 };
 
 /**
@@ -724,6 +885,68 @@ export const ProcessingState = {
 } as const;
 
 export type ProcessingState = (typeof ProcessingState)[keyof typeof ProcessingState];
+
+/**
+ * What happened to a reaction, as the execution protocol records it. Persisted as text.
+ */
+export const ReactionEvent = {
+  Attempt: "attempt",
+  Deletion: "deletion",
+  Reset: "reset",
+} as const;
+
+/**
+ * What happened to a reaction, as the execution protocol records it. Persisted as text.
+ */
+export type ReactionEvent = (typeof ReactionEvent)[keyof typeof ReactionEvent];
+
+/**
+ * Whether a Geopilot.Api.Models.DeliveryReaction forwards the delivery or only reports on it.
+ */
+export const ReactionKind = { Transfer: "transfer", Notification: "notification" } as const;
+
+/**
+ * Whether a Geopilot.Api.Models.DeliveryReaction forwards the delivery or only reports on it.
+ */
+export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+
+/**
+ * A reaction set as the form of a mandate offers it.
+ */
+export type ReactionSetSummary = {
+  /**
+   * The id of the set, which a mandate refers to.
+   */
+  id: string;
+  /**
+   * The localized name of the set.
+   */
+  displayName: {
+    [key: string]: string;
+  };
+  /**
+   * The values the set asks the mandate for, in the order the definition declares them.
+   */
+  mandateFields: Array<MandateField>;
+};
+
+/**
+ * The state of a Geopilot.Api.Models.DeliveryReaction. Deliberately not `StepState`: it describes forwarding a delivery,
+ * not processing it.
+ */
+export const ReactionState = {
+  Pending: "pending",
+  Running: "running",
+  Error: "error",
+  Done: "done",
+  Deleted: "deleted",
+} as const;
+
+/**
+ * The state of a Geopilot.Api.Models.DeliveryReaction. Deliberately not `StepState`: it describes forwarding a delivery,
+ * not processing it.
+ */
+export type ReactionState = (typeof ReactionState)[keyof typeof ReactionState];
 
 /**
  * The outcome of the malware scan of a run's uploaded files. Persisted as text.
@@ -1009,6 +1232,30 @@ export type UploadSettingsResponse = {
 };
 
 /**
+ * A delivery as the user who declared it sees it in the list of their deliveries. Of the mandate it carries no more
+ * than its id and name, because the configuration of a mandate belongs to the administrators.
+ */
+export type UploadedDelivery = {
+  /**
+   * The unique identifier of the delivery.
+   */
+  id: number;
+  /**
+   * The date the delivery was declared.
+   */
+  date: string;
+  mandate: MandateReference;
+  /**
+   * The comment of the user who declared the delivery.
+   */
+  comment: string;
+  /**
+   * Whether the user may still delete the delivery.
+   */
+  canDelete: boolean;
+};
+
+/**
  * A person that is allowed to view or declare deliveries.
  */
 export type User = {
@@ -1112,7 +1359,7 @@ export type GetApiV1DeliveryResponses = {
   /**
    * A list of all deliveries.
    */
-  200: Array<Delivery>;
+  200: Array<DeliveryResponse>;
 };
 
 export type GetApiV1DeliveryResponse = GetApiV1DeliveryResponses[keyof GetApiV1DeliveryResponses];
@@ -1191,6 +1438,39 @@ export type GetApiV1DeliverySummaryResponses = {
 
 export type GetApiV1DeliverySummaryResponse = GetApiV1DeliverySummaryResponses[keyof GetApiV1DeliverySummaryResponses];
 
+export type PostApiV1DeliveryByDeliveryIdReactionsResetData = {
+  body?: never;
+  path: {
+    /**
+     * The delivery whose failed reactions to reset.
+     */
+    deliveryId: number;
+  };
+  query?: never;
+  url: "/api/v1/Delivery/{deliveryId}/reactions/reset";
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetErrors = {
+  /**
+   * The delivery could not be found.
+   */
+  404: unknown;
+  /**
+   * No reaction of the delivery has failed.
+   */
+  409: unknown;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponses = {
+  /**
+   * The failed reactions of the delivery are due again.
+   */
+  204: void;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponse =
+  PostApiV1DeliveryByDeliveryIdReactionsResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsResetResponses];
+
 export type GetApiV1DeliveryUploadsData = {
   body?: never;
   path?: never;
@@ -1202,7 +1482,7 @@ export type GetApiV1DeliveryUploadsResponses = {
   /**
    * A list of deliveries uploaded by the user.
    */
-  200: Array<Delivery>;
+  200: Array<UploadedDelivery>;
 };
 
 export type GetApiV1DeliveryUploadsResponse = GetApiV1DeliveryUploadsResponses[keyof GetApiV1DeliveryUploadsResponses];
@@ -1720,7 +2000,7 @@ export type GetApiV1PipelineData = {
 
 export type GetApiV1PipelineResponses = {
   /**
-   * The available pipelines.
+   * The available pipelines and reaction sets.
    */
   200: AvailablePipelinesResponse;
 };

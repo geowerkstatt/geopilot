@@ -1,6 +1,6 @@
 # Begriffe
 
-Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs, so wie sie in Issues, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
+Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
 ## Job
 
@@ -37,3 +37,27 @@ Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und 
 ## Lieferabsicht
 
 Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst deklariert, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Scheitert die Deklaration, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, deklariert in `JobLifecycle.RunFinishedAsync`.
+
+## Löschfenster
+
+Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`). Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.
+
+## Reaktion
+
+Was auf eine Lieferung folgt, sobald sie nicht mehr zurückgezogen werden kann (ADR 0015). Ein Lieferungs-Schritt gibt sie weiter: Sind alle ihre Lieferungs-Schritte `Done` oder hat sie keine, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Eine Benachrichtigung, die begleitende Reaktion, berichtet über sie, sobald sie weitergegeben ist, und ändert ihren Zustand nie. Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction` mit `ReactionKind.Transfer` oder `ReactionKind.Notification`, geholt über `ReactionStore`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+
+## Hold
+
+Die Zeit, in der eine Reaktion noch nicht fällig ist, weil der Lieferant die Lieferung noch löschen darf: bis zum Ende des Löschfensters. Im Code: der erste Wert von `DeliveryReaction.NextAttemptAt`.
+
+## Zustellversuch
+
+Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz die Reaktion holt, und hält sie bis zum Zeitlimit plus eine Minute; meldet er sich bis dahin nicht zurück, übernimmt eine andere Instanz. Nach einem misslungenen Zustellversuch startet der nächste um den Abstand aus `Delivery:Reactions:RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort; nach dem letzten steht die Reaktion auf `Error`. Läuft die App durch, steht damit fest, wann eine Reaktion spätestens endet. Ein Ausfall der App verschiebt das Ende um seine Dauer, ohne dass ein Zustellversuch verloren geht. Unterbricht ein Stopp der Anwendung einen Zustellversuch, trägt sie ihn als misslungen ein, und er zählt mit. Im Code: `DeliveryReaction.Attempts`, `ReactionStore.ClaimNextAsync`, ausgeführt von `ReactionWorker`.
+
+## Satz
+
+Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Lieferungs-Schritte unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
+
+## Kanal
+
+Was eine Reaktion ausführt, etwa die Ablage. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.

@@ -23,4 +23,11 @@ public class PipelineOptions
     /// <remarks>Each entry in the dictionary represents a process, where the key is the process name and the
     /// value is a <see cref="Parameterization"/> for that process.</remarks>
     public Dictionary<string, Parameterization> ProcessConfigs { get; set; } = new Dictionary<string, Parameterization>();
+
+    /// <summary>
+    /// Gets or sets the base configuration of the delivery channels, keyed by channel implementation, such as a base
+    /// directory or credentials. Neither the pipeline definition nor a mandate can override it. Kept apart from
+    /// <see cref="ProcessConfigs"/>, so it never goes into the definition snapshot of a run.
+    /// </summary>
+    public Dictionary<string, Parameterization> ChannelConfigs { get; set; } = new Dictionary<string, Parameterization>();
 }

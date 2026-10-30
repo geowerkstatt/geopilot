@@ -7,6 +7,7 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Ilitools;
@@ -163,11 +164,17 @@ builder.Services.AddOptions<ProcessingOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.EnsureShutdownTimeoutCoversDrainWindow();
-builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
-builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
+builder.Services.AddPipelineOptions(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
-builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
+builder.Services.AddOptions<DeliveryOptions>()
+    .BindConfiguration("Delivery")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<DeliveryReactionOptions>()
+    .BindConfiguration(DeliveryReactionOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
@@ -177,8 +184,11 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// Hosted services stop in reverse registration order, so registering the runner ahead of the upload services
-// stops the preflight first: nothing is queued any more once the runner stops reading.
+// Hosted services stop in reverse registration order. The reaction worker comes first, so it stops after the runner
+// has drained and still forwards a delivery declared meanwhile; the runner comes ahead of the upload services, so the
+// preflight stops first and nothing is queued any more once the runner stops reading.
+builder.Services.AddSingleton<ReactionStore>();
+builder.Services.AddHostedService<ReactionWorker>();
 builder.Services.AddHostedService<ProcessingRunner>();
 var uploadBackend = builder.AddUploadServices();
 
@@ -193,6 +203,7 @@ builder.Services.AddSingleton<IUploadStore, UploadStore>();
 builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
+builder.Services.AddTransient<IReactionSetValidator, ReactionSetValidator>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
@@ -296,6 +307,8 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
+app.LogDeleteWindowTimeZone();
+app.ValidateMandateReactionSets();
 
 if (accessTokenFormat == AccessTokenFormat.Opaque)
 {
