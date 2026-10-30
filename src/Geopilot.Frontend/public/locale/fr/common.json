@@ -103,6 +103,7 @@
   "fieldRequired": "Est requis",
   "fileDropzoneErrorChooseFile": "Veuillez sélectionner un fichier valide",
   "fileDropzoneErrorFileTooLarge": "Le fichier sélectionné dépasse la taille maximale autorisée",
+  "fileDropzoneErrorInvalidName": "Le nom du fichier contient des caractères non valides",
   "fileDropzoneErrorNotSupported": "Le type de fichier n'est pas pris en charge",
   "fileDropzoneErrorTooManyFiles": "Le nombre maximum de fichiers a été dépassé",
   "fileTypes": "Formats",

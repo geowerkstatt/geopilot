@@ -194,6 +194,11 @@ public class UploadOrchestrationService : IUploadOrchestrationService
 
         foreach (var file in request.Files)
         {
+            // A name sanitizing would change, a path included, is refused: a file keeps the name its supplier gave it.
+            // shortcut: names a step produces, such as ZIP entries, are only sanitized and may reach the log unchanged.
+            if (!file.FileName.IsSanitizedFileName())
+                throw new ArgumentException("A file has a name geopilot would have to change: remove control and invisible characters, \\ / : * ? \" < > |, '..' and spaces at the start or end.", nameof(request));
+
             if (file.Size <= 0)
                 throw new ArgumentException($"File '{file.FileName}' has invalid size.", nameof(request));
 

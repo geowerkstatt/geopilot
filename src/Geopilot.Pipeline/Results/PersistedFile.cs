@@ -5,7 +5,7 @@
 /// referenced from <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.DeliveryFiles"/>,
 /// or both depending on the step's output configuration.
 /// </summary>
-/// <param name="OriginalFileName">The human-readable file name reported by the producing process.</param>
+/// <param name="OriginalFileName">The human-readable file name: the one the producing process reported, for a delivery file the name it is stored under.</param>
 /// <param name="PersistedFileName">The file name on disk under the job's delivery or download directory.</param>
 /// <param name="FromUpload">Whether this file entered the pipeline as an upload (as opposed to being produced by a step).</param>
 public record PersistedFile(string OriginalFileName, string PersistedFileName, bool FromUpload = false);
