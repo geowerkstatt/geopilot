@@ -977,7 +977,7 @@ reaction_sets:
       it: Deposito con e-mail informativa
       en: File drop with info mail
     transfers:
-      - id: ablage_mit_info_mail
+      - id: ablage_info
         display_name:
           de: Ablage
           fr: Dépôt
