@@ -780,6 +780,34 @@ describe("Mandate with a reaction set", () => {
     });
   });
 
+  it("refuses to save the set without a value it requires", () => {
+    stubCapabilities(true);
+    cy.intercept("GET", "/api/v1/mandate/9995", {
+      statusCode: 200,
+      body: { ...mandateWithReactionSet, reactionSetId: null, reactionSetValues: {} },
+    }).as("getMandate");
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    // The first entry clears the choice, the last is the set that asks for a subfolder. An untouched field shows no
+    // error yet, the first save checks every field.
+    setSelect("reactionSetId", 2, 3);
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", false);
+    cy.dataCy("save-button").click();
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", true);
+    cy.dataCy("save-button").should("be.disabled");
+    cy.get("@updateMandate.all").should("have.length", 0);
+
+    setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
+    hasError("reactionSetValues.ablage_pro_mandat.subfolder", false);
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetValues?.ablage_pro_mandat?.subfolder).to.equal("kanton-a");
+    });
+  });
+
   it("removes the set with its values when none is chosen", () => {
     stubCapabilities(true);
 
