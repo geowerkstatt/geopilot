@@ -576,6 +576,11 @@ reaction_sets:
       en: File drop
     transfers:
       - id: ablage
+        display_name:
+          de: Ablage
+          fr: Dépôt
+          it: Deposito
+          en: File drop
         channel_id: ablage
         mandate_config:
           - key: subfolder
@@ -596,6 +601,7 @@ reaction_sets:
 - `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Lieferungs-Schritte, und die Betriebssicht zeigt sie mit ihnen.
 - Ein Satz braucht mindestens eine Reaktion, einen Lieferungs-Schritt oder eine Benachrichtigung. Beide sind gleich aufgebaut:
   - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
+  - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa im Dialog einer Lieferung. Die Id steht klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.
   - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
   - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
   - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
@@ -636,6 +642,8 @@ reaction_sets:
       de: Ablage Kanton A
     transfers:
       - id: ablage_kanton_a
+        display_name:
+          de: Ablage Kanton A
         channel_id: ablage
         channel_config_overwrites:
           subfolder: kanton-a
@@ -647,7 +655,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 
 - zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
 - die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
-- ein Satz keinen Namen (`display_name`) oder keine Reaktion hat, weder einen Lieferungs-Schritt noch eine Benachrichtigung,
+- ein Satz oder eine Reaktion keinen Namen (`display_name`) hat oder ein Satz keine Reaktion, weder einen Lieferungs-Schritt noch eine Benachrichtigung,
 - ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
 - die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,

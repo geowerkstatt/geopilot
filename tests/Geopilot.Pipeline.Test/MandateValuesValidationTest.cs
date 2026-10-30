@@ -41,6 +41,8 @@ public class MandateValuesValidationTest
               de: Ablage pro Mandat
             transfers:
               - id: {{ReactionId}}
+                display_name:
+                  de: Ablage
                 channel_id: ablage
                 mandate_config:
                   - key: subfolder
@@ -52,6 +54,8 @@ public class MandateValuesValidationTest
 
             notifications:
               - id: meldung
+                display_name:
+                  de: Meldung
                 channel_id: ablage
                 mandate_config:
                   - key: subfolder

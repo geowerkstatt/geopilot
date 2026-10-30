@@ -54,9 +54,13 @@ reaction_sets:
       de: Ablage mit Info-Mail
     transfers:
       - id: ablage
+        display_name:
+          de: Ablage
         channel_id: ablage
     notifications:
       - id: info_mail
+        display_name:
+          de: Info-Mail
         channel_id: info_mail
         mandate_config:
           - key: to

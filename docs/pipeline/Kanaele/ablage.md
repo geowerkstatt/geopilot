@@ -45,6 +45,8 @@ reaction_sets:
       de: Ablage Kanton A
     transfers:
       - id: ablage_kanton_a
+        display_name:
+          de: Ablage Kanton A
         channel_id: ablage
         channel_config_overwrites:
           subfolder: kanton-a
@@ -62,6 +64,8 @@ reaction_sets:
       de: Ablage pro Mandat
     transfers:
       - id: ablage_pro_mandat
+        display_name:
+          de: Ablage im Ordner des Mandats
         channel_id: ablage_pro_mandat
         mandate_config:
           - key: subfolder

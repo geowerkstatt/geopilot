@@ -50,6 +50,7 @@ describe("Admin delivery overview with reactions", () => {
   // The seeded deliveries have no reactions, so the list is stubbed with one delivery per state of its forwarding.
   const transfer = (state: ReactionState, details: Partial<DeliveryReactionResponse>): DeliveryReactionResponse => ({
     reactionId: "ablage",
+    displayName: { de: "Ablage", en: "File drop" },
     kind: ReactionKind.Transfer,
     state,
     attempts: 1,
@@ -69,7 +70,14 @@ describe("Admin delivery overview with reactions", () => {
     delivery(9001, [transfer(ReactionState.Done, { message: "Delivered to <target>." })], ReactionState.Done),
     delivery(
       9002,
-      [transfer(ReactionState.Error, { attempts: 7, message: "The base directory <drop> does not exist." })],
+      // A reaction the definition no longer has comes without a name.
+      [
+        transfer(ReactionState.Error, {
+          displayName: null,
+          attempts: 7,
+          message: "The base directory <drop> does not exist.",
+        }),
+      ],
       ReactionState.Error,
     ),
     delivery(
@@ -107,7 +115,7 @@ describe("Admin delivery overview with reactions", () => {
       .should("not.exist");
 
     openForwarding(9003);
-    cy.dataCy("forwarding-dialog").should("contain", "ablage").and("contain", "Waits until");
+    cy.dataCy("reaction-ablage").should("contain", "File drop").and("contain", "ablage").and("contain", "Waits until");
     cy.dataCy("resetReactions-button").should("not.exist");
     cy.dataCy("close-button").click();
     cy.dataCy("forwarding-dialog").should("not.exist");
@@ -117,6 +125,7 @@ describe("Admin delivery overview with reactions", () => {
     cy.intercept("POST", "/api/v1/delivery/9002/reactions/reset", { statusCode: 204 }).as("reset");
 
     openForwarding(9002);
+    cy.dataCy("reaction-ablage").should("contain", "ablage").and("not.contain", "File drop");
     cy.dataCy("forwarding-dialog").should("contain", "does not exist");
     cy.dataCy("resetReactions-button").click();
 
@@ -132,7 +141,7 @@ describe("Admin delivery overview with reactions", () => {
 
     getGridRowThatContains("deliveryOverview-grid", "Delivery 9001").find('[data-cy="delete"]').click();
     handlePrompt(
-      "The delivery has already been forwarded to: ablage. The files stay there. Do you still want to delete the delivery data? This action cannot be undone.",
+      "The delivery has already been forwarded to: File drop. The files stay there. Do you still want to delete the delivery data? This action cannot be undone.",
       "cancel",
     );
   });
