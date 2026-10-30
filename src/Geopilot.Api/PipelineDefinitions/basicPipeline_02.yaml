@@ -930,6 +930,10 @@ channels:
       subfolder: entwicklung
   - id: ablage_pro_mandat
     implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+  - id: info_mail
+    implementation: Geopilot.Pipeline.Channels.Mail.MailChannel
+    default_config:
+      template: vorlagen/info-mail.html
 reaction_sets:
   - id: ablage
     display_name:
@@ -956,3 +960,40 @@ reaction_sets:
               fr: Sous-dossier du dépôt
               it: Sottocartella del deposito
               en: Subfolder of the file drop
+  - id: ablage_mit_info_mail
+    display_name:
+      de: Ablage mit Info-Mail
+      fr: Dépôt avec e-mail d'information
+      it: Deposito con e-mail informativa
+      en: File drop with info mail
+    transfers:
+      - id: ablage_mit_info_mail
+        channel_id: ablage
+    notifications:
+      - id: info_mail
+        channel_id: info_mail
+        mandate_config:
+          - key: to
+            display_name:
+              de: Empfänger der Info-Mail
+              fr: Destinataires de l'e-mail d'information
+              it: Destinatari dell'e-mail informativa
+              en: Recipients of the info mail
+          - key: cc
+            display_name:
+              de: Kopie an
+              fr: Copie à
+              it: Copia a
+              en: Copy to
+          - key: bcc
+            display_name:
+              de: Blindkopie an
+              fr: Copie cachée à
+              it: Copia nascosta a
+              en: Blind copy to
+          - key: includeDeclarer
+            display_name:
+              de: Lieferant erhält die Info-Mail
+              fr: Le fournisseur reçoit l'e-mail d'information
+              it: Il fornitore riceve l'e-mail informativa
+              en: Deliverer receives the info mail

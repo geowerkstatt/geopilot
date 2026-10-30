@@ -1,6 +1,6 @@
 # Weitergabe betreiben
 
-Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md). Wie ein Satz definiert wird, steht unter [Weitergabe nach dem Abschluss](pipeline/Pipelines.md#weitergabe-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
+Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Satz definiert wird, steht unter [Weitergabe nach dem Abschluss](pipeline/Pipelines.md#weitergabe-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
 
 ## Ablauf
 

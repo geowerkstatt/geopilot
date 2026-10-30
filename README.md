@@ -102,6 +102,8 @@ volumes:
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
+| http://localhost:8025  | Mailpit, fängt die Mails ab (in docker-compose) | -                                                                       |
+| http://localhost:8026  | Mailpit mit STARTTLS und Anmeldung für die Tests (in docker-compose) | -                                                  |
 | http://localhost:5555  | ilitools-wrapper service                      | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
@@ -384,7 +386,7 @@ Das Löschfenster schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDur
 
 ## Weitergabe von Lieferungen
 
-Ist eine Lieferung abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Was mit den Lieferungen eines Mandats geschieht, legt ein Satz von Reaktionen in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Weitergabe nach dem Abschluss](./docs/pipeline/Pipelines.md#weitergabe-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Satz und füllt die Werte, die der Satz von ihm verlangt, etwa seinen Unterordner der Ablage.
+Ist eine Lieferung abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Ist sie weitergegeben, kann geopilot darüber berichten, etwa mit einer [Info-Mail](./docs/pipeline/Kanaele/mail.md) an die Empfänger des Mandats, die mit einem Schalter auch an den Lieferanten geht. Was mit den Lieferungen eines Mandats geschieht, legt ein Satz von Reaktionen in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Weitergabe nach dem Abschluss](./docs/pipeline/Pipelines.md#weitergabe-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Satz und füllt die Werte, die der Satz von ihm verlangt, etwa seinen Unterordner der Ablage oder die Empfänger der Info-Mail.
 
 Die Weitergabe beginnt, sobald das [Löschfenster](#löschen-von-lieferungen) geschlossen ist. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht. Im STAC-Katalog erscheint eine solche Lieferung erst, wenn sie weitergegeben ist, auch für Admins.
 
@@ -399,5 +401,7 @@ Was ein Kanal vom Betrieb braucht, steht in seiner Basis-Konfiguration unter `Pi
     }
 }
 ```
+
+Der Mail-Kanal braucht dort Server, Port und Absender und, wo der Server es verlangt, die Anmeldung. Das Passwort gehört in eine Umgebungsvariable oder einen Vault. Lokal fängt Mailpit aus dem Docker Compose die Mails ab: Die Entwicklungskonfiguration sendet dorthin, und die Mails stehen unter http://localhost:8025.
 
 Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Weitergabe betreiben](./docs/Weitergabe.md).
