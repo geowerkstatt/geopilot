@@ -83,7 +83,7 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
                   {localized(reaction.displayName ?? undefined, reaction.reactionId)}
                   {/* The log and the execution protocol name a reaction by its id. */}
                   {reaction.displayName && (
-                    <Typography variant="caption" component="div" color="text.secondary">
+                    <Typography variant="body2" component="div" sx={{ color: "text.secondary" }}>
                       {reaction.reactionId}
                     </Typography>
                   )}
