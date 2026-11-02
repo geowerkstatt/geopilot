@@ -115,7 +115,7 @@ describe("Admin delivery overview with reactions", () => {
       .should("not.exist");
 
     openForwarding(9003);
-    cy.dataCy("reaction-ablage").should("contain", "File drop").and("contain", "ablage").and("contain", "Waits until");
+    getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Waits until");
     cy.dataCy("resetReactions-button").should("not.exist");
     cy.dataCy("close-button").click();
     cy.dataCy("forwarding-dialog").should("not.exist");
@@ -125,7 +125,7 @@ describe("Admin delivery overview with reactions", () => {
     cy.intercept("POST", "/api/v1/delivery/9002/reactions/reset", { statusCode: 204 }).as("reset");
 
     openForwarding(9002);
-    cy.dataCy("reaction-ablage").should("contain", "ablage").and("not.contain", "File drop");
+    getGridRowThatContains("reactions-grid", "ablage").should("not.contain", "File drop");
     cy.dataCy("forwarding-dialog").should("contain", "does not exist");
     cy.dataCy("resetReactions-button").click();
 
