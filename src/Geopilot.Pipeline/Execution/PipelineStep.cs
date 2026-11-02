@@ -160,7 +160,8 @@ internal sealed class PipelineStep : IPipelineStep
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
-            var statusMessage = ExtractStatusMessage(stepResult);
+
+            this.StatusMessage = ExtractStatusMessage(stepResult);
 
             var postConditionsOutcome = await EvaluatePostConditions(context, stepResult);
 
@@ -169,7 +170,6 @@ internal sealed class PipelineStep : IPipelineStep
 
             (this.State, this.ConditionMessage) = postConditionsOutcome;
 
-            this.StatusMessage = statusMessage;
             return stepResult;
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)

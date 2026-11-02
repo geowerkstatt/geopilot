@@ -267,6 +267,7 @@ public class PipelineTest
         Assert.AreEqual(ProcessingState.Failed, pipeline.State);
         Assert.AreEqual(StepState.Error, missingOutputStep.State);
         Assert.Contains(action.ToString(), missingOutputStep.ErrorMessage);
+        Assert.AreEqual("No valid input files.", missingOutputStep.StatusMessage?["en"], "the process explains the missing output.");
         Assert.AreEqual(StepState.Pending, nextStep.State);
     }
 
@@ -304,7 +305,11 @@ public class PipelineTest
             .Id(id)
             .DisplayName(new Dictionary<string, string> { { "en", id } })
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputActions([new OutputActionConfig { Property = nameof(MissingOutputResult.Output), Actions = new HashSet<OutputAction> { action } }])
+            .OutputActions(
+            [
+                new OutputActionConfig { Property = nameof(MissingOutputResult.Output), Actions = new HashSet<OutputAction> { action } },
+                new OutputActionConfig { Property = nameof(MissingOutputResult.Status), Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } },
+            ])
             .StepConditions(stepConditions)
             .Process(new MissingOutputProcess())
             .Logger(loggerMock.Object)
@@ -313,12 +318,15 @@ public class PipelineTest
     private sealed class MissingOutputResult
     {
         public object? Output { get; init; }
+
+        public LocalizedText? Status { get; init; }
     }
 
     private sealed class MissingOutputProcess
     {
         [PipelineProcessRun]
-        public Task<MissingOutputResult> RunAsync() => Task.FromResult(new MissingOutputResult());
+        public Task<MissingOutputResult> RunAsync() =>
+            Task.FromResult(new MissingOutputResult { Status = new Dictionary<string, string> { ["en"] = "No valid input files." } });
     }
 
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)
