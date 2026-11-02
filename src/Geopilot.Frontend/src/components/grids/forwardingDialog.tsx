@@ -63,6 +63,7 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
       field: "kind",
       headerName: t("kind"),
       width: 140,
+      display: "flex",
       valueGetter: (kind: ReactionKind) =>
         t(kind === ReactionKind.Transfer ? "reactionKindTransfer" : "reactionKindNotification"),
     },
@@ -73,15 +74,16 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
       display: "flex",
       renderCell: ({ row }) => <ReactionStateLabel state={row.state} />,
     },
-    { field: "attempts", headerName: t("attempts"), type: "number", width: 90 },
+    { field: "attempts", headerName: t("attempts"), type: "number", width: 90, display: "flex" },
     {
       field: "time",
       headerName: t("time"),
       flex: 1,
       minWidth: 200,
+      display: "flex",
       valueGetter: (_value, reaction) => describeTime(reaction),
     },
-    { field: "message", headerName: t("message"), flex: 1.5, minWidth: 200 },
+    { field: "message", headerName: t("message"), flex: 1.5, minWidth: 200, display: "flex" },
   ];
 
   const reset = () =>
@@ -97,7 +99,7 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
       .catch(() => undefined);
 
   return (
-    <Dialog open={true} onClose={onClose} maxWidth="lg" fullWidth data-cy="forwarding-dialog">
+    <Dialog open={true} onClose={onClose} maxWidth={false} data-cy="forwarding-dialog">
       <DialogTitle>{t("forwardingDialogTitle", { id: deliveryId })}</DialogTitle>
       <DialogContent>
         <GeopilotDataGrid
@@ -107,6 +109,8 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
           getRowId={(reaction: DeliveryReactionResponse) => reaction.reactionId}
           getRowHeight={() => "auto"}
           autoHeight
+          autosizeOnMount
+          autosizeOptions={{ includeHeaders: true, includeOutliers: true }}
           autoPageSize={false}
           hideFooter
         />
