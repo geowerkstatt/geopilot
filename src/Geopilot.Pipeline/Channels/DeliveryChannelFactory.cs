@@ -45,10 +45,11 @@ internal sealed class DeliveryChannelFactory
     /// Checks a reaction: the implementation is a channel with one public constructor, every key of the definition is a
     /// parameter not marked as base configuration value, every declared mandate key a parameter marked as mandate value
     /// that the definition does not set, every parameter marked as mandate value takes a text, a list of texts or a
-    /// switch, every value converts to its parameter, every file lies below the resources directory, and, with a base
-    /// configuration, every parameter that needs a value gets one. When all that holds and the channel needs no value
-    /// from the mandate, it is built once and discarded, so what its constructor refuses shows as well. A key the base
-    /// configuration pins is the concern of the definition validation.
+    /// switch, every value converts to its parameter, every file lies below the resources directory and goes to a
+    /// parameter that takes text, and, with a base configuration, every parameter that needs a value gets one. When all
+    /// that holds and the channel needs no value from the mandate, it is built once and discarded, so what its
+    /// constructor refuses shows as well. A key the base configuration pins is the concern of the definition
+    /// validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
@@ -211,6 +212,9 @@ internal sealed class DeliveryChannelFactory
     {
         if (!parameter.IsDefined(typeof(ResourceFileAttribute)))
             return ConstructorBinding.TryGetConfiguredValue(parameter, values, Subject, out value);
+
+        if (parameter.ParameterType != typeof(string))
+            throw new InvalidOperationException($"Channel initialization: Parameter <{parameter.Name}> is marked [ResourceFile] but takes <{parameter.ParameterType.Name}>. A resource file is passed as its text, so the parameter must take a string.");
 
         if (!ConstructorBinding.TryGetResourcePath(parameter, values, resourcesDirectory, Subject, out var path))
         {

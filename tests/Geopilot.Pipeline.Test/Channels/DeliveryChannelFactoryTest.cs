@@ -320,6 +320,15 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
+    public void ValidateRejectsAFileForAParameterThatTakesNoText()
+    {
+        var factory = new DeliveryChannelFactory(BaseConfigs, CreateResourcesDirectory());
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.NumericTemplateChannel", new Parameterization { ["template"] = "vorlagen/info.html" }, []));
+        Assert.AreEqual("Channel initialization: Parameter <template> is marked [ResourceFile] but takes <Int32>. A resource file is passed as its text, so the parameter must take a string.", error);
+    }
+
+    [TestMethod]
     public void CreateBindsTheTextOfAFileFromTheJsonOfTheSnapshot()
     {
         var factory = new DeliveryChannelFactory(null, CreateResourcesDirectory());
@@ -448,6 +457,17 @@ internal sealed class TemplateChannel : IDeliveryChannel
     }
 
     public string Template { get; }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success("Delivered."));
+}
+
+internal sealed class NumericTemplateChannel : IDeliveryChannel
+{
+    public NumericTemplateChannel([ResourceFile] int template)
+    {
+        _ = template;
+    }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
         => Task.FromResult(ChannelResult.Success("Delivered."));
