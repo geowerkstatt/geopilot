@@ -44,7 +44,7 @@ export const ReactionStateLabel: FC<ReactionStateLabelProps> = ({ state }) => {
   const { t } = useTranslation();
 
   return (
-    <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 0.5 }} data-cy={`reactionState-${state}`}>
+    <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 1 }} data-cy={`reactionState-${state}`}>
       {renderIcon(state)}
       {t(stateLabelKey[state])}
     </Stack>
