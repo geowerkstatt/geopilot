@@ -13,6 +13,14 @@ describe("Admin Delivery Overview tests", () => {
     // Delete delivery
     cy.visit("/admin/delivery-overview");
     cy.wait("@deliveries");
+
+    // Newest delivery first
+    cy.dataCy("deliveryOverview-grid")
+      .find('[role="columnheader"][data-field="date"]')
+      .should("have.attr", "aria-sort", "descending");
+
+    // Unsorted, in the order of the server
+    cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("1");
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Kelvin Spencer");
 
