@@ -404,6 +404,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         paper: {
           padding: themeSpacing(3),
+          gap: themeSpacing(2),
         },
       },
     },
@@ -414,7 +415,6 @@ export const geopilotTheme = createTheme({
           fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           letterSpacing: NEOGEO_LETTERSPACING,
           padding: "0",
-          paddingBottom: themeSpacing(1),
           margin: "0",
         },
       },
@@ -423,7 +423,6 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           padding: "0",
-          paddingBottom: themeSpacing(1),
         },
       },
     },
@@ -431,7 +430,6 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           padding: "0",
-          paddingTop: themeSpacing(1),
           "& > :not(:first-of-type)": {
             marginLeft: themeSpacing(2),
           },
