@@ -18,8 +18,12 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   [`& .${toggleButtonClasses.root}`]: {
     borderRadius: theme.radius.default,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
+    marginLeft: 0,
     paddingLeft: theme.spacing(3),
     paddingRight: theme.spacing(3),
+  },
+  [`& .${toggleButtonClasses.root}.${toggleButtonClasses.disabled}`]: {
+    borderColor: theme.palette.divider,
   },
 }));
 
@@ -83,7 +87,13 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   };
 
   const buttons = completed ? undefined : (
-    <Button variant="contained" onClick={submitForm} label="startProcessing" disabled={isLoading || !currentMandate} />
+    <Button
+      variant="contained"
+      onClick={submitForm}
+      label="startProcessing"
+      loading={isLoading}
+      disabled={isLoading || !currentMandate}
+    />
   );
 
   return (
@@ -100,7 +110,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
           <StyledToggleButtonGroup
             data-cy="mandate-selection-group"
             exclusive
-            disabled={completed}
+            disabled={completed || isLoading}
             value={currentMandate}
             onChange={(_, value) => handleSelectMandate(value)}>
             {sortedMandates?.map(mandate => (

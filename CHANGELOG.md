@@ -97,6 +97,7 @@
 - The OpenAPI documentation now combines all API versions in a single document `/swagger/all/swagger.json`. The old `v1` and `v2` documents are no longer provided.
 - The first user of an installation is no longer automatically granted admin access. The first administrator should be assigned manually in the database instead.
 - The uploaded files of a processing run cancelled by the job timeout or a shutdown now stay until their upload session expires (`Upload:CleanupAgeHours`) instead of being deleted with the job once `Processing:JobRetention` has passed. Every other run releases its upload when it ends.
+- After _Start processing_, the delivery view stays on the mandate step with a loading button until the job has been accepted, and only then opens the processing step with all its steps. If the start fails, the error shows on the mandate step, where processing can be started again.
 
 ### Removed
 

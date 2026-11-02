@@ -404,6 +404,51 @@ describe("Delivery tests", () => {
     stepHasError("files", true, "I'm a teapot");
   });
 
+  it("stays on the mandate step until the processing job is accepted", () => {
+    const runningJob = processingJob("e2e-delayed-job", "pending", [
+      processingStep("validation", "XTF Validation", "pending"),
+    ]);
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    uploadFile();
+    cy.wait("@getMandates");
+    selectMandate(1);
+
+    cy.intercept("POST", "/api/v2/processing", { statusCode: 202, body: runningJob, delay: 1000 }).as(
+      "startProcessing",
+    );
+    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: runningJob }).as("jobStatus");
+    cy.dataCy("startProcessing-button").click();
+
+    stepIsActive("mandate");
+    cy.dataCy("startProcessing-button").should("be.disabled");
+    cy.dataCy("mandate-selection-group").dataCy("mandate-1").should("have.class", "Mui-disabled");
+
+    cy.wait("@startProcessing");
+    stepIsActive("processing");
+    cy.dataCy("processing-step-validation").should("exist");
+  });
+
+  it("shows a failed processing start on the mandate step", () => {
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    uploadFile();
+    cy.wait("@getMandates");
+    selectMandate(1);
+
+    cy.intercept("POST", "/api/v2/processing", { statusCode: 500 }).as("startProcessing");
+    cy.dataCy("startProcessing-button").click();
+    cy.wait("@startProcessing");
+
+    stepIsActive("mandate");
+    stepHasError("mandate", true, "Unexpected server error during processing. (Error 500)");
+    cy.dataCy("startProcessing-button").should("be.enabled");
+  });
+
   it("can show previous steps as read-only", () => {
     // Registered before the upload: the mandate request follows the upload response immediately,
     // so an intercept set up afterwards can miss it.
