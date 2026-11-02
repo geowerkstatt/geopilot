@@ -330,6 +330,8 @@ else
     app.UseCors();
 }
 
+app.UseCrossOriginWriteProtection();
+
 app.UseAuthentication();
 
 app.Use(async (context, next) =>

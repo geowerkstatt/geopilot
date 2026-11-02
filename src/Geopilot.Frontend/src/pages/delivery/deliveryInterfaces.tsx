@@ -63,4 +63,5 @@ export interface DeliveryContextInterface {
   continueToNextStep: () => void;
   openCompletedOrNextStep: (index: number) => boolean;
   submittedData?: DeliverySubmitData;
+  hasNoMandate: boolean;
 }
