@@ -347,9 +347,13 @@ describe("Delivery tests", () => {
     cy.visit("/");
     cy.wait("@mandates");
 
-    cy.dataCy("no-mandate-available").should("contain", "No mandate available. Please log in.");
+    cy.dataCy("no-mandate-available").should(
+      "contain",
+      "No mandate is available for public processing. Please log in to use the mandates assigned to you.",
+    );
     cy.dataCy("no-mandate-login-link").should("exist");
     cy.dataCy("file-dropzone").should("have.attr", "aria-disabled", "true");
+    cy.dataCy("acceptTermsOfUse-formCheckbox").should("have.class", "Mui-disabled");
     addFile("deliveryFiles/ilimodels_valid.xtf", false);
   });
 
@@ -358,8 +362,12 @@ describe("Delivery tests", () => {
     loginAsNewUser();
     cy.wait("@mandates");
 
-    cy.dataCy("no-mandate-available").should("contain", "No mandate is available for your account.");
+    cy.dataCy("no-mandate-available").should(
+      "contain",
+      "No mandate is available for your account, so processing is not possible. Please contact your administrator.",
+    );
     cy.dataCy("file-dropzone").should("have.attr", "aria-disabled", "true");
+    cy.dataCy("acceptTermsOfUse-formCheckbox").should("have.class", "Mui-disabled");
     addFile("deliveryFiles/ilimodels_valid.xtf", false);
   });
 
@@ -370,6 +378,7 @@ describe("Delivery tests", () => {
 
     cy.dataCy("no-mandate-available").should("not.exist");
     cy.dataCy("file-dropzone").should("not.have.attr", "aria-disabled");
+    cy.dataCy("acceptTermsOfUse-formCheckbox").should("not.have.class", "Mui-disabled");
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     cy.dataCy("file-list-item").should("have.length", 1);
   });

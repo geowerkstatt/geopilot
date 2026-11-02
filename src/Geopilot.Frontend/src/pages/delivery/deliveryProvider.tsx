@@ -93,6 +93,28 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
   const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();
 
+  // Undefined while the sign-in is still resolving, null for an anonymous visitor.
+  const userId = user === undefined ? undefined : (user?.id ?? null);
+  const [mandateCheck, setMandateCheck] = useState<{ userId: number | null; isEmpty: boolean }>();
+
+  useEffect(() => {
+    // The API identifies the caller by the geopilot.auth cookie, so only ask once it is settled who is asking.
+    if (userId === undefined) return;
+    let isCurrent = true;
+    fetchApi<MandateSummary[]>("/api/v1/mandate/summary")
+      .then(mandates => mandates.length === 0)
+      .catch(() => false)
+      .then(isEmpty => {
+        if (isCurrent) setMandateCheck({ userId, isEmpty });
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [fetchApi, userId]);
+
+  // A result fetched before the user signed in or out is stale and must not block the upload.
+  const hasNoMandate = mandateCheck?.isEmpty === true && mandateCheck.userId === userId;
+
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
       [DeliveryStepEnum.Files]: [
@@ -440,6 +462,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         continueToNextStep,
         openCompletedOrNextStep,
         submittedData,
+        hasNoMandate,
       }}>
       {children}
     </DeliveryContext.Provider>
