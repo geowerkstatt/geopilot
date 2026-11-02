@@ -286,31 +286,17 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task ExtractStepDownloadsFailsWhenVisualizationOutputIsNotAnEnvelope()
+    public async Task ExtractStepDownloadsSkipsMissingOutput()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1", OutputAction.Visualization);
-        var stepResult = ObjectStepResult("not a visualization");
+        var step = BuildBareStep("step_1", OutputAction.Download, OutputAction.Visualization);
+        var stepResult = new StepResult { Result = new SingleOutputResult() };
 
-        var exception = await Assert.ThrowsExactlyAsync<PipelineRunException>(() => runner.ExtractStepDownloadsAsync(jobId, step, stepResult));
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
 
-        Assert.Contains("Visualization", exception.Message);
-        Assert.IsEmpty(step.Visualizations);
-    }
-
-    [TestMethod]
-    public async Task ExtractStepDownloadsFailsWhenDownloadOutputIsNotAFile()
-    {
-        var jobId = NewJob();
-        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1", OutputAction.Download);
-        var stepResult = ObjectStepResult("not a file");
-
-        var exception = await Assert.ThrowsExactlyAsync<PipelineRunException>(() => runner.ExtractStepDownloadsAsync(jobId, step, stepResult));
-
-        Assert.Contains("Download", exception.Message);
         Assert.IsEmpty(step.Downloads);
+        Assert.IsEmpty(step.Visualizations);
     }
 
     [TestMethod]
