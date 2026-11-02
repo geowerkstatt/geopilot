@@ -440,7 +440,10 @@ describe("Delivery tests", () => {
     cy.wait("@getMandates");
     selectMandate(1);
 
-    cy.intercept("POST", "/api/v2/processing", { statusCode: 500 }).as("startProcessing");
+    cy.intercept("POST", "/api/v2/processing", {
+      statusCode: 500,
+      body: { detail: "An unexpected error occured." } satisfies ProblemDetails,
+    }).as("startProcessing");
     cy.dataCy("startProcessing-button").click();
     cy.wait("@startProcessing");
 

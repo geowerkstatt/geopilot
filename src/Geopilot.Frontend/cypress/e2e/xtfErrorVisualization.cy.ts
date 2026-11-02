@@ -58,12 +58,7 @@ const openErrorVisualization = () => {
     ]),
     [deliverableMandate(1, "Test Mandate")],
   );
-  cy.dataCy("processing-step-error_visualization")
-    .find(".MuiAccordionSummary-root")
-    .then(summary => {
-      if (summary.attr("aria-expanded") !== "true") cy.wrap(summary).click();
-    });
-  // Once unfolded, the page centers the step; scrolling of a test must not race with that.
+  // The finished step unfolds by itself and the page then centers it; scrolling of a test must not race with that.
   cy.dataCy("processing-step-error_visualization").find(".MuiCollapse-entered").should("exist");
   cy.get(".ol-viewport").should("exist");
 };
