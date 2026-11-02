@@ -1,22 +1,13 @@
 import { FC, useContext } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { GridColDef } from "@mui/x-data-grid";
 import { DeliveryReactionResponse, ReactionKind, ReactionState } from "../../api/generated";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "../alert/alertContext";
 import { Button } from "../buttons";
+import GeopilotDataGrid from "./geopilotDataGrid.tsx";
 import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface ForwardingDialogProps {
@@ -49,6 +40,50 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
     return reaction.finishedAt ? t("reactionFinishedAt", { time: formatTime(reaction.finishedAt) }) : "";
   };
 
+  const columns: GridColDef<DeliveryReactionResponse>[] = [
+    {
+      field: "reactionId",
+      headerName: t("reaction"),
+      flex: 1,
+      minWidth: 180,
+      display: "flex",
+      renderCell: ({ row }) => (
+        <Box sx={{ py: 1 }}>
+          {localized(row.displayName ?? undefined, row.reactionId)}
+          {/* The log and the execution protocol name a reaction by its id. */}
+          {row.displayName && (
+            <Typography variant="body2" component="div" sx={{ color: "text.secondary" }}>
+              {row.reactionId}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: "kind",
+      headerName: t("kind"),
+      width: 140,
+      valueGetter: (kind: ReactionKind) =>
+        t(kind === ReactionKind.Transfer ? "reactionKindTransfer" : "reactionKindNotification"),
+    },
+    {
+      field: "state",
+      headerName: t("state"),
+      width: 150,
+      display: "flex",
+      renderCell: ({ row }) => <ReactionStateLabel state={row.state} />,
+    },
+    { field: "attempts", headerName: t("attempts"), type: "number", width: 90 },
+    {
+      field: "time",
+      headerName: t("time"),
+      flex: 1,
+      minWidth: 200,
+      valueGetter: (_value, reaction) => describeTime(reaction),
+    },
+    { field: "message", headerName: t("message"), flex: 1.5, minWidth: 200 },
+  ];
+
   const reset = () =>
     fetchApi(`/api/v1/delivery/${deliveryId}/reactions/reset`, {
       method: "POST",
@@ -65,42 +100,16 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
     <Dialog open={true} onClose={onClose} maxWidth="lg" fullWidth data-cy="forwarding-dialog">
       <DialogTitle>{t("forwardingDialogTitle", { id: deliveryId })}</DialogTitle>
       <DialogContent>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>{t("reaction")}</TableCell>
-              <TableCell>{t("kind")}</TableCell>
-              <TableCell>{t("state")}</TableCell>
-              <TableCell>{t("attempts")}</TableCell>
-              <TableCell>{t("time")}</TableCell>
-              <TableCell>{t("message")}</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {reactions.map(reaction => (
-              <TableRow key={reaction.reactionId} data-cy={`reaction-${reaction.reactionId}`}>
-                <TableCell>
-                  {localized(reaction.displayName ?? undefined, reaction.reactionId)}
-                  {/* The log and the execution protocol name a reaction by its id. */}
-                  {reaction.displayName && (
-                    <Typography variant="body2" component="div" sx={{ color: "text.secondary" }}>
-                      {reaction.reactionId}
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {t(reaction.kind === ReactionKind.Transfer ? "reactionKindTransfer" : "reactionKindNotification")}
-                </TableCell>
-                <TableCell>
-                  <ReactionStateLabel state={reaction.state} />
-                </TableCell>
-                <TableCell>{reaction.attempts}</TableCell>
-                <TableCell>{describeTime(reaction)}</TableCell>
-                <TableCell sx={{ wordBreak: "break-word" }}>{reaction.message}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <GeopilotDataGrid
+          name="reactions"
+          rows={reactions}
+          columns={columns}
+          getRowId={(reaction: DeliveryReactionResponse) => reaction.reactionId}
+          getRowHeight={() => "auto"}
+          autoHeight
+          autoPageSize={false}
+          hideFooter
+        />
       </DialogContent>
       <DialogActions>
         {canReset && <Button label="reset" variant="outlined" onClick={reset} data-cy="resetReactions-button" />}
