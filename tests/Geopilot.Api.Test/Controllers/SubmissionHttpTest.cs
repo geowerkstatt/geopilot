@@ -158,6 +158,19 @@ public class SubmissionHttpTest
     }
 
     [TestMethod]
+    public async Task RefusesAFileNameWithAPath()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation);
+        using var content = MultipartBody(MandateKey, "../data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, "A path in the name is refused, not cut to its last segment.");
+        Assert.IsEmpty(Directory.GetFiles(installation.RootDirectory, "*", SearchOption.AllDirectories));
+    }
+
+    [TestMethod]
     public async Task RefusesTheReferencingRouteWithoutAContentType()
     {
         // On the installation this route belongs to, so nothing else can be what refuses the request.

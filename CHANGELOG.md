@@ -97,6 +97,8 @@
 - The OpenAPI documentation now combines all API versions in a single document `/swagger/all/swagger.json`. The old `v1` and `v2` documents are no longer provided.
 - The first user of an installation is no longer automatically granted admin access. The first administrator should be assigned manually in the database instead.
 - The uploaded files of a processing run cancelled by the job timeout or a shutdown now stay until their upload session expires (`Upload:CleanupAgeHours`) instead of being deleted with the job once `Processing:JobRetention` has passed. Every other run releases its upload when it ends.
+- An upload or a machine delivery is refused with `400` when geopilot would have to change a file name to store the file: names with control or invisible formatting characters, with `\ / : * ? " < > |`, with `..`, with spaces at the start or end or with a dot at the end. Such names used to be accepted and stored under a shortened name. File names are now cleaned the same way on every operating system, and a `$` in a file name is kept.
+- A delivered file has one name: the STAC catalog, the asset download and the list of files before declaring show the name the file is stored under. A second file with the same name therefore appears with a counter, for example `data_2.xtf`, and a file a step produced, for example from a ZIP archive, appears under its cleaned name. Deliveries declared before keep the names they were shown with.
 
 ### Removed
 
@@ -135,6 +137,7 @@
 - A cancelled processing job, for example after `Processing:JobTimeout`, now shows "Cancelled" in the selected language in the delivery steps instead of the raw text `cancelled`.
 - A write request that authenticates with the sign-in cookie of the web frontend is refused with `403` unless it comes from the geopilot page itself. Before, a page on another subdomain of the same domain could make the browser of a signed-in person send such a request, for example a machine delivery in that person's name. Requests with an `Authorization` header are not affected. For browsers that send no `Sec-Fetch-Site` header (versions from before 2023), geopilot compares the `Origin` header with the `Host` header, so a reverse proxy in front of it must pass the `Host` header on unchanged.
 - The mandates offered for a delivery are listed alphabetically by their name in the selected language. Until now a mandate moved to the end of the list once it was edited.
+- A file delivered under a name that has to be cleaned around two dots, such as `a.?.b.xtf`, is now stored under the name recorded for it, so it can be downloaded and no longer overwrites another file of the same delivery. Deliveries declared before the update are not repaired.
 
 ## v3.0.341 - 2026-06-17
 

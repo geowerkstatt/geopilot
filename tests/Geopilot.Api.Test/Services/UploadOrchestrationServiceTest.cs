@@ -134,6 +134,13 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
+    public async Task InitiateUploadAsyncThrowsForFileNameThatSanitizingChanges()
+    {
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("invoice\u202Efdp.exe", 1024)] };
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
+    }
+
+    [TestMethod]
     public async Task RunPreflightChecksAsyncSucceeds()
     {
         var upload = CreateUpload("test.xtf", 1024);
@@ -342,24 +349,10 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
-    public async Task InitiateUploadAsyncSanitizesFileName()
+    public async Task InitiateUploadAsyncThrowsForFileNameWithPath()
     {
         var request = new InitiateUploadRequest { Files = [new FileMetadata("../../etc/passwd", 1024)] };
-
-        SetupGlobalLimitChecks();
-
-        uploadStorageMock
-            .Setup(s => s.GenerateUploadUrlAsync(It.Is<string>(k => k.EndsWith("/passwd")), null, It.IsAny<TimeSpan>()))
-            .ReturnsAsync("https://storage.example.com/presigned-url");
-
-        var response = await service.InitiateUploadAsync(request);
-
-        Assert.AreEqual("passwd", response.Files[0].FileName);
-
-        var upload = uploadStore.GetUpload(response.UploadId);
-        Assert.IsNotNull(upload);
-        Assert.AreEqual("passwd", upload.Files[0].FileName);
-        Assert.EndsWith("/passwd", upload.Files[0].StorageKey);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
     [TestMethod]

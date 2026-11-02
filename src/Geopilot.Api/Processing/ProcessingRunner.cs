@@ -240,6 +240,7 @@ public class ProcessingRunner : BackgroundService
                     var fileName = MakeUniqueDeliveryFileName(step.Id, deliveryFile.OriginalFileName, usedNames);
                     await CopyToAsync(stagingFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
                     var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
+
                     step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
                 }
             }
