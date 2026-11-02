@@ -13,7 +13,7 @@ const defaultMaxFileSizeMB = 100;
 // The names the API stores unchanged and therefore accepts, see StringExtensions.IsSanitizedFileName.
 const invalidFileNameCharacters = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\\/:*?"<>|]/u;
 const isStorableFileName = (name: string) =>
-  name === name.trim() && !name.includes("..") && !invalidFileNameCharacters.test(name);
+  name === name.trim() && !name.endsWith(".") && !name.includes("..") && !invalidFileNameCharacters.test(name);
 
 const validateFileName = (file: File): FileError | null =>
   isStorableFileName(file.name) ? null : { code: "file-invalid-name", message: "File name not allowed" };

@@ -24,7 +24,7 @@ public static class StringExtensions
 
         var sanitized = Path.GetFileName(new string(fileName
             .Trim()
-            .ReplaceLineEndings(string.Empty)
+            .TrimEnd('.')
             .Replace("..", string.Empty)
             .Replace("./", string.Empty)
             .Where(x => !invalidFileNameChars.Contains(x) && !IsControlOrFormat(x)).ToArray()));

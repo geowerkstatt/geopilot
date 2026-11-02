@@ -539,14 +539,12 @@ public class SubmissionController : ControllerBase
         List<UploadedFileInfo> storedFiles,
         CancellationToken cancellationToken)
     {
-        // Never trust the name for a path: only its last segment becomes the storage key.
-        var sentFileName = HeaderUtilities.RemoveQuotes(disposition.FileName).Value;
-        var fileName = Path.GetFileName(sentFileName);
+        var fileName = HeaderUtilities.RemoveQuotes(disposition.FileName).Value;
         if (string.IsNullOrWhiteSpace(fileName))
             return BadRequest("Every file part must carry a file name.");
 
-        if (!sentFileName.IsSanitizedFileName())
-            return BadRequest($"The file <{sentFileName}> has a name geopilot would have to change: remove control and invisible characters, \\ / : * ? \" < > |, '..' and spaces at the start or end.");
+        if (!fileName.IsSanitizedFileName())
+            return BadRequest($"The file <{fileName}> has a name geopilot would have to change: remove control and invisible characters, \\ / : * ? \" < > |, '..', spaces at the start or end and a dot at the end.");
 
         if (storedFiles.Any(file => string.Equals(file.FileName, fileName, StringComparison.OrdinalIgnoreCase)))
             return BadRequest($"The file <{fileName}> is sent more than once.");

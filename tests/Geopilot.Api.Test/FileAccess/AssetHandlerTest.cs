@@ -59,7 +59,7 @@ public class AssetHandlerTest
 
         var asset = assets.Single();
         Assert.AreEqual(AssetType.ProcessedData, asset.AssetType);
-        Assert.AreEqual("validator_logfile.log", asset.OriginalFilename);
+        Assert.AreEqual("logfile.log", asset.OriginalFilename, "A delivered file is shown under the name it is stored under.");
         Assert.AreEqual("logfile.log", asset.SanitizedFilename);
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), asset.FileHash);
 

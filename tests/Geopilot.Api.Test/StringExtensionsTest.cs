@@ -34,6 +34,7 @@ public class StringExtensionsTest
     [DataRow("JUNIORGLEE", "JUNIOR\tGLEE")]
     [DataRow("INVOICEfdp.exe", "INVOICE\u202Efdp.exe")]
     [DataRow("SNEAKYDOTS.xtf", "SNEAKY.?.DOTS.xtf")]
+    [DataRow("TRAILINGDOT.xtf", "TRAILINGDOT.xtf.")]
     public void SanitizeFileNameForInvalidFileNames(string expected, string fileName)
         => Assert.AreEqual(expected, fileName.SanitizeFileName());
 

@@ -139,7 +139,7 @@ internal static class DtoMapperExtensions
             .ToList();
 
         var deliveries = step.DeliveryFiles
-            .Select(df => df.OriginalFileName)
+            .Select(df => df.PersistedFileName)
             .ToList();
 
         var visualizations = step.Visualizations
