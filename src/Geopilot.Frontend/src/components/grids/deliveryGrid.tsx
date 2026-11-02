@@ -130,7 +130,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
       width: 180,
       renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
         row.forwardingState && (
-          <Button variant="text" onClick={() => setForwardingOf(row)} data-cy="forwardingState-button">
+          <Button variant="text" size="small" onClick={() => setForwardingOf(row)} data-cy="forwardingState-button">
             <ReactionStateLabel state={row.forwardingState} />
           </Button>
         ),
