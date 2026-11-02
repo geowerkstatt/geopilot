@@ -1,4 +1,6 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -249,6 +251,74 @@ public class PipelineTest
             new[] { "started:step_1", "run:step_1", "completed:step_1", "started:step_2", "run:step_2", "completed:step_2" },
             events,
             "OnStepStarted must fire and complete before its step runs, once per step, in order.");
+    }
+
+    [TestMethod]
+    [DataRow(OutputAction.Download)]
+    [DataRow(OutputAction.Visualization)]
+    public async Task RunFailsStepWhoseTaggedOutputIsMissing(OutputAction action)
+    {
+        var missingOutputStep = NewMissingOutputStep("missing_output", action);
+        var nextStep = NewMissingOutputStep("next_step", action);
+        using var pipeline = BuildPipeline(missingOutputStep, nextStep);
+
+        await Assert.ThrowsExactlyAsync<PipelineRunException>(() => pipeline.Run(uploadFiles, CancellationToken.None));
+
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, missingOutputStep.State);
+        Assert.Contains(action.ToString(), missingOutputStep.ErrorMessage);
+        Assert.AreEqual(StepState.Pending, nextStep.State);
+    }
+
+    [TestMethod]
+    public async Task RunKeepsFailConditionMessageWhenDownloadOutputIsMissing()
+    {
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[missing_output.Output] == null",
+                        Message = new Dictionary<string, string> { { "en", "No file was produced." } },
+                    },
+                },
+            },
+        };
+        var missingOutputStep = NewMissingOutputStep("missing_output", OutputAction.Download, stepConditions);
+        using var pipeline = BuildPipeline(missingOutputStep);
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, missingOutputStep.State);
+        Assert.AreEqual("No file was produced.", missingOutputStep.ConditionMessage?["en"]);
+        Assert.IsNull(missingOutputStep.ErrorMessage, "the fail condition already covers the missing output.");
+    }
+
+    private PipelineStep NewMissingOutputStep(string id, OutputAction action, PipelineStepConditionsConfig? stepConditions = null) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(new Dictionary<string, string> { { "en", id } })
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([new OutputActionConfig { Property = nameof(MissingOutputResult.Output), Actions = new HashSet<OutputAction> { action } }])
+            .StepConditions(stepConditions)
+            .Process(new MissingOutputProcess())
+            .Logger(loggerMock.Object)
+            .Build();
+
+    private sealed class MissingOutputResult
+    {
+        public object? Output { get; init; }
+    }
+
+    private sealed class MissingOutputProcess
+    {
+        [PipelineProcessRun]
+        public Task<MissingOutputResult> RunAsync() => Task.FromResult(new MissingOutputResult());
     }
 
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)
