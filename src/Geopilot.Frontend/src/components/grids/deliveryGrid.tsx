@@ -110,10 +110,8 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     date: {
       field: "date",
       headerName: t("deliveryDate"),
-      valueFormatter: (params: string) => {
-        const date = new Date(params);
-        return `${date.toLocaleString()}`;
-      },
+      type: "dateTime",
+      valueGetter: (date: string) => new Date(date),
       width: 180,
     },
     userName: { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
@@ -165,7 +163,13 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
 
   return (
     <>
-      <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />
+      <GeopilotDataGrid
+        name="deliveryOverview"
+        loading={isLoading}
+        rows={deliveries}
+        columns={columnDefs}
+        initialState={{ sorting: { sortModel: [{ field: "date", sort: "desc" }] } }}
+      />
       {forwardingOf && (
         <ForwardingDialog
           deliveryId={forwardingOf.id}
