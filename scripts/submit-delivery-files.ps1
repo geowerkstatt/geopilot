@@ -124,13 +124,41 @@ function Get-AuthorizationHeader {
     return @{ Authorization = "Bearer $script:token" }
 }
 
+function New-SubmissionContent([System.Collections.IDictionary]$Form) {
+    # Some web application firewalls refuse the parts Invoke-RestMethod -Form builds (bare names, filename*, a
+    # Content-Type each), so they are built as browsers and curl send them: quoted names and file names only.
+    $content = [System.Net.Http.MultipartFormDataContent]::new()
+    foreach ($name in $Form.Keys) {
+        foreach ($value in $Form[$name]) {
+            $disposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new('form-data')
+            $disposition.Name = '"{0}"' -f $name
+            if ($value -is [System.IO.FileInfo]) {
+                $part = [System.Net.Http.StreamContent]::new($value.OpenRead())
+                $disposition.FileName = '"{0}"' -f $value.Name
+            }
+            else {
+                $part = [System.Net.Http.StringContent]::new([string]$value)
+                $part.Headers.ContentType = $null
+            }
+
+            $part.Headers.ContentDisposition = $disposition
+            $content.Add($part)
+        }
+    }
+
+    # The comma keeps PowerShell from unrolling the content into its parts on the way out.
+    return , $content
+}
+
 function Invoke-Submission([System.Collections.IDictionary]$Form) {
     # 503 means the installation is at its upload capacity. The request is fine and is repeated unchanged
     # after the time Retry-After names, a handful of times.
     for ($attempt = 1; ; $attempt++) {
+        # Sending consumes the body, so every attempt builds its own.
+        $content = New-SubmissionContent $Form
         try {
             $headers = $null
-            $response = Invoke-RestMethod -Method Post -Uri "$ApiUrl/api/v1/submission/multipart" -Headers (Get-AuthorizationHeader) -Form $Form -ResponseHeadersVariable headers
+            $response = Invoke-RestMethod -Method Post -Uri "$ApiUrl/api/v1/submission/multipart" -Headers (Get-AuthorizationHeader) -Body $content -ResponseHeadersVariable headers
             $statusUrl = if ($headers.Location) { $headers.Location[0] } else { "$ApiUrl/api/v1/submission/$($response.id)" }
             return [pscustomobject]@{ Response = $response; StatusUrl = $statusUrl }
         }
@@ -147,6 +175,9 @@ function Invoke-Submission([System.Collections.IDictionary]$Form) {
             }
 
             throw "The submission was refused with HTTP $([int]$httpResponse.StatusCode): $($_.ErrorDetails.Message)"
+        }
+        finally {
+            $content.Dispose()
         }
     }
 }
