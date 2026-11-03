@@ -7,6 +7,7 @@ using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -198,12 +199,7 @@ public class DeliveryController : ControllerBase
             })
             .ToListAsync();
 
-        // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
-        // definition no longer has keeps its id only.
-        var displayNames = pipelineFactory.ReactionSets
-            .SelectMany(set => set.AllReactions())
-            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
-
+        var displayNames = ReactionDisplayNames();
         return Ok(deliveries
             .Select(d => new DeliveryResponse(
                 d.Id,
@@ -211,9 +207,77 @@ public class DeliveryController : ControllerBase
                 d.Mandate,
                 d.DeclarerName,
                 d.Comment,
-                d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).ForwardingState(),
-                d.Reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList()))
+                d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
+                d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp(),
+                WithDisplayNames(d.Reactions, displayNames)))
             .ToList());
+    }
+
+    /// <summary>
+    /// Gets a delivery with what was delivered and how far its reactions got.
+    /// </summary>
+    /// <param name="deliveryId">The delivery to get.</param>
+    /// <returns>The <see cref="DeliveryDetailResponse"/>.</returns>
+    [HttpGet("{deliveryId}")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "The delivery.", typeof(DeliveryDetailResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
+    public async Task<IActionResult> GetById([FromRoute] int deliveryId)
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        logger.LogInformation("User <{UserId}> accessed delivery <{DeliveryId}>", user.AuthIdentifier, deliveryId);
+
+        var delivery = await context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.Id == deliveryId)
+            .Select(d => new
+            {
+                d.Id,
+                d.Date,
+                Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
+                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                PrecursorDelivery = d.PrecursorDelivery != null ? new DeliverySummary(d.PrecursorDelivery.Id, d.PrecursorDelivery.Date) : null,
+                d.Partial,
+                d.JobId,
+                Files = d.Assets.OrderBy(a => a.Id).Select(a => new AssetReference(a.Id, a.OriginalFilename)).ToList(),
+                d.Comment,
+            })
+            .SingleOrDefaultAsync();
+        if (delivery is null)
+            return NotFound($"No delivery with id <{deliveryId}> found.");
+
+        var reactions = await context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == deliveryId)
+            .OrderBy(r => r.Id)
+            .Select(r => new DeliveryReactionResponse(
+                r.ReactionId,
+                null,
+                r.Kind,
+                r.State,
+                r.Attempts,
+                r.State == ReactionState.Pending ? r.NextAttemptAt : (DateTime?)null,
+                r.LastAttemptAt,
+                r.FinishedAt,
+                r.Message))
+            .ToListAsync();
+
+        // Only a forwarded delivery is in the STAC catalog.
+        var forwarded = reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp() is null or ReactionState.Done;
+        var stacItem = forwarded ? new StacItemReference(StacConverter.CollectionId(delivery.Mandate.Id), StacConverter.ItemId(delivery.Id)) : null;
+
+        return Ok(new DeliveryDetailResponse(
+            delivery.Id,
+            delivery.Date,
+            delivery.Mandate,
+            delivery.DeclarerName,
+            delivery.PrecursorDelivery,
+            delivery.Partial,
+            delivery.JobId,
+            delivery.Files,
+            delivery.Comment,
+            stacItem,
+            WithDisplayNames(reactions, ReactionDisplayNames())));
     }
 
     /// <summary>
@@ -232,7 +296,7 @@ public class DeliveryController : ControllerBase
             return NotFound($"No delivery with id <{deliveryId}> found.");
 
         // Not cancelled with the request, so every reset that happens also reaches the protocol.
-        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, CancellationToken.None);
+        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, null, CancellationToken.None);
         if (reset.Count == 0)
             return Conflict($"No reaction of delivery <{deliveryId}> has failed.");
 
@@ -240,6 +304,43 @@ public class DeliveryController : ControllerBase
         logger.LogInformation("User <{UserId}> reset {Count} failed reactions of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.Count, deliveryId);
         return NoContent();
     }
+
+    /// <summary>
+    /// Resets a reaction of a delivery that gave up: it gets all its attempts again and is due at once.
+    /// </summary>
+    /// <param name="deliveryId">The delivery of the reaction.</param>
+    /// <param name="reactionId">The reaction to reset.</param>
+    [HttpPost("{deliveryId}/reactions/{reactionId}/reset")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "The reaction is due again.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery or its reaction could not be found.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The reaction has not failed.")]
+    public async Task<IActionResult> ResetReaction([FromRoute] int deliveryId, [FromRoute] string reactionId)
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        if (!await context.Deliveries.AnyAsync(d => d.Id == deliveryId)
+            || !await context.DeliveryReactions.AnyAsync(r => r.DeliveryId == deliveryId && r.ReactionId == reactionId))
+            return NotFound($"Delivery <{deliveryId}> or its reaction could not be found.");
+
+        // Not cancelled with the request, so a reset that happens also reaches the protocol.
+        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, reactionId, CancellationToken.None);
+        if (reset.Count == 0)
+            return Conflict($"The reaction of delivery <{deliveryId}> has not failed.");
+
+        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, reset, user.Id);
+        logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset[0].ReactionId, deliveryId);
+        return NoContent();
+    }
+
+    // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
+    // definition no longer has keeps its id only.
+    private Dictionary<string, LocalizedText> ReactionDisplayNames()
+        => pipelineFactory.ReactionSets
+            .SelectMany(set => set.AllReactions())
+            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
+
+    private static List<DeliveryReactionResponse> WithDisplayNames(IEnumerable<DeliveryReactionResponse> reactions, Dictionary<string, LocalizedText> displayNames)
+        => reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList();
 
     /// <summary>
     /// Gets the deliveries the user declared.

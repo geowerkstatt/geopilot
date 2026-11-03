@@ -10,14 +10,14 @@ public class ForwardingExtensionsTest
     [DataRow(new[] { ReactionState.Done, ReactionState.Pending }, ReactionState.Pending, DisplayName = "Pending before done")]
     [DataRow(new[] { ReactionState.Pending, ReactionState.Running }, ReactionState.Running, DisplayName = "Running before pending")]
     [DataRow(new[] { ReactionState.Running, ReactionState.Error, ReactionState.Done }, ReactionState.Error, DisplayName = "Error before running")]
-    public void ForwardingStateSumsUpTheTransfers(ReactionState[] transferStates, ReactionState expected)
+    public void SummedUpPutsWhatHoldsUpTheReactionsFirst(ReactionState[] reactionStates, ReactionState expected)
     {
-        Assert.AreEqual(expected, transferStates.ForwardingState());
+        Assert.AreEqual(expected, reactionStates.SummedUp());
     }
 
     [TestMethod]
-    public void ForwardingStateIsEmptyWithoutTransfers()
+    public void SummedUpIsEmptyWithoutReactions()
     {
-        Assert.IsNull(Array.Empty<ReactionState>().ForwardingState());
+        Assert.IsNull(Array.Empty<ReactionState>().SummedUp());
     }
 }

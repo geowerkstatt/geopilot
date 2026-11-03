@@ -43,7 +43,7 @@ public class StacConverter
     {
         ArgumentNullException.ThrowIfNull(mandate);
 
-        return "coll_" + mandate.Id;
+        return CollectionId(mandate.Id);
     }
 
     /// <summary>
@@ -55,8 +55,18 @@ public class StacConverter
     {
         ArgumentNullException.ThrowIfNull(delivery);
 
-        return "item_" + delivery.Id;
+        return ItemId(delivery.Id);
     }
+
+    /// <summary>
+    /// Returns the collection id of the mandate with the given id.
+    /// </summary>
+    internal static string CollectionId(int mandateId) => "coll_" + mandateId;
+
+    /// <summary>
+    /// Returns the item id of the delivery with the given id.
+    /// </summary>
+    internal static string ItemId(int deliveryId) => "item_" + deliveryId;
 
     /// <summary>
     /// Converts a <see cref="Mandate"/> to a <see cref="StacCollection"/>.

@@ -945,7 +945,7 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetListsTheReactionsOfEachDeliveryWithTheStateOfItsForwarding()
+    public async Task GetListsTheReactionsOfEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         var declarer = context.Users.First(u => !u.IsAdmin);
@@ -970,11 +970,13 @@ public class DeliveryControllerTest
         Assert.AreEqual(forwarded.Mandate.Id, forwardedResponse.Mandate.Id);
         Assert.AreEqual("weitergegeben", forwardedResponse.Comment);
         Assert.AreEqual(ReactionState.Done, forwardedResponse.ForwardingState, "a notification does not hold up the forwarding.");
+        Assert.AreEqual(ReactionState.Pending, forwardedResponse.NotificationState);
         CollectionAssert.AreEqual(new[] { "ablage", "meldung" }, forwardedResponse.Reactions.Select(r => r.ReactionId).ToArray());
         Assert.IsNull(forwardedResponse.Reactions[0].NextAttemptAt, "a reaction that is done has no next attempt.");
         Assert.IsNotNull(forwardedResponse.Reactions[1].NextAttemptAt);
         Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeclarerName);
         Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
+        Assert.IsNull(byId[failed.Id].NotificationState, "a delivery without notifications has none to sum up.");
         Assert.IsNull(byId[withoutReactions.Id].ForwardingState);
         Assert.IsEmpty(byId[withoutReactions.Id].Reactions);
     }
@@ -1061,6 +1063,115 @@ public class DeliveryControllerTest
         Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
         Assert.AreEqual(ReactionState.Error, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
         recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionMakesOnlyThatReactionDueAgain()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        deliveryController.SetupTestUser(admin);
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error), ("archiv", ReactionState.Error));
+
+        Assert.IsInstanceOfType<NoContentResult>(await deliveryController.ResetReaction(delivery.Id, "ablage"));
+
+        var states = context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == delivery.Id)
+            .ToDictionary(r => r.ReactionId, r => r.State);
+        Assert.AreEqual(ReactionState.Pending, states["ablage"]);
+        Assert.AreEqual(ReactionState.Error, states["archiv"]);
+        recorderMock.Verify(
+            recorder => recorder.RecordReactionsResetAsync(
+                delivery.Id,
+                It.Is<IReadOnlyList<DeliveryReaction>>(reactions => reactions.Count == 1 && reactions[0].ReactionId == "ablage"),
+                admin.Id),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionThatHasNotFailedIsAConflict()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Done), ("archiv", ReactionState.Error));
+
+        var result = await deliveryController.ResetReaction(delivery.Id, "ablage") as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status409Conflict, result?.StatusCode);
+        Assert.AreEqual(ReactionState.Error, context.DeliveryReactions.AsNoTracking().Single(r => r.DeliveryId == delivery.Id && r.ReactionId == "archiv").State, "another failed reaction stays as it is.");
+        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionThatTheDeliveryDoesNotHaveIsNotFound()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error));
+
+        var result = await deliveryController.ResetReaction(delivery.Id, "archiv") as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task GetByIdShowsWhatWasDelivered()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var declarer = context.Users.First(u => !u.IsAdmin);
+        var precursor = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer, PrecursorDelivery = precursor, Partial = true, Comment = "zweite Lieferung" };
+        delivery.Assets.Add(new Asset { OriginalFilename = "Strassen 2026.xtf", SanitizedFilename = "Strassen_2026.xtf" });
+        delivery.Assets.Add(new Asset { OriginalFilename = "errorLog.log", SanitizedFilename = "errorLog.log" });
+        context.Deliveries.AddRange(precursor, delivery);
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "ablage", ReactionState.Done),
+            NewReaction(delivery, "meldung", ReactionState.Error, ReactionKind.Notification));
+        context.SaveChanges();
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.AreEqual(declarer.FullName, detail.DeclarerName);
+        Assert.AreEqual(delivery.Mandate.Id, detail.Mandate.Id);
+        Assert.AreEqual(precursor.Id, detail.PrecursorDelivery?.Id);
+        Assert.IsTrue(detail.Partial);
+        Assert.AreEqual(delivery.JobId, detail.JobId);
+        CollectionAssert.AreEqual(new[] { "Strassen 2026.xtf", "errorLog.log" }, detail.Files.Select(f => f.FileName).ToArray());
+        CollectionAssert.AreEqual(delivery.Assets.Select(a => a.Id).ToArray(), detail.Files.Select(f => f.Id).ToArray());
+        Assert.AreEqual("zweite Lieferung", detail.Comment);
+        Assert.AreEqual(new StacItemReference($"coll_{delivery.Mandate.Id}", $"item_{delivery.Id}"), detail.StacItem, "a failed notification does not keep a forwarded delivery out of the catalog.");
+        CollectionAssert.AreEqual(new[] { "ablage", "meldung" }, detail.Reactions.Select(r => r.ReactionId).ToArray());
+    }
+
+    [TestMethod]
+    [DataRow(ReactionState.Pending)]
+    [DataRow(ReactionState.Error)]
+    public async Task GetByIdLinksNoStacItemBeforeTheDeliveryIsForwarded(ReactionState transferState)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Done), ("archiv", transferState));
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.IsNull(detail.StacItem);
+        Assert.IsNull(detail.PrecursorDelivery);
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Unknown delivery")]
+    [DataRow(true, DisplayName = "Deleted delivery")]
+    public async Task GetByIdOfADeliveryThatDoesNotExistIsNotFound(bool deleted)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions();
+        delivery.Deleted = deleted;
+        context.SaveChanges();
+        var deliveryId = deleted ? delivery.Id : context.Deliveries.IgnoreQueryFilters().Max(d => d.Id) + 1;
+
+        var result = await deliveryController.GetById(deliveryId) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
     }
 
     private Delivery AddDeliveryWithReactions(params (string ReactionId, ReactionState State)[] reactions)

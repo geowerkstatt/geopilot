@@ -169,15 +169,20 @@ public class ReactionStore
     /// Resets the reactions of a delivery that gave up: each gets all its attempts again and is due at once. Reactions
     /// in any other state stay as they are, and so do the reactions of a deleted delivery.
     /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="deliveryId">The delivery whose failed reactions to reset.</param>
+    /// <param name="reactionId">The one reaction to reset, or <see langword="null"/> for all failed reactions.</param>
+    /// <param name="cancellationToken">Cancels the reset.</param>
     /// <returns>The reactions this call reset, in the state the reset left them.</returns>
-    public async Task<IReadOnlyList<DeliveryReaction>> ResetFailedAsync(Context context, int deliveryId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<DeliveryReaction>> ResetFailedAsync(Context context, int deliveryId, string? reactionId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var failedIds = await context.DeliveryReactions
-            .Where(r => r.DeliveryId == deliveryId && r.State == ReactionState.Error)
-            .Select(r => r.Id)
-            .ToListAsync(cancellationToken);
+        var failed = context.DeliveryReactions.Where(r => r.DeliveryId == deliveryId && r.State == ReactionState.Error);
+        if (reactionId is not null)
+            failed = failed.Where(r => r.ReactionId == reactionId);
+
+        var failedIds = await failed.Select(r => r.Id).ToListAsync(cancellationToken);
 
         // One row at a time and only while it is still failed, so of two resets at once each reaction counts for one.
         var resetIds = new List<int>();

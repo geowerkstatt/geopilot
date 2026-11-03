@@ -16,8 +16,10 @@ namespace Geopilot.Api.Contracts;
 /// <see cref="ReactionState.Running"/> before <see cref="ReactionState.Pending"/> before <see cref="ReactionState.Done"/>,
 /// which means the delivery is forwarded. <see langword="null"/> for a delivery without transfers, which counts as
 /// forwarded right away.</param>
+/// <param name="NotificationState">The states of its notifications summed up the same way, <see langword="null"/> for a
+/// delivery without notifications. They wait until the delivery is forwarded.</param>
 /// <param name="Reactions">The reactions of the delivery, in the order they were created.</param>
-public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, string Comment, ReactionState? ForwardingState, IReadOnlyList<DeliveryReactionResponse> Reactions);
+public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, string Comment, ReactionState? ForwardingState, ReactionState? NotificationState, IReadOnlyList<DeliveryReactionResponse> Reactions);
 
 /// <summary>
 /// How far a reaction to a delivery got.
