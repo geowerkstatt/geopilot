@@ -337,16 +337,8 @@ export type DeliveryResponse = {
    * Who declared the delivery, a person or a machine client.
    */
   declarerName: string;
-  /**
-   * The comment that came with the delivery.
-   */
-  comment: string;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
-  /**
-   * The reactions of the delivery, in the order they were created.
-   */
-  reactions: Array<DeliveryReactionResponse>;
 };
 
 /**
@@ -1584,39 +1576,6 @@ export type GetApiV1DeliveryByDeliveryIdResponses = {
 
 export type GetApiV1DeliveryByDeliveryIdResponse =
   GetApiV1DeliveryByDeliveryIdResponses[keyof GetApiV1DeliveryByDeliveryIdResponses];
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetData = {
-  body?: never;
-  path: {
-    /**
-     * The delivery whose failed reactions to reset.
-     */
-    deliveryId: number;
-  };
-  query?: never;
-  url: "/api/v1/Delivery/{deliveryId}/reactions/reset";
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetErrors = {
-  /**
-   * The delivery could not be found.
-   */
-  404: unknown;
-  /**
-   * No reaction of the delivery has failed.
-   */
-  409: unknown;
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetResponses = {
-  /**
-   * The failed reactions of the delivery are due again.
-   */
-  204: void;
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetResponse =
-  PostApiV1DeliveryByDeliveryIdReactionsResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsResetResponses];
 
 export type PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetData = {
   body?: never;

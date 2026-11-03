@@ -67,10 +67,8 @@ describe("Admin delivery overview with reactions", () => {
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
       declarerName: "Kelvin Spencer",
-      comment: "",
       forwardingState,
       notificationState,
-      reactions: [],
     }) satisfies DeliveryResponse;
   const deliveries: DeliveryResponse[] = [
     delivery(9001, ReactionState.Done, ReactionState.Done),

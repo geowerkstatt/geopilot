@@ -55,7 +55,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             notificationState: "notificationState" in d ? d.notificationState : undefined,
-            comment: d.comment,
+            comment: "comment" in d ? d.comment : "",
             canDelete: "canDelete" in d ? d.canDelete : undefined,
           })),
         );
