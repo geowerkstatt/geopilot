@@ -160,11 +160,16 @@ internal sealed class PipelineStep : IPipelineStep
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
-            var statusMessage = ExtractStatusMessage(stepResult);
 
-            (this.State, this.ConditionMessage) = await EvaluatePostConditions(context, stepResult);
+            this.StatusMessage = ExtractStatusMessage(stepResult);
 
-            this.StatusMessage = statusMessage;
+            var postConditionsOutcome = await EvaluatePostConditions(context, stepResult);
+
+            if (postConditionsOutcome.State != StepState.Error)
+                ValidateOutputActionValues(stepResult);
+
+            (this.State, this.ConditionMessage) = postConditionsOutcome;
+
             return stepResult;
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
@@ -368,6 +373,30 @@ internal sealed class PipelineStep : IPipelineStep
 
         logger.LogInformation($"run successfull.");
         return (StepState.Success, null);
+    }
+
+    private void ValidateOutputActionValues(StepResult stepResult)
+    {
+        foreach (var outputAction in OutputActions)
+        {
+            var data = stepResult.ExtractProperty(outputAction.Property);
+
+            if (outputAction.Actions.Contains(OutputAction.Download))
+            {
+                if (!(data is IPipelineFile || data is IEnumerable<IPipelineFile>))
+                {
+                    throw new PipelineRunException($"The output <{outputAction.Property}> is tagged as Download and must be an IPipelineFile or a collection of them, but is <{data?.GetType().Name ?? "null"}>.");
+                }
+            }
+
+            if (outputAction.Actions.Contains(OutputAction.Visualization))
+            {
+                if (data is not IVisualization)
+                {
+                    throw new PipelineRunException($"The output <{outputAction.Property}> is tagged as Visualization and must be an IVisualization, but is <{data?.GetType().Name ?? "null"}>.");
+                }
+            }
+        }
     }
 
     private LocalizedText? ExtractStatusMessage(StepResult stepResult) =>
