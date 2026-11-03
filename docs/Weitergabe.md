@@ -77,7 +77,7 @@ Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede
 
 ## Zurücksetzen
 
-Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: im Dialog der Lieferung mit "Zurücksetzen" oder über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
+Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: im Dialog der Lieferung mit "Versuche zurücksetzen" oder über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
 
 ## Betrieb unter IIS
 

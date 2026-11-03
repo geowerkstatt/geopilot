@@ -116,7 +116,9 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
         />
       </DialogContent>
       <DialogActions>
-        {canReset && <Button label="reset" variant="outlined" onClick={reset} data-cy="resetReactions-button" />}
+        {canReset && (
+          <Button label="resetAttempts" variant="outlined" onClick={reset} data-cy="resetReactions-button" />
+        )}
         <Button label="close" variant="contained" onClick={onClose} />
       </DialogActions>
     </Dialog>

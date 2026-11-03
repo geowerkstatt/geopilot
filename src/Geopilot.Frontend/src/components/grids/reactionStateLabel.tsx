@@ -14,11 +14,11 @@ interface ReactionStateLabelProps {
 }
 
 const stateLabelKey: Record<ReactionState, TranslationKey> = {
-  [ReactionState.Pending]: "forwardingStatePending",
-  [ReactionState.Running]: "forwardingStateRunning",
-  [ReactionState.Done]: "forwardingStateDone",
-  [ReactionState.Error]: "forwardingStateError",
-  [ReactionState.Deleted]: "forwardingStateDeleted",
+  [ReactionState.Pending]: "reactionStatePending",
+  [ReactionState.Running]: "reactionStateRunning",
+  [ReactionState.Done]: "reactionStateDone",
+  [ReactionState.Error]: "reactionStateError",
+  [ReactionState.Deleted]: "reactionStateDeleted",
 };
 
 const renderIcon = (state: ReactionState) => {
