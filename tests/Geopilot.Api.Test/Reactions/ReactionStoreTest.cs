@@ -299,9 +299,9 @@ public class ReactionStoreTest
         failed.Message = "The base directory does not exist.";
         await context.SaveChangesAsync();
 
-        var reset = await store.ResetFailedAsync(context, delivery.Id, null, CancellationToken.None);
+        var reset = await store.ResetFailedAsync(context, delivery.Id, "failed", CancellationToken.None);
 
-        Assert.AreEqual(ReactionState.Pending, Assert.ContainsSingle(reset).State, "the reactions come back as the reset left them.");
+        Assert.AreEqual(ReactionState.Pending, reset?.State, "the reaction comes back as the reset left it.");
         var stored = await ReloadAsync(failed);
         Assert.AreEqual(ReactionState.Pending, stored.State);
         Assert.AreEqual(0, stored.Attempts);
@@ -320,7 +320,7 @@ public class ReactionStoreTest
     {
         var reaction = AddReaction("other", state: state, attempts: 1, nextAttemptAt: dbNow.AddMinutes(1), lockedUntil: dbNow.AddMinutes(1));
 
-        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, null, CancellationToken.None));
+        Assert.IsNull(await store.ResetFailedAsync(context, delivery.Id, "other", CancellationToken.None));
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(state, stored.State);
@@ -332,7 +332,7 @@ public class ReactionStoreTest
     {
         var elsewhere = AddReaction("elsewhere", state: ReactionState.Error, attempts: 3, of: AddDelivery());
 
-        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, null, CancellationToken.None));
+        Assert.IsNull(await store.ResetFailedAsync(context, delivery.Id, "elsewhere", CancellationToken.None));
 
         Assert.AreEqual(ReactionState.Error, (await ReloadAsync(elsewhere)).State);
     }
@@ -345,7 +345,7 @@ public class ReactionStoreTest
 
         var reset = await store.ResetFailedAsync(context, delivery.Id, "ablage", CancellationToken.None);
 
-        Assert.AreEqual(ablage.Id, Assert.ContainsSingle(reset).Id);
+        Assert.AreEqual(ablage.Id, reset?.Id);
         Assert.AreEqual(ReactionState.Error, (await ReloadAsync(archiv)).State);
     }
 
@@ -356,7 +356,7 @@ public class ReactionStoreTest
         delivery.Deleted = true;
         await context.SaveChangesAsync();
 
-        Assert.IsEmpty(await store.ResetFailedAsync(context, delivery.Id, null, CancellationToken.None));
+        Assert.IsNull(await store.ResetFailedAsync(context, delivery.Id, "failed", CancellationToken.None));
 
         Assert.AreEqual(ReactionState.Error, (await ReloadAsync(failed)).State);
     }

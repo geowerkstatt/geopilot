@@ -945,12 +945,12 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetListsTheReactionsOfEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
+    public async Task GetListsEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         var declarer = context.Users.First(u => !u.IsAdmin);
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
-        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer, Comment = "weitergegeben" };
+        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
         var failed = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringClient = client };
         var withoutReactions = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
         context.Deliveries.AddRange(forwarded, failed, withoutReactions);
@@ -968,21 +968,17 @@ public class DeliveryControllerTest
         var forwardedResponse = byId[forwarded.Id];
         Assert.AreEqual(declarer.FullName, forwardedResponse.DeclarerName);
         Assert.AreEqual(forwarded.Mandate.Id, forwardedResponse.Mandate.Id);
-        Assert.AreEqual("weitergegeben", forwardedResponse.Comment);
         Assert.AreEqual(ReactionState.Done, forwardedResponse.ForwardingState, "a notification does not hold up the forwarding.");
         Assert.AreEqual(ReactionState.Pending, forwardedResponse.NotificationState);
-        CollectionAssert.AreEqual(new[] { "ablage", "meldung" }, forwardedResponse.Reactions.Select(r => r.ReactionId).ToArray());
-        Assert.IsNull(forwardedResponse.Reactions[0].NextAttemptAt, "a reaction that is done has no next attempt.");
-        Assert.IsNotNull(forwardedResponse.Reactions[1].NextAttemptAt);
         Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeclarerName);
         Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
         Assert.IsNull(byId[failed.Id].NotificationState, "a delivery without notifications has none to sum up.");
         Assert.IsNull(byId[withoutReactions.Id].ForwardingState);
-        Assert.IsEmpty(byId[withoutReactions.Id].Reactions);
+        Assert.IsNull(byId[withoutReactions.Id].NotificationState);
     }
 
     [TestMethod]
-    public async Task GetNamesTheReactionsAfterTheDefinition()
+    public async Task GetByIdNamesTheReactionsAfterTheDefinition()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns(
@@ -1003,9 +999,9 @@ public class DeliveryControllerTest
             NewReaction(delivery, "entfernt", ReactionState.Done));
         context.SaveChanges();
 
-        var list = ((await deliveryController.Get()) as ObjectResult)?.Value as List<DeliveryResponse>;
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
 
-        var reactions = list?.Single(d => d.Id == delivery.Id).Reactions;
+        var reactions = detail?.Reactions;
         Assert.IsNotNull(reactions);
         Assert.AreEqual(TestHelpers.Localized("Ablage"), reactions[0].DisplayName);
         Assert.AreEqual(TestHelpers.Localized("Info-Mail"), reactions[1].DisplayName);
@@ -1013,44 +1009,9 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task ResetReactionsMakesTheFailedReactionsDueAgain()
-    {
-        var admin = context.Users.First(u => u.IsAdmin);
-        deliveryController.SetupTestUser(admin);
-        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error), ("archiv", ReactionState.Done));
-
-        Assert.IsInstanceOfType<NoContentResult>(await deliveryController.ResetReactions(delivery.Id));
-
-        var states = context.DeliveryReactions
-            .AsNoTracking()
-            .Where(r => r.DeliveryId == delivery.Id)
-            .ToDictionary(r => r.ReactionId, r => r.State);
-        Assert.AreEqual(ReactionState.Pending, states["ablage"]);
-        Assert.AreEqual(ReactionState.Done, states["archiv"]);
-        recorderMock.Verify(
-            recorder => recorder.RecordReactionsResetAsync(
-                delivery.Id,
-                It.Is<IReadOnlyList<DeliveryReaction>>(reactions => reactions.Count == 1 && reactions[0].ReactionId == "ablage" && reactions[0].State == ReactionState.Pending),
-                admin.Id),
-            Times.Once);
-    }
-
-    [TestMethod]
-    public async Task ResetReactionsWithoutAFailedReactionIsAConflict()
-    {
-        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
-        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Done));
-
-        var result = await deliveryController.ResetReactions(delivery.Id) as ObjectResult;
-
-        Assert.AreEqual(StatusCodes.Status409Conflict, result?.StatusCode);
-        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
-    }
-
-    [TestMethod]
     [DataRow(false, DisplayName = "Unknown delivery")]
     [DataRow(true, DisplayName = "Deleted delivery")]
-    public async Task ResetReactionsOfADeliveryThatDoesNotExistIsNotFound(bool deleted)
+    public async Task ResetReactionOfADeliveryThatDoesNotExistIsNotFound(bool deleted)
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error));
@@ -1058,7 +1019,7 @@ public class DeliveryControllerTest
         context.SaveChanges();
         var deliveryId = deleted ? delivery.Id : context.Deliveries.IgnoreQueryFilters().Max(d => d.Id) + 1;
 
-        var result = await deliveryController.ResetReactions(deliveryId) as ObjectResult;
+        var result = await deliveryController.ResetReaction(deliveryId, "ablage") as ObjectResult;
 
         Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
         Assert.AreEqual(ReactionState.Error, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
@@ -1125,7 +1086,7 @@ public class DeliveryControllerTest
         context.Deliveries.AddRange(precursor, delivery);
         context.DeliveryReactions.AddRange(
             NewReaction(delivery, "ablage", ReactionState.Done),
-            NewReaction(delivery, "meldung", ReactionState.Error, ReactionKind.Notification));
+            NewReaction(delivery, "meldung", ReactionState.Pending, ReactionKind.Notification));
         context.SaveChanges();
 
         var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
@@ -1139,8 +1100,10 @@ public class DeliveryControllerTest
         CollectionAssert.AreEqual(new[] { "Strassen 2026.xtf", "errorLog.log" }, detail.Files.Select(f => f.FileName).ToArray());
         CollectionAssert.AreEqual(delivery.Assets.Select(a => a.Id).ToArray(), detail.Files.Select(f => f.Id).ToArray());
         Assert.AreEqual("zweite Lieferung", detail.Comment);
-        Assert.AreEqual(new StacItemReference($"coll_{delivery.Mandate.Id}", $"item_{delivery.Id}"), detail.StacItem, "a failed notification does not keep a forwarded delivery out of the catalog.");
+        Assert.AreEqual(new StacItemReference($"coll_{delivery.Mandate.Id}", $"item_{delivery.Id}"), detail.StacItem, "a waiting notification does not keep a forwarded delivery out of the catalog.");
         CollectionAssert.AreEqual(new[] { "ablage", "meldung" }, detail.Reactions.Select(r => r.ReactionId).ToArray());
+        Assert.IsNull(detail.Reactions[0].NextAttemptAt, "a reaction that is done has no next attempt.");
+        Assert.IsNotNull(detail.Reactions[1].NextAttemptAt);
     }
 
     [TestMethod]

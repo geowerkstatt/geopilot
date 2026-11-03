@@ -7,7 +7,6 @@ using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
 using Geopilot.Pipeline;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -181,35 +180,21 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
                 DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
-                d.Comment,
                 Reactions = context.DeliveryReactions
                     .Where(r => r.DeliveryId == d.Id)
-                    .OrderBy(r => r.Id)
-                    .Select(r => new DeliveryReactionResponse(
-                        r.ReactionId,
-                        null,
-                        r.Kind,
-                        r.State,
-                        r.Attempts,
-                        r.State == ReactionState.Pending ? r.NextAttemptAt : (DateTime?)null,
-                        r.LastAttemptAt,
-                        r.FinishedAt,
-                        r.Message))
+                    .Select(r => new { r.Kind, r.State })
                     .ToList(),
             })
             .ToListAsync();
 
-        var displayNames = ReactionDisplayNames();
         return Ok(deliveries
             .Select(d => new DeliveryResponse(
                 d.Id,
                 d.Date,
                 d.Mandate,
                 d.DeclarerName,
-                d.Comment,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
-                d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp(),
-                WithDisplayNames(d.Reactions, displayNames)))
+                d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
             .ToList());
     }
 
@@ -266,6 +251,12 @@ public class DeliveryController : ControllerBase
         var forwarded = reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp() is null or ReactionState.Done;
         var stacItem = forwarded ? new StacItemReference(StacConverter.CollectionId(delivery.Mandate.Id), StacConverter.ItemId(delivery.Id)) : null;
 
+        // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
+        // definition no longer has keeps its id only.
+        var displayNames = pipelineFactory.ReactionSets
+            .SelectMany(set => set.AllReactions())
+            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
+
         return Ok(new DeliveryDetailResponse(
             delivery.Id,
             delivery.Date,
@@ -277,32 +268,7 @@ public class DeliveryController : ControllerBase
             delivery.Files,
             delivery.Comment,
             stacItem,
-            WithDisplayNames(reactions, ReactionDisplayNames())));
-    }
-
-    /// <summary>
-    /// Resets the reactions of a delivery that gave up: each gets all its attempts again and is due at once.
-    /// </summary>
-    /// <param name="deliveryId">The delivery whose failed reactions to reset.</param>
-    [HttpPost("{deliveryId}/reactions/reset")]
-    [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status204NoContent, "The failed reactions of the delivery are due again.")]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "No reaction of the delivery has failed.")]
-    public async Task<IActionResult> ResetReactions([FromRoute] int deliveryId)
-    {
-        var user = await context.GetUserByPrincipalAsync(User);
-        if (!await context.Deliveries.AnyAsync(d => d.Id == deliveryId))
-            return NotFound($"No delivery with id <{deliveryId}> found.");
-
-        // Not cancelled with the request, so every reset that happens also reaches the protocol.
-        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, null, CancellationToken.None);
-        if (reset.Count == 0)
-            return Conflict($"No reaction of delivery <{deliveryId}> has failed.");
-
-        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, reset, user.Id);
-        logger.LogInformation("User <{UserId}> reset {Count} failed reactions of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.Count, deliveryId);
-        return NoContent();
+            reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList()));
     }
 
     /// <summary>
@@ -324,23 +290,13 @@ public class DeliveryController : ControllerBase
 
         // Not cancelled with the request, so a reset that happens also reaches the protocol.
         var reset = await reactionStore.ResetFailedAsync(context, deliveryId, reactionId, CancellationToken.None);
-        if (reset.Count == 0)
+        if (reset is null)
             return Conflict($"The reaction of delivery <{deliveryId}> has not failed.");
 
-        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, reset, user.Id);
-        logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset[0].ReactionId, deliveryId);
+        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
+        logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.ReactionId, deliveryId);
         return NoContent();
     }
-
-    // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
-    // definition no longer has keeps its id only.
-    private Dictionary<string, LocalizedText> ReactionDisplayNames()
-        => pipelineFactory.ReactionSets
-            .SelectMany(set => set.AllReactions())
-            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
-
-    private static List<DeliveryReactionResponse> WithDisplayNames(IEnumerable<DeliveryReactionResponse> reactions, Dictionary<string, LocalizedText> displayNames)
-        => reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList();
 
     /// <summary>
     /// Gets the deliveries the user declared.
