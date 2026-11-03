@@ -16,6 +16,17 @@ describe("Admin delivery detail", () => {
     attempts: 1,
     ...details,
   });
+  const infoMail = (
+    state: ReactionState,
+    details: Partial<DeliveryReactionResponse> = {},
+  ): DeliveryReactionResponse => ({
+    reactionId: "info_mail",
+    displayName: { de: "Info-Mail", en: "Info mail" },
+    kind: ReactionKind.Notification,
+    state,
+    attempts: 0,
+    ...details,
+  });
   const delivery = (
     id: number,
     reactions: DeliveryReactionResponse[],
@@ -71,6 +82,17 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-precursor").should("not.exist");
     cy.dataCy("summary-partialDelivery").should("not.exist");
     getGridRowThatContains("reactions-grid", "ablage").should("contain", "Waits until");
+  });
+
+  it("shows that the notifications wait for the forwarding", () => {
+    visit(
+      delivery(9002, [
+        transfer(ReactionState.Error, { attempts: 7, message: "The base directory <drop> does not exist." }),
+        infoMail(ReactionState.Pending, { nextAttemptAt: "2026-10-23T08:02:00Z" }),
+      ]),
+    );
+
+    getGridRowThatContains("reactions-grid", "info_mail").should("contain", "Waits for the forwarding");
   });
 
   it("resets a reaction that gave up", () => {

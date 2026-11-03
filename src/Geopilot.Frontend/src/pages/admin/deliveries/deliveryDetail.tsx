@@ -134,7 +134,7 @@ export const DeliveryDetail: FC = () => {
           <Typography variant="h3" sx={{ marginTop: 0 }}>
             {t("reactions")}
           </Typography>
-          <ReactionsGrid reactions={delivery.reactions} onReset={resetReaction} />
+          <ReactionsGrid reactions={delivery.reactions} forwarded={!!stacItem} onReset={resetReaction} />
         </GeopilotBox>
       )}
       <Stack direction="row">

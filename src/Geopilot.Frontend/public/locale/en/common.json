@@ -202,6 +202,7 @@
   "reactionStateError": "Failed",
   "reactionStatePending": "Pending",
   "reactionStateRunning": "Running",
+  "reactionWaitsForForwarding": "Waits for the forwarding",
   "reactionWaitsUntil": "Waits until {{time}}",
   "reactions": "Reactions",
   "removeFile": "Remove file",

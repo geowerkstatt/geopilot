@@ -202,6 +202,7 @@
   "reactionStateError": "Échoué",
   "reactionStatePending": "En attente",
   "reactionStateRunning": "En cours",
+  "reactionWaitsForForwarding": "Attend la transmission",
   "reactionWaitsUntil": "Attend jusqu'au {{time}}",
   "reactions": "Réactions",
   "removeFile": "Supprimer le fichier",

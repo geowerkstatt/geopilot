@@ -10,6 +10,8 @@ import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface ReactionsGridProps {
   reactions: DeliveryReactionResponse[];
+  /** Whether the delivery is forwarded. Until then its notifications wait. */
+  forwarded: boolean;
   /** Makes a reaction that gave up due again. */
   onReset: (reaction: DeliveryReactionResponse) => void;
 }
@@ -17,11 +19,15 @@ interface ReactionsGridProps {
 const formatTime = (value: string) => new Date(value).toLocaleString();
 
 /** The reactions of a delivery with how far each got, and the reset of those that gave up. */
-export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, onReset }) => {
+export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, onReset }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
 
   const describeTime = (reaction: DeliveryReactionResponse) => {
+    // A notification starts once the delivery is forwarded, which is after the delete window at the earliest.
+    if (reaction.kind === ReactionKind.Notification && reaction.state === ReactionState.Pending && !forwarded) {
+      return t("reactionWaitsForForwarding");
+    }
     if (reaction.nextAttemptAt) {
       // Before its first attempt a reaction waits for the delete window of the delivery to close.
       const key = reaction.attempts === 0 ? "reactionWaitsUntil" : "reactionNextAttemptAt";
