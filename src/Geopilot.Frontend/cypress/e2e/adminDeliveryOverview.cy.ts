@@ -99,7 +99,7 @@ describe("Admin delivery overview with reactions", () => {
     getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-cy^="reactionState-"]').should("not.exist");
   });
 
-  it("opens the page of a delivery without reactions", () => {
+  it("opens the page of a delivery without reactions by a click on its row", () => {
     cy.intercept("GET", "/api/v1/delivery/9004", {
       statusCode: 200,
       body: {
@@ -114,10 +114,12 @@ describe("Admin delivery overview with reactions", () => {
       } satisfies DeliveryDetailResponse,
     }).as("delivery");
 
-    getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-cy="details"]').click();
+    getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-field="mandateName"]').click();
 
     cy.wait("@delivery");
     cy.location("pathname").should("eq", "/admin/delivery-overview/9004");
+    cy.go("back");
+    cy.location("pathname").should("eq", "/admin/delivery-overview");
     cy.dataCy("reactions-grid").should("not.exist");
   });
 });

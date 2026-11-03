@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Tooltip } from "@mui/material";
-import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
 import { LocalizedText } from "../../api/apiInterfaces";
 import { DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/generated";
 import { useDeleteDelivery } from "../../hooks/useDeleteDelivery.ts";
@@ -69,6 +69,8 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
     loadDeliveries();
   }, [loadDeliveries]);
 
+  const openDetails = (id: GridRowId) => navigate(`/admin/delivery-overview/${id}`);
+
   const namedColumnDefs: Record<ColumnName, GridColDef> = {
     id: { field: "id", headerName: t("id"), width: 60 },
     date: {
@@ -123,7 +125,11 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
               </Tooltip>
             }
             label={t("showDetails")}
-            onClick={() => navigate(`/admin/delivery-overview/${params.id}`)}
+            onClick={event => {
+              // Otherwise the click reaches the row as well, which opens the page a second time.
+              event.stopPropagation();
+              openDetails(params.id);
+            }}
           />
         )}
         {rowAction === "delete" && params.row.canDelete && (
@@ -148,6 +154,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       rows={deliveries}
       columns={columnDefs}
       initialState={{ sorting: { sortModel: [{ field: "date", sort: "desc" }] } }}
+      onSelect={rowAction === "details" ? openDetails : undefined}
     />
   );
 };
