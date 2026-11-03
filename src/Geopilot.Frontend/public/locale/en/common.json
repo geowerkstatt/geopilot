@@ -220,7 +220,7 @@
   "stacAccessAdminsOnly": "Administrators only",
   "stacAccessPublic": "Public",
   "stacBrowser": "STAC Browser",
-  "stacItemAfterForwarding": "Only after forwarding",
+  "stacItemAfterForwarding": "Only available after forwarding",
   "startProcessing": "Start processing",
   "state": "State",
   "stepStateCancelled": "Cancelled",
