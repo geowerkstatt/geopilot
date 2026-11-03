@@ -3,7 +3,7 @@
 namespace Geopilot.Api.Reactions;
 
 [TestClass]
-public class ForwardingExtensionsTest
+public class ReactionExtensionsTest
 {
     [TestMethod]
     [DataRow(new[] { ReactionState.Done, ReactionState.Done }, ReactionState.Done, DisplayName = "All done")]
