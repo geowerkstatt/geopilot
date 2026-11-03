@@ -13,13 +13,13 @@ interface ReactionsGridProps {
   /** Whether the delivery is forwarded. Until then its notifications wait. */
   forwarded: boolean;
   /** Makes a reaction that gave up due again. */
-  onReset: (reaction: DeliveryReactionResponse) => void;
+  onRetry: (reaction: DeliveryReactionResponse) => void;
 }
 
 const formatTime = (value: string) => new Date(value).toLocaleString();
 
-/** The reactions of a delivery with how far each got, and the reset of those that gave up. */
-export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, onReset }) => {
+/** The reactions of a delivery with how far each got, and the retry of those that gave up. */
+export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, onRetry }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
 
@@ -95,12 +95,12 @@ export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, on
           {params.row.state === ReactionState.Error && (
             <GridActionsCellItem
               icon={
-                <Tooltip title={t("retry")} key={`reset-${params.id}`}>
-                  <ReplayIcon data-cy="resetReaction" color="primary" />
+                <Tooltip title={t("retry")} key={`retry-${params.id}`}>
+                  <ReplayIcon data-cy="retryReaction" color="primary" />
                 </Tooltip>
               }
               label={t("retry")}
-              onClick={() => onReset(params.row)}
+              onClick={() => onRetry(params.row)}
             />
           )}
         </GridActionsCell>

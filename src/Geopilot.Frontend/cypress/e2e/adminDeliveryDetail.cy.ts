@@ -71,7 +71,7 @@ describe("Admin delivery detail", () => {
       .should("contain", "item_9001");
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
     getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Ended");
-    cy.dataCy("resetReaction").should("not.exist");
+    cy.dataCy("retryReaction").should("not.exist");
   });
 
   it("links neither the files nor the STAC item before the delivery is forwarded", () => {
@@ -95,7 +95,7 @@ describe("Admin delivery detail", () => {
     getGridRowThatContains("reactions-grid", "info_mail").should("contain", "Waits for the forwarding");
   });
 
-  it("resets a reaction that gave up", () => {
+  it("retries a reaction that gave up", () => {
     visit(
       delivery(9002, [
         // A reaction the definition no longer has comes without a name.
@@ -106,15 +106,15 @@ describe("Admin delivery detail", () => {
         }),
       ]),
     );
-    cy.intercept("POST", "/api/v1/delivery/9002/reactions/ablage/reset", { statusCode: 204 }).as("reset");
+    cy.intercept("POST", "/api/v1/delivery/9002/reactions/ablage/reset", { statusCode: 204 }).as("retry");
 
     getGridRowThatContains("reactions-grid", "ablage")
       .should("not.contain", "File drop")
       .and("contain", "does not exist")
-      .find('[data-cy="resetReaction"]')
+      .find('[data-cy="retryReaction"]')
       .click();
 
-    cy.wait("@reset");
+    cy.wait("@retry");
     cy.wait("@delivery");
   });
 

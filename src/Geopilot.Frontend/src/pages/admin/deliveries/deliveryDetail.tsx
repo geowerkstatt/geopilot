@@ -44,16 +44,16 @@ export const DeliveryDetail: FC = () => {
     loadDelivery().catch(() => undefined);
   }, [loadDelivery]);
 
-  const resetReaction = (reaction: DeliveryReactionResponse) =>
+  const retryReaction = (reaction: DeliveryReactionResponse) =>
     fetchApi(`/api/v1/delivery/${id}/reactions/${reaction.reactionId}/reset`, {
       method: "POST",
-      errorMessageLabel: "reactionResetError",
+      errorMessageLabel: "reactionRetryError",
     })
       .then(() => {
-        showAlert(t("reactionReset"), "success");
+        showAlert(t("reactionRetried"), "success");
         return loadDelivery();
       })
-      // useFetch has shown why; the reset can be tried again.
+      // useFetch has shown why; the retry can be repeated.
       .catch(() => undefined);
 
   if (!delivery) {
@@ -134,7 +134,7 @@ export const DeliveryDetail: FC = () => {
           <Typography variant="h3" sx={{ marginTop: 0 }}>
             {t("reactions")}
           </Typography>
-          <ReactionsGrid reactions={delivery.reactions} forwarded={!!stacItem} onReset={resetReaction} />
+          <ReactionsGrid reactions={delivery.reactions} forwarded={!!stacItem} onRetry={retryReaction} />
         </GeopilotBox>
       )}
       <Stack direction="row">
