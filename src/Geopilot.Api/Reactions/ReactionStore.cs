@@ -166,10 +166,10 @@ public class ReactionStore
     }
 
     /// <summary>
-    /// Resets a reaction of a delivery that gave up: it gets all its attempts again and is due at once. A reaction in any
-    /// other state stays as it is, and so do the reactions of a deleted delivery.
+    /// Resets a reaction of a delivery that gave up: it gets all its attempts again and is due at once.
     /// </summary>
-    /// <returns>The reaction in the state the reset left it, or <see langword="null"/> when it had not failed.</returns>
+    /// <returns>The reaction in the state the reset left it, or <see langword="null"/> when it had not failed or its
+    /// delivery had been deleted.</returns>
     public async Task<DeliveryReaction?> ResetFailedAsync(Context context, int deliveryId, string reactionId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
