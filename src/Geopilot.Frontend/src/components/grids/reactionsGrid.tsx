@@ -95,11 +95,11 @@ export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, on
           {params.row.state === ReactionState.Error && (
             <GridActionsCellItem
               icon={
-                <Tooltip title={t("resetAttempts")} key={`reset-${params.id}`}>
+                <Tooltip title={t("retry")} key={`reset-${params.id}`}>
                   <ReplayIcon data-cy="resetReaction" color="primary" />
                 </Tooltip>
               }
-              label={t("resetAttempts")}
+              label={t("retry")}
               onClick={() => onReset(params.row)}
             />
           )}
