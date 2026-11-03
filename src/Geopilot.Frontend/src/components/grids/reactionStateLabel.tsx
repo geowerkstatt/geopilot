@@ -21,30 +21,40 @@ const stateLabelKey: Record<ReactionState, TranslationKey> = {
   [ReactionState.Deleted]: "reactionStateDeleted",
 };
 
+const stateColor: Record<ReactionState, string> = {
+  [ReactionState.Pending]: "primary.main",
+  [ReactionState.Running]: "primary.main",
+  [ReactionState.Done]: "primary.main",
+  [ReactionState.Error]: "error.main",
+  [ReactionState.Deleted]: "primary.states.disabledBackground",
+};
+
+// The icons take the color of the label.
 const renderIcon = (state: ReactionState) => {
   switch (state) {
     case ReactionState.Pending:
-      return <ScheduleIcon fontSize="small" color="action" />;
+      return <ScheduleIcon fontSize="small" />;
     case ReactionState.Running:
-      return <CircularProgress size={px2rem(16)} aria-hidden />;
+      return <CircularProgress size={px2rem(16)} color="inherit" aria-hidden />;
     case ReactionState.Done:
-      return <CheckCircleOutlineIcon fontSize="small" color="primary" />;
+      return <CheckCircleOutlineIcon fontSize="small" />;
     case ReactionState.Error:
-      return <ErrorOutlineIcon fontSize="small" color="error" />;
+      return <ErrorOutlineIcon fontSize="small" />;
     case ReactionState.Deleted:
-      return <RemoveCircleOutlineIcon fontSize="small" color="disabled" />;
+      return <RemoveCircleOutlineIcon fontSize="small" />;
   }
 };
 
-/**
- * The state of a reaction, or the state of the forwarding of a delivery, as an icon with its name. A span, so it can
- * also be the content of a button.
- */
+/** The state of a reaction, or of the reactions of one kind summed up, as an icon with its name. */
 export const ReactionStateLabel: FC<ReactionStateLabelProps> = ({ state }) => {
   const { t } = useTranslation();
 
   return (
-    <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 1 }} data-cy={`reactionState-${state}`}>
+    <Stack
+      component="span"
+      direction="row"
+      sx={{ alignItems: "center", gap: 1, color: stateColor[state] }}
+      data-cy={`reactionState-${state}`}>
       {renderIcon(state)}
       {t(stateLabelKey[state])}
     </Stack>

@@ -1,32 +1,25 @@
-import { FC, useContext } from "react";
+import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
-import { GridColDef } from "@mui/x-data-grid";
+import ReplayIcon from "@mui/icons-material/Replay";
+import { Box, Tooltip, Typography } from "@mui/material";
+import { GridActionsCell, GridActionsCellItem, GridColDef } from "@mui/x-data-grid";
 import { DeliveryReactionResponse, ReactionKind, ReactionState } from "../../api/generated";
-import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
-import { AlertContext } from "../alert/alertContext";
-import { Button } from "../buttons";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
 import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
-interface ForwardingDialogProps {
-  deliveryId: number;
+interface ReactionsGridProps {
   reactions: DeliveryReactionResponse[];
-  onClose: () => void;
-  /** Called once the failed reactions are due again, so the caller can show their new state. */
-  onReset: () => void;
+  /** Makes a reaction that gave up due again. */
+  onReset: (reaction: DeliveryReactionResponse) => void;
 }
 
 const formatTime = (value: string) => new Date(value).toLocaleString();
 
 /** The reactions of a delivery with how far each got, and the reset of those that gave up. */
-export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reactions, onClose, onReset }) => {
+export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, onReset }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const { fetchApi } = useFetch();
-  const { showAlert } = useContext(AlertContext);
-  const canReset = reactions.some(reaction => reaction.state === ReactionState.Error);
 
   const describeTime = (reaction: DeliveryReactionResponse) => {
     if (reaction.nextAttemptAt) {
@@ -62,7 +55,7 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
     {
       field: "kind",
       headerName: t("kind"),
-      width: 140,
+      width: 150,
       display: "flex",
       valueGetter: (kind: ReactionKind) =>
         t(kind === ReactionKind.Transfer ? "reactionKindTransfer" : "reactionKindNotification"),
@@ -79,48 +72,46 @@ export const ForwardingDialog: FC<ForwardingDialogProps> = ({ deliveryId, reacti
       field: "time",
       headerName: t("time"),
       flex: 1,
-      minWidth: 200,
+      minWidth: 220,
       display: "flex",
       valueGetter: (_value, reaction) => describeTime(reaction),
     },
     { field: "message", headerName: t("message"), flex: 1.5, minWidth: 200, display: "flex" },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "",
+      flex: 0,
+      resizable: false,
+      cellClassName: "actions",
+      renderCell: params => (
+        <GridActionsCell {...params}>
+          {params.row.state === ReactionState.Error && (
+            <GridActionsCellItem
+              icon={
+                <Tooltip title={t("resetAttempts")} key={`reset-${params.id}`}>
+                  <ReplayIcon data-cy="resetReaction" color="primary" />
+                </Tooltip>
+              }
+              label={t("resetAttempts")}
+              onClick={() => onReset(params.row)}
+            />
+          )}
+        </GridActionsCell>
+      ),
+    },
   ];
 
-  const reset = () =>
-    fetchApi(`/api/v1/delivery/${deliveryId}/reactions/reset`, {
-      method: "POST",
-      errorMessageLabel: "reactionsResetError",
-    })
-      .then(() => {
-        showAlert(t("reactionsReset"), "success");
-        onReset();
-      })
-      // useFetch has shown why; the dialog stays open, so the reset can be tried again.
-      .catch(() => undefined);
-
   return (
-    <Dialog open={true} onClose={onClose} maxWidth={false} data-cy="forwarding-dialog">
-      <DialogTitle>{t("forwardingDialogTitle", { id: deliveryId })}</DialogTitle>
-      <DialogContent>
-        <GeopilotDataGrid
-          name="reactions"
-          rows={reactions}
-          columns={columns}
-          getRowId={(reaction: DeliveryReactionResponse) => reaction.reactionId}
-          getRowHeight={() => "auto"}
-          autoHeight
-          autosizeOnMount
-          autosizeOptions={{ includeHeaders: true, includeOutliers: true }}
-          autoPageSize={false}
-          hideFooter
-        />
-      </DialogContent>
-      <DialogActions>
-        {canReset && (
-          <Button label="resetAttempts" variant="outlined" onClick={reset} data-cy="resetReactions-button" />
-        )}
-        <Button label="close" variant="contained" onClick={onClose} />
-      </DialogActions>
-    </Dialog>
+    <GeopilotDataGrid
+      name="reactions"
+      rows={reactions}
+      columns={columns}
+      getRowId={(reaction: DeliveryReactionResponse) => reaction.reactionId}
+      getRowHeight={() => "auto"}
+      autoHeight
+      autoPageSize={false}
+      hideFooter
+    />
   );
 };

@@ -1,16 +1,13 @@
-import type { DeliveryReactionResponse, DeliveryResponse } from "@/api/generated";
-import { ReactionKind, ReactionState } from "@/api/generated";
+import type { DeliveryDetailResponse, DeliveryResponse } from "@/api/generated";
+import { ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
-import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper";
 import { handlePrompt } from "./helpers/promptHelpers";
 
 describe("Admin Delivery Overview tests", () => {
   it("can delete delivery", () => {
     cy.intercept({ url: "/api/v1/delivery", method: "GET" }).as("deliveries");
-    cy.intercept("DELETE", "/api/v1/delivery/*", { statusCode: 200 }).as("deleteDelivery");
     loginAsAdmin();
 
-    // Delete delivery
     cy.visit("/admin/delivery-overview");
     cy.wait("@deliveries");
 
@@ -36,70 +33,51 @@ describe("Admin Delivery Overview tests", () => {
     cy.dataCy("deliveryOverview-grid").contains("Mandate").click();
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
 
-    // Sort by comment
-    cy.dataCy("deliveryOverview-grid").contains("Comment").click();
-    cy.dataCy("deliveryOverview-grid")
-      .find(".MuiDataGrid-row")
-      .first()
-      .contains("heard about this on wonky radio, decided to give it a try.");
-
     // Sort by Id
     cy.dataCy("deliveryOverview-grid").contains("ID").click();
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("1");
 
-    assertCancelDoesNotDeleteDelivery();
-    assertConfirmDeletesDelivery();
+    // A delivery is deleted on its own page
+    cy.intercept({ url: "/api/v1/delivery/1", method: "GET" }).as("delivery");
+    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().find('[data-cy="details"]').click();
+    cy.wait("@delivery");
 
+    cy.intercept("DELETE", "/api/v1/delivery/*", () => {
+      throw new Error("Cancel should not trigger delete");
+    });
+    cy.dataCy("delete-button").click();
+    handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "cancel");
+    // make sure no delete request was sent in this time frame
+    cy.wait(400);
+
+    cy.intercept("DELETE", "/api/v1/delivery/*", { statusCode: 200 }).as("deleteDelivery");
+    cy.dataCy("delete-button").click();
+    handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "delete");
+    cy.wait("@deleteDelivery");
     cy.wait("@deliveries");
+    cy.location("pathname").should("eq", "/admin/delivery-overview");
   });
 });
 
 describe("Admin delivery overview with reactions", () => {
-  // The seeded deliveries have no reactions, so the list is stubbed with one delivery per state of its forwarding.
-  const transfer = (state: ReactionState, details: Partial<DeliveryReactionResponse>): DeliveryReactionResponse => ({
-    reactionId: "ablage",
-    displayName: { de: "Ablage", en: "File drop" },
-    kind: ReactionKind.Transfer,
-    state,
-    attempts: 1,
-    ...details,
-  });
-  const delivery = (id: number, reactions: DeliveryReactionResponse[], forwardingState?: ReactionState) =>
+  // The seeded deliveries have no reactions, so the list is stubbed with deliveries in different states.
+  const delivery = (id: number, forwardingState?: ReactionState, notificationState?: ReactionState) =>
     ({
       id,
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
       declarerName: "Kelvin Spencer",
-      comment: `Delivery ${id}`,
+      comment: "",
       forwardingState,
-      reactions,
+      notificationState,
+      reactions: [],
     }) satisfies DeliveryResponse;
   const deliveries: DeliveryResponse[] = [
-    delivery(9001, [transfer(ReactionState.Done, { message: "Delivered to <target>." })], ReactionState.Done),
-    delivery(
-      9002,
-      // A reaction the definition no longer has comes without a name.
-      [
-        transfer(ReactionState.Error, {
-          displayName: null,
-          attempts: 7,
-          message: "The base directory <drop> does not exist.",
-        }),
-      ],
-      ReactionState.Error,
-    ),
-    delivery(
-      9003,
-      [transfer(ReactionState.Pending, { attempts: 0, nextAttemptAt: "2026-10-23T22:00:00Z" })],
-      ReactionState.Pending,
-    ),
-    delivery(9004, []),
+    delivery(9001, ReactionState.Done, ReactionState.Done),
+    delivery(9002, ReactionState.Done, ReactionState.Error),
+    delivery(9003, ReactionState.Pending, ReactionState.Pending),
+    delivery(9004),
   ];
-
-  const openForwarding = (deliveryId: number) =>
-    getGridRowThatContains("deliveryOverview-grid", `Delivery ${deliveryId}`)
-      .find('[data-cy="forwardingState-button"]')
-      .click();
 
   beforeEach(() => {
     cy.intercept("GET", "/api/v1/delivery", { statusCode: 200, body: deliveries }).as("deliveries");
@@ -108,49 +86,38 @@ describe("Admin delivery overview with reactions", () => {
     cy.wait("@deliveries");
   });
 
-  it("shows how far the forwarding of each delivery got", () => {
-    getGridRowThatContains("deliveryOverview-grid", "Delivery 9001")
-      .find('[data-cy="reactionState-done"]')
+  it("sums up the forwarding and the notifications of each delivery", () => {
+    getGridRowThatContains("deliveryOverview-grid", "9001")
+      .find('[data-field="forwardingState"] [data-cy="reactionState-done"]')
       .should("exist");
-    getGridRowThatContains("deliveryOverview-grid", "Delivery 9002")
-      .find('[data-cy="reactionState-error"]')
+    getGridRowThatContains("deliveryOverview-grid", "9002")
+      .find('[data-field="notificationState"] [data-cy="reactionState-error"]')
       .should("exist");
-    getGridRowThatContains("deliveryOverview-grid", "Delivery 9003")
-      .find('[data-cy="reactionState-pending"]')
+    getGridRowThatContains("deliveryOverview-grid", "9003")
+      .find('[data-field="forwardingState"] [data-cy="reactionState-pending"]')
       .should("exist");
-    getGridRowThatContains("deliveryOverview-grid", "Delivery 9004")
-      .find('[data-cy="forwardingState-button"]')
-      .should("not.exist");
-
-    openForwarding(9003);
-    getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Waits until");
-    cy.dataCy("resetReactions-button").should("not.exist");
-    cy.dataCy("close-button").click();
-    cy.dataCy("forwarding-dialog").should("not.exist");
+    getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-cy^="reactionState-"]').should("not.exist");
   });
 
-  it("resets the failed reactions of a delivery", () => {
-    cy.intercept("POST", "/api/v1/delivery/9002/reactions/reset", { statusCode: 204 }).as("reset");
+  it("opens the page of a delivery without reactions", () => {
+    cy.intercept("GET", "/api/v1/delivery/9004", {
+      statusCode: 200,
+      body: {
+        id: 9004,
+        date: "2026-10-23T08:00:00Z",
+        mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
+        declarerName: "Kelvin Spencer",
+        jobId: "3f2a9c1e-6b7d-4e58-9a0b-2c4d6e8f1a3b",
+        files: [],
+        comment: "",
+        reactions: [],
+      } satisfies DeliveryDetailResponse,
+    }).as("delivery");
 
-    openForwarding(9002);
-    getGridRowThatContains("reactions-grid", "ablage").should("not.contain", "File drop");
-    cy.dataCy("forwarding-dialog").should("contain", "does not exist");
-    cy.dataCy("resetReactions-button").click();
+    getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-cy="details"]').click();
 
-    cy.wait("@reset");
-    cy.wait("@deliveries");
-    cy.dataCy("forwarding-dialog").should("not.exist");
-  });
-
-  it("names the forwarding before a forwarded delivery is deleted", () => {
-    cy.intercept("DELETE", "/api/v1/delivery/*", () => {
-      throw new Error("Cancel should not trigger delete");
-    });
-
-    getGridRowThatContains("deliveryOverview-grid", "Delivery 9001").find('[data-cy="delete"]').click();
-    handlePrompt(
-      "The delivery has already been forwarded to: File drop. The files stay there. Do you still want to delete the delivery data? This action cannot be undone.",
-      "cancel",
-    );
+    cy.wait("@delivery");
+    cy.location("pathname").should("eq", "/admin/delivery-overview/9004");
+    cy.dataCy("reactions-grid").should("not.exist");
   });
 });

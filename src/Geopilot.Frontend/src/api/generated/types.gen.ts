@@ -47,6 +47,20 @@ export type Asset = {
 };
 
 /**
+ * A file of a delivery.
+ */
+export type AssetReference = {
+  /**
+   * The id to download the file with.
+   */
+  id: number;
+  /**
+   * The original name of the file.
+   */
+  fileName: string;
+};
+
+/**
  * Meta information on how an asset was created and how it has to be interpreted.
  */
 export const AssetType = {
@@ -203,6 +217,47 @@ export type Delivery = {
 };
 
 /**
+ * A delivery as the administration shows it on a page of its own: what was delivered and how far its reactions got.
+ */
+export type DeliveryDetailResponse = {
+  /**
+   * The unique identifier of the delivery.
+   */
+  id: number;
+  /**
+   * The date the delivery was declared.
+   */
+  date: string;
+  mandate: MandateReference;
+  /**
+   * Who declared the delivery, a person or a machine client.
+   */
+  declarerName: string;
+  precursorDelivery?: DeliverySummary;
+  /**
+   * Whether the delivery holds partial data, null when the mandate does not ask.
+   */
+  partial?: boolean | null;
+  /**
+   * The job the delivery comes from.
+   */
+  jobId: string;
+  /**
+   * Its files. Like the STAC item, they can be downloaded only once the delivery is forwarded.
+   */
+  files: Array<AssetReference>;
+  /**
+   * The comment that came with the delivery.
+   */
+  comment: string;
+  stacItem?: StacItemReference;
+  /**
+   * The reactions of the delivery, in the order they were created.
+   */
+  reactions: Array<DeliveryReactionResponse>;
+};
+
+/**
  * How far a reaction to a delivery got.
  */
 export type DeliveryReactionResponse = {
@@ -287,6 +342,7 @@ export type DeliveryResponse = {
    */
   comment: string;
   forwardingState?: ReactionState;
+  notificationState?: ReactionState;
   /**
    * The reactions of the delivery, in the order they were created.
    */
@@ -983,6 +1039,20 @@ export const StacAccess = { AdminsOnly: "adminsOnly", Public: "public" } as cons
 export type StacAccess = (typeof StacAccess)[keyof typeof StacAccess];
 
 /**
+ * An item in the STAC catalog.
+ */
+export type StacItemReference = {
+  /**
+   * The collection of the item, one per mandate.
+   */
+  collectionId: string;
+  /**
+   * The item itself, one per delivery.
+   */
+  itemId: string;
+};
+
+/**
  * Request to start a job.
  */
 export type StartJobRequest = {
@@ -1448,55 +1518,6 @@ export type GetApiV1DeliverySummaryResponses = {
 
 export type GetApiV1DeliverySummaryResponse = GetApiV1DeliverySummaryResponses[keyof GetApiV1DeliverySummaryResponses];
 
-export type PostApiV1DeliveryByDeliveryIdReactionsResetData = {
-  body?: never;
-  path: {
-    /**
-     * The delivery whose failed reactions to reset.
-     */
-    deliveryId: number;
-  };
-  query?: never;
-  url: "/api/v1/Delivery/{deliveryId}/reactions/reset";
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetErrors = {
-  /**
-   * The delivery could not be found.
-   */
-  404: unknown;
-  /**
-   * No reaction of the delivery has failed.
-   */
-  409: unknown;
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetResponses = {
-  /**
-   * The failed reactions of the delivery are due again.
-   */
-  204: void;
-};
-
-export type PostApiV1DeliveryByDeliveryIdReactionsResetResponse =
-  PostApiV1DeliveryByDeliveryIdReactionsResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsResetResponses];
-
-export type GetApiV1DeliveryUploadsData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/v1/Delivery/uploads";
-};
-
-export type GetApiV1DeliveryUploadsResponses = {
-  /**
-   * A list of deliveries uploaded by the user.
-   */
-  200: Array<UploadedDelivery>;
-};
-
-export type GetApiV1DeliveryUploadsResponse = GetApiV1DeliveryUploadsResponses[keyof GetApiV1DeliveryUploadsResponses];
-
 export type DeleteApiV1DeliveryByDeliveryIdData = {
   body?: never;
   path: {
@@ -1534,6 +1555,121 @@ export type DeleteApiV1DeliveryByDeliveryIdResponses = {
    */
   200: unknown;
 };
+
+export type GetApiV1DeliveryByDeliveryIdData = {
+  body?: never;
+  path: {
+    /**
+     * The delivery to get.
+     */
+    deliveryId: number;
+  };
+  query?: never;
+  url: "/api/v1/Delivery/{deliveryId}";
+};
+
+export type GetApiV1DeliveryByDeliveryIdErrors = {
+  /**
+   * The delivery could not be found.
+   */
+  404: unknown;
+};
+
+export type GetApiV1DeliveryByDeliveryIdResponses = {
+  /**
+   * The delivery.
+   */
+  200: DeliveryDetailResponse;
+};
+
+export type GetApiV1DeliveryByDeliveryIdResponse =
+  GetApiV1DeliveryByDeliveryIdResponses[keyof GetApiV1DeliveryByDeliveryIdResponses];
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetData = {
+  body?: never;
+  path: {
+    /**
+     * The delivery whose failed reactions to reset.
+     */
+    deliveryId: number;
+  };
+  query?: never;
+  url: "/api/v1/Delivery/{deliveryId}/reactions/reset";
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetErrors = {
+  /**
+   * The delivery could not be found.
+   */
+  404: unknown;
+  /**
+   * No reaction of the delivery has failed.
+   */
+  409: unknown;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponses = {
+  /**
+   * The failed reactions of the delivery are due again.
+   */
+  204: void;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsResetResponse =
+  PostApiV1DeliveryByDeliveryIdReactionsResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsResetResponses];
+
+export type PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetData = {
+  body?: never;
+  path: {
+    /**
+     * The delivery of the reaction.
+     */
+    deliveryId: number;
+    /**
+     * The reaction to reset.
+     */
+    reactionId: string;
+  };
+  query?: never;
+  url: "/api/v1/Delivery/{deliveryId}/reactions/{reactionId}/reset";
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetErrors = {
+  /**
+   * The delivery or its reaction could not be found.
+   */
+  404: unknown;
+  /**
+   * The reaction has not failed.
+   */
+  409: unknown;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetResponses = {
+  /**
+   * The reaction is due again.
+   */
+  204: void;
+};
+
+export type PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetResponse =
+  PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetResponses[keyof PostApiV1DeliveryByDeliveryIdReactionsByReactionIdResetResponses];
+
+export type GetApiV1DeliveryUploadsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Delivery/uploads";
+};
+
+export type GetApiV1DeliveryUploadsResponses = {
+  /**
+   * A list of deliveries uploaded by the user.
+   */
+  200: Array<UploadedDelivery>;
+};
+
+export type GetApiV1DeliveryUploadsResponse = GetApiV1DeliveryUploadsResponses[keyof GetApiV1DeliveryUploadsResponses];
 
 export type GetApiV1DeliveryAssetsByAssetIdData = {
   body?: never;
