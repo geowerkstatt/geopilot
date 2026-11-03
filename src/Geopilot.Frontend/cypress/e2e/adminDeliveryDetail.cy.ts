@@ -56,7 +56,7 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-partialDelivery").should("contain", "No");
     cy.dataCy("summary-files").find('a[href="/api/v1/delivery/assets/41"]').should("contain", "strassen.xtf");
     cy.dataCy("summary-stacBrowser")
-      .find('a[href="/browser/collections/coll_1/items/item_9001"]')
+      .find('a[href="/browser/stac/collections/coll_1/items/item_9001"]')
       .should("contain", "item_9001");
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
     getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Ended");

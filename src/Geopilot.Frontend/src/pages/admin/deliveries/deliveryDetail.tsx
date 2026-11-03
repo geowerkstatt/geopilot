@@ -111,8 +111,9 @@ export const DeliveryDetail: FC = () => {
           </SummaryField>
           <SummaryField label="stacBrowser">
             {stacItem ? (
+              // The STAC browser names its pages by the path from the folder of its catalog, /api/stac.
               <Link
-                href={`/browser/collections/${stacItem.collectionId}/items/${stacItem.itemId}`}
+                href={`/browser/stac/collections/${stacItem.collectionId}/items/${stacItem.itemId}`}
                 target="_blank"
                 rel="noopener">
                 {stacItem.itemId}
