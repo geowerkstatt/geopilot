@@ -55,7 +55,7 @@ Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangs
 
 ## Stand ablesen
 
-In der Administration zeigt die Lieferungsübersicht in der Spalte Weitergabe den zusammengefassten Zustand der Lieferungs-Schritte jeder Lieferung: `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick darauf öffnet die Reaktionen der Lieferung, Lieferungs-Schritte und Benachrichtigungen, mit Namen, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Hat eine Lieferung nur Benachrichtigungen, bleibt die Spalte vorerst leer; ihre Reaktionen liefert `GET api/v1/delivery`. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"). Dieselben Angaben liefert `GET api/v1/delivery` mit `forwardingState` und `reactions`.
+In der Administration zeigt die Lieferungsübersicht für jede Lieferung den zusammengefassten Zustand ihrer Lieferungs-Schritte (Spalte Weitergabe) und ihrer Benachrichtigungen (Spalte Benachrichtigungen): `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick auf eine Lieferung öffnet ihre Seite. Sie fasst zusammen, was geliefert wurde, verlinkt nach der Weitergabe die Dateien und das Item im STAC-Browser und listet die Reaktionen mit Namen, Art, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"), eine Benachrichtigung auf die Weitergabe der Lieferung ("Wartet auf die Weitergabe"). Dieselben Angaben liefern `GET api/v1/delivery` mit `forwardingState` und `notificationState` und `GET api/v1/delivery/{deliveryId}`.
 
 Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
 
@@ -77,7 +77,7 @@ Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede
 
 ## Zurücksetzen
 
-Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: im Dialog der Lieferung mit "Versuche zurücksetzen" oder über `POST api/v1/delivery/{deliveryId}/reactions/reset`. Das setzt alle Reaktionen der Lieferung zurück, die auf `Error` stehen: Jede bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Reaktionen in einem anderen Zustand bleiben, wie sie sind. Steht keine auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt pro Reaktion eine Zeile `Reset` mit dem Admin dazu.
+Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: auf der Seite der Lieferung mit "Versuche zurücksetzen" in ihrer Zeile oder über `POST api/v1/delivery/{deliveryId}/reactions/{reactionId}/reset`. Die Reaktion bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Steht sie nicht auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt eine Zeile `Reset` mit dem Admin dazu.
 
 ## Betrieb unter IIS
 
