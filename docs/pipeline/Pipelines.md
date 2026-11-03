@@ -192,8 +192,8 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
-- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
-- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Weitergabe nach dem Abschluss](#weitergabe-nach-dem-abschluss).
+- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
+- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
 
 ## Validierungen
 
@@ -219,7 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
-- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Weitergabe nach dem Abschluss](#prüfung-beim-start) beschrieben.
+- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -559,9 +559,9 @@ steps:
 
 > **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`) oder wird sie abgebrochen (Status `Cancelled`), wird die Datenlieferung automatisch verhindert, unabhängig von den `restrict_delivery_conditions`.
 
-## Weitergabe nach dem Abschluss
+## Reaktionen nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Weitergabe im Betrieb läuft und sich einstellen lässt, beschreibt [Weitergabe betreiben](../Weitergabe.md).
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
 
 ```yaml
 channels:
