@@ -141,6 +141,11 @@ public class StacConverter
             item.Properties.Add("Vorgängerversion", delivery.PrecursorDelivery.Date.ToString("d.M.yyyy, H:mm:ss 'UTC'", CultureInfo.InvariantCulture));
         }
 
+        if (includePersonalData)
+        {
+            AddMetadataProperties(item, delivery.Metadata);
+        }
+
         var stacApiContext = StacApiContextFactory.Create();
         var assets = delivery.Assets.ToDictionary(
             asset => asset.Id.ToString(CultureInfo.InvariantCulture),
@@ -149,6 +154,34 @@ public class StacConverter
         StacLinker.Link(item, stacApiContext);
 
         return item;
+    }
+
+    /// <summary>
+    /// Adds the filled-in metadata fields as properties, keyed by their title. A fixed property of the same name wins.
+    /// The values are CLR values because DotNetStac serializes with Newtonsoft.Json, which would not read a <see cref="System.Text.Json.JsonElement"/>.
+    /// </summary>
+    private static void AddMetadataProperties(StacItem item, IEnumerable<DeliveredMetadataField> metadata)
+    {
+        foreach (var field in metadata.Where(f => f.Value.HasValue))
+        {
+            var key = field.Title.GetDisplayText();
+            item.Properties.TryAdd(string.IsNullOrEmpty(key) ? field.Id : key, ToPropertyValue(field, field.Value!.Value));
+        }
+    }
+
+    private static object ToPropertyValue(DeliveredMetadataField field, System.Text.Json.JsonElement value) => field.Type switch
+    {
+        MetadataFieldType.TextList => value.EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToArray(),
+        MetadataFieldType.WholeNumber => value.GetInt64(),
+        MetadataFieldType.DecimalNumber => value.GetDecimal(),
+        MetadataFieldType.Selection => OptionTitle(field, value.GetString() ?? string.Empty),
+        _ => value.GetString() ?? string.Empty,
+    };
+
+    private static string OptionTitle(DeliveredMetadataField field, string optionId)
+    {
+        var title = field.Options?.FirstOrDefault(o => o.Id == optionId)?.Title.GetDisplayText();
+        return string.IsNullOrEmpty(title) ? optionId : title;
     }
 
     /// <summary>
