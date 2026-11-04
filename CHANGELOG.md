@@ -107,6 +107,7 @@
 - The uploaded files of a processing run cancelled by the job timeout or a shutdown now stay until their upload session expires (`Upload:CleanupAgeHours`) instead of being deleted with the job once `Processing:JobRetention` has passed. Every other run releases its upload when it ends.
 - An upload or a machine delivery is refused with `400` when geopilot would have to change a file name to store the file: names with control or invisible formatting characters, with `\ / : * ? " < > |`, with `..`, with spaces at the start or end or with a dot at the end. Such names used to be accepted and stored under a shortened name. File names are now cleaned the same way on every operating system, and a `$` in a file name is kept.
 - A delivered file has one name: the STAC catalog, the asset download and the list of files before declaring show the name the file is stored under. A second file with the same name therefore appears with a counter, for example `data_2.xtf`, and a file a step produced, for example from a ZIP archive, appears under its cleaned name. Deliveries declared before keep the names they were shown with.
+- After _Start processing_, the delivery view stays on the mandate step with a loading button until the job has been accepted, and only then opens the processing step with all its steps. If the start fails, the error shows on the mandate step, where processing can be started again.
 
 ### Removed
 

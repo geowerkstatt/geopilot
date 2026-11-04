@@ -123,9 +123,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Mandate]: [],
-      [DeliveryStepEnum.Processing]: [
+      [DeliveryStepEnum.Mandate]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
+        { status: 404, errorKey: "validationErrorCannotFind" },
+        { status: 500, errorKey: "validationErrorUnexpected" },
+      ],
+      [DeliveryStepEnum.Processing]: [
         { status: 404, errorKey: "validationErrorCannotFind" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
@@ -335,21 +338,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
+  // Stays on the mandate step until the job is accepted, so the processing step opens with its steps loaded.
   const startProcessing = (mandate: MandateSummary) => {
     if (!uploadId || isLoading) return;
 
-    setSteps(prevSteps => {
-      const newSteps = new Map(prevSteps);
-      const step = newSteps.get(DeliveryStepEnum.Mandate);
-      if (step) {
-        step.labelAddition = localized(mandate.name);
-      }
-      return newSteps;
-    });
-    setSelectedMandate(mandate);
+    setStepStatus(DeliveryStepEnum.Mandate, undefined);
     setIsLoading(true);
     setProcessingStarted(true);
-    continueToNextStep();
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -365,15 +360,27 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       signal: abortController.signal,
     })
       .then(response => {
+        setSteps(prevSteps => {
+          const newSteps = new Map(prevSteps);
+          const step = newSteps.get(DeliveryStepEnum.Mandate);
+          if (step) {
+            step.labelAddition = localized(mandate.name);
+          }
+          return newSteps;
+        });
+        setSelectedMandate(mandate);
         setJobId(response.jobId);
         setProcessingResponse(normalizeProcessingJob(response));
         setIsLoading(false);
         setIsProcessing(true);
+        continueToNextStep();
+        // continueToNextStep clears the controllers; registered again so a reset still aborts the polling.
+        setAbortControllers(prevControllers => [...prevControllers, abortController]);
         pollProcessingStatusUntilFinished(response.jobId, abortController);
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
-        handleApiError(error, DeliveryStepEnum.Processing);
+        handleApiError(error, DeliveryStepEnum.Mandate);
       });
   };
 
