@@ -2,6 +2,7 @@
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Globalization;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
@@ -13,10 +14,19 @@ namespace Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
 /// All configured filters are applied with AND semantics: a file must satisfy every active filter to be included.
 /// Within a single filter, multiple values are combined with OR semantics (e.g. extensions "xtf,itf" matches either).
 /// Filters whose configuration is null or empty are skipped and do not restrict the result.
+/// The INTERLIS versions of the matched files are reported alongside, so later steps can decide on them.
 /// </remarks>
 internal class XtfMatcherProcess
 {
     private static readonly XNamespace Interlis24Namespace = "http://www.interlis.ch/xtf/2.4/INTERLIS";
+
+    private static readonly Dictionary<string, InterlisVersion> XtfVersionsByNamespace = new()
+    {
+        { "http://www.interlis.ch/INTERLIS2.3", InterlisVersion.Interlis23 },
+        { Interlis24Namespace.NamespaceName, InterlisVersion.Interlis24 },
+    };
+
+    private static ReadOnlySpan<byte> ItfStart => "SCNT"u8;
 
     private static readonly LocalizedText StatusMessageFormat = new Dictionary<string, string>
     {
@@ -85,6 +95,7 @@ internal class XtfMatcherProcess
         }
 
         var matchedFiles = filtered.ToArray();
+        var interlisVersions = await DetectInterlisVersionsAsync(matchedFiles, cancellationToken);
         var totalCount = files.Length;
         LocalizedText statusMessage = matchedFiles.Length == 0
             ? NoMatchStatusMessage
@@ -94,8 +105,60 @@ internal class XtfMatcherProcess
         {
             XtfFiles = matchedFiles,
             UnmatchedFiles = files.Except(matchedFiles).ToArray(),
+            InterlisVersions = interlisVersions,
             StatusMessage = statusMessage,
         };
+    }
+
+    /// <summary>
+    /// Returns the recognized INTERLIS versions of the given files, each once and in ascending order.
+    /// </summary>
+    private static async Task<string[]> DetectInterlisVersionsAsync(IPipelineFile[] files, CancellationToken cancellationToken)
+    {
+        var versions = await Task.WhenAll(files.Select(file => DetectInterlisVersionAsync(file, cancellationToken)));
+        return versions
+            .OfType<InterlisVersion>()
+            .Distinct()
+            .Order()
+            .Select(version => version.ToString())
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Recognizes the INTERLIS version from the start of a transfer file only: an ITF by its leading <c>SCNT</c>,
+    /// an XTF by the namespace of its root element. Returns null for any other file, INTERLIS 2.2 included.
+    /// </summary>
+    private static async Task<InterlisVersion?> DetectInterlisVersionAsync(IPipelineFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (await StartsWithItfHeaderAsync(file, cancellationToken))
+                return InterlisVersion.Interlis1;
+
+            var rootNamespace = await ReadRootNamespaceAsync(file, cancellationToken);
+            return XtfVersionsByNamespace.TryGetValue(rootNamespace, out var version) ? version : null;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            // A file that is not readable as a transfer has no version; a cancelled job must still cancel.
+            return null;
+        }
+    }
+
+    private static async Task<bool> StartsWithItfHeaderAsync(IPipelineFile file, CancellationToken cancellationToken)
+    {
+        using var stream = await file.OpenReadAsync(cancellationToken);
+        var start = new byte[ItfStart.Length];
+        var read = await stream.ReadAtLeastAsync(start, start.Length, throwOnEndOfStream: false, cancellationToken);
+        return start.AsSpan(0, read).SequenceEqual(ItfStart);
+    }
+
+    private static async Task<string> ReadRootNamespaceAsync(IPipelineFile file, CancellationToken cancellationToken)
+    {
+        using var stream = await file.OpenReadAsync(cancellationToken);
+        using var reader = XmlReader.Create(stream, new XmlReaderSettings { Async = true });
+        await reader.MoveToContentAsync();
+        return reader.NamespaceURI;
     }
 
     /// <summary>
