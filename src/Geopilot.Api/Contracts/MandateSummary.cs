@@ -16,6 +16,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="EvaluatePrecursorDelivery">Defines how <see cref="Delivery.PrecursorDelivery"/> is evaluated.</param>
 /// <param name="EvaluatePartial">Defines how <see cref="Delivery.Partial"/> is evaluated.</param>
 /// <param name="EvaluateComment">Defines how <see cref="Delivery.Comment"/> is evaluated.</param>
+/// <param name="MetadataFields">The additional metadata fields a deliverer fills in, in the order the mandate defines them.</param>
 public record MandateSummary(
     int Id,
     string? Key,
@@ -24,4 +25,5 @@ public record MandateSummary(
     bool AllowDelivery,
     FieldEvaluationType EvaluatePrecursorDelivery,
     FieldEvaluationType EvaluatePartial,
-    FieldEvaluationType EvaluateComment);
+    FieldEvaluationType EvaluateComment,
+    IReadOnlyList<MetadataField> MetadataFields);

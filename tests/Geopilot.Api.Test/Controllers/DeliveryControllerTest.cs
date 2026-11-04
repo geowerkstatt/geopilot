@@ -19,6 +19,7 @@ using Moq;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers;
 
@@ -1072,6 +1073,65 @@ public class DeliveryControllerTest
 
         Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
         recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task CreateDeclaresTheMetadataOfTheRequest()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(
+            new Mandate
+            {
+                Name = TestHelpers.Localized(nameof(CreateDeclaresTheMetadataOfTheRequest)),
+                EvaluateComment = FieldEvaluationType.NotEvaluated,
+                EvaluatePartial = FieldEvaluationType.NotEvaluated,
+                EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+                AllowDelivery = true,
+                MetadataFields = [new MetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Required)],
+            });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupProcessingJob(mandate.Id);
+        SetupJobPersistence(jobId);
+
+        var request = new DeliveryRequest
+        {
+            JobId = jobId,
+            Metadata = new Dictionary<string, JsonElement> { ["project_number"] = JsonSerializer.SerializeToElement("P-17") },
+        };
+
+        var result = (await deliveryController.Create(request)) as ObjectResult;
+
+        context.ChangeTracker.Clear();
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status201Created, result.StatusCode);
+        var dbDelivery = context.Deliveries.AsNoTracking().Single(d => d.JobId == jobId);
+        Assert.AreEqual("P-17", Assert.ContainsSingle(dbDelivery.Metadata).Value?.GetString());
+    }
+
+    [TestMethod]
+    public async Task GetByIdReturnsTheMetadataCopy()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var declarer = context.Users.First(u => !u.IsAdmin);
+        var delivery = new Delivery
+        {
+            JobId = Guid.NewGuid(),
+            Mandate = context.Mandates.First(),
+            DeclaringUser = declarer,
+            Metadata =
+            [
+                new DeliveredMetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Optional, null, JsonSerializer.SerializeToElement("P-17")),
+                new DeliveredMetadataField("remark", TestHelpers.Localized("Remark"), MetadataFieldType.Text, FieldEvaluationType.Optional, null, null),
+            ],
+        };
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.HasCount(2, detail.Metadata);
+        Assert.AreEqual("P-17", detail.Metadata[0].Value?.GetString());
+        Assert.IsNull(detail.Metadata[1].Value);
     }
 
     [TestMethod]

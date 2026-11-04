@@ -174,7 +174,8 @@ internal static class DtoMapperExtensions
             deliverableMandateIds.Contains(m.Id),
             m.EvaluatePrecursorDelivery,
             m.EvaluatePartial,
-            m.EvaluateComment));
+            m.EvaluateComment,
+            m.MetadataFields));
     }
 
     /// <summary>

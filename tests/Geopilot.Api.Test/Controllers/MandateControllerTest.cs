@@ -883,7 +883,8 @@ namespace Geopilot.Api.Controllers
                 mandate.AllowDelivery,
                 mandate.EvaluatePrecursorDelivery,
                 mandate.EvaluatePartial,
-                mandate.EvaluateComment);
+                mandate.EvaluateComment,
+                mandate.MetadataFields);
         }
     }
 }

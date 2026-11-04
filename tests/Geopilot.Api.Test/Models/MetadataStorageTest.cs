@@ -84,7 +84,7 @@ public class MetadataStorageTest
         var read = await context.Deliveries.AsNoTracking().SingleAsync(d => d.Id == delivery.Id);
 
         Assert.AreEqual("canton", read.Metadata[0].Value?.GetString());
-        Assert.AreEqual(2, read.Metadata[0].Options!.Count);
+        Assert.HasCount(2, read.Metadata[0].Options!);
         Assert.IsNull(read.Metadata[1].Value);
     }
 }

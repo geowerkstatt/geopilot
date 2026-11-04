@@ -72,7 +72,7 @@ public class DeliveryController : ControllerBase
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var fields = new DeliveryFields(declaration.PartialDelivery, declaration.PrecursorDeliveryId, declaration.Comment);
+        var fields = new DeliveryFields(declaration.PartialDelivery, declaration.PrecursorDeliveryId, declaration.Comment, declaration.Metadata);
         var result = await deliveryDeclarationService.DeclareAsync(declaration.JobId, fields, Declarer.ForUser(user.Id), HttpContext.RequestAborted);
 
         if (result is not { Status: DeliveryDeclarationStatus.Created, DeliveryId: int deliveryId })
@@ -228,6 +228,7 @@ public class DeliveryController : ControllerBase
                 d.JobId,
                 Files = d.Assets.OrderBy(a => a.Id).Select(a => new AssetReference(a.Id, a.OriginalFilename)).ToList(),
                 d.Comment,
+                d.Metadata,
             })
             .SingleOrDefaultAsync();
         if (delivery is null)
@@ -271,6 +272,7 @@ public class DeliveryController : ControllerBase
             delivery.JobId,
             delivery.Files,
             delivery.Comment,
+            delivery.Metadata,
             stacItem,
             reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList()));
     }
