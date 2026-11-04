@@ -58,9 +58,9 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 
 `mandateKey` und `uploadId` sind Pflicht. Ob `comment`, `partialDelivery` und `precursorDeliveryId` verboten, erlaubt oder Pflicht sind, legt das Mandat fest.
 
-`metadata` trägt die Werte der zusätzlichen Felder, die das Mandat vorsieht. Es ist ein Objekt mit der Id des Felds als Schlüssel. Das Wertformat hängt vom Typ des Felds ab: Text und Datum (`2026-11-04`) sind Strings, eine Textliste ist ein Array von Strings, eine Auswahl nennt die Id der gewählten Option, eine Ganzzahl und eine Dezimalzahl sind JSON-Zahlen. Als nicht ausgefüllt gilt ein fehlender Schlüssel, `null`, ein leerer oder nur aus Leerzeichen bestehender String und ein Array ohne nicht leeren String. Ob ein Feld Pflicht ist, legt das Mandat fest. Eine unbekannte Id weist geopilot ab. Fehler stehen im Feld `errors` der Antwort `400`, unter dem Schlüssel `metadata.<id>`.
+`metadata` trägt die Werte der zusätzlichen Felder, die das Mandat vorsieht. Es ist ein Objekt mit der Id des Felds als Schlüssel. Das Wertformat hängt vom Typ des Felds ab: Text und Datum (`2026-11-04`) sind Strings, eine Textliste ist ein Array von Strings, eine Auswahl nennt die Id der gewählten Option, eine Ganzzahl und eine Dezimalzahl sind JSON-Zahlen. Eine Ganzzahl steht ohne Dezimalpunkt und ohne Exponent (`12`, nicht `12.0`). Als nicht ausgefüllt gilt ein fehlender Schlüssel, `null`, ein leerer oder nur aus Leerzeichen bestehender String und ein leeres Array oder eines aus lauter solchen Strings. Ob ein Feld Pflicht ist, legt das Mandat fest. Eine unbekannte Id weist geopilot ab. Fehler stehen im Feld `errors` der Antwort `400`, unter dem Schlüssel `metadata.<id>`.
 
-Die Ids der Felder gehören damit zum Vertrag des Clients: Benennt der Administrator ein Feld um, entfernt er es oder macht er es zur Pflicht, bricht ein Client, der es nicht kennt. Geprüft wird immer gegen das Mandat im Moment der Prüfung. Ändert sich das Mandat zwischen dem Annehmen eines Versuchs und der automatischen Deklaration, scheitert die Deklaration, und der Client muss die Lieferung neu einreichen.
+Die Felder gehören damit zum Vertrag des Clients. Wird die Id eines Felds oder einer Option geändert, ein Feld oder eine Option entfernt, der Typ eines Felds geändert oder ein Feld zur Pflicht gemacht, bricht ein Client, der die Änderung nicht mitmacht. Geprüft wird immer gegen das Mandat im Moment der Prüfung, auch bei der automatischen Deklaration eines bereits angenommenen Versuchs. Erfüllen seine Werte die Felder, die das Mandat in diesem Moment hat, nicht mehr, scheitert die Deklaration: Der Versuch endet als `failed`, `messages` nennt die betroffenen Felder, und der Client muss die Lieferung neu einreichen.
 
 ### Variante mit Dateien im Request
 
@@ -77,7 +77,7 @@ curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
 
 **Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt, der die Regel für Dateinamen einhält. Die OpenAPI-Beschreibung der Installation (`/swagger/all/swagger.json`) führt diese Form als `multipart/form-data`-Body der Route, mit denselben Feldern und den Dateien.
 
-Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment` und `metadata`; ein längeres Feld wird mit `400` abgewiesen.
+Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment` und `metadata`; ein längeres Feld wird mit `400` abgewiesen. Ebenso ein Feld `metadata`, dessen Text sich nicht als JSON-Objekt lesen lässt, mit dem Fehler unter dem Schlüssel `metadata`.
 
 ### Antwort
 
