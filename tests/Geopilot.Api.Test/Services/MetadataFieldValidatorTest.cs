@@ -212,6 +212,34 @@ public class MetadataFieldValidatorTest
     }
 
     [TestMethod]
+    [DataRow("[]")]
+    [DataRow("[\"\", \" \"]")]
+    public void TreatsABlankArrayAsNotFilledInForEveryType(string json)
+    {
+        var values = Values("""{ "project_number": "x", "responsible": "canton" }""");
+        values["parcel_count"] = JsonDocument.Parse(json).RootElement.Clone();
+        values["due_date"] = JsonDocument.Parse(json).RootElement.Clone();
+        values["area"] = JsonDocument.Parse(json).RootElement.Clone();
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        Assert.IsEmpty(check.Errors);
+        Assert.IsNull(check.Snapshot[3].Value);
+        Assert.IsNull(check.Snapshot[4].Value);
+        Assert.IsNull(check.Snapshot[5].Value);
+    }
+
+    [TestMethod]
+    public void RefusesAListWithAnEmptyStringAndANumber()
+    {
+        var values = Values("""{ "project_number": "x", "responsible": "canton", "municipalities": ["", 1] }""");
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        CollectionAssert.AreEqual(new[] { "metadata.municipalities" }, check.Errors.Keys.ToArray());
+    }
+
+    [TestMethod]
     public void RefusesAnUnknownId()
     {
         var values = Values("""{ "project_number": "x", "responsible": "canton", "colour": "red" }""");

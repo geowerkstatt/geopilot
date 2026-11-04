@@ -91,13 +91,22 @@ public static partial class MetadataFieldValidator
         return new MetadataValueCheck(snapshot, errors);
     }
 
+    // Null, a blank string, or an array of only blank strings count as not filled in for every type.
+    private static bool IsNotFilledIn(JsonElement raw) => raw.ValueKind switch
+    {
+        JsonValueKind.Null => true,
+        JsonValueKind.String => string.IsNullOrWhiteSpace(raw.GetString()),
+        JsonValueKind.Array => raw.EnumerateArray().All(item => item.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(item.GetString())),
+        _ => false,
+    };
+
     // Returns null with no problem when the value counts as not filled in.
     private static JsonElement? Normalize(MetadataField field, JsonElement raw, out string? problem)
     {
         problem = null;
         var wrongType = $"The value of the metadata field <{field.Id}> is not a valid {field.Type}.";
 
-        if (raw.ValueKind == JsonValueKind.Null || (raw.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(raw.GetString())))
+        if (IsNotFilledIn(raw))
             return null;
 
         switch (field.Type)
