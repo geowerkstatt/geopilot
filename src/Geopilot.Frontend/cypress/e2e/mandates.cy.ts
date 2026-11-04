@@ -957,12 +957,20 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.1.title.de", "Zuständig");
     cy.dataCy("save-button").should("be.enabled");
 
-    // A selection cannot be saved until it has an option.
+    // A selection cannot be saved until it has an option. The type select says why, linked for assistive technology.
     setSelect("metadataFields.1.type", 2, 6);
-    cy.dataCy("metadataFields.1.options-formHelperText").should("be.visible");
+    cy.dataCy("metadataFields.1.type-formSelect")
+      .find(".MuiFormHelperText-root")
+      .should("have.text", "A selection needs at least one option")
+      .invoke("attr", "id")
+      .then(id => {
+        cy.dataCy("metadataFields.1.type-formSelect")
+          .find('[role="combobox"]')
+          .should("have.attr", "aria-describedby", id);
+      });
     cy.dataCy("save-button").should("be.disabled");
     cy.dataCy("addMetadataFieldOption-button").click();
-    cy.dataCy("metadataFields.1.options-formHelperText").should("not.exist");
+    cy.dataCy("metadataFields.1.type-formSelect").find(".MuiFormHelperText-root").should("not.exist");
     setInput("metadataFields.1.options.0.id", "canton");
     setInput("metadataFields.1.options.0.title.de", "Kanton");
 
@@ -1000,6 +1008,10 @@ describe("Mandate with metadata fields", () => {
   it("saves a former selection without its options", () => {
     openMandateWith([responsible]);
 
+    // An option left empty marks its id as required. Once the options are hidden, that must not block saving.
+    cy.dataCy("addMetadataFieldOption-button").click();
+    cy.dataCy("metadataFields.0.options.2.id-formInput").find("input").blur();
+    hasError("metadataFields.0.options.2.id");
     setSelect("metadataFields.0.type", 0, 6);
     cy.dataCy("metadataFields.0.options.0.id-formInput").should("not.exist");
 
