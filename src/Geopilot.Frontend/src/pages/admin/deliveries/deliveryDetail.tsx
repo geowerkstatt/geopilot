@@ -1,10 +1,9 @@
-import { FC, Fragment, useCallback, useContext, useEffect, useState } from "react";
+import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
 import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
-import { AlertContext } from "../../../components/alert/alertContext";
 import { Button } from "../../../components/buttons.tsx";
 import { ReactionsGrid } from "../../../components/grids/reactionsGrid.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
@@ -24,7 +23,6 @@ export const DeliveryDetail: FC = () => {
   const navigate = useNavigate();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
-  const { showAlert } = useContext(AlertContext);
   const confirmDelete = useDeleteDelivery();
   const [loaded, setLoaded] = useState<DeliveryDetailResponse>();
 
@@ -49,10 +47,8 @@ export const DeliveryDetail: FC = () => {
       method: "POST",
       errorMessageLabel: "reactionRetryError",
     })
-      .then(() => {
-        showAlert(t("reactionRetried"), "success");
-        return loadDelivery();
-      })
+      // The reloaded reaction shows that the retry worked.
+      .then(() => loadDelivery())
       // useFetch has shown why; the retry can be repeated.
       .catch(() => undefined);
 

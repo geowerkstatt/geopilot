@@ -193,7 +193,6 @@
   "reactionKindNotification": "Benachrichtigung",
   "reactionKindTransfer": "Weitergabe",
   "reactionNextAttemptAt": "Nächster Versuch {{time}}",
-  "reactionRetried": "Die Reaktion ist wieder fällig",
   "reactionRetryError": "Beim erneuten Versuch der Reaktion ist ein Fehler aufgetreten: {{error}}",
   "reactionRunningSince": "Läuft seit {{time}}",
   "reactionSet": "Satz von Reaktionen",

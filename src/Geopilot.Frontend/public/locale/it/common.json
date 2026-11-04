@@ -193,7 +193,6 @@
   "reactionKindNotification": "Notifica",
   "reactionKindTransfer": "Inoltro",
   "reactionNextAttemptAt": "Prossimo tentativo {{time}}",
-  "reactionRetried": "La reazione è di nuovo in scadenza",
   "reactionRetryError": "Si è verificato un errore durante il nuovo tentativo della reazione: {{error}}",
   "reactionRunningSince": "In corso dal {{time}}",
   "reactionSet": "Insieme di reazioni",

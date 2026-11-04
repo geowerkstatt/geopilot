@@ -193,7 +193,6 @@
   "reactionKindNotification": "Notification",
   "reactionKindTransfer": "Forwarding",
   "reactionNextAttemptAt": "Next attempt {{time}}",
-  "reactionRetried": "The reaction is due again",
   "reactionRetryError": "An error occurred while retrying the reaction: {{error}}",
   "reactionRunningSince": "Running since {{time}}",
   "reactionSet": "Reaction set",
