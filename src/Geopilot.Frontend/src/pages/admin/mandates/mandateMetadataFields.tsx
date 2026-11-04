@@ -1,4 +1,4 @@
-import { FC, Fragment, useEffect, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { Controller, FieldValues, useFieldArray, useFormContext, useFormState } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
@@ -94,10 +94,12 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
           language={activeLanguage}
           onLanguageChange={setActiveLanguage}
           dataCy={"metadataFields-language"}
+          label={"metadataFieldsInputLanguage"}
         />
       </Stack>
       {fields.map((field, index) => (
-        <Fragment key={field.key}>
+        // Every field repeats the same labels, so the group names which field they belong to.
+        <Stack key={field.key} role="group" aria-label={t("metadataFieldGroup", { position: index + 1 })}>
           <FormContainer>
             <FormInput
               fieldName={`metadataFields.${index}.id`}
@@ -147,13 +149,14 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
               <IconButton
                 icon={<DeleteOutlinedIcon />}
                 label={"removeMetadataField"}
+                labelValues={{ position: index + 1 }}
                 onClick={() => removeEntry(index)}
               />
             </FormColumnHalfWidth>
           </FormContainer>
           <MandateMetadataOptions fieldIndex={index} activeLanguage={activeLanguage} />
           <Divider />
-        </Fragment>
+        </Stack>
       ))}
       <Box>
         <Button startIcon={<AddIcon />} label={"addMetadataField"} onClick={addField} />

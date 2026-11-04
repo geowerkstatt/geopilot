@@ -146,7 +146,11 @@ const MandateDetail = () => {
           <Typography variant={"h3"} sx={{ marginTop: 0 }}>
             {t("general")}
           </Typography>
-          <FormLanguageTabs language={activeLanguage} onLanguageChange={setActiveLanguage} />
+          <FormLanguageTabs
+            language={activeLanguage}
+            onLanguageChange={setActiveLanguage}
+            label={"generalInputLanguage"}
+          />
         </Stack>
         <FormContainer>
           <FormLocalizedInput

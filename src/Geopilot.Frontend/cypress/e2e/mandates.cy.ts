@@ -1013,6 +1013,23 @@ describe("Mandate with metadata fields", () => {
     cy.dataCy("save-button").should("be.disabled");
   });
 
+  it("names the language rows, the fields and their buttons for assistive technology", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
+    cy.dataCy("metadataFields-language-tabs").should(
+      "have.attr",
+      "aria-label",
+      "Input language of the additional fields",
+    );
+    cy.get('[role="group"][aria-label="Field 2"]').within(() => {
+      cy.dataCy("metadataFields.1.id-formInput").should("exist");
+      cy.get('[role="group"][aria-label="Option 2"]').dataCy("metadataFields.1.options.1.id-formInput").should("exist");
+    });
+    cy.dataCy("removeMetadataField-button").eq(1).should("have.attr", "aria-label", "Remove field 2");
+    cy.dataCy("removeMetadataFieldOption-button").eq(1).should("have.attr", "aria-label", "Remove option 2 of field 2");
+  });
+
   it("switches the language of the titles apart from the general data", () => {
     openMandateWith([projectNumber]);
 

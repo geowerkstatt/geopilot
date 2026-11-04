@@ -47,7 +47,10 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
     <Stack>
       <Typography variant={"body2"}>{t("metadataFieldOptions")}</Typography>
       {fields.map((option, optionIndex) => (
-        <FormContainer key={option.key}>
+        <FormContainer
+          key={option.key}
+          role="group"
+          aria-label={t("metadataFieldOptionGroup", { position: optionIndex + 1 })}>
           <FormColumnHalfWidth>
             <FormInput
               fieldName={`${optionsName}.${optionIndex}.id`}
@@ -69,6 +72,7 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
             <IconButton
               icon={<DeleteOutlinedIcon />}
               label={"removeMetadataFieldOption"}
+              labelValues={{ option: optionIndex + 1, field: fieldIndex + 1 }}
               onClick={() => removeOption(optionIndex)}
             />
           </FormColumnHalfWidth>
