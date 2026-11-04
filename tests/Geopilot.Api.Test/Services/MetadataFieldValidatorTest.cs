@@ -200,6 +200,16 @@ public class MetadataFieldValidatorTest
     }
 
     [TestMethod]
+    public void NamesTheTypeOfAWrongValueAsTheApiWritesIt()
+    {
+        var values = Values("""{ "project_number": "x", "responsible": "canton", "parcel_count": 12.5 }""");
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        StringAssert.Contains(check.Errors["metadata.parcel_count"][0], "<parcel_count> of type integer");
+    }
+
+    [TestMethod]
     [DataRow("null")]
     [DataRow("\"\"")]
     [DataRow("\"  \"")]

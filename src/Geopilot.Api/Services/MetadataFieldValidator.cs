@@ -106,7 +106,7 @@ public static partial class MetadataFieldValidator
     private static JsonElement? Normalize(MetadataField field, JsonElement raw, out string? problem)
     {
         problem = null;
-        var wrongType = $"The value of the metadata field <{field.Id}> is not a valid {field.Type}.";
+        var wrongType = WrongValueMessage(field);
 
         if (IsNotFilledIn(raw))
             return null;
@@ -121,7 +121,7 @@ public static partial class MetadataFieldValidator
                 return NormalizedString(
                     raw,
                     out problem,
-                    $"The value of the metadata field <{field.Id}> is not one of its options.",
+                    wrongType,
                     text => (field.Options ?? []).Any(option => option.Id == text) ? text : null);
             case MetadataFieldType.WholeNumber:
                 if (raw.ValueKind == JsonValueKind.Number && raw.TryGetInt64(out var whole))
@@ -135,13 +135,25 @@ public static partial class MetadataFieldValidator
                 return NormalizedString(
                     raw,
                     out problem,
-                    $"The value of the metadata field <{field.Id}> is not a date in the form yyyy-MM-dd.",
+                    wrongType,
                     text => DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) ? text : null);
         }
 
         problem = wrongType;
         return null;
     }
+
+    // Machine clients read these messages, so they name the type as the API writes it.
+    private static string WrongValueMessage(MetadataField field) => field.Type switch
+    {
+        MetadataFieldType.Text => $"The metadata field <{field.Id}> of type text expects a string.",
+        MetadataFieldType.TextList => $"The metadata field <{field.Id}> of type textList expects an array of strings.",
+        MetadataFieldType.Selection => $"The metadata field <{field.Id}> of type selection expects the id of one of its options.",
+        MetadataFieldType.WholeNumber => $"The metadata field <{field.Id}> of type integer expects a whole number without a decimal point or exponent.",
+        MetadataFieldType.DecimalNumber => $"The metadata field <{field.Id}> of type decimal expects a number.",
+        MetadataFieldType.Date => $"The metadata field <{field.Id}> of type date expects a date in the form yyyy-MM-dd.",
+        _ => $"The metadata field <{field.Id}> has a type that is not known.",
+    };
 
     // A blank string is not filled in; accept maps the trimmed text to the stored text or null when it is invalid.
     private static JsonElement? NormalizedString(JsonElement raw, out string? problem, string invalid, Func<string, string?> accept)
