@@ -9,6 +9,7 @@ import {
   Coordinate,
   FieldEvaluationType,
   Mandate,
+  MetadataFieldType,
   Organisation,
   PipelineSummary,
   ReactionSetSummary,
@@ -29,6 +30,7 @@ import { FormAutocompleteValue } from "../../../components/form/formAutocomplete
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
+import MandateMetadataFields from "./mandateMetadataFields.tsx";
 import ReactionSetFields from "./reactionSetFields.tsx";
 
 const MandateDetail = () => {
@@ -104,6 +106,12 @@ const MandateDetail = () => {
       mandate.reactionSetId = null;
       mandate.reactionSetValues = {};
     }
+
+    // Only a selection has options. A field switched away from one still holds them in the form, which the server
+    // would refuse.
+    mandate.metadataFields = mandate.metadataFields.map(field =>
+      field.type === MetadataFieldType.Selection ? field : { ...field, options: [] },
+    );
 
     return mandate;
   };
@@ -202,6 +210,8 @@ const MandateDetail = () => {
             ]}
           />
         </FormContainerHalfWidth>
+        <Typography variant={"body1"}>{t("metadataFields")}</Typography>
+        <MandateMetadataFields mandate={mandate} activeLanguage={activeLanguage} />
       </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>
