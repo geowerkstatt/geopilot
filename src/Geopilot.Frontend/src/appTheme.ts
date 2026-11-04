@@ -270,6 +270,7 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         color: "primary",
         variant: "outlined",
+        size: "large",
       },
       styleOverrides: {
         root: {

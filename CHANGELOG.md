@@ -75,6 +75,7 @@
 - The map button in the tree of the error visualization scrolls the whole map into view.
 - The layer panel of the maps opens beside its button at the bottom right.
 - The delivery overview of the administration and _My deliveries_ list the newest deliveries first.
+- The last step of the delivery is titled _Delivery_, like its step in the stepper. Processing steps that have not started yet show their name greyed out.
 - The delivery overview of the administration no longer shows the comment and no longer deletes. Both moved to the page of a delivery, which a click on its row opens.
 - Map features of the error visualization carry the id of their error as `id` instead of `errorId`. Error visualizations stored before the update lose the link between map and tree until they expire after `Processing:VisualizationRetention`.
 - ili2gpkg operations write their log and xtf log into files: every operation of `IIli2GpkgClient` takes a `logFile` and an `xtfLogFile`, and `Ili2GpkgResult` no longer carries the log text. `SchemaImportAsync` can extend an existing GeoPackage, and `ImportAsync` can create the schema while importing (`DoSchemaImport`) without an input GeoPackage. Plugins built against `GeoWerkstatt.Geopilot.PipelineCore` must be updated and rebuilt against the new version. Requires ilitools-wrapper v1.1.24 or newer.
