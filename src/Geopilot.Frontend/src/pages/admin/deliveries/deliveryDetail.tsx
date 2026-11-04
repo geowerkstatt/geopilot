@@ -11,6 +11,7 @@ import { GeopilotBox } from "../../../components/styledComponents.ts";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { formatMetadataValue } from "./metadataValue.ts";
 import { SummaryField } from "./summaryField.tsx";
 
 const overviewPath = "/admin/delivery-overview";
@@ -145,6 +146,19 @@ export const DeliveryDetail: FC = () => {
               {delivery.comment}
             </SummaryField>
           )}
+          {delivery.metadata.map(field => {
+            const text = formatMetadataValue(field, localized);
+            return (
+              text !== undefined && (
+                <SummaryField
+                  key={field.id}
+                  label={<>{localized(field.title, field.id)}</>}
+                  dataCy={`summary-metadata-${field.id}`}>
+                  {text}
+                </SummaryField>
+              )
+            );
+          })}
         </Box>
       </GeopilotBox>
       {delivery.reactions.length > 0 && (

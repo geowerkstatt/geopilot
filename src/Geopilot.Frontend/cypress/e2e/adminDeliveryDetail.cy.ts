@@ -1,5 +1,5 @@
 import type { DeliveryDetailResponse, DeliveryReactionResponse } from "@/api/generated";
-import { ReactionKind, ReactionState } from "@/api/generated";
+import { FieldEvaluationType, MetadataFieldType, ReactionKind, ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
@@ -136,5 +136,39 @@ describe("Admin delivery detail", () => {
 
     cy.wait("@deleteDelivery");
     cy.location("pathname").should("eq", "/admin/delivery-overview");
+  });
+
+  it("shows the metadata of the delivery", () => {
+    const field = (id: string, type: MetadataFieldType, value: unknown) => ({
+      id,
+      title: { de: id, en: id },
+      type,
+      evaluation: FieldEvaluationType.Optional,
+      value,
+    });
+    visit(
+      delivery(9004, [], {
+        metadata: [
+          field("project_number", MetadataFieldType.Text, "2026-117"),
+          field("municipalities", MetadataFieldType.TextList, ["Aarau", "Buchs"]),
+          {
+            ...field("responsible", MetadataFieldType.Selection, "canton"),
+            options: [{ id: "canton", title: { de: "Kanton", en: "Canton" } }],
+          },
+          field("parcel_count", MetadataFieldType.Integer, 12),
+          field("area", MetadataFieldType.Decimal, 12.5),
+          field("due_date", MetadataFieldType.Date, "2026-11-04"),
+          field("empty_field", MetadataFieldType.Text, null),
+        ],
+      }),
+    );
+
+    cy.dataCy("summary-metadata-project_number").should("contain", "2026-117");
+    cy.dataCy("summary-metadata-municipalities").should("contain", "Aarau, Buchs");
+    cy.dataCy("summary-metadata-responsible").should("contain", "Canton");
+    cy.dataCy("summary-metadata-parcel_count").should("contain", "12");
+    cy.dataCy("summary-metadata-area").should("contain", "12.5");
+    cy.dataCy("summary-metadata-due_date").should("contain", new Date(2026, 10, 4).toLocaleDateString());
+    cy.dataCy("summary-metadata-empty_field").should("not.exist");
   });
 });
