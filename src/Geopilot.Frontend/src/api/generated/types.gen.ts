@@ -167,6 +167,21 @@ export type Coordinate = {
 };
 
 /**
+ * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
+ * Value is null for a field that was not filled in.
+ */
+export type DeliveredMetadataField = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+  type: MetadataFieldType;
+  evaluation: FieldEvaluationType;
+  options?: Array<MetadataFieldOption> | null;
+  value?: unknown;
+};
+
+/**
  * A fullfillment of a Geopilot.Api.Models.Delivery.Mandate. Contains all relevant meta information and assets provided or created by the validation and delivery process.
  */
 export type Delivery = {
@@ -210,6 +225,10 @@ export type Delivery = {
    * Comment to describe the delivery.
    */
   comment: string;
+  /**
+   * The metadata fields of the mandate as they were at delivery time, each with the delivered value.
+   */
+  metadata: Array<DeliveredMetadataField>;
   /**
    * The deletion status of the delivery.
    */
@@ -258,6 +277,10 @@ export type DeliveryDetailResponse = {
    * The comment that came with the delivery.
    */
   comment: string;
+  /**
+   * The copy of the mandate's metadata fields taken at declaration, with the delivered values.
+   */
+  metadata: Array<DeliveredMetadataField>;
   stacItem?: StacItemReference;
   /**
    * The reactions of the delivery, in the order they were created.
@@ -325,6 +348,12 @@ export type DeliveryRequest = {
    * Optional. Comment to describe the delivery.
    */
   comment?: string | null;
+  /**
+   * The values of the metadata fields, keyed by field id.
+   */
+  metadata?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -526,6 +555,10 @@ export type Mandate = {
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
   /**
+   * Additional fields a deliverer fills in, in the order the form shows them.
+   */
+  metadataFields: Array<MetadataField>;
+  /**
    * Organisations allowed to deliver data fulfilling the mandate.
    */
   organisations: Array<Organisation>;
@@ -597,6 +630,10 @@ export type MandateSummary = {
   evaluatePrecursorDelivery: FieldEvaluationType;
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
+  /**
+   * The additional metadata fields a deliverer fills in, in the order the mandate defines them.
+   */
+  metadataFields: Array<MetadataField>;
 };
 
 export const MandateValueType = {
@@ -606,6 +643,51 @@ export const MandateValueType = {
 } as const;
 
 export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateValueType];
+
+/**
+ * The definition of an additional field a deliverer fills in for a mandate. The Id is the key
+ * of the value in a delivery. Options is set only for Geopilot.Api.Models.MetadataFieldType.Selection.
+ * Evaluation is Geopilot.Api.Models.FieldEvaluationType.Optional or Geopilot.Api.Models.FieldEvaluationType.Required.
+ */
+export type MetadataField = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+  type: MetadataFieldType;
+  evaluation: FieldEvaluationType;
+  options?: Array<MetadataFieldOption> | null;
+};
+
+/**
+ * One option of a Geopilot.Api.Models.MetadataFieldType.Selection field. The Id is what a delivery
+ * carries as value, the Title is for display.
+ */
+export type MetadataFieldOption = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+};
+
+/**
+ * The kind of value a Geopilot.Api.Models.MetadataField takes. Serialized as camelCase: `text`, `textList`,
+ * `selection`, `integer`, `decimal`, `date`.
+ */
+export const MetadataFieldType = {
+  Text: "text",
+  TextList: "textList",
+  Selection: "selection",
+  Integer: "integer",
+  Decimal: "decimal",
+  Date: "date",
+} as const;
+
+/**
+ * The kind of value a Geopilot.Api.Models.MetadataField takes. Serialized as camelCase: `text`, `textList`,
+ * `selection`, `integer`, `decimal`, `date`.
+ */
+export type MetadataFieldType = (typeof MetadataFieldType)[keyof typeof MetadataFieldType];
 
 /**
  * A company or group of users that may have a mandate for delivering data to the system owner.
@@ -1226,6 +1308,11 @@ export type SubmissionMultipartRequest = {
    */
   comment?: string | null;
   /**
+   * The values of the metadata fields of the mandate as text: the same JSON object the `metadata` of the
+   * referencing route carries, with the field ids as keys. Sent before the files.
+   */
+  metadata?: string | null;
+  /**
    * The delivered files, after every field. The name of the part does not matter; a part counts as a file
    * when it carries a file name.
    */
@@ -1258,6 +1345,13 @@ export type SubmissionRequest = {
    * The comment accompanying the delivery. Required, optional or rejected, depending on the mandate.
    */
   comment?: string | null;
+  /**
+   * The values of the metadata fields of the mandate, keyed by field id. Which fields are required follows the
+   * mandate.
+   */
+  metadata?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**

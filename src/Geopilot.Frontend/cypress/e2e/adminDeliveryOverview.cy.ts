@@ -108,6 +108,7 @@ describe("Admin delivery overview with reactions", () => {
         jobId: "3f2a9c1e-6b7d-4e58-9a0b-2c4d6e8f1a3b",
         files: [],
         comment: "",
+        metadata: [],
         reactions: [],
       } satisfies DeliveryDetailResponse,
     }).as("delivery");

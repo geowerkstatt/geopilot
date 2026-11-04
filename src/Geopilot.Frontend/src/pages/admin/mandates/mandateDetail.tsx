@@ -79,6 +79,7 @@ const MandateDetail = () => {
         stacAccess: StacAccess.AdminsOnly,
         organisations: [],
         fileTypes: [],
+        metadataFields: [],
         // Prefill coordinates to allow editing them in the form
         coordinates: [
           { x: undefined, y: undefined },

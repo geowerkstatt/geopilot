@@ -43,6 +43,7 @@ describe("Admin delivery detail", () => {
       { id: 42, fileName: "errorLog.log" },
     ],
     comment: "Second delivery with the corrected profiles",
+    metadata: [],
     reactions,
     ...details,
   });
