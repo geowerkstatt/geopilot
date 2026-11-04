@@ -20,13 +20,15 @@ const StyledLanguageTabs = styled(ToggleButtonGroup)(({ theme }) => ({
 interface FormLanguageTabsProps {
   language: Language;
   onLanguageChange: (language: Language) => void;
+  /** Prefix of the `data-cy` attributes, `<prefix>-tabs` on the row and `<prefix>-tab-<language>` on each button. */
+  dataCy?: string;
 }
 
 /**
  * A row of language buttons that selects which language is currently being edited.
  * Controlled: the caller owns the active language and shares it across the localized inputs it drives.
  */
-export const FormLanguageTabs: FC<FormLanguageTabsProps> = ({ language, onLanguageChange }) => (
+export const FormLanguageTabs: FC<FormLanguageTabsProps> = ({ language, onLanguageChange, dataCy = "language" }) => (
   <StyledLanguageTabs
     exclusive
     value={language}
@@ -35,9 +37,9 @@ export const FormLanguageTabs: FC<FormLanguageTabsProps> = ({ language, onLangua
         onLanguageChange(value);
       }
     }}
-    data-cy="language-tabs">
+    data-cy={`${dataCy}-tabs`}>
     {Object.values(Language).map(lang => (
-      <ToggleButton key={lang} value={lang} data-cy={`language-tab-${lang}`} size="small">
+      <ToggleButton key={lang} value={lang} data-cy={`${dataCy}-tab-${lang}`} size="small">
         <Box sx={{ borderBottom: lang === language ? "1px solid" : "1px solid transparent" }}>{lang.toUpperCase()}</Box>
       </ToggleButton>
     ))}

@@ -3,12 +3,13 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Stack, Typography } from "@mui/material";
-import { MandateFormValues } from "../../../api/apiInterfaces.ts";
+import { LocalizedText, MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
   Coordinate,
   FieldEvaluationType,
   Mandate,
+  MetadataField,
   MetadataFieldType,
   Organisation,
   PipelineSummary,
@@ -33,6 +34,20 @@ import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
 import MandateMetadataFields from "./mandateMetadataFields.tsx";
 import ReactionSetFields from "./reactionSetFields.tsx";
 
+const withEveryLanguage = (text: LocalizedText): LocalizedText => ({
+  ...Object.fromEntries(Object.values(Language).map(language => [language, ""])),
+  ...text,
+});
+
+// The form registers every language of a title and an option list for every field. A reset remounts the metadata
+// fields, and loaded values that differ from that only by a missing entry would mark the form as changed again.
+const inFormShape = (fields: MetadataField[]): MetadataField[] =>
+  fields.map(field => ({
+    ...field,
+    title: withEveryLanguage(field.title),
+    options: (field.options ?? []).map(option => ({ ...option, title: withEveryLanguage(option.title) })),
+  }));
+
 const MandateDetail = () => {
   const { t, i18n } = useTranslation();
   const { fetchApi } = useFetch();
@@ -48,7 +63,7 @@ const MandateDetail = () => {
   const loadMandate = useCallback(
     async (id: string) => {
       const mandate = await fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" });
-      setMandate(mandate);
+      setMandate({ ...mandate, metadataFields: inFormShape(mandate.metadataFields) });
     },
     [fetchApi],
   );
@@ -210,8 +225,7 @@ const MandateDetail = () => {
             ]}
           />
         </FormContainerHalfWidth>
-        <Typography variant={"body1"}>{t("metadataFields")}</Typography>
-        <MandateMetadataFields mandate={mandate} activeLanguage={activeLanguage} />
+        <MandateMetadataFields mandate={mandate} />
       </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>

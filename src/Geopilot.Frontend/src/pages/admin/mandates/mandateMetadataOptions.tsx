@@ -8,7 +8,7 @@ import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { MetadataFieldType } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import { Button, IconButton } from "../../../components/buttons.tsx";
-import { FormContainer, FormInput, FormLocalizedInput } from "../../../components/form/form.ts";
+import { FormColumnHalfWidth, FormContainer, FormInput, FormLocalizedInput } from "../../../components/form/form.ts";
 import { useIdRecheck, validateMetadataId } from "./metadataIdValidation.ts";
 
 interface MandateMetadataOptionsProps {
@@ -44,31 +44,34 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
   }
 
   return (
-    <Stack sx={{ paddingLeft: 4 }}>
+    <Stack>
       <Typography variant={"body2"}>{t("metadataFieldOptions")}</Typography>
       {fields.map((option, optionIndex) => (
         <FormContainer key={option.key}>
-          <FormInput
-            fieldName={`${optionsName}.${optionIndex}.id`}
-            label={"id"}
-            required={true}
-            value={option.id}
-            validate={id => validateMetadataId(id, getValues(optionsName))}
-            deps={otherIds(optionIndex)}
-          />
-          <FormLocalizedInput
-            fieldName={`${optionsName}.${optionIndex}.title`}
-            label={"metadataFieldTitle"}
-            value={option.title}
-            activeLanguage={activeLanguage}
-            requireAtLeastOne={true}
-          />
-          <IconButton
-            icon={<DeleteOutlinedIcon />}
-            label={"removeMetadataFieldOption"}
-            onClick={() => removeOption(optionIndex)}
-            sx={{ alignSelf: "center" }}
-          />
+          <FormColumnHalfWidth>
+            <FormInput
+              fieldName={`${optionsName}.${optionIndex}.id`}
+              label={"id"}
+              required={true}
+              value={option.id}
+              validate={id => validateMetadataId(id, getValues(optionsName))}
+              deps={otherIds(optionIndex)}
+            />
+          </FormColumnHalfWidth>
+          <FormColumnHalfWidth direction="row" sx={{ alignItems: "center" }}>
+            <FormLocalizedInput
+              fieldName={`${optionsName}.${optionIndex}.title`}
+              label={"metadataFieldTitle"}
+              value={option.title}
+              activeLanguage={activeLanguage}
+              requireAtLeastOne={true}
+            />
+            <IconButton
+              icon={<DeleteOutlinedIcon />}
+              label={"removeMetadataFieldOption"}
+              onClick={() => removeOption(optionIndex)}
+            />
+          </FormColumnHalfWidth>
         </FormContainer>
       ))}
       <Box>

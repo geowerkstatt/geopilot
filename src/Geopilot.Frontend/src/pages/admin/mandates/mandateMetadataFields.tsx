@@ -1,16 +1,19 @@
-import { FC, Fragment, useEffect } from "react";
-import { FieldValues, useFieldArray, useFormContext, useFormState } from "react-hook-form";
+import { FC, Fragment, useEffect, useState } from "react";
+import { Controller, FieldValues, useFieldArray, useFormContext, useFormState } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Divider } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { FieldEvaluationType, MetadataFieldType } from "../../../api/generated";
 import { Language, TranslationKey } from "../../../appInterfaces.ts";
 import { Button, IconButton } from "../../../components/buttons.tsx";
 import {
+  FormCheckbox,
+  FormColumnHalfWidth,
   FormContainer,
   FormInput,
+  FormLanguageTabs,
   FormLocalizedInput,
   FormSelect,
   getFormFieldErrorMessage,
@@ -21,7 +24,6 @@ import { useIdRecheck, validateMetadataId } from "./metadataIdValidation.ts";
 
 interface MandateMetadataFieldsProps {
   mandate?: MandateFormValues;
-  activeLanguage: Language;
 }
 
 const typeLabels: Record<MetadataFieldType, TranslationKey> = {
@@ -34,12 +36,14 @@ const typeLabels: Record<MetadataFieldType, TranslationKey> = {
 };
 
 /**
- * The additional fields a deliverer fills in for the mandate, in the order the delivery form shows them. A new field
- * goes to the end. Whether the titles differ is checked by the server alone; its message shows when saving fails.
+ * The additional fields a deliverer fills in for the mandate, in the order the delivery form shows them, with a
+ * language choice of their own for the titles. A new field goes to the end. Whether the titles differ is checked by
+ * the server alone; its message shows when saving fails.
  */
-const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate, activeLanguage }) => {
-  const { t } = useTranslation();
-  const { clearErrors, getValues, setValue } = useFormContext<MandateFormValues>();
+const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
+  const { t, i18n } = useTranslation();
+  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
+  const { clearErrors, control, getValues, setValue } = useFormContext<MandateFormValues>();
   const { errors } = useFormState<FieldValues>({ name: "metadataFields" });
   // A field has an id of its own, which the key that tracks the entries would otherwise replace.
   const { fields, append, remove } = useFieldArray<MandateFormValues, "metadataFields", "key">({
@@ -59,10 +63,6 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate, active
     value,
     name: t(label),
   }));
-  const evaluationValues: FormSelectValue[] = [
-    { key: 0, value: FieldEvaluationType.Optional, name: t("fieldOptional") },
-    { key: 1, value: FieldEvaluationType.Required, name: t("fieldRequired") },
-  ];
 
   const addField = () =>
     append({ id: "", title: {}, type: MetadataFieldType.Text, evaluation: FieldEvaluationType.Optional, options: [] });
@@ -88,6 +88,14 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate, active
 
   return (
     <>
+      <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+        <Typography variant={"body1"}>{t("metadataFields")}</Typography>
+        <FormLanguageTabs
+          language={activeLanguage}
+          onLanguageChange={setActiveLanguage}
+          dataCy={"metadataFields-language"}
+        />
+      </Stack>
       {fields.map((field, index) => (
         <Fragment key={field.key}>
           <FormContainer>
@@ -108,29 +116,40 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate, active
             />
           </FormContainer>
           <FormContainer>
-            <FormSelect
-              fieldName={`metadataFields.${index}.type`}
-              label={"metadataFieldType"}
-              required={true}
-              selected={field.type}
-              values={typeValues}
-              validate={type => validateType(index, type)}
-              helperText={typeHelperText(index)}
-              onUpdate={() => clearHiddenOptionErrors(index)}
-            />
-            <FormSelect
-              fieldName={`metadataFields.${index}.evaluation`}
-              label={"metadataFieldEvaluation"}
-              required={true}
-              selected={field.evaluation}
-              values={evaluationValues}
-            />
-            <IconButton
-              icon={<DeleteOutlinedIcon />}
-              label={"removeMetadataField"}
-              onClick={() => removeEntry(index)}
-              sx={{ alignSelf: "center" }}
-            />
+            <FormColumnHalfWidth>
+              <FormSelect
+                fieldName={`metadataFields.${index}.type`}
+                label={"metadataFieldType"}
+                required={true}
+                selected={field.type}
+                values={typeValues}
+                validate={type => validateType(index, type)}
+                helperText={typeHelperText(index)}
+                onUpdate={() => clearHiddenOptionErrors(index)}
+              />
+            </FormColumnHalfWidth>
+            <FormColumnHalfWidth direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+              {/* The checkbox edits the evaluation, which the mandate keeps as optional or required. */}
+              <Controller
+                name={`metadataFields.${index}.evaluation`}
+                control={control}
+                render={({ field: evaluation }) => (
+                  <FormCheckbox
+                    fieldName={evaluation.name}
+                    label={"metadataFieldRequired"}
+                    checked={evaluation.value === FieldEvaluationType.Required}
+                    onChange={checked =>
+                      evaluation.onChange(checked ? FieldEvaluationType.Required : FieldEvaluationType.Optional)
+                    }
+                  />
+                )}
+              />
+              <IconButton
+                icon={<DeleteOutlinedIcon />}
+                label={"removeMetadataField"}
+                onClick={() => removeEntry(index)}
+              />
+            </FormColumnHalfWidth>
           </FormContainer>
           <MandateMetadataOptions fieldIndex={index} activeLanguage={activeLanguage} />
           <Divider />

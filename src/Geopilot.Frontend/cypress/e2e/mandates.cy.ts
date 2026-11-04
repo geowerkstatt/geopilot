@@ -945,12 +945,12 @@ describe("Mandate with metadata fields", () => {
 
   it("adds metadata fields to a mandate", () => {
     openMandateWith([]);
-    setFormLanguage("de");
+    cy.dataCy("metadataFields-language-tab-de").click();
 
     cy.dataCy("addMetadataField-button").click();
     setInput("metadataFields.0.id", "project_number");
     setInput("metadataFields.0.title.de", "Projektnummer");
-    setSelect("metadataFields.0.evaluation", 1, 2);
+    toggleCheckbox("metadataFields.0.evaluation");
 
     cy.dataCy("addMetadataField-button").click();
     setInput("metadataFields.1.id", "responsible");
@@ -999,10 +999,32 @@ describe("Mandate with metadata fields", () => {
     openMandateWith([projectNumber, responsible]);
 
     evaluateInput("metadataFields.0.id", "project_number");
+    evaluateCheckbox("metadataFields.0.evaluation", true);
     evaluateSelect("metadataFields.1.type", "selection");
     evaluateInput("metadataFields.1.options.1.id", "municipality");
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
+
+    toggleCheckbox("metadataFields.0.evaluation");
+    cy.dataCy("save-button").should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled").click();
+    evaluateCheckbox("metadataFields.0.evaluation", true);
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
+  });
+
+  it("switches the language of the titles apart from the general data", () => {
+    openMandateWith([projectNumber]);
+
+    setFormLanguage("de");
+    cy.dataCy("name.de-formInput").should("be.visible");
+    cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
+
+    cy.dataCy("metadataFields-language-tab-de").click();
+    cy.dataCy("metadataFields.0.title.de-formInput").should("be.visible");
+    cy.dataCy("metadataFields-language-tab-en").click();
+    cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
+    cy.dataCy("name.de-formInput").should("be.visible");
   });
 
   it("saves a former selection without its options", () => {
