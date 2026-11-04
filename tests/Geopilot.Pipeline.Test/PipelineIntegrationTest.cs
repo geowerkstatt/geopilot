@@ -208,6 +208,72 @@ public class PipelineIntegrationTest
         Assert.HasCount(1, xtfFiles, "the matcher must find the transfer file in both delivery variants.");
     }
 
+    // Also guards the text output: with enum values the conditions' 'in' would never match and both steps would skip.
+    [TestMethod(DisplayName = "The INTERLIS version picks the validation profile")]
+    [DataRow("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "validation_23", "validation_24", "ilidata:ILI_23")]
+    [DataRow("TestData/UploadFiles/RoadsExdm2ien.xtf", "validation_24", "validation_23", "ilidata:ILI_24")]
+    public async Task RunPipelineWithProfileByInterlisVersion(string transferFile, string validatingStepId, string skippedStepId, string expectedProfile)
+    {
+        PipelineFactory factory = CreatePipelineFactory("interlisVersionPipeline");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        using var pipeline = factory.CreatePipeline("profile_by_interlis_version", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        await pipeline.Run([new PipelineFile(transferFile, Path.GetFileName(transferFile))], CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.AreEqual(StepState.Success, pipeline.Steps.Single(step => step.Id == validatingStepId).State);
+        Assert.AreEqual(StepState.Skipped, pipeline.Steps.Single(step => step.Id == skippedStepId).State);
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(It.Is<IlivalidatorArgs>(args => args.MetaConfig == expectedProfile), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunPipelineFailsWithoutRecognizedInterlisVersion()
+    {
+        PipelineFactory factory = CreatePipelineFactory("interlisVersionPipeline");
+        using var pipeline = factory.CreatePipeline("profile_by_interlis_version", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        await pipeline.Run([new PipelineFile("TestData/UploadFiles/helloWorld.pdf", "helloWorld.xtf")], CancellationToken.None);
+
+        // Without the matcher's fail condition both validations would be skipped and the run would succeed unvalidated.
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, pipeline.Steps.Single(step => step.Id == "xtf_matching").State);
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task RunPipelineFailsWithSeveralXtfFiles()
+    {
+        PipelineFactory factory = CreatePipelineFactory("interlisVersionPipeline");
+        using var pipeline = factory.CreatePipeline("profile_by_interlis_version", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        await pipeline.Run(
+            [
+                new PipelineFile("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "iseltwald_gwp_be13_1.xtf"),
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+            ],
+            CancellationToken.None);
+
+        // Without the matcher's fail condition both validations would run and fail on binding two files to one.
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, pipeline.Steps.Single(step => step.Id == "xtf_matching").State);
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     [TestMethod]
     public async Task RunPipelineWithFileReference()
     {

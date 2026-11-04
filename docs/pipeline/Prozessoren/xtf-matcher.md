@@ -24,4 +24,78 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 
 - `XtfFiles`: Ein Array von Dateien vom Typ `IPipelineFile[]`, welche den konfigurierten Filterkriterien entsprechen. Dieses Array kann leer sein, wenn keine Datei den Kriterien entspricht.
 - `UnmatchedFiles`: Ein Array von Dateien vom Typ `IPipelineFile[]` mit allen Eingabedateien, welche die Filterkriterien **nicht** erfüllen (die Ergänzung zu `XtfFiles`). Die Eingabereihenfolge bleibt erhalten. Der Rest wird nach dem inhaltsbasierten Modellfilter berechnet, weshalb Dateien, die nicht als XTF geparst werden können, bei aktiviertem `iliModels`-Filter hier landen. Damit lassen sich die aussortierten Dateien in einem nachfolgenden Schritt weiterverarbeiten oder über `output_actions` mitliefern.
+- `InterlisVersions`: Die INTERLIS-Versionen der Dateien in `XtfFiles` als Liste von Texten, jede Version einmal und aufsteigend sortiert, mit den Werten `Interlis1` (ITF), `Interlis23` und `Interlis24`. Erkannt wird die Version am Dateianfang: eine ITF-Datei an der ersten Zeile `SCNT`, eine XTF-Datei am Namespace ihres Wurzelelements. Eine Datei, die keiner dieser Versionen zugeordnet werden kann (auch INTERLIS 2.2), trägt nichts bei. Entspricht keine Datei den Filterkriterien, ist die Liste leer. Welche Datei welche Version hat, gibt der Matcher nicht an. In einer Condition fragt der Operator `in` nach einer Version, z.B. `'Interlis23' in [xtf_matching.InterlisVersions]`, und `Length([xtf_matching.InterlisVersions])` zählt sie.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche über die Anzahl der übereinstimmenden Dateien informiert (z.B. `"1 von 3 Datei(en) entsprechen den XTF-Filterkriterien."`) oder meldet, dass keine Dateien den Kriterien entsprechen.
+
+## Beispiel: Validierungsprofil je INTERLIS-Version
+
+Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die Pipeline schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
+
+```yaml
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+  - id: xtf_validator
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile:
+pipelines:
+  - id: xtf_validation
+    display_name:
+      de: XTF-Validierung
+    steps:
+      - id: xtf_matching
+        display_name:
+          de: XTF-Dateien finden
+        process_id: xtf_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: single-xtf-file
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
+                message:
+                  de: "Es wird genau eine XTF-Datei erwartet."
+                  en: "Exactly one XTF file is expected."
+              - id: interlis-version-unknown
+                expression: "Length([xtf_matching.InterlisVersions]) == 0"
+                message:
+                  de: "Die INTERLIS-Version wurde nicht erkannt."
+                  en: "The INTERLIS version was not recognized."
+        input:
+          files: "${upload()}"
+      - id: validation_23
+        display_name:
+          de: Validierung INTERLIS 2.3
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: ILI_23
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!('Interlis23' in [xtf_matching.InterlisVersions])"
+          post:
+            restrict_delivery_conditions:
+              - expression: "!([validation_23.ValidationSuccessful])"
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+      - id: validation_24
+        display_name:
+          de: Validierung INTERLIS 2.4
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: ILI_24
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!('Interlis24' in [xtf_matching.InterlisVersions])"
+          post:
+            restrict_delivery_conditions:
+              - expression: "!([validation_24.ValidationSuccessful])"
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+```
+
+Ein nachfolgender Schritt erhält die Outputs beider Validierungsschritte als Liste von Quellen, z.B. `xtfLog: ["${step_output(validation_23.XtfLog)}", "${step_output(validation_24.XtfLog)}"]`. Der übersprungene Schritt trägt nichts bei (siehe [Aufbau der Pipeline-Definition](../Pipelines.md#wie-ist-eine-pipeline-definition-aufgebaut)).

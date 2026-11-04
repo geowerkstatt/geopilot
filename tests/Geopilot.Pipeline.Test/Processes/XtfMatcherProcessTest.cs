@@ -10,6 +10,8 @@ public class XtfMatcherProcessTest
     private const string RoadsExdm2ienAltPrefixXtf = "TestData/UploadFiles/RoadsExdm2ien_altPrefix.xtf";
     private const string RoadsExdm2ienDefaultNsXtf = "TestData/UploadFiles/RoadsExdm2ien_defaultNs.xtf";
     private const string IseltwaldGwpBe13Xtf = "TestData/UploadFiles/iseltwald_gwp_be13_1.xtf";
+    private const string Interlis1Itf = "TestData/Ilitools/transfer_interlis1.itf";
+    private const string HelloWorldPdf = "TestData/UploadFiles/helloWorld.pdf";
     private const string RoadsExdm2ienModel = "roadsexdm2ien";
     private const string IseltwaldGwpBe13Model = "gwp_bern_13_1";
 
@@ -247,5 +249,85 @@ public class XtfMatcherProcessTest
         Assert.HasCount(1, result.XtfFiles);
         Assert.AreEqual("RoadsExdm2ien.xtf", result.XtfFiles[0].OriginalFileName);
         Assert.HasCount(2, result.UnmatchedFiles);
+    }
+
+    [TestMethod(DisplayName = "Recognize the INTERLIS version of a matched file")]
+    [DataRow(Interlis1Itf, "Interlis1")]
+    [DataRow(IseltwaldGwpBe13Xtf, "Interlis23")]
+    [DataRow(RoadsExdm2ienXtf, "Interlis24")]
+    [DataRow(RoadsExdm2ienAltPrefixXtf, "Interlis24")]
+    [DataRow(RoadsExdm2ienDefaultNsXtf, "Interlis24")]
+    public async Task InterlisVersionOfMatchedFile(string path, string expectedVersion)
+    {
+        var process = new XtfMatcherProcess(null, null, null);
+        var files = FileListWithPath((path, Path.GetFileName(path)));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { expectedVersion }, result.InterlisVersions);
+    }
+
+    [TestMethod]
+    public async Task InterlisVersionsOfAllMatchedFilesInAscendingOrder()
+    {
+        var process = new XtfMatcherProcess(null, null, null);
+        var files = FileListWithPath(
+            (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
+            (Interlis1Itf, "transfer_interlis1.itf"),
+            (IseltwaldGwpBe13Xtf, "iseltwald_gwp_be13_1.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "Interlis1", "Interlis23", "Interlis24" }, result.InterlisVersions);
+    }
+
+    [TestMethod]
+    public async Task InterlisVersionSharedByFilesIsReportedOnce()
+    {
+        var process = new XtfMatcherProcess(null, null, null);
+        var files = FileListWithPath(
+            (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
+            (RoadsExdm2ienAltPrefixXtf, "RoadsExdm2ien_altPrefix.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "Interlis24" }, result.InterlisVersions);
+    }
+
+    [TestMethod]
+    public async Task InterlisVersionsIgnoreUnmatchedFiles()
+    {
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
+        var files = FileListWithPath(
+            (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
+            (Interlis1Itf, "transfer_interlis1.itf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "Interlis24" }, result.InterlisVersions);
+    }
+
+    [TestMethod]
+    public async Task UnrecognizedFileAddsNoInterlisVersion()
+    {
+        var process = new XtfMatcherProcess(null, null, null);
+        var files = FileListWithPath(
+            (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
+            (HelloWorldPdf, "helloWorld.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "Interlis24" }, result.InterlisVersions);
+    }
+
+    [TestMethod]
+    public async Task NoInterlisVersionsWithoutMatchedFiles()
+    {
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
+        var files = FileListWithPath((Interlis1Itf, "transfer_interlis1.itf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        Assert.IsEmpty(result.InterlisVersions);
     }
 }
