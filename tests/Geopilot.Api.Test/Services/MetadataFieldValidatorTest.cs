@@ -173,8 +173,8 @@ public class MetadataFieldValidatorTest
         Assert.IsEmpty(check.Errors);
         CollectionAssert.AreEqual(
             new[] { "\"2026-117\"", "[\"Aarau\",\"Buchs\"]", "\"canton\"", "12", "12.5", "\"2026-11-04\"" },
-            check.Snapshot.Select(field => field.Value!.Value.GetRawText()).ToArray());
-        Assert.HasCount(2, check.Snapshot[2].Options!);
+            check.Snapshot.Select(field => field.Value?.GetRawText()).ToArray());
+        Assert.HasCount(2, check.Snapshot[2].Options ?? []);
     }
 
     [TestMethod]
@@ -265,7 +265,7 @@ public class MetadataFieldValidatorTest
     }
 
     private static Dictionary<string, JsonElement> Values(string json)
-        => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)!;
+        => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? throw new AssertFailedException("The values of a test are a JSON object.");
 
     private static List<MetadataField> ValueFields() =>
     [

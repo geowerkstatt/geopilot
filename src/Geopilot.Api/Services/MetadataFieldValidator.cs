@@ -153,7 +153,7 @@ public static partial class MetadataFieldValidator
             return null;
         }
 
-        var text = raw.GetString()!.Trim();
+        var text = (raw.GetString() ?? string.Empty).Trim();
         if (text.Length == 0)
             return null;
 
@@ -176,7 +176,7 @@ public static partial class MetadataFieldValidator
             return null;
         }
 
-        var entries = raw.EnumerateArray().Select(item => item.GetString()!.Trim()).Where(text => text.Length > 0).ToArray();
+        var entries = raw.EnumerateArray().Select(item => (item.GetString() ?? string.Empty).Trim()).Where(text => text.Length > 0).ToArray();
         return entries.Length == 0 ? null : JsonSerializer.SerializeToElement(entries);
     }
 

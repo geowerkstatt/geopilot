@@ -151,7 +151,8 @@ public class SubmissionHttpTest
         using var initiate = JsonContent.Create(new { files = new[] { new { fileName = "data.xtf", size = 16 } } });
         var upload = await client.PostAsync("/api/v2/upload", initiate);
         Assert.AreEqual(HttpStatusCode.Created, upload.StatusCode);
-        return (await upload.Content.ReadFromJsonAsync<InitiateUploadResponse>())!.UploadId;
+        var initiated = await upload.Content.ReadFromJsonAsync<InitiateUploadResponse>() ?? throw new AssertFailedException("An initiated upload answers with a body.");
+        return initiated.UploadId;
     }
 
     private static async Task AssertBadRequestWithErrorAsync(HttpResponseMessage response, string errorKey)

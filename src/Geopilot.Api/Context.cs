@@ -401,5 +401,5 @@ public class Context : DbContext
     private static ValueComparer<List<T>> MetadataComparer<T>(JsonSerializerOptions options) => new(
         (left, right) => JsonSerializer.Serialize(left, options) == JsonSerializer.Serialize(right, options),
         list => JsonSerializer.Serialize(list, options).GetHashCode(StringComparison.Ordinal),
-        list => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(list, options), options)!);
+        list => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(list, options), options) ?? new List<T>());
 }

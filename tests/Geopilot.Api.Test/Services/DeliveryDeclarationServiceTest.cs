@@ -239,7 +239,7 @@ public class DeliveryDeclarationServiceTest
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         Assert.HasCount(2, delivery.Metadata);
         Assert.AreEqual("canton", delivery.Metadata[0].Value?.GetString());
-        Assert.HasCount(2, delivery.Metadata[0].Options!);
+        Assert.HasCount(2, delivery.Metadata[0].Options ?? []);
         Assert.IsNull(delivery.Metadata[1].Value);
     }
 
@@ -251,7 +251,7 @@ public class DeliveryDeclarationServiceTest
 
         mandate.MetadataFields =
         [
-            mandate.MetadataFields[0] with { Title = TestHelpers.Localized("Renamed"), Options = [mandate.MetadataFields[0].Options![0]] },
+            mandate.MetadataFields[0] with { Title = TestHelpers.Localized("Renamed"), Options = [new MetadataFieldOption("canton", TestHelpers.Localized("Canton"))] },
             mandate.MetadataFields[1],
         ];
         context.SaveChanges();
@@ -259,7 +259,7 @@ public class DeliveryDeclarationServiceTest
 
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         Assert.AreEqual("Responsible", delivery.Metadata[0].Title.GetDisplayText());
-        CollectionAssert.AreEqual(new[] { "canton", "municipality" }, delivery.Metadata[0].Options!.Select(o => o.Id).ToArray());
+        CollectionAssert.AreEqual(new[] { "canton", "municipality" }, (delivery.Metadata[0].Options ?? []).Select(o => o.Id).ToArray());
     }
 
     [TestMethod]
@@ -278,7 +278,8 @@ public class DeliveryDeclarationServiceTest
         var result = await service.DeclareAsync(jobId, fields, declarer, CancellationToken.None);
 
         Assert.AreEqual(DeliveryDeclarationStatus.FieldRulesViolated, result.Status);
-        Assert.IsTrue(result.FieldErrors!.ContainsKey("metadata.project_number"));
+        Assert.IsNotNull(result.FieldErrors);
+        Assert.IsTrue(result.FieldErrors.ContainsKey("metadata.project_number"));
         Assert.IsFalse(context.Deliveries.Any(d => d.JobId == jobId));
     }
 

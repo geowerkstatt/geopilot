@@ -162,10 +162,15 @@ public class StacConverter
     /// </summary>
     private static void AddMetadataProperties(StacItem item, IEnumerable<DeliveredMetadataField> metadata)
     {
-        foreach (var field in metadata.Where(f => f.Value.HasValue))
+        foreach (var field in metadata)
         {
+            if (field.Value is not { } value)
+            {
+                continue;
+            }
+
             var key = field.Title.GetDisplayText();
-            item.Properties.TryAdd(string.IsNullOrEmpty(key) ? field.Id : key, ToPropertyValue(field, field.Value!.Value));
+            item.Properties.TryAdd(string.IsNullOrEmpty(key) ? field.Id : key, ToPropertyValue(field, value));
         }
     }
 

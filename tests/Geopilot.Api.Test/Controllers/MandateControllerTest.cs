@@ -554,7 +554,7 @@ namespace Geopilot.Api.Controllers
             var result = await mandateController.Create(sent);
 
             var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
-            StringAssert.Contains((string)badRequest.Value!, "<1abc>");
+            StringAssert.Contains(Assert.IsInstanceOfType<string>(badRequest.Value), "<1abc>");
             Assert.AreEqual(mandateCount, context.Mandates.Count());
         }
 
@@ -578,7 +578,7 @@ namespace Geopilot.Api.Controllers
             ActionResultAssert.IsOk(result);
             var reloaded = await context.MandatesWithIncludes.AsNoTracking().SingleAsync(m => m.Id == toEdit.Id);
             CollectionAssert.AreEqual(new[] { "project", "level" }, reloaded.MetadataFields.Select(field => field.Id).ToArray());
-            CollectionAssert.AreEqual(new[] { "canton", "municipality" }, reloaded.MetadataFields[1].Options!.Select(option => option.Id).ToArray());
+            CollectionAssert.AreEqual(new[] { "canton", "municipality" }, (reloaded.MetadataFields[1].Options ?? []).Select(option => option.Id).ToArray());
         }
 
         [TestMethod]
