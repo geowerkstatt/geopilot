@@ -374,6 +374,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setIsLoading(false);
         setIsProcessing(true);
         continueToNextStep();
+        // continueToNextStep clears the controllers; registered again so a reset still aborts the polling.
+        setAbortControllers(prevControllers => [...prevControllers, abortController]);
         pollProcessingStatusUntilFinished(response.jobId, abortController);
       })
       .catch((error: ApiError) => {

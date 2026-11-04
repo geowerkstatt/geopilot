@@ -475,6 +475,25 @@ describe("Delivery tests", () => {
     cy.dataCy("startProcessing-button").should("be.enabled");
   });
 
+  it("stops polling a running job on restart", () => {
+    const runningJob = processingJob("e2e-restart-job", "running", [
+      processingStep("validation", "XTF Validation", "running"),
+    ]);
+    runMockedProcessingJob(runningJob, [deliverableMandate(1, "Test Mandate")]);
+    stepIsActive("processing");
+
+    cy.dataCy("delivery-stepper").dataCy("restart-button").click();
+    cy.dataCy("prompt-button-restart").click();
+    stepIsActive("files");
+
+    // The status is polled every two seconds, so a polling that survived the reset shows within three.
+    cy.get<unknown[]>("@jobStatus.all").then(polls => {
+      const pollsAtReset = polls.length;
+      cy.wait(3000);
+      cy.get<unknown[]>("@jobStatus.all").should("have.length", pollsAtReset);
+    });
+  });
+
   it("can show previous steps as read-only", () => {
     // Registered before the upload: the mandate request follows the upload response immediately,
     // so an intercept set up afterwards can miss it.
