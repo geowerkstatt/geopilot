@@ -251,15 +251,56 @@ public class XtfMetadataExtractorProcessTest
     }
 
     [TestMethod]
-    [DataRow("UploadFiles/iseltwald_gwp_be13_1.xtf", DisplayName = "INTERLIS 2.3 transfer")]
-    [DataRow("XtfMetadata/not_a_transfer.xml", DisplayName = "XML that is not a transfer")]
-    public async Task AFileThatIsNotAnInterlis24TransferIsUnsupported(string file)
+    [DataRow("UploadFiles/iseltwald_gwp_be13_1.xtf", "Interlis23", DisplayName = "INTERLIS 2.3 transfer")]
+    [DataRow("XtfMetadata/not_a_transfer.xml", null, DisplayName = "XML that is not a transfer")]
+    public async Task AFileThatIsNotAnInterlis24TransferIsUnsupported(string file, string? expectedVersion)
     {
         var result = await Extractor(BfsNumberPath).RunAsync(Fixture(file), TestContext.CancellationToken);
 
         Assert.IsNull(result.Scope);
+        Assert.AreEqual(expectedVersion, result.InterlisVersion);
         Assert.AreEqual(XtfFileState.Unsupported, result.FileState);
-        Assert.AreEqual("The file is not an INTERLIS 2.4 transfer, so no metadata is read.", result.StatusMessage["en"]);
+        Assert.AreEqual("The file is not an INTERLIS 2.4 transfer, so no scope is read.", result.StatusMessage["en"]);
+    }
+
+    [TestMethod]
+    [DataRow("XtfMetadata/dmav_municipality.xtf", "Interlis24", nameof(XtfFileState.Readable), DisplayName = "INTERLIS 2.4 transfer")]
+    [DataRow("UploadFiles/iseltwald_gwp_be13_1.xtf", "Interlis23", nameof(XtfFileState.Unsupported), DisplayName = "INTERLIS 2.3 transfer")]
+    [DataRow("Ilitools/transfer_interlis1.itf", "Interlis1", nameof(XtfFileState.Unreadable), DisplayName = "INTERLIS 1 transfer")]
+    [DataRow("UploadFiles/helloWorld.pdf", null, nameof(XtfFileState.Unreadable), DisplayName = "PDF instead of XTF")]
+    public async Task TheInterlisVersionIsReadFromEveryFile(string file, string? expectedVersion, string expectedFileState)
+    {
+        var result = await Extractor(BfsNumberPath).RunAsync(Fixture(file), TestContext.CancellationToken);
+
+        Assert.AreEqual(expectedVersion, result.InterlisVersion);
+        Assert.AreEqual(expectedFileState, result.FileState.ToString());
+    }
+
+    [TestMethod]
+    [DataRow("XtfMetadata/dmav_municipality.xtf", "Interlis24", nameof(XtfFileState.Readable), "The file is an INTERLIS 2.4 transfer.", DisplayName = "INTERLIS 2.4 transfer")]
+    [DataRow("UploadFiles/iseltwald_gwp_be13_1.xtf", "Interlis23", nameof(XtfFileState.Unsupported), "The file is an INTERLIS 2.3 transfer.", DisplayName = "INTERLIS 2.3 transfer")]
+    [DataRow("Ilitools/transfer_interlis1.itf", "Interlis1", nameof(XtfFileState.Unreadable), "The file is an INTERLIS 1 transfer.", DisplayName = "INTERLIS 1 transfer")]
+    [DataRow("XtfMetadata/not_a_transfer.xml", null, nameof(XtfFileState.Unsupported), "The INTERLIS version of the file was not recognized.", DisplayName = "XML that is not a transfer")]
+    public async Task WithoutScopeOnlyTheInterlisVersionIsRead(string file, string? expectedVersion, string expectedFileState, string expectedMessage)
+    {
+        var result = await new XtfMetadataExtractorProcess(null, NullLogger.Instance).RunAsync(Fixture(file), TestContext.CancellationToken);
+
+        Assert.IsNull(result.Scope);
+        Assert.AreEqual(expectedVersion, result.InterlisVersion);
+        Assert.AreEqual(expectedFileState, result.FileState.ToString());
+        Assert.AreEqual(expectedMessage, result.StatusMessage["en"]);
+    }
+
+    [TestMethod]
+    public async Task WithoutScopeNoObjectIsRead()
+    {
+        // Objects are only read for the scope, so one beyond the limits does not make the file unreadable without it.
+        var file = Transfer(Gemeinde("g1", Nested(100_000)));
+
+        var result = await new XtfMetadataExtractorProcess(null, NullLogger.Instance).RunAsync(file, TestContext.CancellationToken);
+
+        Assert.AreEqual("Interlis24", result.InterlisVersion);
+        Assert.AreEqual(XtfFileState.Readable, result.FileState);
     }
 
     [TestMethod]

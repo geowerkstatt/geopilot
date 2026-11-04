@@ -6,6 +6,13 @@ internal class XtfMetadataExtractorResult
 {
     public string? Scope { get; init; }
 
+    /// <summary>
+    /// The INTERLIS version of the transfer file, named like <see cref="Processes.InterlisVersion"/>, or null when it
+    /// is not recognized. Read from every file, whatever its <see cref="FileState"/>.
+    /// </summary>
+    /// <remarks>Text like the versions of the XTF matcher, so a condition's <c>in</c> matches it as well.</remarks>
+    public string? InterlisVersion { get; init; }
+
     public required XtfFileState FileState { get; init; }
 
     public required LocalizedText StatusMessage { get; init; }
@@ -22,8 +29,8 @@ internal enum XtfFileState
     Readable,
 
     /// <summary>
-    /// An XML root element other than the INTERLIS 2.4 transfer, for example an INTERLIS 2.3 file, so nothing is read
-    /// from it.
+    /// An XML root element other than the INTERLIS 2.4 transfer, for example an INTERLIS 2.3 file, so nothing beyond
+    /// its INTERLIS version is read from it.
     /// </summary>
     Unsupported,
 
