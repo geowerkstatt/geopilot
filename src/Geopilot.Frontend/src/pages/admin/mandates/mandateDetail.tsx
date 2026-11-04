@@ -16,7 +16,7 @@ import {
   ReactionSetSummary,
   StacAccess,
 } from "../../../api/generated";
-import { Language } from "../../../appInterfaces.ts";
+import { isLanguage, Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
@@ -58,7 +58,9 @@ const MandateDetail = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
   const [reactionSets, setReactionSets] = useState<ReactionSetSummary[]>();
-  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
+  const [activeLanguage, setActiveLanguage] = useState<Language>(
+    isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : Language.EN,
+  );
 
   const loadMandate = useCallback(
     async (id: string) => {

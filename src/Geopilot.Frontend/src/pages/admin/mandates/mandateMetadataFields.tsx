@@ -6,7 +6,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { FieldEvaluationType, MetadataFieldType } from "../../../api/generated";
-import { Language, TranslationKey } from "../../../appInterfaces.ts";
+import { isLanguage, Language, TranslationKey } from "../../../appInterfaces.ts";
 import { Button, IconButton } from "../../../components/buttons.tsx";
 import {
   FormCheckbox,
@@ -42,7 +42,9 @@ const typeLabels: Record<MetadataFieldType, TranslationKey> = {
  */
 const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
   const { t, i18n } = useTranslation();
-  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
+  const [activeLanguage, setActiveLanguage] = useState<Language>(
+    isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : Language.EN,
+  );
   const { clearErrors, control, getValues, setValue } = useFormContext<MandateFormValues>();
   const { errors } = useFormState<FieldValues>({ name: "metadataFields" });
   // A field has an id of its own, which the key that tracks the entries would otherwise replace.

@@ -928,6 +928,7 @@ describe("Mandate with metadata fields", () => {
 
   const savedMandate = () =>
     cy.wait("@updateMandate").then(({ request }) => {
+      // The intercepted body is parsed JSON, which carries no type of its own.
       return (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
     });
 
