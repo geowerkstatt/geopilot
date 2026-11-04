@@ -1,6 +1,7 @@
 # Validates with a profile chosen by the INTERLIS versions the matcher recognized: one validation step
 # per version, each skipped when its version is missing. The matching fails without a recognized version,
-# otherwise both validations would be skipped and the run would succeed unvalidated.
+# otherwise both validations would be skipped and the run would succeed unvalidated, and on more than one
+# file, which a validation step could not bind.
 processes:
   - id: xtf_matcher
     implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
@@ -23,6 +24,8 @@ pipelines:
         conditions:
           post:
             fail_conditions:
+              - id: single-xtf-file
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
               - id: interlis-version-unknown
                 expression: "Length([xtf_matching.InterlisVersions]) == 0"
         input:

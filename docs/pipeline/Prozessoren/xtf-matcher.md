@@ -29,7 +29,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 
 ## Beispiel: Validierungsprofil je INTERLIS-Version
 
-Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die Pipeline schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die `fail_conditions` auf dem Matcher-Schritt verhindert das. Das Beispiel geht von einer Transferdatei pro Lieferung aus, denn ein Validierungsschritt nimmt genau eine Datei.
+Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die Pipeline schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
 
 ```yaml
 processes:
@@ -54,6 +54,11 @@ pipelines:
         conditions:
           post:
             fail_conditions:
+              - id: single-xtf-file
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
+                message:
+                  de: "Es wird genau eine XTF-Datei erwartet."
+                  en: "Exactly one XTF file is expected."
               - id: interlis-version-unknown
                 expression: "Length([xtf_matching.InterlisVersions]) == 0"
                 message:

@@ -252,6 +252,29 @@ public class PipelineIntegrationTest
     }
 
     [TestMethod]
+    public async Task RunPipelineFailsWithSeveralXtfFiles()
+    {
+        PipelineFactory factory = CreatePipelineFactory("interlisVersionPipeline");
+        using var pipeline = factory.CreatePipeline("profile_by_interlis_version", Guid.NewGuid());
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
+
+        await pipeline.Run(
+            [
+                new PipelineFile("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "iseltwald_gwp_be13_1.xtf"),
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+            ],
+            CancellationToken.None);
+
+        // Without the matcher's fail condition both validations would run and fail on binding two files to one.
+        Assert.AreEqual(ProcessingState.Failed, pipeline.State);
+        Assert.AreEqual(StepState.Error, pipeline.Steps.Single(step => step.Id == "xtf_matching").State);
+        ilivalidatorClientMock.Verify(
+            c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestMethod]
     public async Task RunPipelineWithFileReference()
     {
         var resourcesDirectory = Path.Combine("TestData", "Resources");
