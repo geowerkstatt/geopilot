@@ -156,7 +156,7 @@ describe("Admin delivery detail", () => {
             options: [{ id: "canton", title: { de: "Kanton", en: "Canton" } }],
           },
           field("parcel_count", MetadataFieldType.Integer, 12),
-          field("area", MetadataFieldType.Decimal, 12.5),
+          field("area", MetadataFieldType.Decimal, 12.12345),
           field("due_date", MetadataFieldType.Date, "2026-11-04"),
           field("empty_field", MetadataFieldType.Text, null),
         ],
@@ -167,7 +167,9 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-metadata-municipalities").should("contain", "Aarau, Buchs");
     cy.dataCy("summary-metadata-responsible").should("contain", "Canton");
     cy.dataCy("summary-metadata-parcel_count").should("contain", "12");
-    cy.dataCy("summary-metadata-area").should("contain", "12.5");
+    // The number shows in the locale of the browser, with every decimal it was delivered with.
+    const decimalSeparator = (1.5).toLocaleString().charAt(1);
+    cy.dataCy("summary-metadata-area").should("contain", `12${decimalSeparator}12345`);
     cy.dataCy("summary-metadata-due_date").should("contain", new Date(2026, 10, 4).toLocaleDateString());
     cy.dataCy("summary-metadata-empty_field").should("not.exist");
   });

@@ -29,7 +29,8 @@ export const formatMetadataValue = (
     }
     case MetadataFieldType.Integer:
     case MetadataFieldType.Decimal:
-      return isNumber(value) ? value.toLocaleString() : undefined;
+      // Without the option, the browser rounds to three decimals and the page would not show the delivered value.
+      return isNumber(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 20 }) : undefined;
     case MetadataFieldType.Date:
       return isString(value) ? formatDate(value) : undefined;
     default:
