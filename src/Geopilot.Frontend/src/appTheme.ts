@@ -219,9 +219,13 @@ export const geopilotTheme = createTheme({
           "&.MuiButton-outlined": {
             backgroundColor: themePalette.primary.contrast,
           },
-          "&.MuiButton-outlined:hover": {
+          "&.MuiButton-outlinedPrimary:hover": {
             backgroundColor: themePalette.primary.states.hover,
             borderColor: themePalette.primary.main,
+          },
+          "&.MuiButton-outlinedError:hover": {
+            backgroundColor: themePalette.error.hover,
+            borderColor: themePalette.error.main,
           },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
