@@ -35,6 +35,8 @@ Wie die Dateien hereinkommen, hängt davon ab, wo die Installation ihre Uploads 
 
 Wer die falsche Route wählt, erhält `400` mit dem Hinweis auf die richtige. Ein Client wird einmal pro Installation eingerichtet und kennt danach seine Form, so wie er auch seinen Mandatsschlüssel kennt.
 
+In beiden Formen gilt dieselbe Regel für Dateinamen. Ein Name darf keine Steuer- oder unsichtbaren Formatzeichen enthalten, keines der Zeichen `\ / : * ? " < > |` und kein `..`. Er darf nicht mit einem Leerzeichen beginnen oder enden und nicht mit einem Punkt enden. geopilot benennt einen solchen Namen nicht um, sondern weist ihn mit `400` ab. Bei der Variante mit vorherigem Upload geschieht das schon bei `POST api/v2/upload`.
+
 Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je eine der beiden Formen von Anfang bis Ende fahren, vom Token bis zum Endstatus. Sie eignen sich als Startpunkt für einen eigenen Client.
 
 ### Variante mit vorherigem Upload
@@ -67,7 +69,7 @@ curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -F "file=@lieferung.xtf"
 ```
 
-**Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt. Die OpenAPI-Beschreibung der Installation (`/swagger/all/swagger.json`) führt diese Form als `multipart/form-data`-Body der Route, mit denselben Feldern und den Dateien.
+**Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt, der die Regel für Dateinamen einhält. Die OpenAPI-Beschreibung der Installation (`/swagger/all/swagger.json`) führt diese Form als `multipart/form-data`-Body der Route, mit denselben Feldern und den Dateien.
 
 Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment`; ein längeres Feld wird mit `400` abgewiesen.
 
@@ -138,7 +140,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | Code | Wann |
 | --- | --- |
 | `202` | Der Versuch ist angenommen und läuft. |
-| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
+| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |

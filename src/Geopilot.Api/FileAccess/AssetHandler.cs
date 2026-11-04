@@ -97,7 +97,7 @@ public class AssetHandler : IAssetHandler
                 assets.Add(new Asset()
                 {
                     AssetType = persisted.FromUpload ? AssetType.PrimaryData : AssetType.ProcessedData,
-                    OriginalFilename = persisted.OriginalFileName,
+                    OriginalFilename = persisted.PersistedFileName,
                     SanitizedFilename = persisted.PersistedFileName,
                     FileHash = await SHA256.HashDataAsync(stream, cancellationToken),
                 });

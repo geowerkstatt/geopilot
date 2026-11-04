@@ -30,8 +30,8 @@ public abstract record RunOutcome
     public sealed record ShutDown : RunOutcome;
 
     /// <summary>
-    /// An exception aborted the run: a step's process threw, or persisting the downloads or staging the delivery
-    /// files failed. <paramref name="Reason"/> is the message that goes into the execution protocol.
+    /// An exception aborted the run: a step threw, or persisting the downloads or staging the delivery files failed.
+    /// <paramref name="Reason"/> is the message that goes into the execution protocol.
     /// </summary>
     public sealed record Crashed(string Reason) : RunOutcome;
 }

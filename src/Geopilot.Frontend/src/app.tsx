@@ -10,6 +10,7 @@ import Header from "./components/header/header";
 import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
 import { StepSwipeHandlers } from "./hooks/useStepSwipe";
 import Admin from "./pages/admin/admin";
+import { DeliveryDetail } from "./pages/admin/deliveries/deliveryDetail.tsx";
 import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import MachineClientDetail from "./pages/admin/machineClients/machineClientDetail.tsx";
 import MachineClients from "./pages/admin/machineClients/machineClients.tsx";
@@ -97,6 +98,7 @@ const App: FC = () => {
                       }>
                       <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
                       <Route path="delivery-overview" element={<DeliveryOverview />} />
+                      <Route path="delivery-overview/:id" element={<DeliveryDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />

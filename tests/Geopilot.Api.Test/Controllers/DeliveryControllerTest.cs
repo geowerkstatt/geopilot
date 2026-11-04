@@ -3,14 +3,17 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Globalization;
@@ -29,6 +32,8 @@ public class DeliveryControllerTest
     private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private Mock<IAuthorizationService> authorizationServiceMock;
+    private Mock<IPipelineRunRecorder> recorderMock;
+    private Mock<IPipelineFactory> pipelineFactoryMock;
     private DeliveryController deliveryController;
     private Context context;
 
@@ -46,12 +51,16 @@ public class DeliveryControllerTest
 
         // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
         // moved into it, and mocking it here would leave those rules untested.
-        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object);
         authorizationServiceMock = new Mock<IAuthorizationService>();
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
             .ReturnsAsync(AuthorizationResult.Failed());
-        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object);
+        recorderMock = new Mock<IPipelineRunRecorder>();
+        var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
+        pipelineFactoryMock = new Mock<IPipelineFactory>();
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -588,6 +597,34 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task DeleteEndsTheOpenReactionsAndRecordsHowFarTheyGot()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        deliveryController.SetupTestUser(admin);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(NewReaction(delivery, "ablage", ReactionState.Pending), NewReaction(delivery, "meldung", ReactionState.Done));
+        context.SaveChanges();
+        assetHandlerMock.Setup(h => h.DeleteJobAssets(delivery.JobId));
+
+        Assert.IsInstanceOfType<OkResult>(await deliveryController.Delete(delivery.Id));
+
+        var states = context.DeliveryReactions
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == delivery.Id)
+            .ToDictionary(r => r.ReactionId, r => r.State);
+        Assert.AreEqual(ReactionState.Deleted, states["ablage"]);
+        Assert.AreEqual(ReactionState.Done, states["meldung"], "a reaction that already forwarded the delivery stays done.");
+        recorderMock.Verify(
+            recorder => recorder.RecordDeliveryDeletedAsync(
+                delivery.Id,
+                It.Is<IReadOnlyList<DeliveryReaction>>(reactions => reactions.Count == 2 && reactions.Any(r => r.ReactionId == "ablage" && r.State == ReactionState.Deleted)),
+                admin.Id),
+            Times.Once);
+    }
+
+    [TestMethod]
     public async Task DeleteAsUploader()
     {
         var user = context.Users.First(u => !u.IsAdmin);
@@ -613,6 +650,43 @@ public class DeliveryControllerTest
         Assert.IsNotNull(dbDelivery);
         Assert.IsTrue(dbDelivery.Deleted);
         Assert.IsTrue(dbDelivery.Assets.All(a => a.Deleted));
+    }
+
+    [TestMethod]
+    [DataRow(ReactionState.Pending, 1, DisplayName = "waiting for its next attempt")]
+    [DataRow(ReactionState.Running, 1, DisplayName = "running")]
+    [DataRow(ReactionState.Done, 1, DisplayName = "done")]
+    [DataRow(ReactionState.Error, 3, DisplayName = "given up")]
+    public async Task DeleteAsUploaderFailsOnceAReactionHasStarted(ReactionState state, int attempts)
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.Add(NewReaction(delivery, "ablage", state, attempts: attempts));
+        context.SaveChanges();
+
+        var result = await deliveryController.Delete(delivery.Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status403Forbidden, result?.StatusCode);
+        AssertNotDeleted(delivery);
+        Assert.AreEqual(state, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsUploaderEndsAReactionThatStillWaitsForTheWindow()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.Add(NewReaction(delivery, "ablage", ReactionState.Pending));
+        context.SaveChanges();
+        assetHandlerMock.Setup(h => h.DeleteJobAssets(delivery.JobId));
+
+        Assert.IsInstanceOfType<OkResult>(await deliveryController.Delete(delivery.Id));
+
+        Assert.AreEqual(ReactionState.Deleted, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
     }
 
     [TestMethod]
@@ -703,8 +777,7 @@ public class DeliveryControllerTest
         };
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
-        var delivery = new Delivery { Date = deliveryDate };
-        Assert.AreEqual(expected, deliveryController.IsDeleteAllowedForUploader(delivery, currentDate));
+        Assert.AreEqual(expected, deliveryController.IsDeleteAllowedForUploader(deliveryDate, currentDate));
     }
 
     [TestMethod]
@@ -732,10 +805,34 @@ public class DeliveryControllerTest
         };
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
-        var delivery = new Delivery { Date = deliveryDate };
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, restrictedDate));
-        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, allowedDate));
-        Assert.AreEqual(deliveryDateTimeKind, delivery.Date.Kind);
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(deliveryDate, restrictedDate));
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(deliveryDate, allowedDate));
+    }
+
+    [TestMethod]
+    public void IsDeleteAllowedForUploaderClosesAtLocalMidnight()
+    {
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = true,
+            DeleteRestrictInterval = "0 0 * * *",
+            TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich"),
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        // Midnight in Zurich is 23:00 UTC in winter, an hour before midnight UTC.
+        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
+    }
+
+    [TestMethod]
+    public void IsDeleteAllowedForUploaderStaysDisabledBeforeTheDeclaration()
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = false });
+
+        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, declaredAt.AddMinutes(-1)));
     }
 
     [TestMethod]
@@ -777,6 +874,45 @@ public class DeliveryControllerTest
         assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
+    [TestMethod]
+    [DataRow(ReactionState.Pending, false, DisplayName = "Transfer pending, anonymous")]
+    [DataRow(ReactionState.Pending, true, DisplayName = "Transfer pending, administrator")]
+    [DataRow(ReactionState.Running, true, DisplayName = "Transfer running, administrator")]
+    [DataRow(ReactionState.Error, true, DisplayName = "Transfer failed, administrator")]
+    public async Task DownloadOfADeliveryThatIsNotForwardedIsNotFound(ReactionState transferState, bool asAdmin)
+    {
+        if (asAdmin)
+        {
+            authorizationServiceMock
+                .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
+                .ReturnsAsync(AuthorizationResult.Success());
+        }
+
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        context.DeliveryReactions.Add(NewReaction(delivery, "drop", transferState));
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DownloadOfAForwardedDeliveryDoesNotWaitForItsNotifications()
+    {
+        assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "drop", ReactionState.Done),
+            NewReaction(delivery, "mail", ReactionState.Pending, ReactionKind.Notification));
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
+
+        Assert.AreEqual("Test.xml", result?.FileDownloadName);
+    }
+
     private Delivery CreateDeliveryWithAsset(Mandate mandate)
     {
         var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First() };
@@ -802,10 +938,212 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(admin);
 
         var response = (await deliveryController.Get()) as ObjectResult;
-        var list = response?.Value as List<Delivery>;
+        var list = response?.Value as List<DeliveryResponse>;
 
         Assert.IsNotNull(list);
         Assert.HasCount(context.Deliveries.Count(), list);
+    }
+
+    [TestMethod]
+    public async Task GetListsEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var declarer = context.Users.First(u => !u.IsAdmin);
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
+        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
+        var failed = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringClient = client };
+        var withoutReactions = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
+        context.Deliveries.AddRange(forwarded, failed, withoutReactions);
+        context.DeliveryReactions.AddRange(
+            NewReaction(forwarded, "ablage", ReactionState.Done),
+            NewReaction(forwarded, "meldung", ReactionState.Pending, ReactionKind.Notification),
+            NewReaction(failed, "ablage", ReactionState.Error),
+            NewReaction(failed, "archiv", ReactionState.Pending));
+        context.SaveChanges();
+
+        var list = ((await deliveryController.Get()) as ObjectResult)?.Value as List<DeliveryResponse>;
+
+        Assert.IsNotNull(list);
+        var byId = list.ToDictionary(d => d.Id);
+        var forwardedResponse = byId[forwarded.Id];
+        Assert.AreEqual(declarer.FullName, forwardedResponse.DeclarerName);
+        Assert.AreEqual(forwarded.Mandate.Id, forwardedResponse.Mandate.Id);
+        Assert.AreEqual(ReactionState.Done, forwardedResponse.ForwardingState, "a notification does not hold up the forwarding.");
+        Assert.AreEqual(ReactionState.Pending, forwardedResponse.NotificationState);
+        Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeclarerName);
+        Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
+        Assert.IsNull(byId[failed.Id].NotificationState, "a delivery without notifications has none to sum up.");
+        Assert.IsNull(byId[withoutReactions.Id].ForwardingState);
+        Assert.IsNull(byId[withoutReactions.Id].NotificationState);
+    }
+
+    [TestMethod]
+    public async Task GetByIdNamesTheReactionsAfterTheDefinition()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns(
+        [
+            new ReactionSetConfig
+            {
+                Id = "kanton_a",
+                DisplayName = TestHelpers.Localized("Kanton A"),
+                Transfers = [new ReactionConfig { Id = "ablage", DisplayName = TestHelpers.Localized("Ablage"), ChannelId = "ablage" }],
+                Notifications = [new ReactionConfig { Id = "meldung", DisplayName = TestHelpers.Localized("Info-Mail"), ChannelId = "mail" }],
+            },
+        ]);
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "ablage", ReactionState.Done),
+            NewReaction(delivery, "meldung", ReactionState.Done, ReactionKind.Notification),
+            NewReaction(delivery, "entfernt", ReactionState.Done));
+        context.SaveChanges();
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        var reactions = detail?.Reactions;
+        Assert.IsNotNull(reactions);
+        Assert.AreEqual(TestHelpers.Localized("Ablage"), reactions[0].DisplayName);
+        Assert.AreEqual(TestHelpers.Localized("Info-Mail"), reactions[1].DisplayName);
+        Assert.IsNull(reactions[2].DisplayName, "a reaction the definition no longer has is shown by its id only.");
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Unknown delivery")]
+    [DataRow(true, DisplayName = "Deleted delivery")]
+    public async Task ResetReactionOfADeliveryThatDoesNotExistIsNotFound(bool deleted)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error));
+        delivery.Deleted = deleted;
+        context.SaveChanges();
+        var deliveryId = deleted ? delivery.Id : context.Deliveries.IgnoreQueryFilters().Max(d => d.Id) + 1;
+
+        var result = await deliveryController.ResetReaction(deliveryId, "ablage") as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        Assert.AreEqual(ReactionState.Error, context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().Single(r => r.DeliveryId == delivery.Id).State);
+        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionMakesOnlyThatReactionDueAgain()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        deliveryController.SetupTestUser(admin);
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error), ("archiv", ReactionState.Error));
+
+        Assert.IsInstanceOfType<NoContentResult>(await deliveryController.ResetReaction(delivery.Id, "ablage"));
+
+        var states = context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == delivery.Id)
+            .ToDictionary(r => r.ReactionId, r => r.State);
+        Assert.AreEqual(ReactionState.Pending, states["ablage"]);
+        Assert.AreEqual(ReactionState.Error, states["archiv"]);
+        recorderMock.Verify(
+            recorder => recorder.RecordReactionsResetAsync(
+                delivery.Id,
+                It.Is<IReadOnlyList<DeliveryReaction>>(reactions => reactions.Count == 1 && reactions[0].ReactionId == "ablage"),
+                admin.Id),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionThatHasNotFailedIsAConflict()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Done), ("archiv", ReactionState.Error));
+
+        var result = await deliveryController.ResetReaction(delivery.Id, "ablage") as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status409Conflict, result?.StatusCode);
+        Assert.AreEqual(ReactionState.Error, context.DeliveryReactions.AsNoTracking().Single(r => r.DeliveryId == delivery.Id && r.ReactionId == "archiv").State, "another failed reaction stays as it is.");
+        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task ResetReactionThatTheDeliveryDoesNotHaveIsNotFound()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Error));
+
+        var result = await deliveryController.ResetReaction(delivery.Id, "archiv") as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        recorderMock.Verify(recorder => recorder.RecordReactionsResetAsync(It.IsAny<int>(), It.IsAny<IReadOnlyList<DeliveryReaction>>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task GetByIdShowsWhatWasDelivered()
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var declarer = context.Users.First(u => !u.IsAdmin);
+        var precursor = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer, PrecursorDelivery = precursor, Partial = true, Comment = "zweite Lieferung" };
+        delivery.Assets.Add(new Asset { OriginalFilename = "Strassen 2026.xtf", SanitizedFilename = "Strassen_2026.xtf" });
+        delivery.Assets.Add(new Asset { OriginalFilename = "errorLog.log", SanitizedFilename = "errorLog.log" });
+        context.Deliveries.AddRange(precursor, delivery);
+        context.DeliveryReactions.AddRange(
+            NewReaction(delivery, "ablage", ReactionState.Done),
+            NewReaction(delivery, "meldung", ReactionState.Pending, ReactionKind.Notification));
+        context.SaveChanges();
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.AreEqual(declarer.FullName, detail.DeclarerName);
+        Assert.AreEqual(delivery.Mandate.Id, detail.Mandate.Id);
+        Assert.AreEqual(precursor.Id, detail.PrecursorDelivery?.Id);
+        Assert.IsTrue(detail.Partial);
+        Assert.AreEqual(delivery.JobId, detail.JobId);
+        CollectionAssert.AreEqual(new[] { "Strassen 2026.xtf", "errorLog.log" }, detail.Files.Select(f => f.FileName).ToArray());
+        CollectionAssert.AreEqual(delivery.Assets.Select(a => a.Id).ToArray(), detail.Files.Select(f => f.Id).ToArray());
+        Assert.AreEqual("zweite Lieferung", detail.Comment);
+        Assert.AreEqual(new StacItemReference($"coll_{delivery.Mandate.Id}", $"item_{delivery.Id}"), detail.StacItem, "a waiting notification does not keep a forwarded delivery out of the catalog.");
+        CollectionAssert.AreEqual(new[] { "ablage", "meldung" }, detail.Reactions.Select(r => r.ReactionId).ToArray());
+        Assert.IsNull(detail.Reactions[0].NextAttemptAt, "a reaction that is done has no next attempt.");
+        Assert.IsNotNull(detail.Reactions[1].NextAttemptAt);
+    }
+
+    [TestMethod]
+    [DataRow(ReactionState.Pending)]
+    [DataRow(ReactionState.Error)]
+    public async Task GetByIdLinksNoStacItemBeforeTheDeliveryIsForwarded(ReactionState transferState)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions(("ablage", ReactionState.Done), ("archiv", transferState));
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.IsNull(detail.StacItem);
+        Assert.IsNull(detail.PrecursorDelivery);
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "Unknown delivery")]
+    [DataRow(true, DisplayName = "Deleted delivery")]
+    public async Task GetByIdOfADeliveryThatDoesNotExistIsNotFound(bool deleted)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions();
+        delivery.Deleted = deleted;
+        context.SaveChanges();
+        var deliveryId = deleted ? delivery.Id : context.Deliveries.IgnoreQueryFilters().Max(d => d.Id) + 1;
+
+        var result = await deliveryController.GetById(deliveryId) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+    }
+
+    private Delivery AddDeliveryWithReactions(params (string ReactionId, ReactionState State)[] reactions)
+    {
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(reactions.Select(reaction => NewReaction(delivery, reaction.ReactionId, reaction.State)));
+        context.SaveChanges();
+        return delivery;
     }
 
     [TestMethod]
@@ -849,18 +1187,73 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetUploadsReturnsDeliveriesOfUser()
+    public async Task GetUploadsReturnsDeliveriesOfUserInTheOrderTheyWereDeclared()
     {
-        var user = context.Users.First(u => !u.IsAdmin);
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
         deliveryController.SetupTestUser(user);
+
+        // An update moves the row within the table, so the database no longer returns the deliveries in id order by chance.
+        var first = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        first.Comment += " (edited)";
+        context.SaveChanges();
 
         var response = (await deliveryController.GetUploads()) as ObjectResult;
 
-        var deliveries = Assert.IsInstanceOfType<List<Delivery>>(response?.Value);
-        CollectionAssert.AllItemsAreUnique(deliveries);
-        Assert.IsTrue(deliveries.All(d => d.DeclaringUserId == user.Id), "All deliveries should belong to the user.");
-        Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        var expected = context.Deliveries
+            .Include(d => d.Mandate)
+            .Where(d => d.DeclaringUserId == user.Id)
+            .OrderBy(d => d.Id)
+            .AsEnumerable()
+            .Select(d => (d.Id, d.Date, d.Comment, Mandate: new MandateReference(d.Mandate.Id, d.Mandate.Name)))
+            .ToList();
+        CollectionAssert.AreEqual(expected, uploads.Select(u => (u.Id, u.Date, u.Comment, u.Mandate)).ToList());
     }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task GetUploadsReportsWhetherTheUploaderMayDelete(bool enabled)
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = enabled });
+        deliveryController.SetupTestUser(UserWithDeliveries());
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.IsNotEmpty(uploads);
+        Assert.IsTrue(uploads.All(upload => upload.CanDelete == enabled));
+    }
+
+    [TestMethod]
+    public async Task GetUploadsReportsThatADeliveryWhoseForwardingBeganCannotBeDeleted()
+    {
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
+        deliveryController.SetupTestUser(user);
+        var forwarded = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        context.DeliveryReactions.Add(NewReaction(forwarded, "ablage", ReactionState.Done, attempts: 1));
+        context.SaveChanges();
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.IsFalse(uploads.Single(upload => upload.Id == forwarded.Id).CanDelete);
+        Assert.IsTrue(uploads.Where(upload => upload.Id != forwarded.Id).All(upload => upload.CanDelete));
+    }
+
+    private User UserWithDeliveries()
+        => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
+
+    private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state, ReactionKind kind = ReactionKind.Transfer, int attempts = 0) => new()
+    {
+        Delivery = delivery,
+        ReactionId = reactionId,
+        Kind = kind,
+        Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+        State = state,
+        Attempts = attempts,
+        NextAttemptAt = DateTime.UtcNow,
+    };
 
     private void AssertNotDeleted(Delivery delivery)
     {

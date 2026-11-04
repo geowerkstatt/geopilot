@@ -63,6 +63,11 @@ internal static class RawValueConverter
             return true;
         }
 
+        // A value read back from JSON, such as the snapshot of a delivery reaction, holds its texts as JsonElement;
+        // they bind like the YAML texts they were.
+        if (rawValue is JsonElement { ValueKind: JsonValueKind.String } text)
+            rawValue = text.GetString();
+
         if (rawValue is string s)
         {
             if (effectiveTargetType == typeof(string))

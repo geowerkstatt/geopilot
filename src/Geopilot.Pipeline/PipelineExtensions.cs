@@ -34,18 +34,21 @@ internal static class PipelineExtensions
 
     /// <summary>
     /// Validates a pipeline definition against its validation attributes. The base configuration of the
-    /// processes (appsettings <c>Pipeline:ProcessConfigs</c>) is part of the input because the definition
-    /// alone does not decide validity: a key the base configuration pins must not be set by the
-    /// definition. Passing none skips that rule, which is what a caller without a hosting layer wants.
+    /// processes and channels (appsettings <c>Pipeline:ProcessConfigs</c> and <c>Pipeline:ChannelConfigs</c>)
+    /// is part of the input because the definition alone does not decide validity: a key the base
+    /// configuration pins must not be set by the definition. Passing none skips that rule, which is what a
+    /// caller without a hosting layer wants.
     /// </summary>
     internal static PipelineValidationErrors Validate(
         this PipelineProcessConfig pipelineProcessConfig,
-        IReadOnlyDictionary<string, Parameterization>? processBaseConfigs = null)
+        IReadOnlyDictionary<string, Parameterization>? processBaseConfigs = null,
+        IReadOnlyDictionary<string, Parameterization>? channelBaseConfigs = null)
     {
         PipelineValidationErrors validationResults = new PipelineValidationErrors();
         var validationItems = new Dictionary<object, object?>
         {
             [NoBaseConfigOverwriteAttribute.BaseConfigsKey] = processBaseConfigs,
+            [NoChannelBaseConfigOverwriteAttribute.BaseConfigsKey] = channelBaseConfigs,
         };
 
         ValidateRecursive(pipelineProcessConfig, validationResults, validationItems);
