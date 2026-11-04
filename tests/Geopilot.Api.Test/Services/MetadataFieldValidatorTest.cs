@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.PipelineCore.Pipeline;
+using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -155,6 +156,92 @@ public class MetadataFieldValidatorTest
 
         Assert.IsEmpty(MetadataFieldValidator.ValidateDefinitions([Field("a", localizedTitle: both), Field("b", localizedTitle: germanOnly)]));
     }
+
+    [TestMethod]
+    public void StoresEveryValueInItsNormalizedForm()
+    {
+        var values = Values("""{ "project_number": " 2026-117 ", "municipalities": [" Aarau ", "", "Buchs"], "responsible": "canton", "parcel_count": 12, "area": 12.5, "due_date": "2026-11-04" }""");
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        Assert.IsEmpty(check.Errors);
+        CollectionAssert.AreEqual(
+            new[] { "\"2026-117\"", "[\"Aarau\",\"Buchs\"]", "\"canton\"", "12", "12.5", "\"2026-11-04\"" },
+            check.Snapshot.Select(field => field.Value!.Value.GetRawText()).ToArray());
+        Assert.HasCount(2, check.Snapshot[2].Options!);
+    }
+
+    [TestMethod]
+    [DataRow("project_number", "12")]
+    [DataRow("municipalities", "\"Aarau, Buchs\"")]
+    [DataRow("municipalities", "[\"Aarau\", 1]")]
+    [DataRow("responsible", "\"Kanton\"")]
+    [DataRow("parcel_count", "12.5")]
+    [DataRow("parcel_count", "\"12\"")]
+    [DataRow("parcel_count", "12.0")]
+    [DataRow("area", "\"12.5\"")]
+    [DataRow("due_date", "\"04.11.2026\"")]
+    [DataRow("due_date", "\"2026-02-30\"")]
+    [DataRow("due_date", "\"2026-11-04T10:00\"")]
+    public void RefusesAValueOfTheWrongType(string id, string json)
+    {
+        var values = Values("""{ "project_number": "x", "responsible": "canton" }""");
+        values[id] = JsonDocument.Parse(json).RootElement.Clone();
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        CollectionAssert.AreEqual(new[] { $"metadata.{id}" }, check.Errors.Keys.ToArray());
+    }
+
+    [TestMethod]
+    [DataRow("null")]
+    [DataRow("\"\"")]
+    [DataRow("\"  \"")]
+    [DataRow("[]")]
+    [DataRow("[\"\", \" \"]")]
+    public void TreatsBlankValuesAsNotFilledIn(string json)
+    {
+        var values = Values("""{ "responsible": "canton" }""");
+        values["municipalities"] = JsonDocument.Parse(json).RootElement.Clone();
+        values["project_number"] = JsonDocument.Parse(json).RootElement.Clone();
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        CollectionAssert.AreEqual(new[] { "metadata.project_number" }, check.Errors.Keys.ToArray());
+        Assert.IsNull(check.Snapshot[1].Value);
+    }
+
+    [TestMethod]
+    public void RefusesAnUnknownId()
+    {
+        var values = Values("""{ "project_number": "x", "responsible": "canton", "colour": "red" }""");
+
+        var check = MetadataFieldValidator.CheckValues(ValueFields(), values);
+
+        CollectionAssert.AreEqual(new[] { "metadata.colour" }, check.Errors.Keys.ToArray());
+    }
+
+    [TestMethod]
+    public void AcceptsNoValuesWithoutFields()
+    {
+        var check = MetadataFieldValidator.CheckValues([], null);
+
+        Assert.IsEmpty(check.Errors);
+        Assert.IsEmpty(check.Snapshot);
+    }
+
+    private static Dictionary<string, JsonElement> Values(string json)
+        => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)!;
+
+    private static List<MetadataField> ValueFields() =>
+    [
+        Field("project_number", MetadataFieldType.Text, FieldEvaluationType.Required),
+        Field("municipalities", MetadataFieldType.TextList),
+        Field("responsible", MetadataFieldType.Selection, FieldEvaluationType.Required, options: [Option("canton"), Option("municipality")]),
+        Field("parcel_count", MetadataFieldType.WholeNumber),
+        Field("area", MetadataFieldType.DecimalNumber),
+        Field("due_date", MetadataFieldType.Date),
+    ];
 
     private static MetadataField Field(
         string id,
