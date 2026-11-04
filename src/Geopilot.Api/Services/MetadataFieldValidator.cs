@@ -11,6 +11,8 @@ namespace Geopilot.Api.Services;
 /// </summary>
 public static partial class MetadataFieldValidator
 {
+    private const string IdRule = "The id must start with a lowercase letter followed by up to 63 lowercase letters, digits or underscores; constructor and prototype are reserved.";
+
     /// <summary>
     /// The problems of the definitions, one English message each, naming the field by position (1-based) and id;
     /// empty when they can be saved.
@@ -28,9 +30,9 @@ public static partial class MetadataFieldValidator
             var field = fields[index];
             var label = $"Metadata field {index + 1} <{field.Id}>";
 
-            if (!IdPattern().IsMatch(field.Id ?? string.Empty))
-                problems.Add($"{label}: The id must start with a lowercase letter followed by up to 63 lowercase letters, digits or underscores.");
-            else if (!seenIds.Add(field.Id!))
+            if (field.Id is not { } id || !IdPattern().IsMatch(id))
+                problems.Add($"{label}: {IdRule}");
+            else if (!seenIds.Add(id))
                 problems.Add($"{label}: The id is used by another field.");
 
             var displayTitle = field.Title?.GetDisplayText() ?? string.Empty;
@@ -178,7 +180,9 @@ public static partial class MetadataFieldValidator
         return entries.Length == 0 ? null : JsonSerializer.SerializeToElement(entries);
     }
 
-    [GeneratedRegex(@"^[a-z][a-z0-9_]{0,63}\z")]
+    // An id is a path segment in the delivery form: react-hook-form reads a leading digit as an array index and refuses
+    // constructor and prototype.
+    [GeneratedRegex(@"^(?!(?:constructor|prototype)\z)[a-z][a-z0-9_]{0,63}\z")]
     private static partial Regex IdPattern();
 
     private static IEnumerable<string> ValidateOptions(MetadataField field, string label)
@@ -201,9 +205,9 @@ public static partial class MetadataFieldValidator
             var option = options[index];
             var optionLabel = $"{label}, option {index + 1} <{option.Id}>";
 
-            if (!IdPattern().IsMatch(option.Id ?? string.Empty))
-                yield return $"{optionLabel}: The id must start with a lowercase letter followed by up to 63 lowercase letters, digits or underscores.";
-            else if (!seenOptionIds.Add(option.Id!))
+            if (option.Id is not { } id || !IdPattern().IsMatch(id))
+                yield return $"{optionLabel}: {IdRule}";
+            else if (!seenOptionIds.Add(id))
                 yield return $"{optionLabel}: The id is used by another option of this field.";
 
             if (option.Title is null || option.Title.GetDisplayText().Length == 0)

@@ -1044,7 +1044,7 @@ describe("Mandate with metadata fields", () => {
     });
   });
 
-  it("refuses an id that does not start with a letter", () => {
+  it("refuses an id that does not start with a letter or is reserved", () => {
     openMandateWith([]);
 
     cy.dataCy("addMetadataField-button").click();
@@ -1054,6 +1054,13 @@ describe("Mandate with metadata fields", () => {
 
     setInput("metadataFields.0.id", "abc1");
     hasError("metadataFields.0.id", false);
+
+    // react-hook-form refuses the word as a path segment, so the delivery form could not hold its value.
+    setInput("metadataFields.0.id", "constructor");
+    hasError("metadataFields.0.id");
+    cy.dataCy("metadataFields.0.id-formInput")
+      .find(".MuiFormHelperText-root")
+      .should("contain", "constructor and prototype are reserved");
   });
 
   it("refuses a field id or an option id that is already taken", () => {

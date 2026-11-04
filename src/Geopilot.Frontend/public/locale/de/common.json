@@ -182,7 +182,7 @@
   "metadataFieldTypeTextList": "Liste von Texten",
   "metadataFields": "Weitere Felder",
   "metadataIdDuplicate": "Diese ID kommt schon vor",
-  "metadataIdInvalid": "Kleinbuchstaben, Ziffern und _, beginnt mit einem Buchstaben, höchstens 64 Zeichen",
+  "metadataIdInvalid": "Kleinbuchstaben, Ziffern und _, beginnt mit einem Buchstaben, höchstens 64 Zeichen (constructor und prototype sind reserviert)",
   "metadataOptionsRequired": "Eine Auswahl braucht mindestens eine Option",
   "metadataWholeNumber": "Eine Zahl ohne Nachkommastellen",
   "myDeliveries": "Meine Lieferungen",

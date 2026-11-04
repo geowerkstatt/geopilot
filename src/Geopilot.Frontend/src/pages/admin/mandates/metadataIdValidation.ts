@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 
-// The rule of the server. An id that starts with a digit would read as an array index in the delivery form.
-const metadataIdPattern = /^[a-z][a-z0-9_]{0,63}$/;
+// The rule of the server. An id is a path segment in the delivery form: react-hook-form reads a leading digit as an
+// array index and refuses constructor and prototype.
+const metadataIdPattern = /^(?!(?:constructor|prototype)$)[a-z][a-z0-9_]{0,63}$/;
 
 /** Checks the id of a metadata field or option against the pattern and against its siblings, the entry included. */
 export const validateMetadataId = (id: string, siblings: { id: string }[] | null | undefined): string | boolean => {

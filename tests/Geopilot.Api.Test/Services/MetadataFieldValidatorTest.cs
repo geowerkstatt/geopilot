@@ -30,6 +30,8 @@ public class MetadataFieldValidatorTest
     [DataRow("1e3")]
     [DataRow("_x")]
     [DataRow("project-number")]
+    [DataRow("constructor")]
+    [DataRow("prototype")]
     public void RefusesAnIdOutsideThePattern(string id)
     {
         var problems = MetadataFieldValidator.ValidateDefinitions([Field(id)]);
@@ -52,6 +54,7 @@ public class MetadataFieldValidatorTest
     [TestMethod]
     [DataRow("a")]
     [DataRow("project_number_2")]
+    [DataRow("constructor_id")]
     public void AcceptsAnIdInThePattern(string id)
     {
         Assert.IsEmpty(MetadataFieldValidator.ValidateDefinitions([Field(id)]));
@@ -118,11 +121,14 @@ public class MetadataFieldValidatorTest
     {
         var duplicate = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("canton"), Option("canton")])]);
         var invalid = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("Kanton")])]);
+        var reserved = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("prototype")])]);
 
         Assert.HasCount(1, duplicate);
         StringAssert.Contains(duplicate[0], "option 2 <canton>");
         Assert.HasCount(1, invalid);
         StringAssert.Contains(invalid[0], "<Kanton>");
+        Assert.HasCount(1, reserved);
+        StringAssert.Contains(reserved[0], "<prototype>");
     }
 
     [TestMethod]

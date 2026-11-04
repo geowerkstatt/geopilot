@@ -182,7 +182,7 @@
   "metadataFieldTypeTextList": "Liste de textes",
   "metadataFields": "Champs supplémentaires",
   "metadataIdDuplicate": "Cet ID existe déjà",
-  "metadataIdInvalid": "Lettres minuscules, chiffres et _, commence par une lettre, 64 caractères au maximum",
+  "metadataIdInvalid": "Lettres minuscules, chiffres et _, commence par une lettre, 64 caractères au maximum (constructor et prototype sont réservés)",
   "metadataOptionsRequired": "Une sélection nécessite au moins une option",
   "metadataWholeNumber": "Un nombre sans décimales",
   "myDeliveries": "Mes livraisons",

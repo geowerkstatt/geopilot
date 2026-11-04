@@ -182,7 +182,7 @@
   "metadataFieldTypeTextList": "List of texts",
   "metadataFields": "Additional fields",
   "metadataIdDuplicate": "This ID is already in use",
-  "metadataIdInvalid": "Lowercase letters, digits and _, starting with a letter, at most 64 characters",
+  "metadataIdInvalid": "Lowercase letters, digits and _, starting with a letter, at most 64 characters (constructor and prototype are reserved)",
   "metadataOptionsRequired": "A selection needs at least one option",
   "metadataWholeNumber": "A number without decimal places",
   "myDeliveries": "My deliveries",

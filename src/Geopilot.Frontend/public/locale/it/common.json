@@ -182,7 +182,7 @@
   "metadataFieldTypeTextList": "Elenco di testi",
   "metadataFields": "Campi aggiuntivi",
   "metadataIdDuplicate": "Questo ID è già presente",
-  "metadataIdInvalid": "Lettere minuscole, cifre e _, inizia con una lettera, al massimo 64 caratteri",
+  "metadataIdInvalid": "Lettere minuscole, cifre e _, inizia con una lettera, al massimo 64 caratteri (constructor e prototype sono riservati)",
   "metadataOptionsRequired": "Una selezione richiede almeno un'opzione",
   "metadataWholeNumber": "Un numero senza decimali",
   "myDeliveries": "Le mie consegne",
