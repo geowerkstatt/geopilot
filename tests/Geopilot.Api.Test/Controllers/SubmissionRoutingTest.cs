@@ -48,7 +48,7 @@ public class SubmissionRoutingTest
         var form = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("SubmissionMultipartRequest");
         var properties = form.GetProperty("properties");
         CollectionAssert.AreEquivalent(
-            new[] { "mandateKey", "partialDelivery", "precursorDeliveryId", "comment", "file" },
+            new[] { "mandateKey", "partialDelivery", "precursorDeliveryId", "comment", "metadata", "file" },
             properties.EnumerateObject().Select(p => p.Name).ToArray());
         Assert.AreEqual("array", properties.GetProperty("file").GetProperty("type").GetString());
         Assert.AreEqual("binary", properties.GetProperty("file").GetProperty("items").GetProperty("format").GetString());

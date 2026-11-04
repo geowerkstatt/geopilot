@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers;
 
@@ -28,6 +29,7 @@ namespace Geopilot.Api.Controllers;
 public class SubmissionHttpTest
 {
     private const string MandateKey = "HTTPFALCON";
+    private const string MetadataMandateKey = "HTTPFALCONMETA";
     private const string Boundary = "geopilot-http-test-boundary";
 
     /// <summary>
@@ -42,8 +44,6 @@ public class SubmissionHttpTest
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<Context>();
         TestMachineClients.EnsureRegistered(context);
-        if (context.Mandates.Any(m => m.Key == MandateKey))
-            return;
 
         // Delivering takes a member of the mandate's organisation, so both callers the tests sign in as belong to
         // it. Committed rather than rolled back, because each host reads it through its own connection.
@@ -53,19 +53,114 @@ public class SubmissionHttpTest
             Users = context.Users.Where(u => u.AuthIdentifier == JwtTestTokenBuilder.UserSub).ToList(),
             MachineClients = context.MachineClients.Where(c => c.AuthIdentifier == JwtTestTokenBuilder.ClientSub).ToList(),
         };
-        context.Mandates.Add(new Mandate
+        if (!context.Mandates.Any(m => m.Key == MandateKey))
+            context.Mandates.Add(CreateMandate(MandateKey, organisation, []));
+
+        if (!context.Mandates.Any(m => m.Key == MetadataMandateKey))
         {
-            Name = TestHelpers.Localized(nameof(SubmissionHttpTest)),
-            Key = MandateKey,
-            Organisations = [organisation],
-            AllowDelivery = true,
-            PipelineId = "ili_validation",
-            FileTypes = [".xtf"],
-            EvaluateComment = FieldEvaluationType.NotEvaluated,
-            EvaluatePartial = FieldEvaluationType.NotEvaluated,
-            EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
-        });
+            context.Mandates.Add(CreateMandate(
+                MetadataMandateKey,
+                organisation,
+                [new MetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Required)]));
+        }
+
         context.SaveChanges();
+    }
+
+    private static Mandate CreateMandate(string key, Organisation organisation, List<MetadataField> metadataFields) => new()
+    {
+        Name = TestHelpers.Localized(nameof(SubmissionHttpTest)),
+        Key = key,
+        Organisations = [organisation],
+        AllowDelivery = true,
+        PipelineId = "ili_validation",
+        FileTypes = [".xtf"],
+        EvaluateComment = FieldEvaluationType.NotEvaluated,
+        EvaluatePartial = FieldEvaluationType.NotEvaluated,
+        EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+        MetadataFields = metadataFields,
+    };
+
+    [TestMethod]
+    public async Task RefusesASubmissionWithoutARequiredMetadataField()
+    {
+        using var installation = new MachineDeliveryTestApp(backend: UploadBackend.Cloud);
+        using var client = CreateAuthenticatedClient(installation);
+        var uploadId = await InitiateUploadAsync(client);
+        using var body = JsonContent.Create(new { mandateKey = MetadataMandateKey, uploadId });
+
+        var response = await client.PostAsync("/api/v1/submission", body);
+
+        await AssertBadRequestWithErrorAsync(response, "metadata.project_number");
+    }
+
+    [TestMethod]
+    public async Task AcceptsMetadataInAJsonBody()
+    {
+        using var installation = new MachineDeliveryTestApp(backend: UploadBackend.Cloud);
+        using var client = CreateAuthenticatedClient(installation);
+        var uploadId = await InitiateUploadAsync(client);
+        using var body = JsonContent.Create(new { mandateKey = MetadataMandateKey, uploadId, metadata = new { project_number = "2026-117" } });
+
+        var response = await client.PostAsync("/api/v1/submission", body);
+
+        Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode, "The metadata of the JSON body has to reach the check against the mandate.");
+    }
+
+    [TestMethod]
+    public async Task AcceptsMetadataAsAFormFieldBeforeTheFiles()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation);
+        using var content = MultipartBody(MetadataMandateKey, "data.xtf", Payload(16), ("metadata", "{\"project_number\":\"2026-117\"}"));
+
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
+
+        Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task RefusesAMultipartSubmissionWithoutARequiredMetadataField()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation);
+        using var content = MultipartBody(MetadataMandateKey, "data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
+
+        await AssertBadRequestWithErrorAsync(response, "metadata.project_number");
+    }
+
+    [TestMethod]
+    [DataRow("1")]
+    [DataRow("[]")]
+    [DataRow("{\"project_number\":")]
+    public async Task RefusesAMetadataFormFieldThatIsNoJsonObject(string metadata)
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation);
+        using var content = MultipartBody(MetadataMandateKey, "data.xtf", Payload(16), ("metadata", metadata));
+
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
+
+        await AssertBadRequestWithErrorAsync(response, "metadata");
+    }
+
+    private static async Task<Guid> InitiateUploadAsync(HttpClient client)
+    {
+        using var initiate = JsonContent.Create(new { files = new[] { new { fileName = "data.xtf", size = 16 } } });
+        var upload = await client.PostAsync("/api/v2/upload", initiate);
+        Assert.AreEqual(HttpStatusCode.Created, upload.StatusCode);
+        return (await upload.Content.ReadFromJsonAsync<InitiateUploadResponse>())!.UploadId;
+    }
+
+    private static async Task AssertBadRequestWithErrorAsync(HttpResponseMessage response, string errorKey)
+    {
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.IsTrue(
+            problem.RootElement.GetProperty("errors").TryGetProperty(errorKey, out _),
+            $"The errors have to name <{errorKey}>.");
     }
 
     [TestMethod]
@@ -274,9 +369,9 @@ public class SubmissionHttpTest
 
     private static byte[] Payload(int size) => Encoding.UTF8.GetBytes(new string('x', size));
 
-    private static ByteArrayContent MultipartBody(string mandateKey, string fileName, byte[] fileContent)
+    private static ByteArrayContent MultipartBody(string mandateKey, string fileName, byte[] fileContent, params (string Name, string Value)[] fields)
     {
-        var body = BuildMultipart(mandateKey, fileName, fileContent);
+        var body = BuildMultipart(mandateKey, fileName, fileContent, fields);
         return AsMultipart(body, body.Length);
     }
 
@@ -291,19 +386,25 @@ public class SubmissionHttpTest
     /// Builds the form by hand, because the order of the parts is part of the contract: the fields come before
     /// the files so a wrong mandate is refused before any file content is read.
     /// </summary>
-    private static byte[] BuildMultipart(string mandateKey, string fileName, byte[] fileContent)
+    private static byte[] BuildMultipart(string mandateKey, string fileName, byte[] fileContent, params (string Name, string Value)[] fields)
     {
         var head = new StringBuilder()
             .Append(CultureInfo.InvariantCulture, $"--{Boundary}\r\n")
             .Append("Content-Disposition: form-data; name=\"mandateKey\"\r\n\r\n")
-            .Append(CultureInfo.InvariantCulture, $"{mandateKey}\r\n")
-            .Append(CultureInfo.InvariantCulture, $"--{Boundary}\r\n")
+            .Append(CultureInfo.InvariantCulture, $"{mandateKey}\r\n");
+        foreach (var (name, value) in fields)
+        {
+            head.Append(CultureInfo.InvariantCulture, $"--{Boundary}\r\n")
+                .Append(CultureInfo.InvariantCulture, $"Content-Disposition: form-data; name=\"{name}\"\r\n\r\n")
+                .Append(CultureInfo.InvariantCulture, $"{value}\r\n");
+        }
+
+        head.Append(CultureInfo.InvariantCulture, $"--{Boundary}\r\n")
             .Append(CultureInfo.InvariantCulture, $"Content-Disposition: form-data; name=\"file\"; filename=\"{fileName}\"\r\n")
-            .Append("Content-Type: application/octet-stream\r\n\r\n")
-            .ToString();
+            .Append("Content-Type: application/octet-stream\r\n\r\n");
 
         using var buffer = new MemoryStream();
-        var headBytes = Encoding.UTF8.GetBytes(head);
+        var headBytes = Encoding.UTF8.GetBytes(head.ToString());
         buffer.Write(headBytes, 0, headBytes.Length);
         buffer.Write(fileContent, 0, fileContent.Length);
         var tailBytes = Encoding.UTF8.GetBytes($"\r\n--{Boundary}--\r\n");

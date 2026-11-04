@@ -51,27 +51,33 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
   "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
   "comment": "Nachlieferung Perimeter Nord",
   "partialDelivery": false,
-  "precursorDeliveryId": 42
+  "precursorDeliveryId": 42,
+  "metadata": { "project_number": "2026-117", "responsible": "canton" }
 }
 ```
 
 `mandateKey` und `uploadId` sind Pflicht. Ob `comment`, `partialDelivery` und `precursorDeliveryId` verboten, erlaubt oder Pflicht sind, legt das Mandat fest.
 
+`metadata` trägt die Werte der zusätzlichen Felder, die das Mandat vorsieht. Es ist ein Objekt mit der Id des Felds als Schlüssel. Das Wertformat hängt vom Typ des Felds ab: Text und Datum (`2026-11-04`) sind Strings, eine Textliste ist ein Array von Strings, eine Auswahl nennt die Id der gewählten Option, eine Ganzzahl und eine Dezimalzahl sind JSON-Zahlen. Als nicht ausgefüllt gilt ein fehlender Schlüssel, `null`, ein leerer oder nur aus Leerzeichen bestehender String und ein Array ohne nicht leeren String. Ob ein Feld Pflicht ist, legt das Mandat fest. Eine unbekannte Id weist geopilot ab. Fehler stehen im Feld `errors` der Antwort `400`, unter dem Schlüssel `metadata.<id>`.
+
+Die Ids der Felder gehören damit zum Vertrag des Clients: Benennt der Administrator ein Feld um, entfernt er es oder macht er es zur Pflicht, bricht ein Client, der es nicht kennt. Geprüft wird immer gegen das Mandat im Moment der Prüfung. Ändert sich das Mandat zwischen dem Annehmen eines Versuchs und der automatischen Deklaration, scheitert die Deklaration, und der Client muss die Lieferung neu einreichen.
+
 ### Variante mit Dateien im Request
 
-Ein Aufruf genügt. Die Formularfelder heissen wie die JSON-Felder oben, ohne `uploadId`:
+Ein Aufruf genügt. Die Formularfelder heissen wie die JSON-Felder oben, ohne `uploadId`. `metadata` ist dasselbe JSON-Objekt wie in der JSON-Route, als Text:
 
 ```bash
 curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -H "Authorization: Bearer $TOKEN" \
   -F "mandateKey=av-2026" \
   -F "comment=Nachlieferung Perimeter Nord" \
+  -F 'metadata={"project_number":"2026-117"}' \
   -F "file=@lieferung.xtf"
 ```
 
 **Die Felder müssen vor den Dateien gesendet werden.** Daran hängt eine Zusage: geopilot prüft Mandat und Lieferangaben, bevor es den ersten Byte Dateiinhalt liest. Bei einem Tippfehler im Schlüssel bricht der Server ab, statt erst eine mehrere Gigabyte grosse Datei entgegenzunehmen. Übliche HTTP-Clients senden die Teile in der Reihenfolge, in der sie angegeben werden. Der Feldname der Dateien spielt keine Rolle, entscheidend ist, dass der Teil einen Dateinamen trägt, der die Regel für Dateinamen einhält. Die OpenAPI-Beschreibung der Installation (`/swagger/all/swagger.json`) führt diese Form als `multipart/form-data`-Body der Route, mit denselben Feldern und den Dateien.
 
-Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment`; ein längeres Feld wird mit `400` abgewiesen.
+Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur `comment` und `metadata`; ein längeres Feld wird mit `400` abgewiesen.
 
 ### Antwort
 
