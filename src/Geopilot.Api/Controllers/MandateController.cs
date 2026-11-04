@@ -191,6 +191,10 @@ public class MandateController : ControllerBase
 
             ApplyReactionSet(mandate, reactionSet);
 
+            var metadataProblems = MetadataFieldValidator.ValidateDefinitions(mandate.MetadataFields);
+            if (metadataProblems.Count > 0)
+                return BadRequest(string.Join(" ", metadataProblems));
+
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
             mandate.Organisations = await context.Organisations
                 .Where(o => organisationIds.Contains(o.Id))
@@ -273,6 +277,10 @@ public class MandateController : ControllerBase
 
                 ApplyReactionSet(mandate, reactionSet);
             }
+
+            var metadataProblems = MetadataFieldValidator.ValidateDefinitions(mandate.MetadataFields);
+            if (metadataProblems.Count > 0)
+                return BadRequest(string.Join(" ", metadataProblems));
 
             ApplyKey(mandate, existingMandate.Key);
 
