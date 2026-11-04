@@ -120,6 +120,7 @@ const UserDetail = () => {
               required={false}
               values={organisations}
               selected={editableUser?.organisations}
+              linkTo={id => `/admin/organisations/${id}`}
               valueFormatter={org => ({
                 id: org.id,
                 primaryText: org.name,

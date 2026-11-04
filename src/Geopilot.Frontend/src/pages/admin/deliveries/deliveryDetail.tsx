@@ -5,6 +5,7 @@ import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
 import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { ReactionsGrid } from "../../../components/grids/reactionsGrid.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
@@ -23,6 +24,7 @@ export const DeliveryDetail: FC = () => {
   const navigate = useNavigate();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
+  const { machineDeliveryEnabled } = useCapabilities();
   const confirmDelete = useDeleteDelivery();
   const [loaded, setLoaded] = useState<DeliveryDetailResponse>();
 
@@ -69,6 +71,14 @@ export const DeliveryDetail: FC = () => {
     .filter(reaction => reaction.kind === ReactionKind.Transfer && reaction.state === ReactionState.Done)
     .map(reaction => localized(reaction.displayName ?? undefined, reaction.reactionId));
 
+  // Without machine delivery the pages of the machine clients are not routed.
+  const declarerPath =
+    delivery.declaringUserId != null
+      ? `/admin/users/${delivery.declaringUserId}`
+      : delivery.declaringClientId != null && machineDeliveryEnabled
+        ? `/admin/machine-clients/${delivery.declaringClientId}`
+        : undefined;
+
   return (
     <Stack>
       <AdminDetailHeader backLabel="backToDeliveryOverview" onBack={() => navigate(overviewPath)} id={delivery.id} />
@@ -78,8 +88,20 @@ export const DeliveryDetail: FC = () => {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="deliveryDate">{formatTime(delivery.date)}</SummaryField>
-          <SummaryField label="deliveredBy">{delivery.declarerName}</SummaryField>
-          <SummaryField label="mandate">{localized(delivery.mandate.name)}</SummaryField>
+          <SummaryField label="deliveredBy">
+            {declarerPath ? (
+              <Link component={RouterLink} to={declarerPath}>
+                {delivery.declarerName}
+              </Link>
+            ) : (
+              delivery.declarerName
+            )}
+          </SummaryField>
+          <SummaryField label="mandate">
+            <Link component={RouterLink} to={`/admin/mandates/${delivery.mandate.id}`}>
+              {localized(delivery.mandate.name)}
+            </Link>
+          </SummaryField>
           {delivery.precursorDelivery && (
             <SummaryField label="precursor">
               <Link component={RouterLink} to={`${overviewPath}/${delivery.precursorDelivery.id}`}>

@@ -6,7 +6,7 @@ import { Autocomplete, SxProps, TextField } from "@mui/material";
 import { TranslationKey } from "../../appInterfaces";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { getFormFieldError } from "./form";
-import { OverflowChips } from "./overflowChips";
+import { OverflowChip, OverflowChips } from "./overflowChips";
 
 export interface FormAutocompleteProps<T> {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
@@ -45,6 +45,9 @@ export interface FormAutocompleteProps<T> {
 
   /** Keep the dropdown open while selecting multiple values. Defaults to true. */
   disableCloseOnSelect?: boolean;
+
+  /** Links each chip to the page of its value, by the id from `valueFormatter`. */
+  linkTo?: (id: number) => string;
 }
 
 export interface FormAutocompleteValue {
@@ -74,6 +77,7 @@ export const FormAutocomplete = <T,>({
   error,
   dataCy,
   disableCloseOnSelect,
+  linkTo,
 }: FormAutocompleteProps<T>) => {
   const { t } = useTranslation();
   const formContext = useFormContext();
@@ -95,8 +99,11 @@ export const FormAutocomplete = <T,>({
     [fieldName, valueFormatter],
   );
 
-  const toChipLabel = (option: T): string =>
-    typeof option === "string" ? option : safeValueFormatter(option).primaryText;
+  const toChip = (option: T): OverflowChip => {
+    if (typeof option === "string") return { label: option };
+    const { id, primaryText } = safeValueFormatter(option);
+    return { label: primaryText, href: linkTo?.(id) };
+  };
 
   const renderAutocomplete = (
     value: T[],
@@ -122,7 +129,7 @@ export const FormAutocomplete = <T,>({
       value={value}
       onChange={handleChange}
       renderValue={(tagValue, getItemProps) => (
-        <OverflowChips value={tagValue.map(toChipLabel)} getItemProps={getItemProps} />
+        <OverflowChips value={tagValue.map(toChip)} getItemProps={getItemProps} />
       )}
       renderInput={params => (
         <TextField
