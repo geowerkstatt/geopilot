@@ -67,7 +67,14 @@ export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
         size="small"
         label={
           option.href ? (
-            <Link href={option.href} onClick={controlledLinkClick(option.href)} color="inherit" underline="hover">
+            <Link
+              href={option.href}
+              onClick={controlledLinkClick(option.href)}
+              // The Autocomplete would treat a focused link as its focused chip and move focus into its input on any key.
+              onFocus={event => event.stopPropagation()}
+              onKeyDown={event => event.stopPropagation()}
+              color="inherit"
+              underline="hover">
               {option.label}
             </Link>
           ) : (
