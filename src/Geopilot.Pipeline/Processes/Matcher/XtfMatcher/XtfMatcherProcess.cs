@@ -114,14 +114,13 @@ internal class XtfMatcherProcess
     /// </summary>
     private static async Task<string[]> DetectInterlisVersionsAsync(IPipelineFile[] files, CancellationToken cancellationToken)
     {
-        var versions = new SortedSet<InterlisVersion>();
-        foreach (var file in files)
-        {
-            if (await DetectInterlisVersionAsync(file, cancellationToken) is { } version)
-                versions.Add(version);
-        }
-
-        return versions.Select(version => version.ToString()).ToArray();
+        var versions = await Task.WhenAll(files.Select(file => DetectInterlisVersionAsync(file, cancellationToken)));
+        return versions
+            .OfType<InterlisVersion>()
+            .Distinct()
+            .Order()
+            .Select(version => version.ToString())
+            .ToArray();
     }
 
     /// <summary>
