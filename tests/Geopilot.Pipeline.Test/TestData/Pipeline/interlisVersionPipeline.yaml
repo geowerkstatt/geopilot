@@ -1,0 +1,56 @@
+# Validates with a profile chosen by the INTERLIS versions the matcher recognized: one validation step
+# per version, each skipped when its version is missing. The matching fails without a recognized version,
+# otherwise both validations would be skipped and the run would succeed unvalidated, and on more than one
+# file, which a validation step could not bind.
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+  - id: xtf_validator
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile:
+pipelines:
+  - id: profile_by_interlis_version
+    display_name:
+      en: Profile by INTERLIS version
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+        process_id: xtf_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - id: single-xtf-file
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
+              - id: interlis-version-unknown
+                expression: "Length([xtf_matching.InterlisVersions]) == 0"
+        input:
+          files: "${upload()}"
+      - id: validation_23
+        display_name:
+          en: XTF Validation INTERLIS 2.3
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: ILI_23
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!('Interlis23' in [xtf_matching.InterlisVersions])"
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
+      - id: validation_24
+        display_name:
+          en: XTF Validation INTERLIS 2.4
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: ILI_24
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!('Interlis24' in [xtf_matching.InterlisVersions])"
+        input:
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
