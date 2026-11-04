@@ -51,7 +51,7 @@ export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, on
           {localized(row.displayName ?? undefined, row.reactionId)}
           {/* The log and the execution protocol name a reaction by its id. */}
           {row.displayName && (
-            <Typography variant="body2" component="div" sx={{ color: "text.secondary" }}>
+            <Typography variant="body2" component="div" sx={{ color: "text.secondary", fontStyle: "italic" }}>
               {row.reactionId}
             </Typography>
           )}
