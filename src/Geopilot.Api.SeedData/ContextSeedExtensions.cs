@@ -136,7 +136,11 @@ public static class ContextSeedExtensions
 
             // Derived from the row index, because the key is unique in the database and a random word
             // would sooner or later collide and break the whole seed run.
-            .RuleFor(o => o.Key, f => $"mandate-{f.IndexFaker}".OrNull(f, 0.5f));
+            .RuleFor(o => o.Key, f => $"mandate-{f.IndexFaker}".OrNull(f, 0.5f))
+
+            // The development definitions offer reaction sets, the seed chooses none.
+            .Ignore(o => o.ReactionSetId)
+            .Ignore(o => o.ReactionSetValues);
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
@@ -224,8 +228,7 @@ public static class ContextSeedExtensions
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))
             .RuleFor(d => d.Comment, f => f.Rant.Review())
-            .RuleFor(d => d.Deleted, false)
-            .Ignore(d => d.CanDelete);
+            .RuleFor(d => d.Deleted, false);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
         for (int i = 0; i < 20; i++)

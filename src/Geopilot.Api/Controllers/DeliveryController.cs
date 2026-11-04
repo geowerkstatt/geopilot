@@ -2,7 +2,11 @@
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
+using Geopilot.Api.StacServices;
+using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,13 +31,19 @@ public class DeliveryController : ControllerBase
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
     private readonly IAuthorizationService authorizationService;
+    private readonly ReactionStore reactionStore;
+    private readonly IPipelineRunRecorder pipelineRunRecorder;
+    private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
     {
         this.authorizationService = authorizationService;
+        this.reactionStore = reactionStore;
+        this.pipelineRunRecorder = pipelineRunRecorder;
+        this.pipelineFactory = pipelineFactory;
         this.logger = logger;
         this.context = context;
         this.deliveryDeclarationService = deliveryDeclarationService;
@@ -150,30 +160,151 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a list of all deliveries.
+    /// Gets all deliveries with how far their reactions got.
     /// </summary>
-    /// <returns>A list of all <see cref="Delivery"/>.</returns>
+    /// <returns>A list of <see cref="DeliveryResponse"/>.</returns>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<DeliveryResponse>), "application/json")]
     public async Task<IActionResult> Get()
     {
         var user = await context.GetUserByPrincipalAsync(User);
         logger.LogInformation("User <{UserId}> accessed the list of all deliveries", user.AuthIdentifier);
 
-        var result = context.DeliveriesWithIncludes
-            .AsNoTracking();
+        var deliveries = await context.Deliveries
+            .AsNoTracking()
+            .OrderBy(d => d.Id)
+            .Select(d => new
+            {
+                d.Id,
+                d.Date,
+                Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
+                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                Reactions = context.DeliveryReactions
+                    .Where(r => r.DeliveryId == d.Id)
+                    .Select(r => new { r.Kind, r.State })
+                    .ToList(),
+            })
+            .ToListAsync();
 
-        return Ok(await result.ToListAsync());
+        return Ok(deliveries
+            .Select(d => new DeliveryResponse(
+                d.Id,
+                d.Date,
+                d.Mandate,
+                d.DeclarerName,
+                d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
+                d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
+            .ToList());
     }
 
     /// <summary>
-    /// Gets a filtered list of deliveries uploaded by the user.
+    /// Gets a delivery with what was delivered and how far its reactions got.
     /// </summary>
-    /// <returns>A list of <see cref="Delivery"/>.</returns>
+    /// <param name="deliveryId">The delivery to get.</param>
+    /// <returns>The <see cref="DeliveryDetailResponse"/>.</returns>
+    [HttpGet("{deliveryId}")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "The delivery.", typeof(DeliveryDetailResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
+    public async Task<IActionResult> GetById([FromRoute] int deliveryId)
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        logger.LogInformation("User <{UserId}> accessed delivery <{DeliveryId}>", user.AuthIdentifier, deliveryId);
+
+        var delivery = await context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.Id == deliveryId)
+            .Select(d => new
+            {
+                d.Id,
+                d.Date,
+                Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
+                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                PrecursorDelivery = d.PrecursorDelivery != null ? new DeliverySummary(d.PrecursorDelivery.Id, d.PrecursorDelivery.Date) : null,
+                d.Partial,
+                d.JobId,
+                Files = d.Assets.OrderBy(a => a.Id).Select(a => new AssetReference(a.Id, a.OriginalFilename)).ToList(),
+                d.Comment,
+            })
+            .SingleOrDefaultAsync();
+        if (delivery is null)
+            return NotFound($"No delivery with id <{deliveryId}> found.");
+
+        var reactions = await context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == deliveryId)
+            .OrderBy(r => r.Id)
+            .Select(r => new DeliveryReactionResponse(
+                r.ReactionId,
+                null,
+                r.Kind,
+                r.State,
+                r.Attempts,
+                r.State == ReactionState.Pending ? r.NextAttemptAt : (DateTime?)null,
+                r.LastAttemptAt,
+                r.FinishedAt,
+                r.Message))
+            .ToListAsync();
+
+        // Only a forwarded delivery is in the STAC catalog.
+        var forwarded = reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp() is null or ReactionState.Done;
+        var stacItem = forwarded ? new StacItemReference(StacConverter.CollectionId(delivery.Mandate.Id), StacConverter.ItemId(delivery.Id)) : null;
+
+        // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
+        // definition no longer has keeps its id only.
+        var displayNames = pipelineFactory.ReactionSets
+            .SelectMany(set => set.AllReactions())
+            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
+
+        return Ok(new DeliveryDetailResponse(
+            delivery.Id,
+            delivery.Date,
+            delivery.Mandate,
+            delivery.DeclarerName,
+            delivery.PrecursorDelivery,
+            delivery.Partial,
+            delivery.JobId,
+            delivery.Files,
+            delivery.Comment,
+            stacItem,
+            reactions.Select(r => r with { DisplayName = displayNames.GetValueOrDefault(r.ReactionId) }).ToList()));
+    }
+
+    /// <summary>
+    /// Resets a reaction of a delivery that gave up: it gets all its attempts again and is due at once.
+    /// </summary>
+    /// <param name="deliveryId">The delivery of the reaction.</param>
+    /// <param name="reactionId">The reaction to reset.</param>
+    [HttpPost("{deliveryId}/reactions/{reactionId}/reset")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "The reaction is due again.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery or its reaction could not be found.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The reaction has not failed.")]
+    public async Task<IActionResult> ResetReaction([FromRoute] int deliveryId, [FromRoute] string reactionId)
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        if (!await context.Deliveries.AnyAsync(d => d.Id == deliveryId)
+            || !await context.DeliveryReactions.AnyAsync(r => r.DeliveryId == deliveryId && r.ReactionId == reactionId))
+            return NotFound($"Delivery <{deliveryId}> or its reaction could not be found.");
+
+        // Not cancelled with the request, so a reset that happens also reaches the protocol.
+        var reset = await reactionStore.ResetFailedAsync(context, deliveryId, reactionId, CancellationToken.None);
+        if (reset is null)
+            return Conflict($"The reaction of delivery <{deliveryId}> has not failed.");
+
+        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
+        logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.ReactionId, deliveryId);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Gets the deliveries the user declared.
+    /// </summary>
+    /// <returns>A list of <see cref="UploadedDelivery"/>.</returns>
     [HttpGet("uploads")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<UploadedDelivery>), "application/json")]
     public async Task<IActionResult> GetUploads()
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -182,17 +313,19 @@ public class DeliveryController : ControllerBase
             "User <{UserId}> accessed list of their uploaded deliveries",
             user.AuthIdentifier);
 
-        var result = await context.DeliveriesWithIncludes
+        // Whether a delivery may still be deleted depends on the configuration and the time, which SQL cannot evaluate,
+        // and on whether one of its reactions has begun, which it can.
+        var started = context.DeliveryReactions.DeliveryIdsWithStartedReactions();
+        var deliveries = await context.Deliveries
             .AsNoTracking()
             .Where(d => d.DeclaringUserId == user.Id)
+            .OrderBy(d => d.Id)
+            .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name), Started = started.Contains(d.Id) })
             .ToListAsync();
 
-        foreach (var delivery in result)
-        {
-            delivery.CanDelete = IsDeleteAllowedForUploader(delivery);
-        }
-
-        return Ok(result);
+        return Ok(deliveries
+            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
+            .ToList());
     }
 
     /// <summary>
@@ -226,7 +359,12 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
-            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery))
+            // The window decides on its own only while the configuration stays as it was at the declaration. A reaction
+            // that has begun means the delivery left already, after a longer window or a later enabled deletion.
+            // shortcut: checked before the deletion rather than with it, so a reaction claimed in between still runs once;
+            // its attempt then fails on the deleted files or its report is refused.
+            if (!user.IsAdmin && (!IsDeleteAllowedForUploader(delivery.Date)
+                || await context.DeliveryReactions.DeliveryIdsWithStartedReactions().AnyAsync(id => id == delivery.Id)))
             {
                 logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
                 return Problem($"Deleting delivery with id <{deliveryId}> is not allowed.", statusCode: StatusCodes.Status403Forbidden);
@@ -236,6 +374,7 @@ public class DeliveryController : ControllerBase
             delivery.Assets.ForEach(a => a.Deleted = true);
             await context.SaveChangesAsync();
 
+            await EndReactionsAsync(delivery.Id, user.Id);
             assetHandler.DeleteJobAssets(delivery.JobId);
 
             logger.LogInformation("Deleting of delivery with id <{DeliveryId}> successful.", deliveryId);
@@ -290,11 +429,34 @@ public class DeliveryController : ControllerBase
         }
     }
 
-    private async Task<bool> MayDownloadAsync(Asset asset) =>
-        asset.Delivery?.Mandate?.StacAccess == StacAccess.Public
-        || (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
+    // STAC links its assets here, so a file can be downloaded exactly when the catalog shows its delivery.
+    private async Task<bool> MayDownloadAsync(Asset asset)
+    {
+        var isAdmin = (await authorizationService.AuthorizeAsync(User, GeopilotPolicies.Admin)).Succeeded;
+        var deliveryId = asset.Delivery?.Id;
+        return await context.DeliveriesInStac(isAdmin).AnyAsync(d => d.Id == deliveryId);
+    }
 
-    internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime? utcNow = null)
+    /// <summary>
+    /// Ends the open reactions of a deleted delivery and records in the protocol how far each had got. The delivery is
+    /// deleted already and the reactions of a deleted delivery never run again, so a failure here only warns.
+    /// </summary>
+    private async Task EndReactionsAsync(int deliveryId, int userId)
+    {
+        try
+        {
+            // shortcut: does not wait for a running attempt. Its report is refused, and what its channel has written
+            // already stays at the target (ADR 0015, Nachtrag: Löschen während einer laufenden Reaktion).
+            var reactions = await reactionStore.MarkDeletedAsync(context, deliveryId, CancellationToken.None);
+            await pipelineRunRecorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Ending the reactions of the deleted delivery <{DeliveryId}> failed.", deliveryId);
+        }
+    }
+
+    internal bool IsDeleteAllowedForUploader(DateTime declaredAt, DateTime? utcNow = null)
     {
         var options = deliveryOptions.Value;
         if (!options.UploaderDeleteEnabled)
@@ -302,25 +464,7 @@ public class DeliveryController : ControllerBase
             return false;
         }
 
-        utcNow ??= DateTime.UtcNow;
-
-        var deliveryDateUtc = delivery.Date.Kind switch
-        {
-            DateTimeKind.Utc => delivery.Date,
-            DateTimeKind.Local => delivery.Date.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc),
-        };
-
-        if (options.DeleteDuration is TimeSpan deleteDuration && deleteDuration <= utcNow - deliveryDateUtc)
-        {
-            return false;
-        }
-
-        if (options.DeleteRestrictIntervalExpression?.GetNextOccurrence(deliveryDateUtc) is DateTime nextOccurrence && nextOccurrence <= utcNow)
-        {
-            return false;
-        }
-
-        return true;
+        var windowEnd = options.GetDeleteWindowEnd(declaredAt);
+        return windowEnd is null || (utcNow ?? DateTime.UtcNow) < windowEnd;
     }
 }

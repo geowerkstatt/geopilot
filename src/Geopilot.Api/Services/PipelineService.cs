@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
 
 namespace Geopilot.Api.Services;
@@ -32,5 +33,17 @@ public class PipelineService : IPipelineService
     public PipelineConfig? GetById(string id)
     {
         return pipelineFactory.Pipelines.FirstOrDefault(p => p.Id == id);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ReactionSetConfig> GetReactionSets()
+    {
+        return pipelineFactory.ReactionSets;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<MandateField> DescribeMandateFields(string reactionSetId)
+    {
+        return pipelineFactory.DescribeMandateFields(reactionSetId);
     }
 }

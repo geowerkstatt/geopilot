@@ -1,12 +1,11 @@
 import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft } from "@mui/icons-material";
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, CircularProgress, Stack } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { TranslationKey } from "../appInterfaces";
 import useFetch from "../hooks/useFetch.ts";
+import { AdminDetailHeader } from "./adminDetailHeader.tsx";
 import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
@@ -39,7 +38,6 @@ const AdminDetailForm = <T extends { id: number }>({
   prepareDataForSave,
   children,
 }: AdminDetailFormProps<T>) => {
-  const { t } = useTranslation();
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
@@ -112,10 +110,7 @@ const AdminDetailForm = <T extends { id: number }>({
 
   return (
     <Stack>
-      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <Button variant="text" startIcon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
-        {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
-      </Stack>
+      <AdminDetailHeader backLabel={backLabel} onBack={() => navigateTo(basePath)} id={data?.id} />
       {!data ? (
         <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
           <CircularProgress />

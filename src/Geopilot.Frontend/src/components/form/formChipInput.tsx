@@ -1,4 +1,4 @@
-import { FC, KeyboardEvent, useRef, useState } from "react";
+import { FC, KeyboardEvent, ReactElement, useRef, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Stack, TextField } from "@mui/material";
@@ -7,8 +7,7 @@ import { SelectedChips } from "./selectedChips";
 
 export interface FormChipInputProps {
   fieldName: string;
-  label: TranslationKey;
-  placeholder?: TranslationKey;
+  label: TranslationKey | ReactElement;
   required?: boolean;
   disabled?: boolean;
   /** The values the field starts with, typically the stored ones. */
@@ -23,11 +22,13 @@ export interface FormChipInputProps {
   errorMessage: TranslationKey;
 }
 
-/** Collects free text values as removable chips below the input. Every value stays visible. */
+/**
+ * Collects free text values as removable chips below the input. Every value stays visible. Text still in the input
+ * when the field loses focus is taken in as if confirmed, so a typed value is never lost on saving.
+ */
 export const FormChipInput: FC<FormChipInputProps> = ({
   fieldName,
   label,
-  placeholder,
   required,
   disabled,
   selected,
@@ -150,18 +151,26 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     confirmInput();
   };
 
+  const handleBlur = () => {
+    if (input.trim()) {
+      confirmInput();
+    }
+
+    field.onBlur();
+  };
+
   return (
     <Stack spacing={1} sx={{ width: "100%" }}>
       <TextField
-        label={t(label)}
-        placeholder={placeholder ? t(placeholder) : undefined}
+        label={typeof label === "string" ? t(label) : label}
+        placeholder={t("chipInputPlaceholder")}
         required={required ?? false}
         disabled={disabled ?? false}
         error={!!fieldState.error}
         helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : undefined}
         value={input}
         onChange={event => handleInput(event.target.value)}
-        onBlur={field.onBlur}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         data-cy={`${fieldName}-formChipInput`}
       />

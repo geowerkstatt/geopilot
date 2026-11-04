@@ -18,7 +18,7 @@ namespace Geopilot.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
@@ -118,6 +118,72 @@ namespace Geopilot.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.DeliveryReaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Config")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("DeliveryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Implementation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<DateTime?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReactionId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasFilter("\"State\" IN ('Pending', 'Running')");
+
+                    b.HasIndex("DeliveryId", "ReactionId")
+                        .IsUnique();
+
+                    b.ToTable("DeliveryReactions");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.MachineClient", b =>
                 {
                     b.Property<int>("Id")
@@ -195,6 +261,16 @@ namespace Geopilot.Api.Migrations
 
                     b.Property<string>("PipelineId")
                         .HasColumnType("varchar(128)");
+
+                    b.Property<string>("ReactionSetId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("ReactionSetValues")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_object()");
 
                     b.Property<Geometry>("SpatialExtent")
                         .IsRequired()
@@ -416,6 +492,64 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("PipelineRunFiles");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("Attempt")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DeliveryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Implementation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PipelineRunId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReactionId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ReactionKind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("State")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PipelineRunId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PipelineRunReactionEvents");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunStep", b =>
                 {
                     b.Property<int>("Id")
@@ -597,6 +731,17 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("PrecursorDelivery");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.DeliveryReaction", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.Delivery", "Delivery")
+                        .WithMany()
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Delivery");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.MachineClient", "MachineClient")
@@ -652,6 +797,20 @@ namespace Geopilot.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("PipelineRun");
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.PipelineRun", null)
+                        .WithMany("ReactionEvents")
+                        .HasForeignKey("PipelineRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Geopilot.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunStep", b =>
@@ -728,6 +887,8 @@ namespace Geopilot.Api.Migrations
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
                 {
                     b.Navigation("Files");
+
+                    b.Navigation("ReactionEvents");
 
                     b.Navigation("Steps");
                 });
