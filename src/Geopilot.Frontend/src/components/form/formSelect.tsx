@@ -2,6 +2,7 @@ import { FC } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { MenuItem, SxProps, TextField } from "@mui/material";
+import { TranslationKey } from "../../appInterfaces";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { getFormFieldError } from "./form";
 
@@ -10,9 +11,10 @@ const swipeSafeMenuProps = { slotProps: { paper: stopStepSwipePropagation } };
 export interface FormSelectProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
-  label: string;
+  label: TranslationKey;
   required?: boolean;
   disabled?: boolean;
+  helperText?: string;
   /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   selected?: number | string;
   values?: FormSelectValue[];
@@ -50,6 +52,7 @@ export const FormSelect: FC<FormSelectProps> = ({
   label,
   required,
   disabled,
+  helperText,
   selected,
   values,
   sx,
@@ -93,6 +96,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         select
         required={required ?? false}
         error={error ?? false}
+        helperText={helperText}
         sx={{ ...sx }}
         label={t(label)}
         value={selected ?? ""}
@@ -127,7 +131,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           required={required ?? false}
           error={getFormFieldError(fieldName, formState.errors)}
           helperText={
-            formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : undefined
+            formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : helperText
           }
           sx={{ ...sx }}
           label={t(label)}

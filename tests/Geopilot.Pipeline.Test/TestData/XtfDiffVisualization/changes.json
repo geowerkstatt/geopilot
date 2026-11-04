@@ -1,0 +1,68 @@
+[
+  {
+    "oid": "building",
+    "changeType": "changed",
+    "valueType": "attribute",
+    "interlisName": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche",
+    "attributePath": "EGID",
+    "oldValue": "190001",
+    "newValue": "190002",
+    "oldLocation": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+    "newLocation": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))"
+  },
+  {
+    "oid": "building",
+    "changeType": "changed",
+    "valueType": "geometry",
+    "interlisName": "DMAV_Bodenbedeckung_V1_0.Bodenbedeckung.BoFlaeche",
+    "attributePath": "Geometrie",
+    "oldValue": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+    "newValue": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))",
+    "oldLocation": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+    "newLocation": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))"
+  },
+  {
+    "oid": "boundary-point",
+    "changeType": "added",
+    "valueType": "object",
+    "interlisName": "DMAV_Grundstuecke_V1_0.Grundstuecke.Grenzpunkt",
+    "attributePath": null,
+    "oldValue": null,
+    "newValue": null,
+    "newLocation": "POINT(2600005 1200005)"
+  },
+  {
+    "oid": "update",
+    "changeType": "deleted",
+    "valueType": "reference",
+    "interlisName": "DMAV_Grundstuecke_V1_0.Grundstuecke.GSNachfuehrung",
+    "attributePath": "entstehender_Grenzpunkt",
+    "oldValue": [
+      "old-boundary-point"
+    ],
+    "newValue": null
+  },
+  {
+    "oid": "nested",
+    "changeType": "changed",
+    "valueType": "attribute",
+    "interlisName": "DiffToolTest.TypesTopic.NestedTypes",
+    "attributePath": "StructBag",
+    "oldValue": [
+      {
+        "Text": "CAIMAN"
+      },
+      {
+        "Text": "SNAKE"
+      }
+    ],
+    "newValue": [
+      {
+        "Text": "SNAKE"
+      },
+      {
+        "Text": "Bär"
+      }
+    ]
+  }
+]

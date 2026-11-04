@@ -1,4 +1,5 @@
-﻿using Stac.Api.Clients.Collections;
+﻿using Stac.Api;
+using Stac.Api.Clients.Collections;
 
 namespace Geopilot.Api.StacApi;
 
@@ -13,7 +14,7 @@ public class CollectionsTest
     public void Initialize()
     {
         app = new GeopilotApiApp();
-        httpClient = app.CreateClient();
+        httpClient = app.CreateAdminClient();
         collectionsClient = new CollectionsClient(httpClient);
     }
 
@@ -38,5 +39,25 @@ public class CollectionsTest
         var collection = await collectionsClient.DescribeCollectionAsync("coll_1");
 
         Assert.AreEqual("Handmade Soft Cheese", collection.Title);
+    }
+
+    [TestMethod]
+    public async Task AnonymousSeesOnlyPublicCollections()
+    {
+        using var anonymousClient = app.CreateClient();
+        var collections = await new CollectionsClient(anonymousClient).GetCollectionsAsync();
+
+        CollectionAssert.AreEqual(new[] { "coll_10" }, collections.Collections.Select(c => c.Id).ToList());
+    }
+
+    [TestMethod]
+    public async Task AnonymousCannotDescribeAnAdminOnlyCollection()
+    {
+        using var anonymousClient = app.CreateClient();
+        var anonymousCollectionsClient = new CollectionsClient(anonymousClient);
+
+        var adminOnly = await Assert.ThrowsExactlyAsync<StacApiException>(() => anonymousCollectionsClient.DescribeCollectionAsync("coll_1"));
+        var nonExistent = await Assert.ThrowsExactlyAsync<StacApiException>(() => anonymousCollectionsClient.DescribeCollectionAsync("coll_999999"));
+        Assert.AreEqual(nonExistent.StatusCode, adminOnly.StatusCode);
     }
 }

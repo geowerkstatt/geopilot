@@ -1,0 +1,443 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Einzelobjekte_Validierung (de) 
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+    VIEW TOPIC Einzelobjekte_Validierung = 
+    DEPENDS ON DMAV_Einzelobjekte_V1_1.Einzelobjekte;
+  
+        VIEW v_Einzelobjekt
+            PROJECTION OF DMAV_Einzelobjekte_V1_1.Einzelobjekte.Einzelobjekt;
+        =
+            ALL OF Einzelobjekt;
+
+            !!@ name = CH051151
+            !!@ message="(CH051151) Bei Art=Rinnsal muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051151) Bei Art=Rinnsal muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051151) Pour les objets du Genre=ru, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051151) Per il genere=ruscello la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051151: (
+                (Einzelobjektart == #Rinnsal) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+    
+            !!@ name = CH051152
+            !!@ message="(CH051152) Bei Art=schmaler_Weg muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051152) Bei Art=schmaler_Weg muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051152) Pour les objets du Genre=sentier, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051152) Per il genere=sentiero la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051152: (
+                (Einzelobjektart == #schmaler_Weg) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051153
+            !!@ message="(CH051153) Bei Art=Druckleitung muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051153) Bei Art=Druckleitung muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051153) Pour les objets du Genre=conduite_forcee, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051153) Per il genere=condotta forzata la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051153: (
+                (Einzelobjektart == #Druckleitung) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051154
+            !!@ message="(CH051154) Bei Art=Bahngeleise muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051154) Bei Art=Bahngeleise muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051154) Pour les objets du Genre=voie_ferree, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051154) Per il genere=binari_ferrovia la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051154: (
+                (Einzelobjektart == #Bahngeleise) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051155
+            !!@ message="(CH051155) Bei Art=Luftseilbahn muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051155) Bei Art=Luftseilbahn muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051155) Pour les objets du Genre=telepherique, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051155) Per il genere teleferica la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051155: (
+                (Einzelobjektart == #Luftseilbahn) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051156
+            !!@ message="(CH051156) Bei Art=Gondelbahn_Sesselbahn muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051156) Bei Art=Gondelbahn_Sesselbahn muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051156) Pour les objets du Genre=telecabine_telesiege, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051156) Per il genere=telecabina_seggiovia la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051156: (
+                (Einzelobjektart == #Gondelbahn_Sesselbahn) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051157
+            !!@ message="(CH051157) Bei Art=Materialseilbahn muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051157) Bei Art=Materialseilbahn muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051157) Pour les objets du Genre=telepherique_de_chantier, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051157) Per il genere=teleferica_per_il_materiale la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051157: (
+                (Einzelobjektart == #Materialseilbahn) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051158
+            !!@ message="(CH051158) Bei Art=Skilift muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051158) Bei Art=Skilift muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051158) Pour les objets du Genre=skilift, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051158) Per il genere=scilift la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051158: (
+                (Einzelobjektart == #Skilift) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051159
+            !!@ message="(CH051159) Bei Art=Faehre muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051159) Bei Art=Faehre muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051159) Pour les objets du Genre=bac, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051159) Per il genere=traghetto la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051159: (
+                (Einzelobjektart == #Faehre) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051160
+            !!@ message="(CH051160) Bei Art=Grotte_Hoehleneingang muss die Geometrie in Punktelement sein";
+            !!@ message_de="(CH051160) Bei Art=Grotte_Hoehleneingang muss die Geometrie in Punktelement sein";
+            !!@ message_fr="(CH051160) Pour les objets du Genre=grotte_entree_de_caverne, il faut définir la géométrie dans la table Element_ponctuel";
+            !!@ message_it="(CH051160) Per il genere=grotta_entrata_di_caverna la geometria deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051160: (
+                (Einzelobjektart == #Grotte_Hoehleneingang) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) > 0))
+            );
+
+            !!@ name = CH051161
+            !!@ message="(CH051161) Bei Art=wichtiger_Einzelbaum muss die Geometrie in Punktelement sein";
+            !!@ message_de="(CH051161) Bei Art=wichtiger_Einzelbaum muss die Geometrie in Punktelement sein";
+            !!@ message_fr="(CH051161) Pour les objets du Genre=arbre_isole_important, il faut définir la géométrie dans la table Element_ponctuel";
+            !!@ message_it="(CH051161) Per il genere=albero_importante la geometria deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051161: (
+                (Einzelobjektart == #wichtiger_Einzelbaum) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) > 0))
+            );
+
+            !!@ name = CH051162
+            !!@ message="(CH051162) Bei Art=Bildstock_Kruzifix muss die Geometrie in Punktelement sein";
+            !!@ message_de="(CH051162) Bei Art=Bildstock_Kruzifix muss die Geometrie in Punktelement sein";
+            !!@ message_fr="(CH051162) Pour les objets du Genre=statue_crucifix, il faut définir la géométrie dans la table Element_ponctuel";
+            !!@ message_it="(CH051162) Per il genere=cappella_statua_crocifisso la geometria deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051162: (
+                (Einzelobjektart == #Bildstock_Kruzifix) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) > 0))
+            );
+
+            !!@ name = CH051163
+            !!@ message="(CH051163) Bei Art=Quelle muss die Geometrie in Punktelement sein";
+            !!@ message_de="(CH051163) Bei Art=Quelle muss die Geometrie in Punktelement sein";
+            !!@ message_fr="(CH051163) Pour les objets du Genre=source, il faut définir la géométrie dans la table Element_ponctuel";
+            !!@ message_it="(CH051163) Per il genere=sorgente la geometria deve essere del tipo puntiforme";
+            !!@ cprof="all";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051163: (
+                (Einzelobjektart == #Quelle) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) > 0))
+            );
+
+            !!@ name = CH051164
+            !!@ message="(CH051164) Bei Art=Bezugspunkt muss die Geometrie in Punktelement sein";
+            !!@ message_de="(CH051164) Bei Art=Bezugspunkt muss die Geometrie in Punktelement sein";
+            !!@ message_fr="(CH051164) Pour les objets du Genre=point_de_reference, il faut définir la géométrie dans la table Element_ponctuel";
+            !!@ message_it="(CH051164) Per il genere=punto_di_riferimento la geometria deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051164: (
+                (Einzelobjektart == #Bezugspunkt) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) > 0))
+            );
+
+            !!@ name = CH051165
+            !!@ message="(CH051165) Bei Art=Achse muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH051165) Bei Art=Achse muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH051165) Pour les objets du Genre=axe, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH051165) Per il genere=asse la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051165: (
+                (Einzelobjektart == #Achse) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051651
+            !!@ message="(CH051651) Bei Art=Unterstand muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH051651) Bei Art=Unterstand muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH051651) Pour les objets du Genre=couvert_independant, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH051651) Per il genere=riparo la geometria deve essere con superficie";
+            !!@ cprof="all";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051651: (
+                (Einzelobjektart == #Unterstand) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051652
+            !!@ message="(CH051652) Bei Art=Hochkamin muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH051652) Bei Art=Hochkamin muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH051652) Pour les objets du Genre=cheminee, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH051652) Per il genere=ciminiera la geometria deve essere con superficie";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051652: (
+                (Einzelobjektart == #Hochkamin) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051653
+            !!@ message="(CH051653) Bei Art=schmale_bestockte_Flaeche muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH051653) Bei Art=schmale_bestockte_Flaeche muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH051653) Pour les objets du Genre=cordon_boise, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH051653) Per il genere=fascia_boscata la geometria deve essere con superficie";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051653: (
+                (Einzelobjektart == #schmale_bestockte_Flaeche) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051659
+            !!@ message="(CH051659) Bei Art=Silo_Turm_Gasometer muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH051659) Bei Art=Silo_Turm_Gasometer muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH051659) Pour les objets du Genre=Silo_tour_gazometre, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH051659) Per il genere=silo_torre_gasoemetro la geometria deve essere con superficie";
+            !!@ cprof="all";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051659: (
+                (Einzelobjektart == #Silo_Turm_Gasometer) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH051660
+            !!@ message="(CH051660) Bei Art=Landungssteg darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH051660) Bei Art=Landungssteg muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH051660) Pour les objets du Genre=Debarcadere, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH051660) Per il genere=debarcadero la geometria deve essere con superficie";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH051660: (
+                (Einzelobjektart == #Landungssteg) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052151
+            !!@ message="(CH052151) Bei Art=unterirdisches Gebaeude darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052151) Bei Art=unterirdisches Gebaeude darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052151) Pour les objets du Genre=batiment_souterrain, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052151) Per il genere=edificio_sotterraneo la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052151: (
+                (Einzelobjektart == #unterirdisches_Gebaeude) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052152
+            !!@ message="(CH052152) Bei Art=eingedoltes_oeffentliches_Gewaesser darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052152) Bei Art=eingedoltes_oeffentliches_Gewaesser darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052152) Pour les objets du Genre=eau_canalisee_souterraine, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052152) Per il genere=acqua_sotterranea_canalizzata la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052152: (
+                (Einzelobjektart == #eingedoltes_oeffentliches_Gewaesser) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052153
+            !!@ message="(CH052153) Bei Art=wichtige_Treppe darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052153) Bei Art=wichtige_Treppe darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052153) Pour les objets du Genre=escalier_important, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052153) Per il genere=scala importante la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052153: (
+                (Einzelobjektart == #wichtige_Treppe) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052154
+            !!@ message="(CH052154) Bei Art=Tunnel_Unterfuehrung_Galerie darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052154) Bei Art=Tunnel_Unterfuehrung_Galerie darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052154) Pour les objets du Genre=tunnel_passage_inferieur_galerie, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052154) Per il genere=tunnel_sottopassaggio_galleria la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052154: (
+                (Einzelobjektart == #Tunnel_Unterfuehrung_Galerie) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052155
+            !!@ message="(CH052155) Bei Art=Bruecke_Passerelle darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052155) Bei Art=Bruecke_Passerelle darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052155) Pour les objets du Genre=pont_passerelle, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052155) Per il genere=ponte passerella la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052155: (
+                (Einzelobjektart == #Bruecke_Passerelle) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052156
+            !!@ message="(CH052156) Bei Art=Bahnsteig muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH052156) Bei Art=Bahnsteig muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH052156) Pour les objets du Genre=quai, il faut définir la géométrie dans la table Element_surfacique";
+            !!@ message_it="(CH052156) Per il genere=banchina la geometria deve essere con superficie";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052156: (
+                (Einzelobjektart == #Bahnsteig) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH052157
+            !!@ message="(CH052157) Bei Art=Brunnen darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052157) Bei Art=Brunnen darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052157) Pour les objets du Genre=fontaine, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052157) Per il genere=fontana la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052157: (
+                (Einzelobjektart == #Brunnen) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052158
+            !!@ message="(CH052158) Bei Art=Reservoir darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052158) Bei Art=Reservoir darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052158) Pour les objets du Genre=reservoir, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052158) Per il genere=serbatoio la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052158: (
+                (Einzelobjektart == #Reservoir) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052159
+            !!@ message="(CH052159) Bei Art=Pfeiler darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052159) Bei Art=Pfeiler darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052159) Pour les objets du Genre=pilier, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052159) Per il genere=pilastro la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052159: (
+                (Einzelobjektart == #Pfeiler) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052162
+            !!@ message="(CH052162) Bei Art=Uferverbauung muss die Geometrie in Flaechenelement sein";
+            !!@ message_de="(CH052162) Bei Art=Uferverbauung muss die Geometrie in Flaechenelement sein";
+            !!@ message_fr="(CH052162) Pour les objets du Genre=ouvrage_de_protection_des_rives, il faut définir la géométrie dans la table Element_surfacique ou dans la table Element_lineaire";
+            !!@ message_it="(CH052162) Per il genere=briglia la geometria deve essere con superficie";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052162: (
+                (Einzelobjektart == #Uferverbauung) => ((objectCount(Flaechenelement) > 0) AND (objectCount(Linienelement) == 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH052163
+            !!@ message="(CH052163) Bei Art=Schwelle darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052163) Bei Art=Schwelle darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052163) Pour les objets du Genre=seuil, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052163) Per il genere=arginatura la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052163: (
+                (Einzelobjektart == #Schwelle) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052164
+            !!@ message="(CH052164) Bei Art=Lawinenverbauung muss die Geometrie in Linienelement sein";
+            !!@ message_de="(CH052164) Bei Art=Lawinenverbauung muss die Geometrie in Linienelement sein";
+            !!@ message_fr="(CH052164) Pour les objets du Genre=paravalanche, il faut définir la géométrie dans la table Element_lineaire";
+            !!@ message_it="(CH052164) Per il genere=riparo_antivalanghe la geometria deve essere del tipo elemento lineare";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052164: (
+                (Einzelobjektart == #Lawinenverbauung) => ((objectCount(Flaechenelement) == 0) AND (objectCount(Linienelement) > 0) AND (objectCount(Punktelement) == 0))
+            );
+
+            !!@ name = CH052165
+            !!@ message="(CH052165) Bei Art=massiver_Sockel darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052165) Bei Art=massiver_Sockel darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052165) Pour les objets du Genre=socle_massif, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052165) Per il genere=zoccolo_massiccio la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052165: (
+                (Einzelobjektart == #massiver_Sockel) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052166
+            !!@ message="(CH052166) Bei Art=Ruine_archaeologisches_Objekt darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052166) Bei Art=Ruine_archaeologisches_Objekt darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052166) Pour les objets du Genre=ruine_objet_archeologique, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052166) Per il genere=rovina_oggetto_archeologico la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052166: (
+                (Einzelobjektart == #Ruine_archaeologisches_Objekt) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052171
+            !!@ message="(CH052171) Bei Art=Hochspannungsfreileitung darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052171) Bei Art=Hochspannungsfreileitung darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052171) Pour les objets du Genre=ligne_aerienne_a_haute_tension, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052171) Per il genere=linea_aerea_ad_alta_tensione la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052171: (
+                (Einzelobjektart == #Hochspannungsfreileitung) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052177
+            !!@ message="(CH052177) Bei Art=Mauer darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052177) Bei Art=Mauer darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052177) Pour les objets du Genre=mur, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052177) Per il genere=muro la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052177: (
+                (Einzelobjektart == #Mauer) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = CH052178
+            !!@ message="(CH052178) Bei Art=uebriger_Gebaeudeteil darf die Geometrie nicht in Punktelement sein";
+            !!@ message_de="(CH052178) Bei Art=uebriger_Gebaeudeteil darf die Geometrie nicht in Punktelement sein";
+            !!@ message_fr="(CH052178) Pour les objets du Genre=autre_corps_de_batiment, la géométrie ne peut pas être définie dans la table Element_ponctuel";
+            !!@ message_it="(CH052178) Per il genere=altra_parte_di_edificio la geometria non deve essere del tipo puntiforme";
+            !! AGI SH: Failcase umgesetzt;
+            MANDATORY CONSTRAINT CH052178: (
+                (Einzelobjektart == #uebriger_Gebaeudeteil) => (objectCount(Punktelement) == 0)
+            );
+
+            !!@ name = GWRC02c
+            !!@ message="(GWRC02c) EGID existiert nicht im GWR";
+            !!@ message_de="(GWRC02c) EGID existiert nicht im GWR";
+            !!@ message_fr="(GWRC02c) L'EGID n'existe pas dans le RegBL";
+            !!@ message_it="(GWRC02c) L'EGID non esiste nel REA";
+            !! Umsetzung Phase 3;
+            /*
+            MANDATORY CONSTRAINT GWRC02c: (
+                DEFINED(EGID) => DMAV_GWR("C02")
+            );
+            */
+
+        END v_Einzelobjekt;
+
+        VIEW v_Messpunkt
+            PROJECTION OF DMAV_Einzelobjekte_V1_1.Einzelobjekte.Messpunkt;
+        =
+            ALL OF Messpunkt;
+
+            !!@ name = CH054351
+            !!@ message="(CH054351) Messpunkt darf kein Grenzpunkt, LFP1, LFP2 oder LFP3 sein";
+            !!@ message_de="(CH054351) Messpunkt darf kein Grenzpunkt, LFP1, LFP2 oder LFP3 sein";
+            !!@ message_fr="(CH054351) Le PointMesure ne doit pas être un point_limite, PFP1, PFP2 ou PFP3";
+            !!@ message_it="(CH054351) Il punto di misura non deve essere un punto limite, PFP1, PFP2 o PFP3.";
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            MANDATORY CONSTRAINT CH054351: (
+                NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3), >>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt), >>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>FixpunkteLV_V1_0.FixpunkteLV.LFP1), >>FixpunkteLV_V1_0.FixpunkteLV.LFP1->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>KGKCGC_FPDS2_V1_1.FPDS2.FixpunktVersion),"NOT(DEFINED(UntergegangenAm))"), >>KGKCGC_FPDS2_V1_1.FPDS2.FixpunktVersion->Geometrie))
+            );
+
+        END v_Messpunkt;
+
+    END Einzelobjekte_Validierung;
+
+END DMAV_V1_1_Einzelobjekte_Validierung.

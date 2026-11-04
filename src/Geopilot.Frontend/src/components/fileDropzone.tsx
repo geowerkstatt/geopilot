@@ -2,12 +2,21 @@ import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "re
 import { FileError, FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { Box, Link, Stack, Typography } from "@mui/material";
+import { TranslationKey } from "../appInterfaces";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { isIosDevice } from "../utils/platform.ts";
 import { FileListItem } from "./fileListItem.tsx";
 
 const defaultMaxFileSizeMB = 100;
+
+// The names the API stores unchanged and therefore accepts, see StringExtensions.IsSanitizedFileName.
+const invalidFileNameCharacters = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\\/:*?"<>|]/u;
+const isStorableFileName = (name: string) =>
+  name === name.trim() && !name.endsWith(".") && !name.includes("..") && !invalidFileNameCharacters.test(name);
+
+const validateFileName = (file: File): FileError | null =>
+  isStorableFileName(file.name) ? null : { code: "file-invalid-name", message: "File name not allowed" };
 
 interface FileDropzoneProps {
   selectedFiles: File[];
@@ -17,7 +26,7 @@ interface FileDropzoneProps {
   fileExtensions?: string[];
   disabled?: boolean;
   hideDropzone?: boolean;
-  setFileError: (error: string | undefined) => void;
+  setFileError: (error: TranslationKey | undefined) => void;
   maxFileSizeMB?: number;
   maxFiles?: number;
   maxTotalFileSizeMB?: number;
@@ -39,7 +48,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   isUploading,
 }) => {
   const { t } = useTranslation();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<TranslationKey>();
   // Derived during render, so the restriction applies in the same render that shows the limits.
   const acceptsAllFileTypes = !fileExtensions || fileExtensions.includes(".*");
 
@@ -53,13 +62,16 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         setError(undefined);
       }
       if (fileRejections.length > 0) {
-        let errorKey: string;
+        let errorKey: TranslationKey;
         const { errors } = fileRejections[0];
         const errorCode = errors.find(e => e.code === "file-invalid-type")?.code ?? errors[0].code;
 
         switch (errorCode) {
           case "file-invalid-type":
             errorKey = "fileDropzoneErrorNotSupported";
+            break;
+          case "file-invalid-name":
+            errorKey = "fileDropzoneErrorInvalidName";
             break;
           case "too-many-files":
             errorKey = "fileDropzoneErrorTooManyFiles";
@@ -86,16 +98,6 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
     [error, addFiles, selectedFiles, maxFiles],
   );
 
-  const validateExtension = useCallback(
-    (file: File): FileError | null => {
-      if (acceptsAllFileTypes) return null;
-      const fileName = file.name.toLowerCase();
-      const isSupported = (fileExtensions ?? []).some(ext => fileName.endsWith(ext.toLowerCase()));
-      return isSupported ? null : { code: "file-invalid-type", message: "File type not supported" };
-    },
-    [acceptsAllFileTypes, fileExtensions],
-  );
-
   // iOS/iPadOS greys out files with unknown extensions (e.g. .xtf) whenever the native file input
   // carries an `accept` attribute, so we drop it there and let `validateExtension` reject bad types
   // after selection instead. On desktop we keep the attribute for its file-dialog pre-filtering.
@@ -103,12 +105,22 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   // This workaround can be removed/adjusted should the Issue be closed.
   const restrictNativePicker = !acceptsAllFileTypes && !isIosDevice();
 
+  const validateExtension = useCallback(
+    (file: File): FileError | null => {
+      if (acceptsAllFileTypes || restrictNativePicker) return null;
+      const fileName = file.name.toLowerCase();
+      const isSupported = (fileExtensions ?? []).some(ext => fileName.endsWith(ext.toLowerCase()));
+      return isSupported ? null : { code: "file-invalid-type", message: "File type not supported" };
+    },
+    [acceptsAllFileTypes, restrictNativePicker, fileExtensions],
+  );
+
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     maxFiles,
     maxSize: maxFileSizeMB * 1024 * 1024,
     accept: restrictNativePicker ? { "application/x-geopilot-files": fileExtensions ?? [] } : undefined,
-    validator: restrictNativePicker ? undefined : validateExtension,
+    validator: file => validateFileName(file) ?? validateExtension(file),
     disabled,
   });
 

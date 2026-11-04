@@ -82,23 +82,18 @@ const MachineClientDetail = () => {
       prepareDataForSave={prepareMachineClientForSave}>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ margin: 0 }}>
-          {t("description")}
+          {t("general")}
         </Typography>
         <FormContainer>
           <FormInput fieldName={"name"} label={"name"} value={machineClient?.name} required={true} />
+        </FormContainer>
+        <FormContainer>
           <FormInput
             fieldName={"authIdentifier"}
             label={"machineClientIdentifier"}
             value={machineClient?.authIdentifier}
             required={true}
             helperText={t("machineClientIdentifierHelperText")}
-          />
-        </FormContainer>
-        <FormContainer>
-          <FormCheckbox
-            fieldName={"isActive"}
-            label={"active"}
-            checked={machineClient?.state === MachineClientState.Active}
           />
         </FormContainer>
         <FormContainer>
@@ -113,6 +108,13 @@ const MachineClientDetail = () => {
               primaryText: org.name,
               detailText: `${org.name} (ID: ${org.id})`,
             })}
+          />
+        </FormContainer>
+        <FormContainer>
+          <FormCheckbox
+            fieldName={"isActive"}
+            label={"isActive"}
+            checked={machineClient?.state === MachineClientState.Active}
           />
         </FormContainer>
       </GeopilotBox>

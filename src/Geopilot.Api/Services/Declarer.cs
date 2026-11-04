@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Whoever declares a delivery: a user or a machine client, identified by id only. Ids rather than entities,
-/// because the value travels with a <see cref="Processing.Submission"/> into the background, where an entity
+/// because the value travels with a <see cref="Processing.DeliveryIntent"/> into the background, where an entity
 /// loaded during the request would belong to a context that is long gone.
 /// </summary>
 public sealed record Declarer

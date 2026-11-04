@@ -10,8 +10,7 @@
         "geopilot": "DoNotStart",
         "stac-browser": "StartWithoutDebugging",
         "keycloak":  "StartWithoutDebugging",
-        "ilitools-wrapper": "StartWithoutDebugging",
-        "interlis-models": "StartWithoutDebugging"
+        "ilitools-wrapper": "StartWithoutDebugging"
       }
     }
   }

@@ -5,7 +5,7 @@ namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 /// <summary>
 /// A flat item of the error-tree visualization: one validation error or warning with explicit, typed fields.
 /// The frontend builds the displayed hierarchy by grouping items on the <see cref="TreeField"/>s named in
-/// <see cref="TreeVisualizationConfig.GroupBy"/>, derives the leaf's icon and colour from <see cref="Severity"/>
+/// <see cref="TreeVisualizationConfig.GroupBy"/>, derives the leaf's icon and color from <see cref="Severity"/>
 /// and shows <see cref="Tid"/> (falling back to <see cref="Message"/>) as the leaf text.
 /// </summary>
 internal sealed class TreeItem
@@ -17,7 +17,7 @@ internal sealed class TreeItem
     public string? Id { get; init; }
 
     /// <summary>
-    /// Gets the item's severity (<c>error</c> or <c>warning</c>); the frontend derives the leaf's icon and colour from it.
+    /// Gets the item's severity (<c>error</c> or <c>warning</c>); the frontend derives the leaf's icon and color from it.
     /// </summary>
     public required string Severity { get; init; }
 

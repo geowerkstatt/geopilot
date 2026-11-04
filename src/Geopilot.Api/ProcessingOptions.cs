@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Geopilot.Api;
 
 /// <summary>
 /// Configuration options for running and managing processing jobs.
@@ -6,21 +8,22 @@
 public class ProcessingOptions
 {
     /// <summary>
-    /// The duration after which uploads, deliveries, and the in-memory job entry are
-    /// eligible for cleanup.
+    /// The duration after the end of a job's run after which the in-memory job entry and its remaining files
+    /// (working directory, delivery files staged but never declared) are retired. A job that has not finished
+    /// counts from its creation.
     /// </summary>
     public TimeSpan JobRetention { get; set; }
 
     /// <summary>
-    /// The duration after which the user-facing pipeline downloads (logs, reports) are
-    /// eligible for cleanup. Typically much shorter than <see cref="JobRetention"/>
-    /// since downloads are only useful while the user is interacting with the result.
+    /// The duration after the end of a job's run after which the user-facing pipeline downloads (logs, reports)
+    /// are eligible for cleanup. Typically much shorter than <see cref="JobRetention"/> since downloads are only
+    /// useful while the user is interacting with the result.
     /// </summary>
     public TimeSpan DownloadRetention { get; set; }
 
     /// <summary>
-    /// The duration after which visualization configs are eligible for cleanup. Typically the
-    /// shortest retention, since a visualization is only needed while the user views the job
+    /// The duration after the end of a job's run after which visualization configs are eligible for cleanup.
+    /// Typically the shortest retention, since a visualization is only needed while the user views the job
     /// result in the browser.
     /// </summary>
     public TimeSpan VisualizationRetention { get; set; }
@@ -42,4 +45,21 @@ public class ProcessingOptions
     /// The duration after which a job should time out if it has not completed.
     /// </summary>
     public required TimeSpan JobTimeout { get; set; }
+
+    /// <summary>
+    /// The maximum number of pipelines this instance runs at the same time. Further jobs wait in the processing
+    /// queue, whose length <see cref="UploadOptions.MaxActiveJobs"/> bounds. Deliberately a fixed default rather than
+    /// the processor count, which in a container is the core count of the host, not of the container.
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int MaxConcurrentJobs { get; set; } = 2;
+
+    /// <summary>
+    /// How long running jobs may still continue once the host begins to shut down, before they are cancelled.
+    /// No new job starts in that window. It lets a nearly finished run complete, it does not carry a job over
+    /// the restart. Zero, the default, cancels them right away.
+    /// </summary>
+    // The upper bound is what CancellationTokenSource.CancelAfter accepts, which would otherwise only fail at shutdown.
+    [Range(typeof(TimeSpan), "00:00:00", "24.00:00:00")]
+    public TimeSpan ShutdownDrainTimeout { get; set; }
 }

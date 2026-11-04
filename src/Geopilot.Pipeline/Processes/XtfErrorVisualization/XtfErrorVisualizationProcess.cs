@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Visualization;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
@@ -23,9 +24,7 @@ internal class XtfErrorVisualizationProcess
 
     private readonly bool includeMap;
     private readonly bool includeTree;
-    private readonly string baseMapWmtsCapabilitiesUrl;
-    private readonly string baseMapAttribution;
-    private readonly string baseMapAttributionUrl;
+    private readonly MapLayer baseMapLayer;
     private readonly IReadOnlyList<TreeField> groupBy;
     private readonly IReadOnlyList<TreeField> filterBy;
 
@@ -38,22 +37,15 @@ internal class XtfErrorVisualizationProcess
     /// <param name="filterBy">Fields the frontend offers as filters, in display order (<see cref="TreeField"/> names, case-insensitive). Null means no filters are offered.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<TreeField>? groupBy = null, IReadOnlyList<TreeField>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
+    /// <param name="baseMapLayerIds">Optional override for the layers requested from the base map service, drawn in this order. Null or empty means the swisstopo national maps.</param>
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<TreeField>? groupBy = null, IReadOnlyList<TreeField>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null, IReadOnlyList<string>? baseMapLayerIds = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)
             : null;
         includeMap = selected?.Contains(IncludeMap) ?? true;
         includeTree = selected?.Contains(IncludeTree) ?? true;
-        this.baseMapWmtsCapabilitiesUrl = string.IsNullOrWhiteSpace(baseMapWmtsCapabilitiesUrl)
-            ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
-            : baseMapWmtsCapabilitiesUrl;
-        this.baseMapAttribution = string.IsNullOrWhiteSpace(baseMapAttribution)
-            ? MapVisualizationBuilder.DefaultBaseMapAttribution
-            : baseMapAttribution;
-        this.baseMapAttributionUrl = string.IsNullOrWhiteSpace(baseMapAttributionUrl)
-            ? MapVisualizationBuilder.DefaultBaseMapAttributionUrl
-            : baseMapAttributionUrl;
+        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapLayerIds, baseMapAttribution, baseMapAttributionUrl);
         this.groupBy = groupBy ?? [];
         this.filterBy = filterBy ?? [];
     }
@@ -74,7 +66,7 @@ internal class XtfErrorVisualizationProcess
 
         var config = new XtfErrorVisualizationConfig
         {
-            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl) : null,
+            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapLayer) : null,
             Tree = includeTree
                 ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
                 : null,

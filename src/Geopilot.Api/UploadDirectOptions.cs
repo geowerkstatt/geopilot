@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Api.FileAccess;
+using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Api;
 
@@ -20,4 +21,10 @@ public class UploadDirectOptions
     /// </summary>
     [Required(AllowEmptyStrings = false)]
     public required string Directory { get; set; }
+
+    /// <summary>
+    /// Describes <see cref="Directory"/> for the startup probe and the health check.
+    /// </summary>
+    internal DataDirectory ToDataDirectory()
+        => new($"{SectionName}:{nameof(Directory)}", Directory, DirectoryAccess.ReadWrite);
 }

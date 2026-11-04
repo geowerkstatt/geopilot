@@ -78,10 +78,4 @@ public class Delivery
     /// The deletion status of the delivery.
     /// </summary>
     public bool Deleted { get; set; }
-
-    /// <summary>
-    /// Indicates whether the delivery can be deleted by the uploader.
-    /// </summary>
-    [NotMapped]
-    public bool? CanDelete { get; set; }
 }

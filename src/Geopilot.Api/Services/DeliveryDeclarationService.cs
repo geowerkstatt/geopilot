@@ -2,8 +2,11 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
+using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -15,6 +18,8 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
     private readonly IProcessingService processingService;
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
+    private readonly IPipelineFactory pipelineFactory;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryDeclarationService"/> class.
@@ -24,13 +29,17 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         Context context,
         IProcessingService processingService,
         IMandateService mandateService,
-        IAssetHandler assetHandler)
+        IAssetHandler assetHandler,
+        IPipelineFactory pipelineFactory,
+        IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
         this.mandateService = mandateService;
         this.assetHandler = assetHandler;
+        this.pipelineFactory = pipelineFactory;
+        this.deliveryOptions = deliveryOptions;
     }
 
     /// <inheritdoc/>
@@ -46,10 +55,18 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
         }
 
-        if (job.Pipeline is null || !job.Pipeline.State.IsDeliverable())
+        if (!job.State.IsDeliverable())
         {
             logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
+        }
+
+        // Whether anybody can declare the run was decided when it started: a run started anonymously, by a non-member
+        // or on a mandate that takes no deliveries stays undeclarable, whoever asks now.
+        if (!job.IsDeclarable)
+        {
+            logger.LogTrace("Job with id <{JobId}> cannot be declared by anybody.", jobId);
+            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobNotDeclarable, Message: $"Job with id <{jobId}> cannot become a delivery: whoever started it may not deliver to its mandate, or the mandate takes no deliveries.");
         }
 
         if (job.MandateId == null)
@@ -75,13 +92,11 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         var user = declarer.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
         var client = declarer.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
 
-        // Do not reuse the mandate returned from GetMandateForDeclarerAsync, because it is not tracked and has no includes.
-        var hasMandatePermission = await mandateService.GetMandateForDeclarerAsync(job.MandateId.Value, declarer) != null;
-        var mandate = hasMandatePermission
+        var mandate = await mandateService.IsDeclarableAsync(job.MandateId.Value, declarer)
             ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
             : null;
 
-        if (mandate is null || !mandate.AllowDelivery)
+        if (mandate is null)
         {
             logger.LogTrace("Mandate with id <{MandateId}> not found.", job.MandateId);
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.MandateNotDeliverable, Message: $"Mandate with id <{job.MandateId}> not found.");
@@ -122,7 +137,9 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.NoAssets, Message: $"No assets found for job with id <{jobId}>.");
         }
 
+        var reactions = CreateReactions(delivery, mandate);
         var entityEntry = context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(reactions);
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -131,6 +148,11 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         {
             // Another caller declared the same job between the check above and this write. The unique index is
             // what actually keeps a job to one delivery; the check only spares the common case a failed insert.
+            foreach (var reaction in reactions)
+            {
+                context.Entry(reaction).State = EntityState.Detached;
+            }
+
             context.Entry(delivery).State = EntityState.Detached;
             logger.LogInformation("Job with id <{JobId}> was delivered by another caller while this delivery was being written.", jobId);
             return new DeliveryDeclarationResult(
@@ -141,6 +163,47 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
 
         logger.LogInformation("Declaration for job with id <{JobId}> created.", jobId);
         return new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, entityEntry.Entity.Id);
+    }
+
+    /// <summary>
+    /// Creates the transfers and the notifications of the set the mandate chose. They wait until the uploader can no
+    /// longer delete the delivery, and keep the configuration of the set and the values of the mandate as they are at
+    /// the declaration.
+    /// </summary>
+    private List<DeliveryReaction> CreateReactions(Delivery delivery, Mandate mandate)
+    {
+        if (mandate.ReactionSetId is null)
+            return [];
+
+        // The start refuses a mandate with a set while the window never closes, so the window always ends.
+        var holdEnd = deliveryOptions.Value.GetDeleteWindowEnd(delivery.Date)
+            ?? throw new InvalidOperationException($"Mandate <{mandate.Id}> chose a reaction set while the delete window never closes.");
+        var mandateValues = mandate.ReactionSetValues ?? [];
+        var declaredReactions = pipelineFactory.ReactionSets.FirstOrDefault(set => set.Id == mandate.ReactionSetId)?.AllReactions().ToList() ?? [];
+
+        DeliveryReaction Create((string ReactionId, string Implementation, Parameterization Config) reaction, ReactionKind kind) => new()
+        {
+            Delivery = delivery,
+            ReactionId = reaction.ReactionId,
+            Kind = kind,
+            Implementation = reaction.Implementation,
+            Config = new ReactionSnapshot(
+                reaction.Config,
+                DeclaredValues(mandateValues.GetValueOrDefault(reaction.ReactionId), declaredReactions.FirstOrDefault(declared => declared.Id == reaction.ReactionId))),
+            State = ReactionState.Pending,
+            NextAttemptAt = holdEnd,
+        };
+
+        return pipelineFactory.ResolveTransfers(mandate.ReactionSetId).Select(transfer => Create(transfer, ReactionKind.Transfer))
+            .Concat(pipelineFactory.ResolveNotifications(mandate.ReactionSetId).Select(notification => Create(notification, ReactionKind.Notification)))
+            .ToList();
+    }
+
+    // Only what the set still declares: a key it dropped after the mandate was saved must not reach the channel.
+    private static Dictionary<string, JsonElement> DeclaredValues(Dictionary<string, JsonElement>? values, ReactionConfig? reaction)
+    {
+        var keys = (reaction?.MandateConfig ?? []).Select(entry => entry.Key).ToHashSet(StringComparer.Ordinal);
+        return (values ?? []).Where(entry => keys.Contains(entry.Key)).ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
     }
 
     private static bool IsJobConflict(DbUpdateException exception)

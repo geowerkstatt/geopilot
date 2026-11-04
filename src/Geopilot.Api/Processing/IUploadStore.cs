@@ -28,6 +28,13 @@ public interface IUploadStore
     bool RemoveUpload(Guid uploadId);
 
     /// <summary>
+    /// Retrieves the uploads created before <paramref name="cutoff"/>.
+    /// </summary>
+    /// <param name="cutoff">The point in time, in UTC, the uploads must be older than.</param>
+    /// <returns>A snapshot of the matching uploads.</returns>
+    IReadOnlyCollection<UploadInfo> GetUploadsCreatedBefore(DateTime cutoff);
+
+    /// <summary>
     /// Number of uploads currently tracked (initiated but not yet consumed by a job).
     /// </summary>
     int GetActiveUploadCount();

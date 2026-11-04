@@ -139,7 +139,7 @@ internal static class DtoMapperExtensions
             .ToList();
 
         var deliveries = step.DeliveryFiles
-            .Select(df => df.OriginalFileName)
+            .Select(df => df.PersistedFileName)
             .ToList();
 
         var visualizations = step.Visualizations
@@ -162,14 +162,16 @@ internal static class DtoMapperExtensions
     /// <summary>
     /// Maps the <see cref="Mandate"/> entries to <see cref="MandateSummary"/>.
     /// </summary>
-    public static IQueryable<MandateSummary> ToSummaries(this IQueryable<Mandate> mandates)
+    /// <param name="mandates">The mandates to map.</param>
+    /// <param name="deliverableMandateIds">The ids of the mandates the caller may deliver to.</param>
+    public static IQueryable<MandateSummary> ToSummaries(this IQueryable<Mandate> mandates, IQueryable<int> deliverableMandateIds)
     {
         return mandates.Select(m => new MandateSummary(
             m.Id,
             m.Key,
             m.Name,
             m.Description,
-            m.AllowDelivery,
+            deliverableMandateIds.Contains(m.Id),
             m.EvaluatePrecursorDelivery,
             m.EvaluatePartial,
             m.EvaluateComment));
@@ -213,6 +215,22 @@ internal static class DtoMapperExtensions
             run.Steps
                 .OrderBy(step => step.Order)
                 .Select(step => step.ToResponse())
+                .ToList(),
+            run.ReactionEvents
+                .OrderBy(reactionEvent => reactionEvent.OccurredAt)
+                .ThenBy(reactionEvent => reactionEvent.Id)
+                .Select(reactionEvent => new PipelineRunReactionEventResponse(
+                    reactionEvent.DeliveryId,
+                    reactionEvent.ReactionId,
+                    reactionEvent.ReactionKind,
+                    reactionEvent.Implementation,
+                    reactionEvent.Event,
+                    reactionEvent.Attempt,
+                    reactionEvent.OccurredAt,
+                    reactionEvent.FinishedAt,
+                    reactionEvent.State,
+                    reactionEvent.Message,
+                    reactionEvent.UserId))
                 .ToList());
     }
 

@@ -1,17 +1,13 @@
-import { FC, useCallback, useMemo, useReducer, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { Box, Modal, Stack, useTheme } from "@mui/material";
 import { MapVisualizationConfig, TreeField, TreeVisualizationConfig } from "../../api/apiInterfaces";
-import { IconButton } from "../../components/buttons";
-import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
-import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
-import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
-import { FilterBar } from "./filterBar";
+import { FieldFilters, FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
-import { buildErrorIdIndex, buildTree, collectFilterAttributes, FieldFilters, filterItems } from "./tree/treeNode";
+import { MapListLayout } from "./mapListLayout";
+import { scrollIntoFullView } from "./scrollIntoFullView";
+import { buildErrorIdIndex, buildTree, collectFilterAttributes, filterItems } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
 
 /**
@@ -35,23 +31,43 @@ interface XtfErrorVisualizationProps {
 interface NodeSelectionState {
   selectedNodeId: string | null;
   selectionToken: number;
+  /**
+   * Whether selecting the node scrolls the page to its details panel. Off when the node was selected by its map
+   * button, so the page scrolls to the map instead.
+   */
+  scrollToSelection: boolean;
+}
+
+interface NodeSelection {
+  nodeId: string | null;
+  scrollToSelection: boolean;
 }
 
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
-  const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
-  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer(
-    (state: NodeSelectionState, nodeId: string | null): NodeSelectionState => ({
+  const [fieldFilters, setFieldFilters] = useState<FieldFilters<TreeField>>({});
+  const [{ selectedNodeId, selectionToken, scrollToSelection }, dispatchSelection] = useReducer(
+    (state: NodeSelectionState, { nodeId, scrollToSelection }: NodeSelection): NodeSelectionState => ({
       selectedNodeId: nodeId,
       selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
+      scrollToSelection,
     }),
-    { selectedNodeId: null, selectionToken: 0 },
+    { selectedNodeId: null, selectionToken: 0, scrollToSelection: true },
+  );
+  const setSelectedNodeId = useCallback(
+    (nodeId: string | null) => dispatchSelection({ nodeId, scrollToSelection: true }),
+    [],
   );
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
+  const inlineMap = useRef<HTMLDivElement>(null);
+
+  // After the render, once the selected node's panel has moved the tree; fullscreen shows the map beside the tree.
+  useEffect(() => {
+    if (zoomRequest && inlineMap.current) scrollIntoFullView(inlineMap.current);
+  }, [zoomRequest]);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -88,7 +104,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   // Error ids that actually have a feature on the map; a tree node is zoomable only when its subtree holds
   // at least one of them. Without a map (tree-only visualization) nothing is zoomable.
   const mappableErrorIds = useMemo(
-    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.errorId) ?? [])),
+    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.id) ?? [])),
     [config.map],
   );
   const zoomableNodeIds = useMemo(() => {
@@ -108,7 +124,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
   const handleZoomToNode = useCallback(
     (nodeId: string) => {
-      setSelectedNodeId(nodeId);
+      dispatchSelection({ nodeId, scrollToSelection: false });
       const featureIds = errorIdsByNodeId.get(nodeId) ?? [];
       setZoomRequest(prev => ({ featureIds, token: (prev?.token ?? 0) + 1 }));
     },
@@ -118,6 +134,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const filter = config.tree && (
     <FilterBar
       attributes={attributes}
+      searchPlaceholder="treeVisualizationMessageSearch"
       messageQuery={messageQuery}
       onMessageQueryChange={setMessageQuery}
       fieldFilters={fieldFilters}
@@ -139,6 +156,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       nodes={nodes}
       selectedId={selectedNodeId}
       selectionToken={selectionToken}
+      scrollToSelection={scrollToSelection}
       onSelect={setSelectedNodeId}
       onZoom={handleZoomToNode}
       zoomableNodeIds={zoomableNodeIds}
@@ -158,50 +176,14 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       onSelectFeature={handleSelectFeature}
       showMapSelectionPopup={!config.tree}
       fullscreen={fullscreen}>
-      {config.map && (
-        <IconButton
-          size="small"
-          label="fullscreen"
-          icon={<OpenInFullIcon />}
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: theme.spacing(6),
-            padding: theme.spacing(2),
-            display: { xs: "none", md: "block" },
-          }}
-          onClick={() => setFullscreen(prev => !prev)}
-        />
-      )}
-      {config.map && fullscreen ? (
-        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
-          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-              {map}
-              {config.tree && (
-                <GeopilotBox
-                  sx={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    m: 2,
-                    width: "400px",
-                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                  }}>
-                  {filter}
-                  {tree}
-                </GeopilotBox>
-              )}
-            </Box>
-          </Modal>
-        </ScrollMarginProvider>
-      ) : (
-        <Stack sx={{ width: "100%" }}>
-          {filter}
-          {map}
-          {tree}
-        </Stack>
-      )}
+      <MapListLayout
+        map={map}
+        filter={filter}
+        list={tree}
+        fullscreen={fullscreen}
+        setFullscreen={setFullscreen}
+        inlineMapRef={inlineMap}
+      />
     </MapVisualizationProvider>
   );
 };

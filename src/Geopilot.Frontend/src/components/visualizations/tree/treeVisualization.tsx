@@ -20,6 +20,8 @@ interface TreeVisualizationProps {
   onSelect: (nodeId: string | null) => void;
   /** A token that can be used to scroll to the selected node. */
   selectionToken?: unknown;
+  /** Whether a new selection scrolls the tree to it; defaults to true. */
+  scrollToSelection?: boolean;
   /** Whether a filter is active: expands every match, shows the no-results hint, and switches the header count. */
   filterActive?: boolean;
   /** Total number of errors across all items, shown in the header. */
@@ -91,6 +93,7 @@ export const TreeVisualization = ({
   selectedId,
   onSelect,
   selectionToken,
+  scrollToSelection = true,
   filterActive = false,
   totalCount,
   shownCount,
@@ -184,10 +187,9 @@ export const TreeVisualization = ({
     if (!tree) return;
 
     const scrollToPanel = () => {
-      if (panelRef.current) {
-        panelRef.current.style.marginTop = `${calculatePanelTop()}px`;
-        panelRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
+      if (panelRef.current) panelRef.current.style.marginTop = `${calculatePanelTop()}px`;
+      if (!scrollToSelection) return;
+      panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       inlinePanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     };
 
@@ -205,7 +207,7 @@ export const TreeVisualization = ({
       clearTimeout(scrollTimeout);
       observer.disconnect();
     };
-  }, [expandedItems, items, calculatePanelTop, selectionToken]);
+  }, [expandedItems, items, calculatePanelTop, selectionToken, scrollToSelection]);
 
   if (nodes.length === 0 && !filterActive) return null;
 

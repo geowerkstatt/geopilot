@@ -12,6 +12,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CircularProgress, Stack, useTheme } from "@mui/material";
 import { DeliveryStepState } from "../api/apiInterfaces.ts";
 import { StepState } from "../api/generated";
+import { TranslationKey } from "../appInterfaces";
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../appTheme.ts";
 
 type StepIconVariant = "contained" | "outlined";
@@ -22,7 +23,7 @@ interface StepIconProps {
   variant: StepIconVariant;
 }
 
-const stateLabelKey: Record<StepState | DeliveryStepState, string> = {
+const stateLabelKey: Record<StepState | DeliveryStepState, TranslationKey> = {
   [DeliveryStepState.Enabled]: "stepStateEnabled",
   [StepState.Pending]: "stepStatePending",
   [StepState.Running]: "stepStateRunning",

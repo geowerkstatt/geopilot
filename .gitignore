@@ -415,3 +415,10 @@ certs/
 
 # Local developer overlays (symlinks created by scripts/link-plugin-config.ps1)
 **/appsettings.Local*.json
+
+# Reference data that refdata-update (compose profile dmav) fetches into the DMAV test world, one line per destination
+# in config/refdata-sources.yaml, and the partial files it writes while fetching
+TestData/Dmav/repository/dmav_V1_1/refdata/FixpunkteLV_V1_0_LFP1.xtf
+TestData/Dmav/repository/dmav_V1_1/refdata/hoheitsgrenze-landesvermessung_2056.xtf
+TestData/Dmav/repository/dmav_V1_1/refdata/OfficialIndexOfLocalities_V1_0.xtf
+TestData/Dmav/repository/**/.*.part

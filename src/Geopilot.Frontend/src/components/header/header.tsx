@@ -2,7 +2,6 @@ import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   AppBar,
   Avatar,
@@ -12,7 +11,6 @@ import {
   List,
   ListItem,
   ListItemButton,
-  ListItemIcon,
   ListItemText,
   Skeleton,
   Stack,
@@ -200,32 +198,16 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </ListItemButton>
               </ListItem>
               {isAdmin && (
-                <>
-                  <ListItem key="administration" disablePadding>
-                    <ListItemButton
-                      component={RouterLink}
-                      to="/admin"
-                      selected={isActive("admin")}
-                      onClick={linkClick("/admin")}
-                      data-cy="admin-nav">
-                      <ListItemText primary={t("administration")} />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem key="stacBrowser" disablePadding>
-                    <ListItemButton
-                      component="a"
-                      href="/browser"
-                      target="_blank"
-                      rel="noopener"
-                      selected={isActive("browser")}
-                      data-cy="stacBrowser-nav">
-                      <ListItemText primary={t("stacBrowser")} />
-                      <ListItemIcon sx={{ justifyContent: "flex-end" }}>
-                        <OpenInNewIcon fontSize="small" sx={{ color: "primary.main" }} />
-                      </ListItemIcon>
-                    </ListItemButton>
-                  </ListItem>
-                </>
+                <ListItem key="administration" disablePadding>
+                  <ListItemButton
+                    component={RouterLink}
+                    to="/admin"
+                    selected={isActive("admin")}
+                    onClick={linkClick("/admin")}
+                    data-cy="admin-nav">
+                    <ListItemText primary={t("administration")} />
+                  </ListItemButton>
+                </ListItem>
               )}
             </List>
           </Box>

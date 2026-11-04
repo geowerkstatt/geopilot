@@ -1,4 +1,6 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Services;
+using Geopilot.Pipeline;
+using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api;
 
@@ -8,6 +10,21 @@ namespace Geopilot.Api;
 public static class PipelineConfigurationExtensions
 {
     private const string PluginsKey = "Pipeline:Plugins";
+
+    /// <summary>
+    /// Binds <see cref="PipelineOptions"/> from <c>Pipeline</c>, including the scalar form of <c>Pipeline:Plugins</c>,
+    /// and checks the base configuration of the delivery channels when the application starts.
+    /// </summary>
+    public static IServiceCollection AddPipelineOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.Configure<PipelineOptions>(configuration.GetSection("Pipeline"));
+        services.AddPipelinePluginsScalarOverride(configuration);
+        services.AddSingleton<IValidateOptions<PipelineOptions>, FileDropDirectoryValidator>();
+        services.AddOptions<PipelineOptions>().ValidateOnStart();
+        return services;
+    }
 
     /// <summary>
     /// Allows <c>Pipeline:Plugins</c> to be supplied as a single comma-separated string (e.g. via env var

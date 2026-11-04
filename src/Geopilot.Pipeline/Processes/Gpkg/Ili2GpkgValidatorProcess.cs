@@ -65,10 +65,10 @@ internal class Ili2GpkgValidatorProcess
     [PipelineProcessRun]
     public async Task<Ili2GpkgValidatorResult> RunAsync(
         IPipelineFile dbFile,
-        string? models,
-        string? topics,
-        string? baskets,
-        string? dataset,
+        string[]? models,
+        string[]? topics,
+        string[]? baskets,
+        string[]? dataset,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbFile);
@@ -77,10 +77,10 @@ internal class Ili2GpkgValidatorProcess
 
         var args = ili2GpkgArgs with
         {
-            Models = IlitoolsHelper.SplitConfiguredList(models),
-            Topics = IlitoolsHelper.SplitConfiguredList(topics),
-            Baskets = IlitoolsHelper.SplitConfiguredList(baskets),
-            Dataset = dataset,
+            Models = IlitoolsHelper.SplitConfiguredListEntries(models),
+            Topics = IlitoolsHelper.SplitConfiguredListEntries(topics),
+            Baskets = IlitoolsHelper.SplitConfiguredListEntries(baskets),
+            Dataset = IlitoolsHelper.SplitConfiguredListEntries(dataset) is { } datasets ? string.Join(';', datasets) : null,
         };
 
         var errorLogFile = pipelineFileManager.GeneratePipelineFile("validate", "log");

@@ -1,0 +1,107 @@
+INTERLIS 2.4;
+
+MODEL DMAV_V1_1_Bodenbedeckung_Validierung (de)
+AT "https://www.kgk-cgc.ch/" 
+VERSION "2025-03-30" =
+  
+IMPORTS UNQUALIFIED INTERLIS;
+IMPORTS UNQUALIFIED Text_V2;
+IMPORTS UNQUALIFIED Math_V2_1;
+IMPORTS UNQUALIFIED ObjectPool_V1_0;
+IMPORTS UNQUALIFIED Elements_V1_0;
+IMPORTS UNQUALIFIED IliValidGwr_V1_0;
+IMPORTS UNQUALIFIED IliVRuntime_V1_0;
+IMPORTS DMAVTYM_Topologie_V1_0;
+IMPORTS DMAV_FixpunkteAVKategorie3_V1_1;
+IMPORTS DMAV_Bodenbedeckung_V1_1;
+IMPORTS DMAV_Einzelobjekte_V1_1;
+IMPORTS DMAV_Nomenklatur_V1_1;
+IMPORTS DMAV_Grundstuecke_V1_1;
+IMPORTS DMAV_Rohrleitungen_V1_1;
+IMPORTS DMAV_HoheitsgrenzenAV_V1_0;
+IMPORTS DMAV_Toleranzstufen_V1_1;
+IMPORTS DMAV_Gebaeudeadressen_V1_1;
+IMPORTS KGKCGC_FPDS2_V1_1;
+IMPORTS FixpunkteLV_V1_0;
+
+    VIEW TOPIC Bodenbedeckung_Validierung = 
+    DEPENDS ON DMAV_Bodenbedeckung_V1_1.Bodenbedeckung;
+  
+        VIEW v_Bodenbedeckung
+            PROJECTION OF DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Bodenbedeckung;
+        =
+            ALL OF Bodenbedeckung; 
+            
+            !!@ category = warning
+            !!@ name = CH043451
+            !!@ message="(CH043451) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_de="(CH043451) Flächenperimeter muss mit Referenzperimeter der Liegenschaften übereinstimmen (Toleranz 2 mm)";
+            !!@ message_fr="(CH043451) Le périmètre doit être identique au périmètre de référence des biens-fonds (tolérance 2 mm)";
+            !!@ message_it="(CH043451) Il perimetro deve coincidere con il perimetro di riferimento del bene immobile (Tolleranza 2 mm)";
+            !! AGI SH: Failcase umgesetzt;
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            SET CONSTRAINT CH043451: WHERE Objektstatus==#real: (
+                   DMAVTYM_Topologie_V1_0.isGeometrySpatiallyEqual(ALL, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft), "DEFINED(Grundstueck->Entstehung) AND NOT(DEFINED(Grundstueck->Untergang))"), >>DMAV_Grundstuecke_V1_1.Grundstuecke.Liegenschaft->Geometrie, 0.002)
+            );  
+
+            !!@ name = CH043453
+            !!@ message="(CH043453) Gebäude hat keinen EGID";
+            !!@ message_de="(CH043453) Gebäude hat keinen EGID";
+            !!@ message_fr="(CH043453) Le bâtiment n'a pas d'EGID";
+            !!@ message_it="(CH043453) L'edificio non ha un EGID";
+            !! AGI SH: Failcase umgesetzt;
+            !! Kategorie: modellübergreifend
+            !! Umsetzung Phase 2;
+            MANDATORY CONSTRAINT CH043453 : (
+            NOT (
+               (Objektstatus == #real) AND (Bodenbedeckungsart == #Gebaeude)
+            )
+            OR (
+               DEFINED(EGID)
+            )); 
+
+            !!@ name = GWRA09
+            !!@ message="(GWRA09) Der gleiche EGID (Topic BB) wird für verschiedene Gebäude verwendet";
+            !!@ message_de="(GWRA09) Der gleiche EGID (Topic BB) wird für verschiedene Gebäude verwendet";
+            !!@ message_fr="(GWRA09) Le même EGID (topic CS) est renseigné pour plusieurs bâtiments différents";
+            !!@ message_it="(GWRA09) Lo stesso EGID (topic CS) è assegnato a più edifici differenti";
+            !! AGI SH: Failcase umgesetzt;
+            !! Umsetzung Phase 1; -> Kommentar Romedi: Gilt nur innerhalb eines Operats. Vergleich eindeutige EGID in Gebäudenummer und Gebäudeeingang
+            UNIQUE GWRA09 : WHERE Bodenbedeckungsart==#Gebaeude: EGID;
+
+            !!@ name = GWRC02a
+            !!@ message="(GWRC02a) EGID existiert nicht im GWR";
+            !!@ message_de="(GWRC02a) EGID existiert nicht im GWR";
+            !!@ message_fr="(GWRC02a) L'EGID n'existe pas dans le RegBL";
+            !!@ message_it="(GWRC02a) L'EGID non esiste nel REA";
+            !! Umsetzung Phase 3;
+            MANDATORY CONSTRAINT GWRC02a : DEFINED(EGID) => IliValidGwr_V1_0.egidExistsInGWR(EGID,PARAMETER IliVRuntime_V1_0.Scope);
+
+        END v_Bodenbedeckung;
+
+        VIEW v_Messpunkt
+            PROJECTION OF DMAV_Bodenbedeckung_V1_1.Bodenbedeckung.Messpunkt;
+        =
+            ALL OF Messpunkt;
+
+            !!@ name = CH043452
+            !!@ message="(CH043452) Messpunkt darf kein Grenzpunkt, LFP1, LFP2 oder LFP3 sein";
+            !!@ message_de="(CH043452) Messpunkt darf kein Grenzpunkt, LFP1, LFP2 oder LFP3 sein";
+            !!@ message_fr="(CH043452) Le PointMesure ne doit pas être un point_limite, PFP1, PFP2 ou PFP3";
+            !!@ message_it="(CH043452) Il punto di misura non deve essere un punto limite, PFP1, PFP2 o PFP3";
+            !! Kategorie: modellübergreifend & @geow Dienstbezug
+            !! Umsetzung Phase 2;
+            !! Failcase für Testsuite erstellt (Testsuite_DMAV/DMAV_V1_0_Validierung/DMAV_V1_0_Validierung.Bodenbedeckung_Validierung.v_Bodenbedeckung.CH043452)
+            MANDATORY CONSTRAINT CH043452 : (
+                NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3), >>DMAV_FixpunkteAVKategorie3_V1_1.FixpunkteAVKategorie3.LFP3->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt), >>DMAV_Grundstuecke_V1_1.Grundstuecke.Grenzpunkt->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.allObjects(>FixpunkteLV_V1_0.FixpunkteLV.LFP1), >>FixpunkteLV_V1_0.FixpunkteLV.LFP1->Geometrie))
+                AND NOT(DMAVTYM_Topologie_V1_0.pointInPoints(THIS, >>Geometrie, ObjectPool_V1_0.filter(ObjectPool_V1_0.allObjects(>KGKCGC_FPDS2_V1_1.FPDS2.FixpunktVersion),"NOT(DEFINED(UntergegangenAm))"), >>KGKCGC_FPDS2_V1_1.FPDS2.FixpunktVersion->Geometrie))
+            );
+        
+        END v_Messpunkt; 
+
+    END Bodenbedeckung_Validierung;
+
+END DMAV_V1_1_Bodenbedeckung_Validierung.

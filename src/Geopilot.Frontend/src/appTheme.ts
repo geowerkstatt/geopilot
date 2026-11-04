@@ -213,12 +213,19 @@ export const geopilotTheme = createTheme({
           "&:hover": {
             boxShadow: "none",
           },
+          "&.MuiButton-contained": {
+            color: themePalette.primary.contrast,
+          },
           "&.MuiButton-outlined": {
             backgroundColor: themePalette.primary.contrast,
           },
-          "&.MuiButton-outlined:hover": {
+          "&.MuiButton-outlinedPrimary:hover": {
             backgroundColor: themePalette.primary.states.hover,
             borderColor: themePalette.primary.main,
+          },
+          "&.MuiButton-outlinedError:hover": {
+            backgroundColor: themePalette.error.hover,
+            borderColor: themePalette.error.main,
           },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
@@ -400,7 +407,8 @@ export const geopilotTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          padding: themeSpacing(2),
+          padding: themeSpacing(3),
+          gap: themeSpacing(2),
         },
       },
     },
@@ -411,7 +419,6 @@ export const geopilotTheme = createTheme({
           fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           letterSpacing: NEOGEO_LETTERSPACING,
           padding: "0",
-          paddingBottom: themeSpacing(1),
           margin: "0",
         },
       },
@@ -420,7 +427,6 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           padding: "0",
-          paddingBottom: themeSpacing(1),
         },
       },
     },
@@ -428,7 +434,6 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           padding: "0",
-          paddingTop: themeSpacing(1),
           "& > :not(:first-of-type)": {
             marginLeft: themeSpacing(2),
           },

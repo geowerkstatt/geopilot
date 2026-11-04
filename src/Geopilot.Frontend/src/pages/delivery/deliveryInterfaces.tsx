@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { DeliveryStepState, LocalizedText, NormalizedProcessingJobResponse } from "../../api/apiInterfaces.ts";
 import { DeliveryRequest, MandateSummary, UploadSettingsResponse } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -19,10 +20,10 @@ export interface DeliveryStepProps {
 }
 
 export interface DeliveryStep {
-  label: string;
+  label: TranslationKey;
   labelAddition?: string;
   state?: DeliveryStepState;
-  messages?: (string | LocalizedText)[];
+  messages?: (TranslationKey | LocalizedText)[];
   content: (completed: boolean) => ReactNode;
 }
 
@@ -30,7 +31,7 @@ export type DeliverySubmitData = Omit<DeliveryRequest, "jobId">;
 
 export interface DeliveryStepError {
   status: number;
-  errorKey: string;
+  errorKey: TranslationKey;
 }
 
 export interface DeliveryContextInterface {
@@ -42,7 +43,7 @@ export interface DeliveryContextInterface {
   setStepStatus: (
     key: DeliveryStepEnum,
     state: DeliveryStepState | undefined,
-    messages?: (string | LocalizedText)[],
+    messages?: (TranslationKey | LocalizedText)[],
   ) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;

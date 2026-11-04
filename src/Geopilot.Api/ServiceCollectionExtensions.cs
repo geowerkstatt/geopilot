@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
                     .PipelineTempDirectory(directoryProvider.PipelineDirectory)
                     .ResourcesDirectory(directoryProvider.ResourcesDirectory)
                     .ProcessBaseConfigs(pipelinePluginOptions.ProcessConfigs)
+                    .ChannelBaseConfigs(pipelinePluginOptions.ChannelConfigs)
                     .Build();
 
             return pipelineFactory;
@@ -74,6 +75,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configure);
 
+        services.AddHttpContextAccessor();
         services.AddStacWebApi();
 
         // Add the Http Stac Api context factory

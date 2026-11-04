@@ -3,6 +3,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormHelperText, Stack, SxProps, TextField } from "@mui/material";
 import { Coordinate } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 import { FormContainer, FormValueType, getFormFieldError, getFormFieldErrorMessage } from "./form";
 
 const isSet = (value?: number): value is number => value !== undefined && !isNaN(value);
@@ -44,7 +45,7 @@ export interface FormExtentProps {
   /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
   error?: boolean;
   /** Controlled mode: translation key of the message shown below the fields. Ignored in form-context mode. */
-  errorMessage?: string;
+  errorMessage?: TranslationKey;
 }
 
 export const FormExtent: FC<FormExtentProps> = ({
@@ -138,7 +139,7 @@ export const FormExtent: FC<FormExtentProps> = ({
         </Stack>
         {showError && message && (
           <FormHelperText error sx={{ marginLeft: "14px" }} data-cy="extent-formHelperText">
-            {t(message)}
+            {t(message as TranslationKey)}
           </FormHelperText>
         )}
       </Stack>

@@ -10,6 +10,9 @@ namespace Geopilot.Api;
 
 internal static class ContextExtensions
 {
+    // Any fixed value works, it only has to be the same for every instance migrating the database ("geopilot" in ASCII).
+    private const long MigrationLockKey = 0x67656F70696C6F74;
+
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
     /// </summary>
@@ -24,12 +27,12 @@ internal static class ContextExtensions
 
     /// <summary>
     /// Retrieves the user that matches the provided principal, or <see langword="null"/> when the principal is
-    /// no user: a machine client, or a token the application has never seen as a person.
+    /// no active user: a machine client, a deactivated person, or a token the application has never seen as a person.
     /// </summary>
     public static async Task<User?> GetUserOrDefaultByPrincipalAsync(this Context context, ClaimsPrincipal principal)
     {
         var subjectId = principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value;
-        return await context.Users.SingleOrDefaultAsync(u => u.AuthIdentifier == subjectId);
+        return await context.Users.SingleOrDefaultAsync(u => u.AuthIdentifier == subjectId && u.State == UserState.Active);
     }
 
     /// <summary>
@@ -42,13 +45,13 @@ internal static class ContextExtensions
     public static async Task<Declarer> GetDeclarerAsync(this Context context, ClaimsPrincipal principal)
     {
         return await context.GetDeclarerOrDefaultAsync(principal)
-            ?? throw new InvalidOperationException($"Subject <{GetSubject(principal)}> is neither an active machine client nor a user.");
+            ?? throw new InvalidOperationException($"Subject <{GetSubject(principal)}> is neither an active machine client nor an active user.");
     }
 
     /// <summary>
     /// Resolves the provided principal like <see cref="GetDeclarerAsync"/>, but answers <see langword="null"/>
-    /// for a subject that is neither an active machine client nor a user, for the anonymous endpoints, where
-    /// such a caller is simply nobody in particular.
+    /// for a subject that is neither an active machine client nor an active user, for the anonymous endpoints,
+    /// where such a caller is simply nobody in particular.
     /// </summary>
     public static async Task<Declarer?> GetDeclarerOrDefaultAsync(this Context context, ClaimsPrincipal principal)
     {
@@ -64,7 +67,7 @@ internal static class ContextExtensions
             return client.State == MachineClientState.Active ? Declarer.ForClient(client.Id) : null;
 
         var userId = await context.Users
-            .Where(u => u.AuthIdentifier == subjectId)
+            .Where(u => u.AuthIdentifier == subjectId && u.State == UserState.Active)
             .Select(u => (int?)u.Id)
             .SingleOrDefaultAsync();
         if (userId is not null)
@@ -90,7 +93,39 @@ internal static class ContextExtensions
         #pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
     }
 
+    /// <summary>
+    /// Applies pending migrations. Instances starting concurrently against the same database migrate one after another.
+    /// </summary>
     public static void MigrateDatabase(this Context context)
+    {
+        // Serializes concurrent starts, e.g. two pods during a rolling update. The PostGIS branch runs a script
+        // and bypasses the migration lock EF Core would otherwise take. An advisory lock belongs to the session,
+        // so the connection stays open until the lock is released.
+        context.Database.OpenConnection();
+        try
+        {
+            // shortcut: the wait is bounded by the default command timeout (30 s); a longer migration makes the
+            // waiting instance fail its start and restart, and it then finds nothing pending.
+            context.Database.ExecuteSql($"SELECT pg_advisory_lock({MigrationLockKey})");
+            try
+            {
+                if (context.Database.GetPendingMigrations().Any())
+                {
+                    context.ApplyMigrations();
+                }
+            }
+            finally
+            {
+                context.Database.ExecuteSql($"SELECT pg_advisory_unlock({MigrationLockKey})");
+            }
+        }
+        finally
+        {
+            context.Database.CloseConnection();
+        }
+    }
+
+    private static void ApplyMigrations(this Context context)
     {
         if (context.IsPostgisInstalled())
         {

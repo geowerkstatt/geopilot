@@ -39,5 +39,9 @@ public class UploadStore : IUploadStore
     public bool RemoveUpload(Guid uploadId) => uploads.TryRemove(uploadId, out _);
 
     /// <inheritdoc/>
+    public IReadOnlyCollection<UploadInfo> GetUploadsCreatedBefore(DateTime cutoff)
+        => uploads.Values.Where(upload => upload.CreatedAt < cutoff).ToList();
+
+    /// <inheritdoc/>
     public int GetActiveUploadCount() => uploads.Count;
 }

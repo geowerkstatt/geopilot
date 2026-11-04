@@ -20,8 +20,8 @@ Ein GPKG Validator Prozess muss unter `processes[X].implementation` den Wert `Ge
 Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
 - `dbFile`: Die zu validierende GeoPackage-Datei vom Typ `IPipelineFile`, Pflicht.
-- `models`, `topics`, `baskets`: Optionale Werte vom Typ `string`, je mit Semikolon getrennt. Sie grenzen ein, was validiert wird.
-- `dataset`: Optionaler Datensatzname vom Typ `string` (`--dataset`).
+- `models`, `topics`, `baskets`: Optionale Listen vom Typ `string[]`; ein Eintrag darf auch mehrere Werte mit Semikolon getrennt enthalten (`ModelA;ModelB`). Sie grenzen ein, was validiert wird.
+- `dataset`: Optionale Datensatznamen vom Typ `string[]`; ein Eintrag darf auch mehrere Namen mit Semikolon getrennt enthalten (`--dataset`).
 
 ## Output
 

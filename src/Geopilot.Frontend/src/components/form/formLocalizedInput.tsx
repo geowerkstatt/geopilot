@@ -1,12 +1,12 @@
 import { FC } from "react";
 import { FieldValues } from "react-hook-form";
 import { LocalizedText } from "../../api/apiInterfaces";
-import { Language } from "../../appInterfaces";
+import { Language, TranslationKey } from "../../appInterfaces";
 import { FormInput } from "./formInput";
 
 interface FormLocalizedInputProps {
   fieldName: string;
-  label: string;
+  label: TranslationKey;
   activeLanguage: Language;
   value?: LocalizedText;
   multiline?: boolean;

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE transfer [
+    <!ENTITY bfs "449">
+]>
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS" xmlns:DMAV_HoheitsgrenzenAV_V1_0="http://www.interlis.ch/xtf/2.4/DMAV_HoheitsgrenzenAV_V1_0">
+    <ili:datasection>
+        <DMAV_HoheitsgrenzenAV_V1_0:HoheitsgrenzenAV ili:bid="b1">
+            <DMAV_HoheitsgrenzenAV_V1_0:Gemeinde ili:tid="g449">
+                <DMAV_HoheitsgrenzenAV_V1_0:BFSNummer>&bfs;</DMAV_HoheitsgrenzenAV_V1_0:BFSNummer>
+            </DMAV_HoheitsgrenzenAV_V1_0:Gemeinde>
+        </DMAV_HoheitsgrenzenAV_V1_0:HoheitsgrenzenAV>
+    </ili:datasection>
+</ili:transfer>

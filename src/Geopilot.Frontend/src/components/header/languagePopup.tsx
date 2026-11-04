@@ -56,12 +56,12 @@ export function LanguagePopup() {
     <>
       <Button
         variant="text"
-        label={selectedLanguage.toUpperCase()}
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{ ...(open && { backgroundColor: geopilotTheme.palette.primary.states.hover }) }}
-        data-cy="language-selector"
-      />
+        data-cy="language-selector">
+        {selectedLanguage.toUpperCase()}
+      </Button>
       <Menu
         anchorEl={anchorEl}
         open={open}

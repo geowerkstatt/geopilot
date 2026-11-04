@@ -1,0 +1,35 @@
+[
+  {
+    "oid": "building",
+    "changeType": "changed",
+    "valueType": "attribute",
+    "interlisName": "Model.Topic.Building",
+    "attributePath": "Name",
+    "oldValue": "Old name",
+    "newValue": "New name",
+    "oldLocation": "",
+    "newLocation": ""
+  },
+  {
+    "oid": "building",
+    "changeType": "changed",
+    "valueType": "attribute",
+    "interlisName": "Model.Topic.Building",
+    "attributePath": "EGID",
+    "oldValue": "190001",
+    "newValue": "190002",
+    "oldLocation": "POLYGON((2600000 1200000,2600010 1200000,2600010 1200010,2600000 1200000))",
+    "newLocation": "POLYGON((2600000 1200000,2600012 1200000,2600012 1200010,2600000 1200000))"
+  },
+  {
+    "oid": "building",
+    "changeType": "changed",
+    "valueType": "geometry",
+    "interlisName": "Model.Topic.Building",
+    "attributePath": "Label/Position",
+    "oldValue": "POINT(2600005 1200005)",
+    "newValue": "POINT(2600006 1200005)",
+    "oldLocation": "POINT(2600005 1200005)",
+    "newLocation": "POINT(2600006 1200005)"
+  }
+]

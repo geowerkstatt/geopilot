@@ -7,6 +7,7 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Reactions;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Ilitools;
@@ -20,6 +21,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using System.Reflection;
 using System.Text.Json;
@@ -157,12 +159,22 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
 builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
-builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
-builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
-builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
+builder.Services.AddOptions<ProcessingOptions>()
+    .BindConfiguration("Processing")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.EnsureShutdownTimeoutCoversDrainWindow();
+builder.Services.AddPipelineOptions(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
-builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
+builder.Services.AddOptions<DeliveryOptions>()
+    .BindConfiguration("Delivery")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddOptions<DeliveryReactionOptions>()
+    .BindConfiguration(DeliveryReactionOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
@@ -172,6 +184,12 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+// Hosted services stop in reverse registration order. The reaction worker comes first, so it stops after the runner
+// has drained and still forwards a delivery declared meanwhile; the runner comes ahead of the upload services, so the
+// preflight stops first and nothing is queued any more once the runner stops reading.
+builder.Services.AddSingleton<ReactionStore>();
+builder.Services.AddHostedService<ReactionWorker>();
+builder.Services.AddHostedService<ProcessingRunner>();
 var uploadBackend = builder.AddUploadServices();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
@@ -180,10 +198,12 @@ contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
+builder.Services.AddSingleton<JobLifecycle>();
 builder.Services.AddSingleton<IUploadStore, UploadStore>();
 builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
+builder.Services.AddTransient<IReactionSetValidator, ReactionSetValidator>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
@@ -192,7 +212,6 @@ builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
-builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
@@ -222,8 +241,8 @@ builder.Services.AddStacData(builder => { });
 
 builder.Services
     .AddHealthChecks()
-    .AddDbContextCheck<Context>("Database")
-    .AddCheck<StorageHealthCheck>("Storage");
+    .AddDbContextCheck<Context>("Database", tags: [HealthEndpoints.ReadyTag])
+    .AddCheck<StorageHealthCheck>("Storage", tags: [HealthEndpoints.ReadyTag]);
 
 var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).Get<UploadOptions>()
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
@@ -251,10 +270,20 @@ builder.Services.Configure<KestrelServerOptions>(options => options.Limits.MaxRe
 
 var app = builder.Build();
 
-// Migrate db changes on startup
+// Prove once that every data directory can be used, before anything reads from or writes to one. The direct
+// upload directory joins only in its own mode, its options are never bound otherwise.
+var dataDirectories = DataDirectories.Local(app.Services.GetRequiredService<IOptions<FileAccessOptions>>().Value).ToList();
+if (uploadBackend == UploadBackend.Direct)
+{
+    dataDirectories.Add(app.Services.GetRequiredService<IOptions<UploadDirectOptions>>().Value.ToDataDirectory());
+}
+
+DataDirectories.EnsureUsable(dataDirectories);
+
+// Migrate db changes on startup, unless the deployment migrates in a job of its own before the application starts.
 using var scope = app.Services.CreateScope();
 using var context = scope.ServiceProvider.GetRequiredService<Context>();
-if (context.Database.GetPendingMigrations().Any())
+if (builder.Configuration.GetValue("Database:MigrateOnStartup", true))
 {
     context.MigrateDatabase();
 }
@@ -278,6 +307,8 @@ if (app.Environment.IsDevelopment() && !context.Mandates.Any())
 
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
+app.LogDeleteWindowTimeZone();
+app.ValidateMandateReactionSets();
 
 if (accessTokenFormat == AccessTokenFormat.Opaque)
 {
@@ -298,18 +329,7 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
-        {
-            ctx.Context.Response.StatusCode = StatusCodes.Status404NotFound;
-            ctx.Context.Response.ContentLength = 0;
-            ctx.Context.Response.Body = Stream.Null;
-        }
-    },
-});
+app.UseFrontendStaticFiles(builder.Configuration);
 
 app.UseRouting();
 
@@ -323,16 +343,13 @@ else
     app.UseCors();
 }
 
+app.UseCrossOriginWriteProtection();
+
 app.UseAuthentication();
 
 app.Use(async (context, next) =>
 {
-    var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
-    if (context.Request.Path.StartsWithSegments("/browser") && !(await authorizationService.AuthorizeAsync(context.User, GeopilotPolicies.Admin)).Succeeded)
-    {
-        context.Response.Redirect("/");
-    }
-    else if (context.Request.Path == "/browser")
+    if (context.Request.Path == "/browser")
     {
         context.Response.Redirect("/browser/");
     }
@@ -376,8 +393,7 @@ if (uploadBackend == UploadBackend.Direct)
     app.MapDirectUpload();
 }
 
-app.MapHealthChecks("/health")
-    .AllowAnonymous();
+app.MapHealthEndpoints();
 
 app.MapReverseProxy();
 

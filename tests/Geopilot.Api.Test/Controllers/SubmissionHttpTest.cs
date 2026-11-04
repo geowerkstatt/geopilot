@@ -45,13 +45,19 @@ public class SubmissionHttpTest
         if (context.Mandates.Any(m => m.Key == MandateKey))
             return;
 
-        // Public, so any signed-in caller may deliver to it without wiring up an organisation. Committed rather
-        // than rolled back, because each host reads it through its own connection.
+        // Delivering takes a member of the mandate's organisation, so both callers the tests sign in as belong to
+        // it. Committed rather than rolled back, because each host reads it through its own connection.
+        var organisation = new Organisation
+        {
+            Name = nameof(SubmissionHttpTest),
+            Users = context.Users.Where(u => u.AuthIdentifier == JwtTestTokenBuilder.UserSub).ToList(),
+            MachineClients = context.MachineClients.Where(c => c.AuthIdentifier == JwtTestTokenBuilder.ClientSub).ToList(),
+        };
         context.Mandates.Add(new Mandate
         {
             Name = TestHelpers.Localized(nameof(SubmissionHttpTest)),
             Key = MandateKey,
-            IsPublic = true,
+            Organisations = [organisation],
             AllowDelivery = true,
             PipelineId = "ili_validation",
             FileTypes = [".xtf"],
@@ -149,6 +155,19 @@ public class SubmissionHttpTest
         Assert.IsEmpty(
             Directory.GetFiles(installation.RootDirectory, "*", SearchOption.AllDirectories),
             "A file that was refused for its size must not stay behind.");
+    }
+
+    [TestMethod]
+    public async Task RefusesAFileNameWithAPath()
+    {
+        using var installation = new MachineDeliveryTestApp();
+        using var client = CreateAuthenticatedClient(installation);
+        using var content = MultipartBody(MandateKey, "../data.xtf", Payload(16));
+
+        var response = await client.PostAsync("/api/v1/submission/multipart", content);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, "A path in the name is refused, not cut to its last segment.");
+        Assert.IsEmpty(Directory.GetFiles(installation.RootDirectory, "*", SearchOption.AllDirectories));
     }
 
     [TestMethod]

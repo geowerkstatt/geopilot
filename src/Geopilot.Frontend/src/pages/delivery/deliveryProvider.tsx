@@ -13,6 +13,7 @@ import {
   StepState,
   UploadSettingsResponse,
 } from "../../api/generated";
+import { TranslationKey } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -122,9 +123,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Mandate]: [],
-      [DeliveryStepEnum.Processing]: [
+      [DeliveryStepEnum.Mandate]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
+        { status: 404, errorKey: "validationErrorCannotFind" },
+        { status: 500, errorKey: "validationErrorUnexpected" },
+      ],
+      [DeliveryStepEnum.Processing]: [
         { status: 404, errorKey: "validationErrorCannotFind" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
@@ -155,7 +159,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const setStepStatus = useCallback(
-    (key: DeliveryStepEnum, state: DeliveryStepState | undefined, messages?: (string | LocalizedText)[]) => {
+    (key: DeliveryStepEnum, state: DeliveryStepState | undefined, messages?: (TranslationKey | LocalizedText)[]) => {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
         const step = newSteps.get(key);
@@ -231,7 +235,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     (error: ApiError, key: DeliveryStepEnum) => {
       if (error && error.message && !error.message.includes("AbortError")) {
         setStepStatus(key, DeliveryStepState.Error, [
-          deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
+          deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey ||
+            (error.message as TranslationKey),
         ]);
       }
     },
@@ -321,7 +326,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             setStepStatus(
               DeliveryStepEnum.Processing,
               DeliveryStepState.Error,
-              errorMessages.length > 0 ? errorMessages : [response.state],
+              errorMessages.length > 0
+                ? errorMessages
+                : [job.state === StepState.Cancelled ? "stepStateCancelled" : "stepStateFailed"],
             );
           }
         }
@@ -331,21 +338,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
+  // Stays on the mandate step until the job is accepted, so the processing step opens with its steps loaded.
   const startProcessing = (mandate: MandateSummary) => {
     if (!uploadId || isLoading) return;
 
-    setSteps(prevSteps => {
-      const newSteps = new Map(prevSteps);
-      const step = newSteps.get(DeliveryStepEnum.Mandate);
-      if (step) {
-        step.labelAddition = localized(mandate.name);
-      }
-      return newSteps;
-    });
-    setSelectedMandate(mandate);
+    setStepStatus(DeliveryStepEnum.Mandate, undefined);
     setIsLoading(true);
     setProcessingStarted(true);
-    continueToNextStep();
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -361,15 +360,27 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       signal: abortController.signal,
     })
       .then(response => {
+        setSteps(prevSteps => {
+          const newSteps = new Map(prevSteps);
+          const step = newSteps.get(DeliveryStepEnum.Mandate);
+          if (step) {
+            step.labelAddition = localized(mandate.name);
+          }
+          return newSteps;
+        });
+        setSelectedMandate(mandate);
         setJobId(response.jobId);
         setProcessingResponse(normalizeProcessingJob(response));
         setIsLoading(false);
         setIsProcessing(true);
+        continueToNextStep();
+        // continueToNextStep clears the controllers; registered again so a reset still aborts the polling.
+        setAbortControllers(prevControllers => [...prevControllers, abortController]);
         pollProcessingStatusUntilFinished(response.jobId, abortController);
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
-        handleApiError(error, DeliveryStepEnum.Processing);
+        handleApiError(error, DeliveryStepEnum.Mandate);
       });
   };
 

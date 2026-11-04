@@ -9,7 +9,11 @@ export const UserDeliveryOverview = () => {
   return (
     <CenteredContent sx={{ height: "100%" }}>
       <Typography variant="h2">{t("myDeliveries")}</Typography>
-      <DeliveryGrid fetchUrl="/api/v1/delivery/uploads" columns={["date", "mandateName", "comment"]} />
+      <DeliveryGrid
+        fetchUrl="/api/v1/delivery/uploads"
+        columns={["date", "mandateName", "comment"]}
+        rowAction="delete"
+      />
     </CenteredContent>
   );
 };

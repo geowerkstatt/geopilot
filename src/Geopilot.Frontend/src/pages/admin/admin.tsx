@@ -2,6 +2,7 @@ import { FC, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import { TranslationKey } from "../../appInterfaces";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useCapabilities } from "../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledLinkClick } from "../../components/controlledNavigate";
@@ -22,11 +23,11 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const applicationName = useApplicationName();
 
   // The machine clients only exist where the installation offers machine delivery.
-  const adminPages = [
+  const adminPages: { path: string; label: TranslationKey }[] = [
     { path: "users", label: "users" },
     { path: "mandates", label: "mandates" },
     { path: "organisations", label: "organisations" },
-    ...(machineDeliveryEnabled ? [{ path: "machine-clients", label: "machineClients" }] : []),
+    ...(machineDeliveryEnabled ? [{ path: "machine-clients", label: "machineClients" as const }] : []),
   ];
 
   const handleDrawerClose = () => {

@@ -70,7 +70,7 @@ internal class Ili2GpkgUpdateProcess
     public async Task<Ili2GpkgDatabaseResult> RunAsync(
         IPipelineFile[] transferFiles,
         IPipelineFile dbFile,
-        string? models,
+        string[]? models,
         string? dataset,
         int? defaultSrsCode,
         CancellationToken cancellationToken)
@@ -94,7 +94,7 @@ internal class Ili2GpkgUpdateProcess
 
         var args = ili2GpkgArgs with
         {
-            Models = IlitoolsHelper.SplitConfiguredList(models),
+            Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             Dataset = dataset,
             DefaultSrsCode = defaultSrsCode,
             TransferFormat = transferFormat,

@@ -98,7 +98,7 @@ const OrganisationDetail = () => {
       prepareDataForSave={prepareOrganisationForSave}>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ margin: 0 }}>
-          {t("description")}
+          {t("general")}
         </Typography>
         <FormContainer>
           <FormInput fieldName={"name"} label={"name"} value={organisation?.name} required={true} />
@@ -120,7 +120,7 @@ const OrganisationDetail = () => {
         <FormContainer>
           <FormAutocomplete<User>
             fieldName={"users"}
-            label={"users"}
+            label={"members"}
             required={false}
             values={users}
             selected={organisation?.users}

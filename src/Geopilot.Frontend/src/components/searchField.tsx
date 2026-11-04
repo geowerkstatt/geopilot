@@ -3,12 +3,13 @@ import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import { InputAdornment, SxProps, TextField } from "@mui/material";
+import { TranslationKey } from "../appInterfaces";
 import { IconButton } from "./buttons";
 
 export interface SearchFieldProps {
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder: TranslationKey;
   sx?: SxProps;
   dataCy?: string;
 }

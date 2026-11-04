@@ -1,14 +1,15 @@
 import { FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, styled, Typography } from "@mui/material";
+import { TranslationKey } from "../../appInterfaces";
 import { GeopilotBox } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { contentTopPosition } from "./deliveryUtils";
 
 interface DeliveryContentProps {
-  title: string;
-  subtitle?: string;
+  title: TranslationKey;
+  subtitle?: TranslationKey;
   buttons?: ReactNode;
   hideBox?: boolean;
 }

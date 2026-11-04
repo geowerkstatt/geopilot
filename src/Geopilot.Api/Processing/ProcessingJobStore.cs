@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
@@ -19,6 +20,12 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobStore : IProcessingJobStore
 {
     private readonly ConcurrentDictionary<Guid, ProcessingJob> jobs = new();
+
+    // Makes checking for an active job of the upload and adding the new one a single step.
+    private readonly object createLock = new();
+
+    // Unbounded on purpose: every queued job still holds its upload, so Upload:MaxActiveJobs already caps the queue
+    // at initiation, with a clear answer to the client, and a bounded channel would only make enqueueing block.
     private readonly Channel<ProcessingWorkItem> processingQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
 
     /// <inheritdoc/>
@@ -31,16 +38,32 @@ public class ProcessingJobStore : IProcessingJobStore
     public IReadOnlyCollection<Guid> GetJobIds() => jobs.Keys.ToList();
 
     /// <inheritdoc/>
-    public ProcessingJob CreateJob(Guid uploadId)
+    public ProcessingJob CreateJob(Guid uploadId, bool isDeclarable, DeliveryIntent? deliveryIntent = null)
     {
-        var newJob = new ProcessingJob(
-            Id: Guid.NewGuid(),
-            UploadId: uploadId,
-            MandateId: null,
-            CreatedAt: DateTime.UtcNow);
+        // State changes happen outside the lock, which is safe: they only ever make a job less active, so only
+        // two starts at once could admit a second active job.
+        // shortcut: one lock and a scan over all jobs, index them by upload if their number ever gets large.
+        lock (createLock)
+        {
+            // A job counts as ended once its terminal state is set, but its upload is only released after the
+            // declaration and the protocol. A start in between is accepted and then fails in its preflight; after a
+            // cancelled run, the one case where a restart makes sense, nothing is released.
+            if (jobs.Values.Any(job => job.UploadId == uploadId && !IsTerminal(job.State)))
+                throw new JobAlreadyActiveException(uploadId);
 
-        jobs[newJob.Id] = newJob;
-        return newJob;
+            var newJob = new ProcessingJob(
+                Id: Guid.NewGuid(),
+                UploadId: uploadId,
+                MandateId: null,
+                CreatedAt: DateTime.UtcNow)
+            {
+                IsDeclarable = isDeclarable,
+                DeliveryIntent = deliveryIntent,
+            };
+
+            jobs[newJob.Id] = newJob;
+            return newJob;
+        }
     }
 
     /// <inheritdoc/>
@@ -48,31 +71,10 @@ public class ProcessingJobStore : IProcessingJobStore
         TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
 
     /// <inheritdoc/>
-    public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
-    {
-        EnsureStateIsTerminal(pipelineState);
-
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                if (!CanCompletePipeline(currentJob))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{pipelineState}>.");
-                }
-
-                return currentJob with { State = pipelineState };
-            });
-    }
-
-    /// <inheritdoc/>
     public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
         // A state that is not terminal is a defect at the call site and cannot be caused by a race, so
-        // it surfaces here just as it does in the throwing operation. What this operation tolerates is
-        // a job that moved on, not a wrong argument.
+        // it still throws. What this operation tolerates is a job that moved on, not a wrong argument.
         EnsureStateIsTerminal(pipelineState);
 
         return TryTransition(jobId, CanCompletePipeline, pipelineState);
@@ -115,20 +117,19 @@ public class ProcessingJobStore : IProcessingJobStore
                 return job with { State = ProcessingState.Running };
             });
 
-        processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files));
+        // A job left in Running without a work item would never run and never end, so a refused write must surface.
+        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files, updatedJob.IsDeclarable)))
+            throw new InvalidOperationException($"Job <{jobId}> could not be queued for processing.");
+
         return updatedJob;
     }
 
     /// <inheritdoc/>
-    public bool RemoveJob(Guid jobId)
-    {
-        if (!jobs.TryRemove(jobId, out var removed))
-            return false;
+    public void RecordDeclarationFailure(Guid jobId, string reason)
+        => TryUpdate(jobId, job => job with { DeclarationFailure = reason });
 
-        // Idempotent dispose handles the case where the runner already disposed after extracting.
-        removed.Pipeline?.Dispose();
-        return true;
-    }
+    /// <inheritdoc/>
+    public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);
 
     private static bool IsTerminal(ProcessingState state) =>
         state is ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction
@@ -152,18 +153,26 @@ public class ProcessingJobStore : IProcessingJobStore
         job.State == ProcessingState.Running;
 
     /// <summary>
-    /// Applies <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's current state,
-    /// retrying against the freshly read job whenever a concurrent write wins the compare-and-swap. Reports the
-    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse.
+    /// Applies the terminal <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's
+    /// current state, and stamps <see cref="ProcessingJob.FinishedAt"/> with it. Retries against the freshly read
+    /// job whenever a concurrent write wins the compare-and-swap. Reports the outcome rather than throwing, so a
+    /// caller that is already handling a failure cannot make it worse.
     /// </summary>
     private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
+        => TryUpdate(jobId, job => isAllowed(job) ? job with { State = newState, FinishedAt = DateTime.UtcNow } : null);
+
+    /// <summary>
+    /// Applies <paramref name="update"/> to the job, retrying against the freshly read job whenever a concurrent write
+    /// wins the compare-and-swap. An update that returns <see langword="null"/> leaves the job untouched.
+    /// </summary>
+    private bool TryUpdate(Guid jobId, Func<ProcessingJob, ProcessingJob?> update)
     {
         while (jobs.TryGetValue(jobId, out var currentJob))
         {
-            if (!isAllowed(currentJob))
+            if (update(currentJob) is not { } updated)
                 return false;
 
-            if (jobs.TryUpdate(jobId, currentJob with { State = newState }, currentJob))
+            if (jobs.TryUpdate(jobId, updated, currentJob))
                 return true;
         }
 

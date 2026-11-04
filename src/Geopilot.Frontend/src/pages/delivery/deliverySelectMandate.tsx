@@ -1,4 +1,4 @@
-import { FC, useContext, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CircularProgress, Divider, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
@@ -18,8 +18,12 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   [`& .${toggleButtonClasses.root}`]: {
     borderRadius: theme.radius.default,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
+    marginLeft: 0,
     paddingLeft: theme.spacing(3),
     paddingRight: theme.spacing(3),
+  },
+  [`& .${toggleButtonClasses.root}.${toggleButtonClasses.disabled}`]: {
+    borderColor: theme.palette.divider,
   },
 }));
 
@@ -41,7 +45,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const { language } = useLocalized();
+  const { language, localized } = useLocalized();
   const [selected, setSelected] = useState<MandateSummary | null>(null);
   const [mandates, setMandates] = useState<MandateSummary[] | null>(null);
 
@@ -59,6 +63,11 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
       });
     }
   }, [uploadId, fetchApi, setStepStatus, t, user, selectedMandate]);
+
+  const sortedMandates = useMemo(
+    () => mandates && [...mandates].sort((a, b) => localized(a.name).localeCompare(localized(b.name))),
+    [mandates, localized],
+  );
 
   const currentMandate = selectedMandate ?? selected;
   // The description follows the language the name is displayed in, and is omitted when it has no entry for it.
@@ -78,7 +87,13 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   };
 
   const buttons = completed ? undefined : (
-    <Button variant="contained" onClick={submitForm} label="startProcessing" disabled={isLoading || !currentMandate} />
+    <Button
+      variant="contained"
+      onClick={submitForm}
+      label="startProcessing"
+      loading={isLoading}
+      disabled={isLoading || !currentMandate}
+    />
   );
 
   return (
@@ -95,10 +110,10 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
           <StyledToggleButtonGroup
             data-cy="mandate-selection-group"
             exclusive
-            disabled={completed}
+            disabled={completed || isLoading}
             value={currentMandate}
             onChange={(_, value) => handleSelectMandate(value)}>
-            {mandates.map(mandate => (
+            {sortedMandates?.map(mandate => (
               <MandateToggleButton key={mandate.id} mandate={mandate} />
             ))}
           </StyledToggleButtonGroup>

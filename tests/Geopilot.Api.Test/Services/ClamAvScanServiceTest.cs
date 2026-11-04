@@ -78,6 +78,16 @@ public class ClamAvScanServiceTest
     }
 
     [TestMethod]
+    public async Task CheckFilesAsyncStopsBeforeReadingWhenCancelled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        // The strict storage mock has no setup, so opening a file would fail the test differently.
+        await Assert.ThrowsAsync<OperationCanceledException>(() => service.CheckFilesAsync(["uploads/job1/clean.xtf"], cancellation.Token));
+    }
+
+    [TestMethod]
     public async Task CheckFilesAsyncReturnsCleanForSafeFile()
     {
         var content = "perfectly safe content"u8.ToArray();

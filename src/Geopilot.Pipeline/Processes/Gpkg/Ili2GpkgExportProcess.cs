@@ -71,11 +71,11 @@ internal class Ili2GpkgExportProcess
     [PipelineProcessRun]
     public async Task<Ili2GpkgExportResult> RunAsync(
         IPipelineFile dbFile,
-        string? models,
-        string? topics,
-        string? baskets,
-        string? dataset,
-        string? exportModels,
+        string[]? models,
+        string[]? topics,
+        string[]? baskets,
+        string[]? dataset,
+        string[]? exportModels,
         Ili2GpkgTransferFormat? transferFormat,
         CancellationToken cancellationToken)
     {
@@ -85,11 +85,11 @@ internal class Ili2GpkgExportProcess
 
         var args = ili2GpkgArgs with
         {
-            Models = IlitoolsHelper.SplitConfiguredList(models),
-            Topics = IlitoolsHelper.SplitConfiguredList(topics),
-            Baskets = IlitoolsHelper.SplitConfiguredList(baskets),
-            Dataset = dataset,
-            ExportModels = IlitoolsHelper.SplitConfiguredList(exportModels),
+            Models = IlitoolsHelper.SplitConfiguredListEntries(models),
+            Topics = IlitoolsHelper.SplitConfiguredListEntries(topics),
+            Baskets = IlitoolsHelper.SplitConfiguredListEntries(baskets),
+            Dataset = IlitoolsHelper.SplitConfiguredListEntries(dataset) is { } datasets ? string.Join(';', datasets) : null,
+            ExportModels = IlitoolsHelper.SplitConfiguredListEntries(exportModels),
             TransferFormat = transferFormat,
         };
 

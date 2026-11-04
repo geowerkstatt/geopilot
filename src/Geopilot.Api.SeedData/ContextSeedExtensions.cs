@@ -34,6 +34,7 @@ public static class ContextSeedExtensions
         context.SeedDeliveries();
         context.SeedAssets();
         context.AddOrganisationsToDefaultUsers();
+        context.AddOrganisationToPublicMandate();
 
         transaction.Commit();
     }
@@ -130,11 +131,16 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
             .RuleFor(o => o.IsPublic, f => false)
             .RuleFor(o => o.AllowDelivery, f => true)
+            .RuleFor(o => o.StacAccess, f => StacAccess.AdminsOnly)
             .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }))
 
             // Derived from the row index, because the key is unique in the database and a random word
             // would sooner or later collide and break the whole seed run.
-            .RuleFor(o => o.Key, f => $"mandate-{f.IndexFaker}".OrNull(f, 0.5f));
+            .RuleFor(o => o.Key, f => $"mandate-{f.IndexFaker}".OrNull(f, 0.5f))
+
+            // The development definitions offer reaction sets, the seed chooses none.
+            .Ignore(o => o.ReactionSetId)
+            .Ignore(o => o.ReactionSetValues);
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
@@ -160,6 +166,7 @@ public static class ContextSeedExtensions
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,
+            StacAccess = StacAccess.Public,
         });
 
         context.SaveChanges();
@@ -221,8 +228,7 @@ public static class ContextSeedExtensions
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))
             .RuleFor(d => d.Comment, f => f.Rant.Review())
-            .RuleFor(d => d.Deleted, false)
-            .Ignore(d => d.CanDelete);
+            .RuleFor(d => d.Deleted, false);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
         for (int i = 0; i < 20; i++)
@@ -268,6 +274,19 @@ public static class ContextSeedExtensions
         var user = context.Users.Single(user => user.Email == "user@geopilot.ch");
         var userOrganistions = context.Organisations.OrderBy(o => o.Id).Take(2);
         user.Organisations.AddRange(userOrganistions);
+
+        context.SaveChanges();
+    }
+
+    /// <summary>
+    /// Gives the public mandate the organisation both default users belong to, so the dev stack shows both of its
+    /// sides: anyone validates against it, only members deliver. Runs after the deliveries are seeded, which pick
+    /// their mandates at random and would otherwise come out differently.
+    /// </summary>
+    private static void AddOrganisationToPublicMandate(this Context context)
+    {
+        var publicMandate = context.Mandates.Include(m => m.Organisations).Single(m => m.IsPublic);
+        publicMandate.Organisations.Add(context.Organisations.OrderBy(o => o.Id).Skip(1).First());
 
         context.SaveChanges();
     }

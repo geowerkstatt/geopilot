@@ -1,21 +1,25 @@
-import { FC, useCallback, useContext, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Tooltip } from "@mui/material";
-import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { ApiError, LocalizedText } from "../../api/apiInterfaces";
-import { Delivery } from "../../api/generated";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
+import { LocalizedText } from "../../api/apiInterfaces";
+import { DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/generated";
+import { useDeleteDelivery } from "../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
-import { AlertContext } from "..//alert/alertContext";
-import { PromptContext } from "..//prompt/promptContext";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
+import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface DeliveryInfo {
   id: number;
   date: string;
   userName: string;
   mandateName: LocalizedText;
+  forwardingState?: ReactionState | null;
+  notificationState?: ReactionState | null;
   comment: string;
   canDelete?: boolean;
 }
@@ -25,28 +29,34 @@ type ColumnName = keyof Omit<DeliveryInfo, "canDelete">;
 interface DeliveryGridProps {
   fetchUrl: string;
   columns: ColumnName[];
+  /** What a row offers: the page of the delivery, or its deletion while the deliverer may still delete it. */
+  rowAction: "details" | "delete";
 }
 
-export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
+export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowAction }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [deliveries, setDeliveries] = useState<DeliveryInfo[]>([]);
-  const { showPrompt } = useContext(PromptContext);
-  const { showAlert } = useContext(AlertContext);
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
+  const confirmDelete = useDeleteDelivery();
 
   const loadDeliveries = useCallback(async () => {
-    fetchApi<Delivery[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    // Administrators get all deliveries with how far their reactions got, users their own uploads and whether they
+    // may delete them.
+    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
         setDeliveries(
-          response.map((d: Delivery) => ({
+          response.map(d => ({
             id: d.id,
             date: d.date,
-            userName: d.declarerName,
+            userName: "declarerName" in d ? d.declarerName : "",
             mandateName: d.mandate.name,
-            comment: d.comment,
-            canDelete: d.canDelete ?? undefined,
+            forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
+            notificationState: "notificationState" in d ? d.notificationState : undefined,
+            comment: "comment" in d ? d.comment : "",
+            canDelete: "canDelete" in d ? d.canDelete : undefined,
           })),
         );
       })
@@ -59,36 +69,15 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     loadDeliveries();
   }, [loadDeliveries]);
 
-  const handleDelete = (id: GridRowId) => {
-    fetchApi("/api/v1/delivery/" + id, { method: "DELETE" })
-      .catch((error: ApiError) => {
-        if (error.status === 404) {
-          showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: id }), "error");
-        } else if (error.status === 500) {
-          showAlert(t("deliveryOverviewDeleteIdError", { id: id }), "error");
-        } else {
-          showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
-        }
-      })
-      .finally(() => loadDeliveries());
-  };
-
-  const confirmDelete = (id: GridRowId) => {
-    showPrompt("deleteDeliveryConfirmation", [
-      { label: "cancel" },
-      { label: "delete", action: () => handleDelete(id), color: "error", variant: "contained" },
-    ]);
-  };
+  const openDetails = (id: GridRowId) => navigate(`/admin/delivery-overview/${id}`);
 
   const namedColumnDefs: Record<ColumnName, GridColDef> = {
     id: { field: "id", headerName: t("id"), width: 60 },
     date: {
       field: "date",
       headerName: t("deliveryDate"),
-      valueFormatter: (params: string) => {
-        const date = new Date(params);
-        return `${date.toLocaleString()}`;
-      },
+      type: "dateTime",
+      valueGetter: (date: string) => new Date(date),
       width: 180,
     },
     userName: { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
@@ -98,6 +87,22 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
       flex: 0.5,
       minWidth: 200,
       valueGetter: (mandateName: LocalizedText) => localized(mandateName),
+    },
+    forwardingState: {
+      field: "forwardingState",
+      headerName: t("forwarding"),
+      width: 170,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
+        row.forwardingState && <ReactionStateLabel state={row.forwardingState} />,
+    },
+    notificationState: {
+      field: "notificationState",
+      headerName: t("notifications"),
+      width: 190,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
+        row.notificationState && <ReactionStateLabel state={row.notificationState} />,
     },
     comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 400 },
   };
@@ -112,7 +117,22 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     cellClassName: "actions",
     renderCell: params => (
       <GridActionsCell {...params}>
-        {params.row.canDelete !== false && (
+        {rowAction === "details" && (
+          <GridActionsCellItem
+            icon={
+              <Tooltip title={t("showDetails")} key={`details-${params.id}`}>
+                <VisibilityOutlinedIcon data-cy="details" color="primary" />
+              </Tooltip>
+            }
+            label={t("showDetails")}
+            onClick={event => {
+              // Otherwise the click reaches the row as well, which opens the page a second time.
+              event.stopPropagation();
+              openDetails(params.id);
+            }}
+          />
+        )}
+        {rowAction === "delete" && params.row.canDelete && (
           <GridActionsCellItem
             icon={
               <Tooltip title={t("delete")} key={`delete-${params.id}`}>
@@ -120,12 +140,21 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
               </Tooltip>
             }
             label={t("delete")}
-            onClick={() => confirmDelete(params.id)}
+            onClick={() => confirmDelete(params.row.id, [], () => loadDeliveries())}
           />
         )}
       </GridActionsCell>
     ),
   });
 
-  return <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />;
+  return (
+    <GeopilotDataGrid
+      name="deliveryOverview"
+      loading={isLoading}
+      rows={deliveries}
+      columns={columnDefs}
+      initialState={{ sorting: { sortModel: [{ field: "date", sort: "desc" }] } }}
+      onSelect={rowAction === "details" ? openDetails : undefined}
+    />
+  );
 };

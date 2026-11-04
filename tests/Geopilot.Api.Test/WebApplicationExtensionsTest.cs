@@ -1,10 +1,15 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Moq;
+using System.Text.Json;
 
 namespace Geopilot.Api;
 
@@ -134,6 +139,67 @@ public sealed class WebApplicationExtensionsTest
             File.Delete(yamlPath);
         }
     }
+
+    [TestMethod]
+    public void CheckMandateReactionSetsStopsAtASetTheDefinitionNoLongerHas()
+    {
+        using var context = AssemblyInitialize.DbFixture.GetTestContext();
+        var mandate = AddMandateWithReactionSet(context, "verschwunden");
+        var validator = Validator(new ReactionSetCheck([], "Reaction set <verschwunden> does not exist.", []));
+
+        var errors = WebApplicationExtensions.CheckMandateReactionSets(context, validator, Mock.Of<ILogger>());
+
+        var error = Assert.ContainsSingle(errors);
+        Assert.AreEqual($"Mandate {mandate.Id}: Reaction set <verschwunden> does not exist.", error);
+    }
+
+    [TestMethod]
+    public void CheckMandateReactionSetsOnlyWarnsAboutValuesTheChannelsRefuse()
+    {
+        using var context = AssemblyInitialize.DbFixture.GetTestContext();
+        AddMandateWithReactionSet(context, "ablage");
+        var loggerMock = new Mock<ILogger>();
+        var validator = Validator(new ReactionSetCheck([], null, ["reaction ablage: The subfolder is not valid."]));
+
+        var errors = WebApplicationExtensions.CheckMandateReactionSets(context, validator, loggerMock.Object);
+
+        Assert.IsEmpty(errors);
+        loggerMock.Verify(
+            logger => logger.Log(LogLevel.Warning, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), null, It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public void CheckMandateReactionSetsLeavesMandatesWithoutASetAlone()
+    {
+        using var context = AssemblyInitialize.DbFixture.GetTestContext();
+        var validatorMock = new Mock<IReactionSetValidator>();
+
+        var errors = WebApplicationExtensions.CheckMandateReactionSets(context, validatorMock.Object, Mock.Of<ILogger>());
+
+        Assert.IsEmpty(errors);
+        validatorMock.Verify(
+            validator => validator.Check(It.IsAny<string?>(), It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()),
+            Times.Never);
+    }
+
+    private static Mandate AddMandateWithReactionSet(Context context, string reactionSetId)
+    {
+        var mandate = new Mandate
+        {
+            Name = TestHelpers.Localized(reactionSetId),
+            FileTypes = [".xtf"],
+            ReactionSetId = reactionSetId,
+            ReactionSetValues = new() { ["ablage"] = new() { ["subfolder"] = JsonSerializer.SerializeToElement("kanton-a") } },
+        };
+        context.Mandates.Add(mandate);
+        context.SaveChanges();
+        return mandate;
+    }
+
+    private static IReactionSetValidator Validator(ReactionSetCheck check)
+        => Mock.Of<IReactionSetValidator>(validator =>
+            validator.Check(It.IsAny<string?>(), It.IsAny<IReadOnlyDictionary<string, Dictionary<string, JsonElement>>>()) == check);
 
     private static WebApplication BuildValidationApp(string pipelineDefinitionPath, IDictionary<string, string?>? processConfigSettings = null)
     {

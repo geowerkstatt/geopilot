@@ -172,29 +172,32 @@ public class KeycloakOpaqueTokenTest
     }
 
     /// <summary>
-    /// Registers the service account as the machine client its token is admitted for, and a public mandate it
+    /// Registers the service account as the machine client its token is admitted for, and a mandate of its organisation it
     /// delivers to. Committed rather than rolled back, because the host reads the database through its own
     /// connection, and guarded so a second run finds both instead of clashing on the unique indexes.
     /// </summary>
     private static void RegisterServiceAccount(Context context)
     {
-        if (!context.MachineClients.Any(c => c.AuthIdentifier == ServiceAccountSub))
+        var serviceAccount = context.MachineClients.SingleOrDefault(c => c.AuthIdentifier == ServiceAccountSub);
+        if (serviceAccount is null)
         {
-            context.MachineClients.Add(new MachineClient
+            serviceAccount = new MachineClient
             {
                 AuthIdentifier = ServiceAccountSub,
                 Name = "Service account geopilot-api",
                 State = MachineClientState.Active,
-            });
+            };
+            context.MachineClients.Add(serviceAccount);
         }
 
         if (!context.Mandates.Any(m => m.Key == MandateKey))
         {
+            // Delivering takes a member of the mandate's organisation, so the service account belongs to it.
             context.Mandates.Add(new Mandate
             {
                 Name = TestHelpers.Localized(nameof(KeycloakOpaqueTokenTest)),
                 Key = MandateKey,
-                IsPublic = true,
+                Organisations = [new Organisation { Name = nameof(KeycloakOpaqueTokenTest), MachineClients = [serviceAccount] }],
                 AllowDelivery = true,
                 PipelineId = "ili_validation",
                 FileTypes = [".xtf"],

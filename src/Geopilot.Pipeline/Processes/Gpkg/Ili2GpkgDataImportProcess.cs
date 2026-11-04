@@ -102,7 +102,7 @@ internal class Ili2GpkgDataImportProcess
     public async Task<Ili2GpkgDatabaseResult> RunAsync(
         IPipelineFile[] transferFiles,
         IPipelineFile? dbFile,
-        string? models,
+        string[]? models,
         int? defaultSrsCode,
         string? dataset,
         CancellationToken cancellationToken)
@@ -125,7 +125,7 @@ internal class Ili2GpkgDataImportProcess
 
         var args = ili2GpkgArgs with
         {
-            Models = IlitoolsHelper.SplitConfiguredList(models),
+            Models = IlitoolsHelper.SplitConfiguredListEntries(models),
             DefaultSrsCode = defaultSrsCode,
             Dataset = dataset,
             TransferFormat = transferFormat,

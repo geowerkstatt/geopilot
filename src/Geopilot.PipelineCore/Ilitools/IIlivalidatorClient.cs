@@ -30,6 +30,12 @@ public interface IIlivalidatorClient
     /// <see cref="IlivalidatorArgs.ModelDirs"/>; its position decides the precedence against the other sources,
     /// unreviewed content belongs at the end.
     /// </param>
+    /// <param name="refMappingFile">
+    /// Optional reference data mapping in the model <c>IliVRefData_V1_0</c>, sent along in place of
+    /// <see cref="IlivalidatorArgs.RefMapping"/>; the service rejects a request with both. The reference data it names
+    /// still resolve through <see cref="IlivalidatorArgs.ModelDirs"/>. Its content is trusted as configuration like the
+    /// repository archive, because the tool fetches whatever it names, so it never comes from an upload.
+    /// </param>
     /// <param name="referenceDataFiles">
     /// Optional reference data (XTF or XML, not ITF) the tool loads next to the transfer file without validating it,
     /// such as a catalog the transfer file references. References into them are only checked with
@@ -39,6 +45,7 @@ public interface IIlivalidatorClient
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<IlivalidatorResult> ValidateAsync(
         IlivalidatorArgs args,
         IPipelineFile transferFile,
@@ -46,6 +53,7 @@ public interface IIlivalidatorClient
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
         IReadOnlyList<IPipelineFile>? modelFiles = null,
+        IPipelineFile? refMappingFile = null,
         IReadOnlyList<IPipelineFile>? referenceDataFiles = null,
         CancellationToken cancellationToken = default);
 }

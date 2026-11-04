@@ -204,13 +204,13 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason)
+    public async Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(steps);
 
         try
         {
-            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId);
+            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
             if (run is null)
             {
                 LogRunMissing(jobId);
@@ -222,7 +222,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             for (var order = 0; order < steps.Count; order++)
             {
                 var step = steps[order];
-                var row = await LoadStepRowAsync(run.Id, step.Id);
+                var row = await LoadStepRowAsync(run.Id, step.Id, cancellationToken);
                 if (row is null)
                     row = CreateMissingStepRow(run.Id, jobId, step, order);
 
@@ -232,12 +232,151 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             run.TerminalState = terminalState;
             run.TerminalAt = DateTime.UtcNow;
             run.FailureReason = failureReason;
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             LogWriteFailed(jobId, ex);
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction)
+    {
+        ArgumentNullException.ThrowIfNull(reaction);
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(reaction.DeliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(reaction.DeliveryId);
+                return;
+            }
+
+            context.PipelineRunReactionEvents.Add(NewAttemptRow(runId, reaction));
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            ForgetUnsavedReactionEvents();
+            LogReactionWriteFailed(reaction.DeliveryId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message)
+    {
+        ArgumentNullException.ThrowIfNull(reaction);
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(reaction.DeliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(reaction.DeliveryId);
+                return;
+            }
+
+            var row = await context.PipelineRunReactionEvents
+                .Where(e => e.PipelineRunId == runId
+                    && e.DeliveryId == reaction.DeliveryId
+                    && e.ReactionId == reaction.ReactionId
+                    && e.Event == ReactionEvent.Attempt
+                    && e.Attempt == reaction.Attempts)
+                .OrderByDescending(e => e.Id)
+                .FirstOrDefaultAsync();
+            if (row is null)
+            {
+                logger.LogWarning("No row exists for attempt {Attempt} of the reaction <{ReactionId}> of delivery <{DeliveryId}>; creating it late.", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId);
+                row = NewAttemptRow(runId, reaction);
+                context.PipelineRunReactionEvents.Add(row);
+            }
+
+            row.FinishedAt = DateTime.UtcNow;
+            row.State = state;
+            row.Message = message;
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            ForgetUnsavedReactionEvents();
+            LogReactionWriteFailed(reaction.DeliveryId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public Task RecordDeliveryDeletedAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+        => RecordWhatAUserDidAsync(deliveryId, reactions, ReactionEvent.Deletion, userId);
+
+    /// <inheritdoc/>
+    public Task RecordReactionsResetAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, int userId)
+        => RecordWhatAUserDidAsync(deliveryId, reactions, ReactionEvent.Reset, userId);
+
+    /// <summary>
+    /// Writes one row per reaction for something a user did to them, with the state it left each reaction in.
+    /// </summary>
+    private async Task RecordWhatAUserDidAsync(int deliveryId, IReadOnlyList<DeliveryReaction> reactions, ReactionEvent reactionEvent, int userId)
+    {
+        ArgumentNullException.ThrowIfNull(reactions);
+        if (reactions.Count == 0)
+            return;
+
+        try
+        {
+            if (await FindRunOfDeliveryAsync(deliveryId) is not int runId)
+            {
+                LogRunOfDeliveryMissing(deliveryId);
+                return;
+            }
+
+            var occurredAt = DateTime.UtcNow;
+            context.PipelineRunReactionEvents.AddRange(reactions.Select(reaction => new PipelineRunReactionEvent
+            {
+                PipelineRunId = runId,
+                DeliveryId = deliveryId,
+                ReactionId = reaction.ReactionId,
+                ReactionKind = reaction.Kind,
+                Implementation = reaction.Implementation,
+                Event = reactionEvent,
+                OccurredAt = occurredAt,
+                State = reaction.State,
+                Message = reaction.Message,
+                UserId = userId,
+            }));
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            ForgetUnsavedReactionEvents();
+            LogReactionWriteFailed(deliveryId, ex);
+        }
+    }
+
+    /// <summary>
+    /// Finds the run a delivery comes from, also for a deleted delivery: the protocol outlives it.
+    /// </summary>
+    private Task<int?> FindRunOfDeliveryAsync(int deliveryId)
+    {
+        return context.Deliveries
+            .IgnoreQueryFilters()
+            .Where(delivery => delivery.Id == deliveryId)
+            .Join(context.PipelineRuns, delivery => delivery.JobId, run => run.JobId, (delivery, run) => (int?)run.Id)
+            .SingleOrDefaultAsync();
+    }
+
+    private static PipelineRunReactionEvent NewAttemptRow(int runId, DeliveryReaction reaction)
+    {
+        return new PipelineRunReactionEvent
+        {
+            PipelineRunId = runId,
+            DeliveryId = reaction.DeliveryId,
+            ReactionId = reaction.ReactionId,
+            ReactionKind = reaction.Kind,
+            Implementation = reaction.Implementation,
+            Event = ReactionEvent.Attempt,
+            Attempt = reaction.Attempts,
+            OccurredAt = reaction.LastAttemptAt ?? DateTime.UtcNow,
+            State = ReactionState.Running,
+        };
     }
 
     /// <summary>
@@ -316,12 +455,12 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         }
     }
 
-    private async Task<PipelineRunStep?> LoadStepRowAsync(int runId, string stepId)
+    private async Task<PipelineRunStep?> LoadStepRowAsync(int runId, string stepId, CancellationToken cancellationToken = default)
     {
         return await context.PipelineRunSteps
             .Include(s => s.Conditions)
             .Include(s => s.Artifacts)
-            .SingleOrDefaultAsync(s => s.PipelineRunId == runId && s.StepId == stepId);
+            .SingleOrDefaultAsync(s => s.PipelineRunId == runId && s.StepId == stepId, cancellationToken);
     }
 
     /// <summary>
@@ -353,4 +492,17 @@ public class PipelineRunRecorder : IPipelineRunRecorder
 
     private void LogWriteFailed(Guid jobId, Exception exception) =>
         logger.LogWarning(exception, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
+
+    private void LogRunOfDeliveryMissing(int deliveryId) =>
+        logger.LogWarning("No run record exists for delivery <{DeliveryId}>; skipping the protocol write.", deliveryId);
+
+    private void LogReactionWriteFailed(int deliveryId, Exception exception) =>
+        logger.LogWarning(exception, "Writing the execution protocol for delivery <{DeliveryId}> failed.", deliveryId);
+
+    // A row the database refused would otherwise go along with the next write of the same context and fail it again.
+    private void ForgetUnsavedReactionEvents()
+    {
+        foreach (var entry in context.ChangeTracker.Entries<PipelineRunReactionEvent>().Where(entry => entry.State is EntityState.Added or EntityState.Modified).ToList())
+            entry.State = EntityState.Detached;
+    }
 }

@@ -1,11 +1,13 @@
 import { TreeField, TreeItem } from "../../../api/apiInterfaces";
+import { TranslationKey } from "../../../appInterfaces";
 import { LocalizedResolver } from "../../../hooks/useLocalized";
+import { FieldFilters, FilterAttribute } from "../filterBar";
 
 /** A node of the error tree's displayed hierarchy, built in the frontend from the flat items by {@link buildTree}. */
 export interface TreeNode {
   /** The text shown for this node (a group value, or a leaf's text). */
   message: string;
-  /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and colour. */
+  /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and color. */
   color?: string;
   /** Number of contained leaf nodes (errors) in this node's subtree; 0 for a leaf. Shown next to group labels. */
   count: number;
@@ -20,14 +22,13 @@ export interface TreeNode {
 /** All groupable/filterable fields, in a stable iteration order. */
 const TREE_FIELDS: readonly TreeField[] = ["errorType", "model", "topic", "class"];
 
-/** The selected filter values per field. */
-export type FieldFilters = Partial<Record<TreeField, string[]>>;
-
-/** A filterable field together with its distinct (resolved) value options. */
-export interface FilterAttribute {
-  field: TreeField;
-  options: string[];
-}
+/** The filter dropdown label (translation key) per field. */
+const FIELD_LABEL_KEYS: Record<TreeField, TranslationKey> = {
+  errorType: "treeFieldErrorType",
+  model: "treeFieldModel",
+  topic: "treeFieldTopic",
+  class: "treeFieldClass",
+};
 
 const SEVERITY_RANK: Record<string, number> = { error: 2, warning: 1 };
 
@@ -139,7 +140,7 @@ export const buildTree = (
 const itemMatchesFilters = (
   item: TreeItem,
   messageQuery: string,
-  fieldFilters: FieldFilters,
+  fieldFilters: FieldFilters<TreeField>,
   localize: LocalizedResolver,
 ): boolean => {
   if (messageQuery) {
@@ -171,7 +172,7 @@ const itemMatchesFilters = (
 export const filterItems = (
   items: TreeItem[],
   messageQuery: string,
-  fieldFilters: FieldFilters,
+  fieldFilters: FieldFilters<TreeField>,
   localize: LocalizedResolver,
 ): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, fieldFilters, localize));
 
@@ -184,14 +185,18 @@ export const collectFilterAttributes = (
   items: TreeItem[],
   localize: LocalizedResolver,
   filterBy: TreeField[],
-): FilterAttribute[] =>
+): FilterAttribute<TreeField>[] =>
   filterBy
     .map(field => {
       const values = items.flatMap(item => {
         const value = fieldValue(item, field, localize);
         return value === undefined ? [] : [value];
       });
-      return { field, options: [...new Set(values)].sort((a, b) => a.localeCompare(b)) };
+      return {
+        field,
+        label: FIELD_LABEL_KEYS[field],
+        options: [...new Set(values)].sort((a, b) => a.localeCompare(b)),
+      };
     })
     .filter(attribute => attribute.options.length > 0);
 

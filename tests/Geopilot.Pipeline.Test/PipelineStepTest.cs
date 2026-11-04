@@ -189,7 +189,8 @@ public class PipelineStepTest
             },
         };
         var pipelineContext = ContextWith(("upload", new MockPipelineProcessArrayInputResult { OutputData = "input_from_upload" }));
-        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var outputFile = Mock.Of<IPipelineFile>();
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = outputFile };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
@@ -215,7 +216,7 @@ public class PipelineStepTest
         Assert.HasCount(1, pipelineStep.OutputActions);
         Assert.AreEqual("OutputData", pipelineStep.OutputActions[0].Property);
         Assert.IsTrue(pipelineStep.OutputActions[0].Actions.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
-        Assert.AreEqual("some_data", stepResult.ExtractProperty("OutputData"));
+        Assert.AreSame(outputFile, stepResult.ExtractProperty("OutputData"));
     }
 
     [TestMethod]
@@ -1002,10 +1003,12 @@ public class PipelineStepTest
     [TestMethod]
     public async Task StepRunAppliesActionsToMultipleOutputs()
     {
+        var firstFile = Mock.Of<IPipelineFile>();
+        var secondFile = Mock.Of<IPipelineFile>();
         var result = new MockMultiOutputResult
         {
-            FirstFile = "first",
-            SecondFile = "second",
+            FirstFile = firstFile,
+            SecondFile = secondFile,
             Status = new Dictionary<string, string> { ["en"] = "done" },
         };
         var outputActions = new List<OutputActionConfig>
@@ -1031,8 +1034,8 @@ public class PipelineStepTest
         Assert.HasCount(3, pipelineStep.OutputActions);
 
         // Data reaches Result and is resolvable by property name.
-        Assert.AreEqual("first", stepResult.ExtractProperty("FirstFile"));
-        Assert.AreEqual("second", stepResult.ExtractProperty("SecondFile"));
+        Assert.AreSame(firstFile, stepResult.ExtractProperty("FirstFile"));
+        Assert.AreSame(secondFile, stepResult.ExtractProperty("SecondFile"));
 
         // The StatusMessage-tagged output is surfaced on the step.
         Assert.AreEqual("done", pipelineStep.StatusMessage?["en"]);

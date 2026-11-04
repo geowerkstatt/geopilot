@@ -149,11 +149,9 @@ export const DeliveryStepper = () => {
               </Stack>
               {step.labelAddition && (
                 <StepDetailTypography variant="body2" sx={{ color: "primary.main" }}>
-                  {t(step.labelAddition)
-                    .split("\n")
-                    .map((line, idx) => (
-                      <MiddleTruncate key={idx} text={line} endLength={10} />
-                    ))}
+                  {step.labelAddition.split("\n").map((line, idx) => (
+                    <MiddleTruncate key={idx} text={line} endLength={10} />
+                  ))}
                 </StepDetailTypography>
               )}
               {step.messages && step.messages.length > 0 && (

@@ -1,14 +1,15 @@
-import { FC } from "react";
+import { FC, ReactElement } from "react";
 import { FieldValues, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { InputProps, SxProps, TextField } from "@mui/material";
 import { isValid } from "date-fns";
+import { TranslationKey } from "../../appInterfaces";
 import { FormValueType, getFormFieldError, getFormFieldErrorMessage } from "./form";
 
 export interface FormInputProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
-  label: string;
+  label: TranslationKey | ReactElement;
   required?: boolean;
   /** Marks the label with the required asterisk without making this single field mandatory. */
   showRequiredIndicator?: boolean;
@@ -66,6 +67,8 @@ export const FormInput: FC<FormInputProps> = ({
   const { t } = useTranslation();
   const formContext = useFormContext();
 
+  const resolvedLabel = typeof label === "string" ? t(label) : label;
+
   const getDefaultValue = (value: string | number | undefined) => {
     if (value == undefined) {
       return "";
@@ -89,7 +92,7 @@ export const FormInput: FC<FormInputProps> = ({
         minRows={minRows}
         maxRows={maxRows}
         helperText={helperText}
-        label={t(label)}
+        label={resolvedLabel}
         value={value ?? ""}
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
@@ -114,8 +117,8 @@ export const FormInput: FC<FormInputProps> = ({
       rows={rows}
       minRows={minRows}
       maxRows={maxRows}
-      helperText={hasError && errorMessage ? t(errorMessage) : helperText}
-      label={t(label)}
+      helperText={hasError && errorMessage ? t(errorMessage as TranslationKey) : helperText}
+      label={resolvedLabel}
       {...register(fieldName!, {
         required: required || false,
         valueAsNumber: type === FormValueType.Number,

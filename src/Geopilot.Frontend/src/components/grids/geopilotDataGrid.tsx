@@ -5,11 +5,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Box, Stack, Tooltip, useTheme } from "@mui/material";
 import { styled } from "@mui/system";
 import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowId, GridRowParams } from "@mui/x-data-grid";
+import { TranslationKey } from "../../appInterfaces";
 import { Button } from "../buttons.tsx";
 
 interface GeopilotDataGridProps extends DataGridProps {
   name: string;
-  addLabel?: string;
+  addLabel?: TranslationKey;
   onSelect?: (id: GridRowId) => void;
 }
 

@@ -129,7 +129,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
               updateSublayerVisibility(layer);
               updateParentLayerVisibility(rootLayers, layer);
             }}
-            label={title}
+            label={<>{title}</>}
             wrapLabel
             sx={{ flex: 1, minWidth: 0 }}
           />

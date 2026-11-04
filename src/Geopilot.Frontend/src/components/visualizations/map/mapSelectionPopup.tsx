@@ -2,10 +2,12 @@ import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { List, ListItemButton, ListItemText, Paper } from "@mui/material";
 
-/** One error offered in the selection popup: the message to show and the feature id it selects. */
+/** One entry offered in the selection popup: the text to show and the feature id it selects. */
 export interface SelectionEntry {
   id: string;
   text: string;
+  /** A second line below the text, e.g. the changes of an object in a diff. */
+  secondaryText?: string;
 }
 
 interface MapSelectionPopupProps {
@@ -38,7 +40,7 @@ export const MapSelectionPopup: FC<MapSelectionPopupProps> = ({ entries, onSelec
         // The overlay hosting the popup is click-through, the list rows need the clicks.
         pointerEvents: "auto",
         // The arrow pointing at the marker, as two stacked triangles: the outer one carries the border
-        // colour, the smaller inner one covers its face and leaves only the border edge visible.
+        // color, the smaller inner one covers its face and leaves only the border edge visible.
         "&::before, &::after": {
           content: '""',
           position: "absolute",
@@ -69,7 +71,11 @@ export const MapSelectionPopup: FC<MapSelectionPopupProps> = ({ entries, onSelec
             divider={index < entries.length - 1}
             onClick={() => onSelect(entry.id)}
             sx={{ py: 1, px: 1.5 }}>
-            <ListItemText primary={label(entry)} slotProps={{ primary: { variant: "body2" } }} />
+            <ListItemText
+              primary={label(entry)}
+              secondary={entry.secondaryText}
+              slotProps={{ primary: { variant: "body2" }, secondary: { variant: "caption" } }}
+            />
           </ListItemButton>
         ))}
       </List>

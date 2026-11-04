@@ -19,7 +19,7 @@ Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsda
 
 ## Wer darf eine Pipeline ausführen?
 
-Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein solches Mandat kann entweder öffentlich sein oder über die Organisation einem Benutzer zugeordnet werden.
+Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
 
 ## Wie ist der Ablauf einer Pipeline-Ausführung?
 
@@ -58,7 +58,7 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 
 Ein Schritt und somit auch ein Prozess kann 1-n Inputs und 1-n Outputs haben. Die Inputs eines Schrittes werden von vorherigen Schritten bezogen. Ein Input kann zudem die hochgeladenen Dateien über `${upload()}` beziehen. Ebenso kann ein Input über eine Datei-Referenz `${file(pfad)}` eine Datei aus dem konfigurierten Ressourcen-Verzeichnis beziehen. Die Outputs eines Schrittes sind implizit alle öffentlichen, lesbaren Properties seines Prozess-Ergebnisses; sie stehen den darauffolgenden Schritten unter ihrem Property-Namen (PascalCase) zur Verfügung, ohne einzeln deklariert werden zu müssen.
 
-Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Am Ende der Pipeline-Ausführung stehen die Ergebnisse zur Datenlieferung oder zum Download bereit. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
+Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Downloads und Visualisierungen stehen bereit, sobald der jeweilige Schritt abgeschlossen ist. Die Dateien für die Datenlieferung werden erst am Ende der Pipeline-Ausführung bereitgestellt, und nur wenn die Lieferung möglich ist. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
 
 - `Download`: Die Daten werden zum Download bereitgestellt, und können von den Anwendern heruntergeladen werden. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein. Der deklarierte Typ der Property wird beim Laden geprüft: Eine Property, die gar keine Datei liefern kann, verhindert den Start. Ist der Wert zur Laufzeit nicht gesetzt (`null`), schlägt der Schritt fehl.
 - `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; auch hier wird der deklarierte Typ beim Laden geprüft. Ist der Wert zur Laufzeit nicht gesetzt (`null`), wird nichts geliefert, und der Schritt schlägt anders als bei `Download` nicht fehl. Die Lieferung enthält nur **genau** die Dateien, die von einem Schritt als `Delivery` getaggt wurden. Um hochgeladene Dateien in der Lieferung zu berücksichtigen, wird üblicherweise ein Matcher-Schritt verwendet, der die Uploads als `${upload()}` erhält und seine Treffer und optional seine `UnmatchedFiles` als `Delivery` taggt. Der Asset-Typ einer gelieferten Datei ergibt sich aus ihrer Herkunft: kam sie als Upload in die Pipeline, wird sie als `PrimaryData` geführt, wurde sie innerhalb der Pipeline erzeugt oder bearbeitet, als `ProcessedData`. Enthält eine Lieferung keine einzige `Delivery`-getaggte Datei, wird die Deklaration mit einem Fehler abgelehnt.
@@ -70,6 +70,56 @@ Der Zugriff auf diese Daten erfolgt über eine Referenz in der Form `${step_outp
 Die Daten können dabei verschiedene Typen haben. Dies können einfache Datentypen wie Strings oder Zahlen sein, aber auch komplexe Datentypen wie Dateien (z.B. `IPipelineFile`) oder Listen. Es ist dabei zu beachten, dass die Daten, welche von einem Schritt bereitgestellt werden, von den darauffolgenden Schritten verarbeitet werden können. Um dies zu gewährleisten muss die Dokumentation des jeweilig verwendeten Prozessors konsultiert werden. Dabei muss sowohl der Typ, als auch der Namen, unter welchem die Daten dem Prozessor bereitgestellt werden, übereinstimmen. Stimmt dies nicht überein, startet die Applikation nicht (siehe [Validierungen](#validierungen)).
 
 Es ist möglich, dass die Daten von einem Schritt von mehreren darauffolgenden Schritten verarbeitet werden können. Ebenso ist es möglich, dass sich mehrere Schritte auf den gleichen Datensatz beziehen. Durch diese Möglichkeiten lassen sich Ausführungsstränge öffnen und wieder zusammenführen.
+
+Das folgende Beispiel zeigt diese Verknüpfungen an einer Pipeline mit drei Schritten. Der Output `Dateien` des Schrittes `zuordnung` wird von zwei Schritten verwendet, und `paket` führt ihn mit dem `Protokoll` aus `pruefung` und einer Ressourcen-Datei in seinem Parameter `dateien` zusammen. Schritt-IDs, Parameter und Property-Namen sind frei gewählt; welche Inputs und Outputs ein Prozessor hat, steht in seiner Dokumentation.
+
+```mermaid
+flowchart TB
+    hochgeladen[/"Hochgeladene Dateien"/]
+    literal("Literal in der Definition")
+    ressourcen[/"Ressourcen-Verzeichnis"/]
+
+    ctx_upload[("Pipeline-Context<br/>Upload")]
+    ctx_zuordnung[("Pipeline-Context<br/>+ zuordnung: Dateien")]
+    ctx_pruefung[("Pipeline-Context<br/>+ pruefung: Protokoll, Meldung, Karte")]
+    ctx_paket[("Pipeline-Context<br/>+ paket: Paket")]
+
+    zuordnung["Schritt zuordnung"]
+    pruefung["Schritt pruefung"]
+    paket["Schritt paket"]
+
+    download{{"Download<br/>nach dem Schritt herunterladbar"}}
+    visualisierung{{"Visualization<br/>nach dem Schritt zur Anzeige bereit"}}
+    statusmeldung{{"StatusMessage<br/>als Statusnachricht des Schrittes angezeigt"}}
+    lieferung{{"Delivery<br/>nach dem letzten Schritt in die Lieferung,<br/>sofern die Lieferung möglich ist"}}
+
+    hochgeladen ==> ctx_upload
+    ctx_upload -- "dateien: ${upload()}" --> zuordnung
+    zuordnung ==> ctx_zuordnung
+    ctx_zuordnung -- "datei: ${step_output(zuordnung.Dateien)}" --> pruefung
+    literal -- "umfang: 449" --> pruefung
+    pruefung ==> ctx_pruefung
+    ctx_zuordnung -- "dateien: ${step_output(zuordnung.Dateien)}" --> paket
+    ctx_pruefung -- "dateien: ${step_output(pruefung.Protokoll)}" --> paket
+    ressourcen -- "dateien: ${file(vorlagen/liesmich.txt)}" --> paket
+    paket ==> ctx_paket
+
+    pruefung -. "Protokoll" .-> download
+    pruefung -. "Karte" .-> visualisierung
+    pruefung -. "Meldung" .-> statusmeldung
+    paket -. "Paket" .-> lieferung
+```
+
+Legende:
+
+- Parallelogramm: Datenquelle ausserhalb der Definition (Upload, Ressourcen-Verzeichnis)
+- Abgerundetes Rechteck: Literal, direkt in der Definition geschrieben
+- Rechteck: Schritt
+- Zylinder: Pipeline-Context nach einem Schritt
+- Sechseck: Output-Action
+- Dicker Pfeil: legt Daten im Pipeline-Context ab
+- Durchgezogener Pfeil: Input, beschriftet mit `parameter: quelle`
+- Gestrichelter Pfeil: weist einer Property über `output_actions` eine Action zu
 
 ## Wie ist eine Pipeline-Definition aufgebaut?
 
@@ -94,17 +144,19 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
           de: XTF Zuordnung
-          fr: XTF Correspondance
-          it: XTF Corrispondenza
+          fr: Correspondance XTF
+          it: Corrispondenza XTF
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
           de: XTF Validierung
-          fr: XTF Validation
-          it: XTF Validazione
+          fr: Validation XTF
+          it: Validazione XTF
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -140,6 +192,8 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
+- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
+- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
 
 ## Validierungen
 
@@ -162,8 +216,10 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Innerhalb der `output_actions` eines Schrittes darf dieselbe `property` nicht mehrfach vorkommen.
 - Ein Schritt darf höchstens eine Property mit der Action `StatusMessage` taggen.
 - Eine in den `output_actions` referenzierte Property muss auf dem Ergebnistyp existieren und lesbar sein, und ihr deklarierter Typ muss zur Action passen: `Download` und `Delivery` verlangen ein `IPipelineFile` oder eine Sammlung davon, `StatusMessage` einen `LocalizedText` oder ein `Dictionary<string, string>`, `Visualization` ein `IVisualization`.
+- Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
+- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -175,7 +231,7 @@ Eine Konfiguration besteht immer aus einem Key-Value-Paar, wobei der Key der Nam
 
 #### Parameter-Typen
 
-Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, schlägt die Pipeline-Ausführung fehl. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
+Alle Typen von Konfigurationsparameter sind sowohl als Pflicht, als auch als optionale Parameter möglich. Ist ein Pflicht-Parameter in der Initialisierung eines Prozessors definiert, und kann dieser Parameter nicht aus der Konfiguration bezogen werden, startet die Anwendung nicht; ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt dabei als nicht gesetzt. Optionale Parameter können in der Initialisierung eines Prozessors weggelassen werden, und müssen somit nicht zwingend aus der Konfiguration bezogen werden. Damit der Parameter korrekt der Initialisierung eines Prozessors zugeordnet werden kann, müssen sowohl der Name als auch der Typ des Parameters übereinstimmen.
 
 Es gibt folgende mögliche Typen von Konfigurationsparametern:
 
@@ -231,7 +287,7 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: PROFILE-A
@@ -291,9 +347,9 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
-Der vierte, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
+Zwei weitere, `modelRepository` und `refMappingFile`, sind vom Typ `IPipelineFile` und nennen je eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
@@ -302,7 +358,18 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(
+    string? validationProfile,
+    string? refMapping,
+    string? modelDirs,
+    bool? allObjectsAccessible,
+    string? pluginIds,
+    string? toolVersion,
+    IPipelineFile? modelRepository,
+    IPipelineFile? refMappingFile,
+    IIlivalidatorClient ilivalidatorClient,
+    IPipelineFileManager pipelineFileManager,
+    ILogger logger)
 {
 }
 ```
@@ -331,11 +398,11 @@ pipelines:
     steps:
       - id: xtf_matching
         display_name:
-          en: XTF Matching
+          en: XTF matching
         process_id: xtf_matcher
       - id: validation
         display_name:
-          en: XTF Validation
+          en: XTF validation
         process_id: xtf_validator
         conditions:
           post:
@@ -348,7 +415,7 @@ pipelines:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
         display_name:
-          en: Zip Package
+          en: ZIP package
         process_id: zip_package_process
         conditions:
           pre:
@@ -492,13 +559,134 @@ steps:
 
 > **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`) oder wird sie abgebrochen (Status `Cancelled`), wird die Datenlieferung automatisch verhindert, unabhängig von den `restrict_delivery_conditions`.
 
+## Reaktionen nach dem Abschluss
+
+Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
+
+```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+reaction_sets:
+  - id: ablage
+    display_name:
+      de: Ablage
+      fr: Dépôt
+      it: Deposito
+      en: File drop
+    transfers:
+      - id: ablage
+        display_name:
+          de: Ablage
+          fr: Dépôt
+          it: Deposito
+          en: File drop
+        channel_id: ablage
+        mandate_config:
+          - key: subfolder
+            display_name:
+              de: Unterordner der Ablage
+              fr: Sous-dossier du dépôt
+              it: Sottocartella del deposito
+              en: Subfolder of the file drop
+```
+
+- `channels`: Liste von Kanälen, welche in den Reaktionen verwendet werden können.
+  - `channels[X].id`: Die eindeutige ID des Kanals, welche in den Reaktionen referenziert werden kann.
+  - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
+  - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
+- `reaction_sets[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
+- `reaction_sets[X].display_name`: Der Name des Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
+- `reaction_sets[X].transfers`: Optional. Die Lieferungs-Schritte des Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Lieferungs-Schritte gilt sie das gleich nach der Abgabe.
+- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Lieferungs-Schritte, und die Betriebssicht zeigt sie mit ihnen.
+- Ein Satz braucht mindestens eine Reaktion, einen Lieferungs-Schritt oder eine Benachrichtigung. Beide sind gleich aufgebaut:
+  - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
+  - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa auf der Seite einer Lieferung oder im Mandat über den Werten, die sie verlangt. Auf der Seite der Lieferung steht die Id klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.
+  - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
+  - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
+  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
+
+Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie deklariert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
+
+Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Deklaration fest. Eine spätere Änderung am Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
+
+Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Bis dahin nennt sie auch das Item einer späteren Lieferung nicht als Vorgängerversion. Weil die Lieferungs-Schritte erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet einer mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Lieferungs-Schritte erscheint gleich nach der Abgabe, auch wenn ihr Satz Benachrichtigungen hat.
+
+Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Hat trotzdem schon eine begonnen, etwa weil das Löschfenster nach der Abgabe verlängert oder das Löschen für Lieferanten erst später eingeschaltet wurde, darf er nicht mehr löschen. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel. Der Löschdialog der Administration nennt deshalb vorher die erfolgten Weitergaben, und das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
+
+Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopilot voraus, welche die Sektionen kennt. Ältere Versionen lehnen sie beim Start ab, deshalb kommt beim Ausrollen zuerst die neue Version und erst danach die Sektionen in die Definition.
+
+### Konfiguration eines Kanals
+
+Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
+
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
+3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
+
+Wie bei den Prozessoren ist die Basis-Konfiguration unveränderbar: Setzt die Pipeline-Definition einen ihrer Schlüssel, ob in `default_config`, `channel_config_overwrites` oder `mandate_config`, startet die Applikation nicht, mit einer Meldung wie unter [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration). Ebenso darf ein Wert nicht zugleich in der Standard-Konfiguration des Kanals stehen und vom Mandat kommen. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
+
+Manche Parameter eines Kanals nennen eine Datei aus dem Ressourcen-Verzeichnis, etwa das Template einer Mail. Konfiguriert wird wie bei den Prozessoren ihr Pfad relativ zu `Storage:ResourcesDirectory` (siehe [Dateien als Konfiguration](#dateien-als-konfiguration)), und der Kanal bekommt ihren Text. Welche Parameter das sind, steht auf der Seite des Kanals. Die Datei wird bei jedem Zustellversuch neu gelesen, eine geänderte Datei gilt also auch für Reaktionen, die schon warten.
+
+Eine Ablage mit einem Unterordner, den ein Satz für sich überschreibt:
+
+```yaml
+channels:
+  - id: ablage
+    implementation: Geopilot.Pipeline.Channels.FileDrop.FileDropChannel
+    default_config:
+      subfolder: allgemein
+reaction_sets:
+  - id: ablage_kanton_a
+    display_name:
+      de: Ablage Kanton A
+    transfers:
+      - id: ablage_kanton_a
+        display_name:
+          de: Ablage Kanton A
+        channel_id: ablage
+        channel_config_overwrites:
+          subfolder: kanton-a
+```
+
+### Prüfung beim Start
+
+Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines. geopilot startet nicht, wenn
+
+- zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
+- die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
+- ein Satz oder eine Reaktion keinen Namen (`display_name`) hat oder ein Satz keine Reaktion, weder einen Lieferungs-Schritt noch eine Benachrichtigung,
+- ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
+- der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
+- die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
+- eine Datei, die ein Kanal als Konfiguration bekommt, nicht im Ressourcen-Verzeichnis liegt,
+- eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
+- `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
+- die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
+- ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
+- der Kanal einer Reaktion seine Konfiguration abweist, etwa der Mail-Kanal ein Template ohne Titel. Dafür baut geopilot jeden Kanal einmal, der ohne Werte vom Mandat auskommt; einen, der welche braucht, prüft erst das Speichern eines Mandats,
+- ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,
+- ein Mandat einen Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.
+
+Ein Satz lässt sich deshalb erst aus der Definition entfernen, wenn kein Mandat ihn mehr gewählt hat. Werte eines Mandats, die ein Kanal nicht annimmt, etwa weil er nach einem Update einen neuen Wert verlangt, halten den Start nicht an, sondern erscheinen als Warnung im Log, mit Mandat und Reaktion. Das Mandat lässt sich danach nur mit gültigen Werten speichern.
+
+### Kanäle
+
+Jeder Kanal, der mit geopilot ausgeliefert wird, ist in einer eigenen Datei dokumentiert:
+
+- [Ablage](Kanaele/ablage.md)
+- [Mail](Kanaele/mail.md)
+
 ## Prozesse
 
 Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert werden, und wie sie in den Pipelines verwendet werden können. Jeder mitgelieferte Prozessor ist in einer eigenen Datei dokumentiert:
 
 - [XTF Matcher](Prozessoren/xtf-matcher.md)
 - [File Matcher](Prozessoren/file-matcher.md)
+- [Alt/Neu Matcher](Prozessoren/alt-neu-matcher.md)
+- [XTF Metadaten-Extraktor](Prozessoren/xtf-metadaten.md)
 - [XTF Validierung](Prozessoren/xtf-validierung.md)
+- [XTF Diff](Prozessoren/xtf-diff.md)
 - [ZIP Paketierung](Prozessoren/zip-paketierung.md)
 - [ZIP Unpacker](Prozessoren/zip-unpacker.md)
 - [XTF Fehlervisualisierung](Prozessoren/xtf-fehlervisualisierung.md)
@@ -506,4 +694,6 @@ Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert 
 - [GPKG Daten-Import](Prozessoren/gpkg-import.md)
 - [GPKG Daten-Aktualisierung](Prozessoren/gpkg-update.md)
 - [GPKG Export](Prozessoren/gpkg-export.md)
+- [GPKG Metadaten-Extraktor](Prozessoren/gpkg-metadaten.md)
 - [GPKG Validierung](Prozessoren/gpkg-validierung.md)
+- [XTF Diff Visualisierung](Prozessoren/xtf-diff-visualisierung.md)

@@ -179,7 +179,7 @@ public class Ili2GpkgDataImportProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync([CreateTransferFile()], dbFile: null, models: "ModelA;ModelB", defaultSrsCode: 2056, dataset: "dataset1", CancellationToken.None);
+        await process.RunAsync([CreateTransferFile()], dbFile: null, models: ["ModelA", "ModelB"], defaultSrsCode: 2056, dataset: "dataset1", CancellationToken.None);
 
         var args = calls.Last().Args;
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, args.Models?.ToArray());
@@ -197,10 +197,10 @@ public class Ili2GpkgDataImportProcessTest
     {
         var process = CreateProcess();
 
-        await process.RunAsync([CreateTransferFile()], dbFile: null, models: " ModelA ; ;ModelB;", defaultSrsCode: null, dataset: null, CancellationToken.None);
+        await process.RunAsync([CreateTransferFile()], dbFile: null, models: [" ModelA ; ;ModelB;"], defaultSrsCode: null, dataset: null, CancellationToken.None);
         CollectionAssert.AreEqual(new[] { "ModelA", "ModelB" }, calls.Last().Args.Models?.ToArray());
 
-        await process.RunAsync([CreateTransferFile()], dbFile: null, models: " ", defaultSrsCode: null, dataset: null, CancellationToken.None);
+        await process.RunAsync([CreateTransferFile()], dbFile: null, models: [" "], defaultSrsCode: null, dataset: null, CancellationToken.None);
         Assert.IsNull(calls.Last().Args.Models);
     }
 

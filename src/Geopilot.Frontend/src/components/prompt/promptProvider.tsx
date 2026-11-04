@@ -1,16 +1,21 @@
 import { FC, useCallback, useState } from "react";
+import { TranslationKey } from "../../appInterfaces";
 import { PromptContext } from "./promptContext";
 import { PromptAction, PromptOptions, PromptProviderProps } from "./promptInterfaces";
 
 export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
   const [prompt, setPrompt] = useState<PromptOptions | null>(null);
 
-  const showPrompt = useCallback((message: string, actions: PromptAction[]) => {
-    setPrompt({
-      message: message,
-      actions: actions,
-    });
-  }, []);
+  const showPrompt = useCallback(
+    (message: TranslationKey, actions: PromptAction[], messageValues?: Record<string, string>) => {
+      setPrompt({
+        message: message,
+        messageValues: messageValues,
+        actions: actions,
+      });
+    },
+    [],
+  );
 
   const closePrompt = useCallback(() => {
     setPrompt(null);
@@ -21,6 +26,7 @@ export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
       value={{
         promptIsOpen: prompt?.message != null,
         message: prompt?.message,
+        messageValues: prompt?.messageValues,
         actions: prompt?.actions,
         showPrompt,
         closePrompt,

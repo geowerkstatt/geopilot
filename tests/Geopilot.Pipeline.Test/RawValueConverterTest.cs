@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
+﻿using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test;
 
@@ -53,6 +53,17 @@ public class RawValueConverterTest
         Assert.HasCount(2, set);
         Assert.Contains("map", set);
         Assert.Contains("tree", set);
+    }
+
+    [TestMethod]
+    [DataRow("\"587\"", typeof(int), 587, DisplayName = "Number")]
+    [DataRow("\"true\"", typeof(bool), true, DisplayName = "Truth value")]
+    public void ConvertsATextReadBackFromJsonLikeTheTextItWas(string json, Type targetType, object expected)
+    {
+        var readBack = JsonSerializer.Deserialize<JsonElement>(json);
+
+        Assert.IsTrue(RawValueConverter.TryConvert(readBack, targetType, out var converted));
+        Assert.AreEqual(expected, converted);
     }
 
     [TestMethod]

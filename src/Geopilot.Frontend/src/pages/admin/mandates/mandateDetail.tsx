@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { FormHelperText, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
@@ -11,9 +11,12 @@ import {
   Mandate,
   Organisation,
   PipelineSummary,
+  ReactionSetSummary,
+  StacAccess,
 } from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormContainer,
   FormContainerHalfWidth,
@@ -26,15 +29,18 @@ import { FormAutocompleteValue } from "../../../components/form/formAutocomplete
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
+import ReactionSetFields from "./reactionSetFields.tsx";
 
 const MandateDetail = () => {
   const { t, i18n } = useTranslation();
   const { fetchApi } = useFetch();
+  const { reactionSetsEnabled } = useCapabilities();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [mandate, setMandate] = useState<MandateFormValues>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
+  const [reactionSets, setReactionSets] = useState<ReactionSetSummary[]>();
   const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
 
   const loadMandate = useCallback(
@@ -57,6 +63,7 @@ const MandateDetail = () => {
       errorMessageLabel: "pipelinesLoadingError",
     });
     setPipelines(pipelines?.pipelines ?? []);
+    setReactionSets(pipelines?.reactionSets ?? []);
   }, [fetchApi]);
 
   useEffect(() => {
@@ -69,6 +76,7 @@ const MandateDetail = () => {
         description: {},
         isPublic: false,
         allowDelivery: false,
+        stacAccess: StacAccess.AdminsOnly,
         organisations: [],
         fileTypes: [],
         // Prefill coordinates to allow editing them in the form
@@ -86,14 +94,14 @@ const MandateDetail = () => {
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
-    // Clear eligible organisations and allowDelivery if mandate is public
-    if (formData["isPublic"]) {
-      mandate.organisations = [];
-      mandate.allowDelivery = false;
-    } else {
-      mandate.organisations = formData["organisations"]?.map(
-        (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
-      );
+    mandate.organisations = formData["organisations"]?.map(
+      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
+    );
+
+    // Without a set, the empty values make the server drop the stored ones; values left out would be kept.
+    if (!formData["reactionSetId"]) {
+      mandate.reactionSetId = null;
+      mandate.reactionSetValues = {};
     }
 
     return mandate;
@@ -103,7 +111,9 @@ const MandateDetail = () => {
     <AdminDetailForm<MandateFormValues>
       basePath="/admin/mandates"
       backLabel="backToMandates"
-      data={mandate}
+      // Waits for the sets as well: a choice of a set that mounted late would be missing from the payload and clear
+      // the set of the mandate.
+      data={reactionSets ? mandate : undefined}
       apiEndpoint="/api/v1/mandate"
       saveErrorLabel="mandateSaveError"
       prepareDataForSave={prepareMandateForSave}>
@@ -142,6 +152,15 @@ const MandateDetail = () => {
         </Typography>
         <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
       </GeopilotBox>
+      {/* Hiding loses nothing: where no set can be chosen, no mandate holds one, or geopilot would not start. */}
+      {reactionSetsEnabled && reactionSets && reactionSets.length > 0 && (
+        <GeopilotBox>
+          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+            {t("reactions")}
+          </Typography>
+          <ReactionSetFields mandate={mandate} reactionSets={reactionSets} />
+        </GeopilotBox>
+      )}
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>
           {t("deliveryForm")}
@@ -184,12 +203,22 @@ const MandateDetail = () => {
         </FormContainerHalfWidth>
       </GeopilotBox>
       <GeopilotBox>
-        <Stack direction="row">
-          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
-            {t("spatialExtent")}
-          </Typography>
-          <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>
-        </Stack>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
+          {t("stacBrowser")}
+        </Typography>
+        <FormContainer>
+          <FormSelect
+            fieldName={"stacAccess"}
+            label={"stacAccess"}
+            required={true}
+            selected={mandate?.stacAccess}
+            values={[
+              { key: 0, value: StacAccess.AdminsOnly, name: t("stacAccessAdminsOnly") },
+              { key: 1, value: StacAccess.Public, name: t("stacAccessPublic") },
+            ]}
+          />
+        </FormContainer>
+        <Typography variant={"body1"}>{t("spatialExtent")}</Typography>
         <FormContainer>
           <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
         </FormContainer>

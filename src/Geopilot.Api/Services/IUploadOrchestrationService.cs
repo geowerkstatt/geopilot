@@ -21,10 +21,11 @@ public interface IUploadOrchestrationService
     /// Runs preflight checks on uploaded files including completeness verification and malware scanning.
     /// </summary>
     /// <param name="uploadId">The upload ID to run preflight checks for.</param>
+    /// <param name="cancellationToken">Cancels the malware scan.</param>
     /// <returns>The outcome of the malware scan, including the per-file hashes it computed.</returns>
     /// <exception cref="UploadPreflightException">Thrown when preflight checks fail. When the scan itself
     /// found the threat, the exception carries the <see cref="ScanResult"/> so the outcome stays recordable.</exception>
-    Task<ScanResult> RunPreflightChecksAsync(Guid uploadId);
+    Task<ScanResult> RunPreflightChecksAsync(Guid uploadId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Registers the upload's files on the job and returns them as pipeline files. Nothing is
