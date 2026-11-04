@@ -168,10 +168,54 @@ public static class ContextSeedExtensions
             IsPublic = true,
             AllowDelivery = true,
             StacAccess = StacAccess.Public,
+            MetadataFields = GetPublicMandateMetadataFields(),
         });
 
         context.SaveChanges();
     }
+
+    // Example fields for the delivery form, one per type. Only the public mandate carries them because no
+    // Cypress spec delivers to it.
+    private static List<MetadataField> GetPublicMandateMetadataFields() =>
+    [
+        new MetadataField(
+            "project_number",
+            Text("Projektnummer", "Project number", "Numéro de projet", "Numero di progetto"),
+            MetadataFieldType.Text,
+            FieldEvaluationType.Required),
+        new MetadataField(
+            "municipalities",
+            Text("Gemeinden", "Municipalities", "Communes", "Comuni"),
+            MetadataFieldType.TextList,
+            FieldEvaluationType.Optional),
+        new MetadataField(
+            "responsible",
+            Text("Zuständige Stelle", "Responsible body", "Service responsable", "Ufficio responsabile"),
+            MetadataFieldType.Selection,
+            FieldEvaluationType.Required,
+            [
+                new MetadataFieldOption("canton", Text("Kanton", "Canton", "Canton", "Cantone")),
+                new MetadataFieldOption("municipality", Text("Gemeinde", "Municipality", "Commune", "Comune")),
+            ]),
+        new MetadataField(
+            "parcel_count",
+            Text("Anzahl Parzellen", "Number of parcels", "Nombre de parcelles", "Numero di particelle"),
+            MetadataFieldType.WholeNumber,
+            FieldEvaluationType.Optional),
+        new MetadataField(
+            "area",
+            Text("Fläche in Hektaren", "Area in hectares", "Surface en hectares", "Superficie in ettari"),
+            MetadataFieldType.DecimalNumber,
+            FieldEvaluationType.Optional),
+        new MetadataField(
+            "due_date",
+            Text("Abgabetermin", "Due date", "Date de remise", "Termine di consegna"),
+            MetadataFieldType.Date,
+            FieldEvaluationType.Optional),
+    ];
+
+    private static LocalizedText Text(string de, string en, string fr, string it) =>
+        new(new Dictionary<string, string> { { "de", de }, { "en", en }, { "fr", fr }, { "it", it } });
 
     /// <summary>
     /// Registers the service account of the Keycloak client <c>geopilot-api</c>, whose id is pinned in
