@@ -613,6 +613,9 @@ describe("Delivery metadata fields", () => {
 
     setInput("metadata.parcel_count", "12.5");
     hasError("metadata.parcel_count");
+    cy.dataCy("metadata.parcel_count-formInput")
+      .find(".MuiFormHelperText-root")
+      .should("have.text", "A number without decimal places");
     cy.dataCy("createDelivery-button").should("be.disabled");
 
     setInput("metadata.parcel_count", "12");

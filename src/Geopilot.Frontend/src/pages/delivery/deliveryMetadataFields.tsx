@@ -1,5 +1,4 @@
 import { FC } from "react";
-import { useTranslation } from "react-i18next";
 import { FieldEvaluationType, MetadataField, MetadataFieldType } from "../../api/generated";
 import { FormChipInput, FormContainer, FormInput, FormSelect, FormValueType } from "../../components/form/form.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -13,15 +12,15 @@ const parseEntry = (input: string) => input.trim() || undefined;
 
 /** The additional fields a mandate asks for, one input per field in the order the mandate lists them. */
 export const DeliveryMetadataFields: FC<DeliveryMetadataFieldsProps> = ({ fields, disabled }) => {
-  const { t } = useTranslation();
   const { localized } = useLocalized();
 
   // An empty number input reads as NaN, which react-hook-form does not always treat as empty, so the check is explicit.
+  // FormInput translates the returned key.
   const validateNumber = (field: MetadataField) => (value: string | number) => {
     if (typeof value !== "number" || Number.isNaN(value)) {
       return field.evaluation !== FieldEvaluationType.Required;
     }
-    return field.type === MetadataFieldType.Integer && !Number.isInteger(value) ? t("metadataWholeNumber") : true;
+    return field.type === MetadataFieldType.Integer && !Number.isInteger(value) ? "metadataWholeNumber" : true;
   };
 
   const renderInput = (field: MetadataField) => {
