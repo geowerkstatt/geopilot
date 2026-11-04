@@ -217,6 +217,12 @@ describe("Organisations tests", () => {
     removeAutocompleteValue("users", "Nick Purdy");
     evaluateAutocomplete("users", ["Regina Streich"]);
 
+    getFormField("users")
+      .find(".MuiChip-root:visible a")
+      .should("exist")
+      .closest('[role="button"]')
+      .should("not.exist");
+
     // A chip links to its page, but leaving the edited form still asks first.
     getFormField("users").contains(".MuiChip-root:visible a", "Regina Streich").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");

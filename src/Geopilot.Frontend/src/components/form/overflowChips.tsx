@@ -83,6 +83,9 @@ export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
         }
         sx={{ "& .MuiChip-deleteIcon": { fontSize: px2rem(18) } }}
         {...itemProps}
+        // A deletable chip is a button, whose content assistive technology treats as plain text, hiding the link.
+        // Backspace on the focused chip and the delete icon still remove it.
+        {...(option.href && { role: "group" })}
       />
     );
   };
