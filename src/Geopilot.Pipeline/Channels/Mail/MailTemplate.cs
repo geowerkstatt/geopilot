@@ -65,16 +65,37 @@ internal sealed partial class MailTemplate
     {
         var known = KnownPlaceholderPattern().Match(placeholder.Groups[1].Value);
         var comment = delivery.Comment ?? string.Empty;
+        var language = known.Groups["language"].Success ? known.Groups["language"].Value : null;
         return known.Groups["name"].Value switch
         {
             "delivery_id" => delivery.Id.ToString(CultureInfo.InvariantCulture),
             "declared_at" => TimeZoneInfo.ConvertTime(delivery.DeclaredAt, timeZone).ToString(DateFormat, CultureInfo.InvariantCulture),
-            "mandate_name" => Encode(delivery.Mandate.Name.GetDisplayText(known.Groups["language"].Success ? known.Groups["language"].Value : null), asHtml),
+            "mandate_name" => Encode(delivery.Mandate.Name.GetDisplayText(language), asHtml),
+            "metadata" => FillMetadata(delivery.Metadata, language, asHtml),
             "declarer_name" => Encode(delivery.Declarer.Name, asHtml),
             "comment" => asHtml ? WebUtility.HtmlEncode(comment).ReplaceLineEndings("<br>") : comment,
             "files" => asHtml ? $"<ul>{string.Concat(fileNames.Select(name => $"<li>{WebUtility.HtmlEncode(name)}</li>"))}</ul>" : string.Join(", ", fileNames),
             _ => throw new UnreachableException($"Parse refuses the placeholder {placeholder.Value}."),
         };
+    }
+
+    private static string FillMetadata(IReadOnlyList<MetadataInfo> metadata, string? language, bool asHtml)
+    {
+        var entries = metadata.Select(field => (Title: field.Title.GetDisplayText(language), Value: FormatMetadataValue(field, language))).ToList();
+        return asHtml
+            ? entries.Count == 0 ? string.Empty : $"<ul>{string.Concat(entries.Select(entry => $"<li>{WebUtility.HtmlEncode(entry.Title)}: {WebUtility.HtmlEncode(entry.Value)}</li>"))}</ul>"
+            : string.Join(", ", entries.Select(entry => $"{entry.Title}: {entry.Value}"));
+    }
+
+    private static string FormatMetadataValue(MetadataInfo field, string? language)
+    {
+        if (field.Option is not null)
+            return field.Option.GetDisplayText(language);
+        if (field.Number is { } number)
+            return number.ToString(CultureInfo.InvariantCulture);
+        if (field.Date is { } date)
+            return date.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
+        return string.Join(", ", field.Texts);
     }
 
     private static string Encode(string value, bool asHtml) => asHtml ? WebUtility.HtmlEncode(value) : value;
@@ -83,8 +104,8 @@ internal sealed partial class MailTemplate
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
     private static partial Regex PlaceholderPattern();
 
-    // The placeholders a template may use; only the name of the mandate takes a language, the one tried first.
-    [GeneratedRegex(@"^(?:(?<name>delivery_id|declared_at|declarer_name|comment|files)|(?<name>mandate_name)(?::(?<language>[a-z]{2}))?)$")]
+    // The placeholders a template may use; only the name of the mandate and the metadata take a language, the one tried first.
+    [GeneratedRegex(@"^(?:(?<name>delivery_id|declared_at|declarer_name|comment|files)|(?<name>mandate_name|metadata)(?::(?<language>[a-z]{2}))?)$")]
     private static partial Regex KnownPlaceholderPattern();
 
     // Captures the text of the first title element.

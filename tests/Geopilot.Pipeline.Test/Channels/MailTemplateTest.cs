@@ -34,10 +34,10 @@ public class MailTemplateTest
     [TestMethod]
     public void ParseRefusesUnknownPlaceholders()
     {
-        var html = "<title>{{deliveryid}}</title>{{delivery_id:de}} {{ comment }} {{deliveryid}} {{mandate_name:de}}";
+        var html = "<title>{{deliveryid}}</title>{{delivery_id:de}} {{ comment }} {{deliveryid}} {{mandate_name:de}} {{metadata:deu}} {{metadatas}} {{metadata:}}";
 
         var exception = Assert.ThrowsExactly<ArgumentException>(() => MailTemplate.Parse(html));
-        Assert.StartsWith("The template uses unknown placeholders: {{deliveryid}}, {{delivery_id:de}}, {{ comment }}.", exception.Message);
+        Assert.StartsWith("The template uses unknown placeholders: {{deliveryid}}, {{delivery_id:de}}, {{ comment }}, {{metadata:deu}}, {{metadatas}}, {{metadata:}}.", exception.Message);
     }
 
     [TestMethod]
@@ -80,6 +80,55 @@ public class MailTemplateTest
         // Without Italian and English the name follows the order of the STAC titles: German comes next. The encoding
         // writes an umlaut as a number, which every mail program shows as the letter.
         Assert.AreEqual("<title>Nachf&#252;hrung AV / Nachf&#252;hrung AV</title>", template.RenderBody(Delivery, FileNames, Zurich));
+    }
+
+    private static readonly MetadataInfo[] Metadata =
+    [
+        new() { Title = new Dictionary<string, string> { ["de"] = "Projektnummer", ["en"] = "Project number" }, Texts = ["2026-117"] },
+        new() { Title = new Dictionary<string, string> { ["de"] = "Verantwortlich", ["en"] = "Responsible" }, Option = new Dictionary<string, string> { ["de"] = "Kanton", ["en"] = "Canton" } },
+        new() { Title = new Dictionary<string, string> { ["en"] = "Municipalities" }, Texts = ["Aarau", "Buchs"] },
+        new() { Title = new Dictionary<string, string> { ["en"] = "Parcels" }, Number = 12 },
+        new() { Title = new Dictionary<string, string> { ["en"] = "Area" }, Number = 12.5m },
+        new() { Title = new Dictionary<string, string> { ["en"] = "Due date" }, Date = new DateOnly(2026, 11, 4) },
+    ];
+
+    [TestMethod]
+    public void RenderBodyListsTheMetadata()
+    {
+        var template = MailTemplate.Parse("<title>Neue Lieferung</title>{{metadata:de}}");
+
+        Assert.AreEqual(
+            "<title>Neue Lieferung</title><ul><li>Projektnummer: 2026-117</li><li>Verantwortlich: Kanton</li><li>Municipalities: Aarau, Buchs</li><li>Parcels: 12</li><li>Area: 12.5</li><li>Due date: 04.11.2026</li></ul>",
+            template.RenderBody(Delivery with { Metadata = Metadata }, FileNames, Zurich));
+    }
+
+    [TestMethod]
+    public void RenderSubjectJoinsTheMetadataWithCommas()
+    {
+        var template = MailTemplate.Parse("<title>{{metadata}}</title>");
+
+        Assert.AreEqual(
+            "Project number: 2026-117, Responsible: Canton, Municipalities: Aarau, Buchs, Parcels: 12, Area: 12.5, Due date: 04.11.2026",
+            template.RenderSubject(Delivery with { Metadata = Metadata }, FileNames, Zurich));
+    }
+
+    [TestMethod]
+    public void RenderBodyEncodesTheMetadataForHtml()
+    {
+        var template = MailTemplate.Parse("<title>Neue Lieferung</title>{{metadata}}");
+        var metadata = new MetadataInfo { Title = new Dictionary<string, string> { ["en"] = "Note" }, Texts = ["<b>x</b>"] };
+
+        Assert.AreEqual(
+            "<title>Neue Lieferung</title><ul><li>Note: &lt;b&gt;x&lt;/b&gt;</li></ul>",
+            template.RenderBody(Delivery with { Metadata = [metadata] }, FileNames, Zurich));
+    }
+
+    [TestMethod]
+    public void RenderBodyLeavesTheMetadataEmptyWithoutFields()
+    {
+        var template = MailTemplate.Parse("<title>Neue Lieferung</title>[{{metadata}}]");
+
+        Assert.AreEqual("<title>Neue Lieferung</title>[]", template.RenderBody(Delivery, FileNames, Zurich));
     }
 
     [TestMethod]

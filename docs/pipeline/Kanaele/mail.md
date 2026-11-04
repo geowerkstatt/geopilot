@@ -89,6 +89,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 | `{{declared_at}}` | Wann die Lieferung deklariert wurde, in Ortszeit wie das Löschfenster, etwa `20.10.2026 10:00`. |
 | `{{mandate_name}}`, `{{mandate_name:de}}` | Der Name des Mandats, mit Sprache in dieser Sprache. Fehlt der Name in ihr, gilt dieselbe Reihenfolge wie bei den Titeln im STAC-Katalog: Englisch, Deutsch, Französisch, Italienisch, dann jede weitere. |
 | `{{declarer_name}}` | Der Name des Lieferanten, bei einer maschinellen Lieferung der Name des Clients. |
+| `{{metadata}}`, `{{metadata:de}}` | Die Metadaten, die der Lieferant ausgefüllt hat, als Liste `Titel: Wert`, im Betreff mit Kommas getrennt. Mit Sprache stehen Titel und Optionen in dieser Sprache, sonst gilt dieselbe Reihenfolge wie beim Namen des Mandats. Leer gelassene Felder fehlen, Listen stehen mit Kommas, das Datum als `04.11.2026`, Zahlen mit Punkt als Dezimaltrennzeichen. Leer, wenn das Mandat keine Metadaten verlangt. |
 | `{{comment}}` | Der Kommentar des Lieferanten, mit seinen Zeilenumbrüchen. Leer, wenn er keinen geschrieben hat. |
 | `{{files}}` | Die gelieferten Dateien als Liste, im Betreff mit Kommas getrennt. |
 
