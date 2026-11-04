@@ -140,7 +140,8 @@ public static class ContextSeedExtensions
 
             // The development definitions offer reaction sets, the seed chooses none.
             .Ignore(o => o.ReactionSetId)
-            .Ignore(o => o.ReactionSetValues);
+            .Ignore(o => o.ReactionSetValues)
+            .Ignore(o => o.MetadataFields);
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
@@ -228,6 +229,7 @@ public static class ContextSeedExtensions
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))
             .RuleFor(d => d.Comment, f => f.Rant.Review())
+            .Ignore(d => d.Metadata)
             .RuleFor(d => d.Deleted, false);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
