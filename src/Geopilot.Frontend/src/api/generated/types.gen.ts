@@ -233,6 +233,14 @@ export type DeliveryDetailResponse = {
    * Who declared the delivery, a person or a machine client.
    */
   declarerName: string;
+  /**
+   * The user who declared the delivery, null when a machine client did.
+   */
+  declaringUserId?: number | null;
+  /**
+   * The machine client that declared the delivery, null when a user did.
+   */
+  declaringClientId?: number | null;
   precursorDelivery?: DeliverySummary;
   /**
    * Whether the delivery holds partial data, null when the mandate does not ask.

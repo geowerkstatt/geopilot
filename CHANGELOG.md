@@ -55,6 +55,7 @@
 - The XTF Matcher and File Matcher processes expose an `UnmatchedFiles` output containing the input files that did not match the configured filters (the complement of `MatchedFiles`/`XtfFiles`, in input order), so the sorted-out files can be processed further or included in the delivery via `output_actions`.
 - The delivery submit step lists the files that will be delivered and blocks submission with an error if the delivery contains no files.
 - `Database:MigrateOnStartup` (default `true`) lets a deployment start the application without applying database migrations, so they can run in a job of their own before the application starts, for example in Kubernetes. With the setting unset the application migrates on startup as before.
+- In the administration, the page of a delivery links its mandate and whoever delivered it, a user or a machine client, and `GET api/v1/delivery/{deliveryId}` names their id as `declaringUserId` or `declaringClientId`. In the forms of users, mandates, organisations and machine clients, each assigned user, mandate, organisation or machine client links to its own page; leaving a form with unsaved changes still asks first, and the cross on the chip still removes the assignment.
 
 ### Changed
 

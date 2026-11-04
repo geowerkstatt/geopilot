@@ -1,10 +1,17 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { AutocompleteGetItemProps, Box, Chip } from "@mui/material";
+import { AutocompleteGetItemProps, Box, Chip, Link } from "@mui/material";
 import { px2rem } from "../../appTheme";
+import { useControlledLinkClick } from "../controlledNavigate";
+
+export interface OverflowChip {
+  label: string;
+  /** Turns the label into a link to this path; the delete icon stays separate. */
+  href?: string;
+}
 
 interface OverflowChipsProps {
-  /** The selected option labels, in order. */
-  value: string[];
+  /** The selected options, in order. */
+  value: OverflowChip[];
   /** MUI's per-item prop factory from Autocomplete's renderValue. */
   getItemProps: AutocompleteGetItemProps<true>;
 }
@@ -17,6 +24,7 @@ interface OverflowChipsProps {
  */
 export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
   const measureRef = useRef<HTMLDivElement>(null);
+  const controlledLinkClick = useControlledLinkClick();
   const [visibleCount, setVisibleCount] = useState(value.length);
   // A stable key so the fit is only recomputed when the selection changes, not on every render.
   const valueKey = JSON.stringify(value);
@@ -51,13 +59,21 @@ export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
 
   const hidden = value.length - visibleCount;
 
-  const renderChip = (option: string, index: number) => {
+  const renderChip = (option: OverflowChip, index: number) => {
     const { key, ...itemProps } = getItemProps({ index });
     return (
       <Chip
         key={key}
         size="small"
-        label={option}
+        label={
+          option.href ? (
+            <Link href={option.href} onClick={controlledLinkClick(option.href)} color="inherit" underline="hover">
+              {option.label}
+            </Link>
+          ) : (
+            option.label
+          )
+        }
         sx={{ "& .MuiChip-deleteIcon": { fontSize: px2rem(18) } }}
         {...itemProps}
       />
