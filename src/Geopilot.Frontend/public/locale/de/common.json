@@ -184,6 +184,7 @@
   "metadataIdDuplicate": "Diese ID kommt schon vor",
   "metadataIdInvalid": "Kleinbuchstaben, Ziffern und _, beginnt mit einem Buchstaben, höchstens 64 Zeichen",
   "metadataOptionsRequired": "Eine Auswahl braucht mindestens eine Option",
+  "metadataWholeNumber": "Eine Zahl ohne Nachkommastellen",
   "myDeliveries": "Meine Lieferungen",
   "name": "Name",
   "no": "Nein",
