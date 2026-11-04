@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Models;
 
@@ -26,7 +26,6 @@ public sealed record MetadataFieldOption(string Id, LocalizedText Title);
 /// The kind of value a <see cref="MetadataField"/> takes. Serialized as camelCase: <c>text</c>, <c>textList</c>,
 /// <c>selection</c>, <c>integer</c>, <c>decimal</c>, <c>date</c>.
 /// </summary>
-[SuppressMessage("Naming", "CA1720:Identifier contains type name", Justification = "The member names give the wire names integer and decimal.")]
 public enum MetadataFieldType
 {
     /// <summary>A single line of text.</summary>
@@ -38,11 +37,13 @@ public enum MetadataFieldType
     /// <summary>One option out of <see cref="MetadataField.Options"/>.</summary>
     Selection,
 
-    /// <summary>A whole number.</summary>
-    Integer,
+    /// <summary>A whole number, serialized as <c>integer</c>.</summary>
+    [JsonStringEnumMemberName("integer")]
+    WholeNumber,
 
-    /// <summary>A decimal number.</summary>
-    Decimal,
+    /// <summary>A number with decimals, serialized as <c>decimal</c>.</summary>
+    [JsonStringEnumMemberName("decimal")]
+    DecimalNumber,
 
     /// <summary>A calendar date.</summary>
     Date,
