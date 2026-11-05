@@ -9,17 +9,19 @@ interface AdminDetailHeaderProps {
   backLabel: TranslationKey;
   onBack: () => void;
   /** The id of the entry, shown once it has one. */
-  id?: number;
+  id?: number | string;
+  /** What the id is called, such as the job id of a run. */
+  idLabel?: TranslationKey;
 }
 
 /** The head of an admin detail page: the way back to its list and the id of the entry. */
-export const AdminDetailHeader: FC<AdminDetailHeaderProps> = ({ backLabel, onBack, id }) => {
+export const AdminDetailHeader: FC<AdminDetailHeaderProps> = ({ backLabel, onBack, id, idLabel = "id" }) => {
   const { t } = useTranslation();
 
   return (
     <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
       <Button variant="text" startIcon={<ChevronLeft />} onClick={onBack} label={backLabel} />
-      {!!id && <Typography variant={"body2"}>{t("id") + ": " + id}</Typography>}
+      {!!id && <Typography variant={"body2"}>{t(idLabel) + ": " + id}</Typography>}
     </Stack>
   );
 };

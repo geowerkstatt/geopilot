@@ -94,7 +94,10 @@ export const PipelineRunDetail: FC = () => {
 
   // Back returns to where the admin came from, such as a filtered list or a delivery; opened directly, to the list.
   const goBack = () => (openedDirectly ? navigate(listPath) : navigate(-1));
-  const header = <AdminDetailHeader backLabel="backToPipelineRuns" onBack={goBack} />;
+  const renderHeader = (jobId?: string) => (
+    <AdminDetailHeader backLabel="backToPipelineRuns" onBack={goBack} id={jobId} idLabel="jobId" />
+  );
+  const header = renderHeader();
 
   // Following a link to another run keeps the page mounted, so the previous run must not show meanwhile.
   const result = jobId && loaded?.jobId === jobId ? loaded : undefined;
@@ -140,7 +143,7 @@ export const PipelineRunDetail: FC = () => {
 
   return (
     <Stack>
-      {header}
+      {renderHeader(run.jobId)}
       <GeopilotBox>
         <Typography variant="h3" sx={{ marginTop: 0 }}>
           {t("summary")}
@@ -190,7 +193,6 @@ export const PipelineRunDetail: FC = () => {
           <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
           <SummaryField label="startedVia">{formatClientKind(t, run.clientKind) ?? "-"}</SummaryField>
           {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
-          <SummaryField label="jobId">{run.jobId}</SummaryField>
           <SummaryField label="appVersion">{run.appVersion}</SummaryField>
           {run.failureReason && (
             <SummaryField label="failureReason" wide>
