@@ -91,16 +91,17 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
               </AccordionSummary>
               <AccordionDetails>
                 <Stack sx={{ gap: 2 }}>
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-                    <SummaryField labelVariant="h5" label="process">
-                      {step.processImplementation}
-                    </SummaryField>
+                  <SummaryField labelVariant="h5" label="process">
+                    {step.processImplementation}
                     {step.processAssemblyVersion && (
-                      <SummaryField labelVariant="h5" label="version">
-                        {step.processAssemblyVersion}
-                      </SummaryField>
+                      <Typography
+                        component="span"
+                        variant="body1"
+                        sx={{ color: "text.secondary", marginLeft: 1, whiteSpace: "nowrap" }}>
+                        ( v{step.processAssemblyVersion} )
+                      </Typography>
                     )}
-                  </Box>
+                  </SummaryField>
                   {step.statusMessage && (
                     <SummaryField labelVariant="h5" label="message">
                       {localized(step.statusMessage)}
