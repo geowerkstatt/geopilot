@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Processes.XtfMetadata;
+﻿using Geopilot.Pipeline.Processes;
+using Geopilot.Pipeline.Processes.XtfMetadata;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Globalization;
 
@@ -258,7 +259,7 @@ public class XtfMetadataExtractorProcessTest
         var result = await Extractor(BfsNumberPath).RunAsync(Fixture(file), TestContext.CancellationToken);
 
         Assert.IsNull(result.Scope);
-        Assert.AreEqual(expectedVersion, result.InterlisVersion);
+        Assert.AreEqual(expectedVersion, result.InterlisVersion?.ToString());
         Assert.AreEqual(XtfFileState.Unsupported, result.FileState);
         Assert.AreEqual("The file is not an INTERLIS 2.4 transfer, so no scope is read.", result.StatusMessage["en"]);
     }
@@ -272,7 +273,7 @@ public class XtfMetadataExtractorProcessTest
     {
         var result = await Extractor(BfsNumberPath).RunAsync(Fixture(file), TestContext.CancellationToken);
 
-        Assert.AreEqual(expectedVersion, result.InterlisVersion);
+        Assert.AreEqual(expectedVersion, result.InterlisVersion?.ToString());
         Assert.AreEqual(expectedFileState, result.FileState.ToString());
     }
 
@@ -286,7 +287,7 @@ public class XtfMetadataExtractorProcessTest
         var result = await new XtfMetadataExtractorProcess(null, NullLogger.Instance).RunAsync(Fixture(file), TestContext.CancellationToken);
 
         Assert.IsNull(result.Scope);
-        Assert.AreEqual(expectedVersion, result.InterlisVersion);
+        Assert.AreEqual(expectedVersion, result.InterlisVersion?.ToString());
         Assert.AreEqual(expectedFileState, result.FileState.ToString());
         Assert.AreEqual(expectedMessage, result.StatusMessage["en"]);
     }
@@ -299,7 +300,7 @@ public class XtfMetadataExtractorProcessTest
 
         var result = await new XtfMetadataExtractorProcess(null, NullLogger.Instance).RunAsync(file, TestContext.CancellationToken);
 
-        Assert.AreEqual("Interlis24", result.InterlisVersion);
+        Assert.AreEqual(InterlisVersion.Interlis24, result.InterlisVersion);
         Assert.AreEqual(XtfFileState.Readable, result.FileState);
     }
 

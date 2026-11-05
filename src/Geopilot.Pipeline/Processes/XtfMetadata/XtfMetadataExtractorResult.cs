@@ -7,11 +7,12 @@ internal class XtfMetadataExtractorResult
     public string? Scope { get; init; }
 
     /// <summary>
-    /// The INTERLIS version of the transfer file, named like <see cref="Processes.InterlisVersion"/>, or null when it
-    /// is not recognized. Read from every file, whatever its <see cref="FileState"/>.
+    /// The INTERLIS version of the transfer file, or null when it is not recognized. Read from every file, whatever its
+    /// <see cref="FileState"/>.
     /// </summary>
-    /// <remarks>Text like the versions of the XTF matcher, so a condition's <c>in</c> matches it as well.</remarks>
-    public string? InterlisVersion { get; init; }
+    /// <remarks>A single value, so a condition compares it with <c>==</c>, as it does <see cref="FileState"/>; only
+    /// the list of the XTF matcher needs text for its <c>in</c>.</remarks>
+    public InterlisVersion? InterlisVersion { get; init; }
 
     public required XtfFileState FileState { get; init; }
 

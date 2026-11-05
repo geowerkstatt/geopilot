@@ -175,7 +175,6 @@ internal class XtfMetadataExtractorProcess
         logger.LogInformation($"Reading metadata from transfer file <{transferFile.OriginalFileName}>...");
 
         var interlisVersion = await InterlisVersionDetection.DetectAsync(transferFile, cancellationToken);
-        var versionName = interlisVersion?.ToString();
         var versionStatusMessage = VersionStatusMessage(interlisVersion);
 
         try
@@ -186,10 +185,10 @@ internal class XtfMetadataExtractorProcess
             await reader.MoveToContentAsync();
             if (!IsInterlis24Transfer(reader))
             {
-                logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not an INTERLIS 2.4 transfer. INTERLIS version: <{versionName}>.");
+                logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not an INTERLIS 2.4 transfer. INTERLIS version: <{interlisVersion}>.");
                 return new XtfMetadataExtractorResult
                 {
-                    InterlisVersion = versionName,
+                    InterlisVersion = interlisVersion,
                     FileState = XtfFileState.Unsupported,
                     StatusMessage = matches is null ? versionStatusMessage : UnsupportedStatusMessage,
                 };
@@ -207,24 +206,24 @@ internal class XtfMetadataExtractorProcess
         catch (XmlException e)
         {
             // The status message names the position only: the parser text is English and addressed to developers.
-            logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not readable XML: {e.Message} INTERLIS version: <{versionName}>.");
+            logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not readable XML: {e.Message} INTERLIS version: <{interlisVersion}>.");
             var statusMessage = e.LineNumber > 0
                 ? Format(UnreadableStatusMessageFormat, e.LineNumber, e.LinePosition)
                 : UnreadableStatusMessage;
             return new XtfMetadataExtractorResult
             {
-                InterlisVersion = versionName,
+                InterlisVersion = interlisVersion,
                 FileState = XtfFileState.Unreadable,
                 StatusMessage = matches is null ? versionStatusMessage : statusMessage,
             };
         }
 
         var extractedScope = matches?.ToScope();
-        logger.LogInformation($"Metadata of transfer file <{transferFile.OriginalFileName}> read. INTERLIS version: <{versionName}>, scope: <{extractedScope?.Value}>.");
+        logger.LogInformation($"Metadata of transfer file <{transferFile.OriginalFileName}> read. INTERLIS version: <{interlisVersion}>, scope: <{extractedScope?.Value}>.");
         return new XtfMetadataExtractorResult
         {
             Scope = extractedScope?.Value,
-            InterlisVersion = versionName,
+            InterlisVersion = interlisVersion,
             FileState = XtfFileState.Readable,
             StatusMessage = extractedScope?.StatusMessage ?? versionStatusMessage,
         };
