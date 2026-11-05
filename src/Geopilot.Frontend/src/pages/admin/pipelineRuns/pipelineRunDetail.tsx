@@ -12,14 +12,14 @@ import { SummaryField } from "../deliveries/summaryField.tsx";
 import { PipelineRunFiles } from "./pipelineRunFiles.tsx";
 import { formatClientKind, formatDuration } from "./pipelineRunFormat.ts";
 import { PipelineRunOutcomeLabel } from "./pipelineRunOutcomeLabel.tsx";
-import { parseJobId } from "./pipelineRunQuery.ts";
+import { parseJobId, PipelineRunTab, tabFromHash } from "./pipelineRunQuery.ts";
 import { PipelineRunReactionEvents } from "./pipelineRunReactionEvents.tsx";
 import { PipelineRunSteps } from "./pipelineRunSteps.tsx";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
-import { TechnicalText } from "./technicalText.tsx";
 
-type DetailTab = "steps" | "files" | "reactions" | "pipeline";
+const isOpenedDirectlyState = (state: unknown): boolean =>
+  typeof state === "object" && state !== null && "openedDirectly" in state && state.openedDirectly === true;
 
 // The tab row overlaps the top border of the box by one pixel, so the selected tab can cover it and join the box.
 const folderTabsSx: SxProps<Theme> = theme => ({
@@ -65,7 +65,6 @@ export const PipelineRunDetail: FC = () => {
   const { localized } = useLocalized();
   const { machineDeliveryEnabled } = useCapabilities();
   const [loaded, setLoaded] = useState<{ jobId: string; run?: PipelineRunResponse }>();
-  const [tab, setTab] = useState<DetailTab>("steps");
 
   // The address may spell the id in capitals or without hyphens; the API answers in one form only.
   const jobId = parseJobId(jobIdParam ?? "");
@@ -84,8 +83,13 @@ export const PipelineRunDetail: FC = () => {
     };
   }, [fetchApi, jobId]);
 
+  const tab = tabFromHash(location.hash);
+  // Switching tabs replaces the entry, which gives it a new key, so the entry remembers that the page was opened directly.
+  const openedDirectly = location.key === "default" || isOpenedDirectlyState(location.state);
+  const showTab = (value: PipelineRunTab) => navigate({ hash: value }, { replace: true, state: { openedDirectly } });
+
   // Back returns to where the admin came from, such as a filtered list or a delivery; opened directly, to the list.
-  const goBack = () => (location.key !== "default" ? navigate(-1) : navigate(listPath));
+  const goBack = () => (openedDirectly ? navigate(listPath) : navigate(-1));
   const header = <AdminDetailHeader backLabel="backToPipelineRuns" onBack={goBack} />;
 
   // Following a link to another run keeps the page mounted, so the previous run must not show meanwhile.
@@ -123,7 +127,7 @@ export const PipelineRunDetail: FC = () => {
         : undefined;
   // A run without reactions offers no tab for them, so the page must not stay on it.
   const visibleTab = tab === "reactions" && run.reactionEvents.length === 0 ? "steps" : tab;
-  const tabProps = (value: DetailTab) => ({
+  const tabProps = (value: PipelineRunTab) => ({
     value,
     id: `pipelineRunTab-${value}`,
     "aria-controls": panelId,
@@ -164,9 +168,7 @@ export const PipelineRunDetail: FC = () => {
               run.mandateId
             )}
           </SummaryField>
-          <SummaryField label="pipeline">
-            <TechnicalText>{run.pipelineId}</TechnicalText>
-          </SummaryField>
+          <SummaryField label="pipeline">{run.pipelineId}</SummaryField>
           <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
           <SummaryField label="startedVia">{formatClientKind(t, run.clientKind) ?? "-"}</SummaryField>
           {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
@@ -179,12 +181,8 @@ export const PipelineRunDetail: FC = () => {
               {duration && `(${duration})`}
             </Stack>
           </SummaryField>
-          <SummaryField label="jobId">
-            <TechnicalText>{run.jobId}</TechnicalText>
-          </SummaryField>
-          <SummaryField label="appVersion">
-            <TechnicalText>{run.appVersion}</TechnicalText>
-          </SummaryField>
+          <SummaryField label="jobId">{run.jobId}</SummaryField>
+          <SummaryField label="appVersion">{run.appVersion}</SummaryField>
           {run.failureReason && (
             <SummaryField label="failureReason" wide>
               {run.failureReason}
@@ -195,7 +193,7 @@ export const PipelineRunDetail: FC = () => {
       <Stack spacing={0}>
         <Tabs
           value={visibleTab}
-          onChange={(_event, value: DetailTab) => setTab(value)}
+          onChange={(_event, value: PipelineRunTab) => showTab(value)}
           sx={folderTabsSx}
           slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps")} label={t("processingSteps")} />

@@ -95,3 +95,11 @@ export const toPipelineRunQuery = (filters: PipelineRunFilterValues, page: numbe
   }
   return params.toString();
 };
+
+const pipelineRunTabs = ["steps", "files", "reactions", "pipeline"] as const;
+
+/** A tab of the page of one pipeline run. */
+export type PipelineRunTab = (typeof pipelineRunTabs)[number];
+
+/** The tab the address names, such as #files, or the steps for any other address. */
+export const tabFromHash = (hash: string): PipelineRunTab => pipelineRunTabs.find(tab => `#${tab}` === hash) ?? "steps";

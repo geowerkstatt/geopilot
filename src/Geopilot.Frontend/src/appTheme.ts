@@ -358,6 +358,14 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          color: themePalette.text.secondary,
+          fontWeight: NEOGEO_FONTWEIGHT_REGULAR,
+        },
+      },
+    },
     MuiStepLabel: {
       styleOverrides: {
         label: {
@@ -497,17 +505,20 @@ export const geopilotTheme = createTheme({
       },
     },
     MuiToggleButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
           color: themePalette.primary.main,
-          padding: themeSpacing(1),
           borderColor: themePalette.primary.light,
           textTransform: "none",
+          // Grouped buttons share one border, which a background painted under the border would cover.
+          backgroundClip: "padding-box",
           "&:hover": {
-            backgroundColor: themePalette.primary.states.hover,
+            backgroundColor: alpha(themePalette.primary.main, 0.04),
           },
           "&.Mui-selected, &.Mui-selected:hover": {
-            color: themePalette.primary.main,
             backgroundColor: themePalette.primary.states.selected,
           },
         },

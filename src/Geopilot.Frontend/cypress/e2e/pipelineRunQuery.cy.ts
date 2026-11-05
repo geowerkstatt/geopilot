@@ -2,6 +2,7 @@ import {
   emptyPipelineRunFilters,
   parseJobId,
   readPipelineRunSearchParams,
+  tabFromHash,
   toPipelineRunQuery,
   toPipelineRunSearchParams,
 } from "../../src/pages/admin/pipelineRuns/pipelineRunQuery";
@@ -43,6 +44,13 @@ describe("pipeline run query", () => {
     expect(parseJobId("3f9c2a715b0e4c1d9a8f0d2e6b7c1e21")).to.equal(jobId);
     expect(parseJobId("3f9c2a71")).to.equal(undefined);
     expect(parseJobId("")).to.equal(undefined);
+  });
+
+  it("opens the tab the address names, and the steps for any other address", () => {
+    expect(tabFromHash("#files")).to.equal("files");
+    expect(tabFromHash("#pipeline")).to.equal("pipeline");
+    expect(tabFromHash("")).to.equal("steps");
+    expect(tabFromHash("#unknown")).to.equal("steps");
   });
 
   it("keeps filters and page in the address of the list", () => {

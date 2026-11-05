@@ -1,29 +1,37 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
+  Box,
   CircularProgress,
   Stack,
-  Table,
-  TableBody,
   TableCell,
-  TableHead,
   TableRow,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
-import { DefinitionSnapshot } from "../../../api/apiInterfaces.ts";
+import { DefinitionSnapshot, DeliveryStepState } from "../../../api/apiInterfaces.ts";
 import { TranslationKey } from "../../../appInterfaces";
-import { Button } from "../../../components/buttons.tsx";
+import { CopyButton } from "../../../components/copyButton.tsx";
+import { StepIcon } from "../../../components/stepIcon.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { SummaryField } from "../deliveries/summaryField.tsx";
+import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { buildSnapshotSteps, SnapshotConfigOrigin } from "./pipelineSnapshotModel.ts";
 import { TechnicalText } from "./technicalText.tsx";
-import { TitledList } from "./titledList.tsx";
 
 interface PipelineSnapshotProps {
   jobId: string;
   pipelineId: string;
 }
+
+type SnapshotView = "readable" | "json";
 
 const originKey: Record<SnapshotConfigOrigin, TranslationKey> = {
   base: "configOriginBase",
@@ -58,7 +66,7 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
   const [loaded, setLoaded] = useState<{ jobId: string; snapshot: DefinitionSnapshot }>();
-  const [technical, setTechnical] = useState(false);
+  const [view, setView] = useState<SnapshotView>("readable");
 
   useEffect(() => {
     fetchApi<DefinitionSnapshot>(`/api/v1/pipelinerun/${jobId}/definition`, {
@@ -79,97 +87,140 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
     return <CircularProgress />;
   }
 
+  const json = JSON.stringify(snapshot, null, 2);
+
   return (
     <Stack sx={{ gap: 2 }} data-cy="pipelineSnapshot">
       <Alert severity="info">{t("pipelineSnapshotSecretsHint")}</Alert>
       <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Typography sx={{ flex: "1 1 0" }}>{t("pipelineSnapshotIntro", { pipelineId })}</Typography>
-        <Button
-          variant="outlined"
-          label={technical ? "pipelineSnapshotReadable" : "pipelineSnapshotTechnical"}
-          onClick={() => setTechnical(!technical)}
-        />
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={view}
+          // A click on the selected option would clear the selection, so only a change of view is taken.
+          onChange={(_event, value: SnapshotView | null) => value && setView(value)}
+          aria-label={t("pipelineSnapshotView")}>
+          <ToggleButton value="readable" data-cy="pipelineSnapshotView-readable">
+            {t("pipelineSnapshotReadable")}
+          </ToggleButton>
+          <ToggleButton value="json" data-cy="pipelineSnapshotView-json">
+            {t("pipelineSnapshotTechnical")}
+          </ToggleButton>
+        </ToggleButtonGroup>
       </Stack>
-      {technical ? (
-        <Typography
-          component="pre"
-          variant="body2"
-          sx={{ fontFamily: "monospace", whiteSpace: "pre-wrap", overflowWrap: "anywhere", margin: 0 }}>
-          {JSON.stringify(snapshot, null, 2)}
-        </Typography>
+      {view === "json" ? (
+        <Box sx={{ position: "relative" }}>
+          <Typography
+            component="pre"
+            variant="body2"
+            sx={{
+              fontFamily: "monospace",
+              whiteSpace: "pre",
+              overflowX: "auto",
+              margin: 0,
+              padding: 2,
+              backgroundColor: "primary.states.hover",
+              border: 1,
+              borderColor: "primary.light",
+              borderRadius: theme => theme.radius.default,
+            }}>
+            {json}
+          </Typography>
+          <CopyButton text={json} size="small" sx={{ position: "absolute", top: 8, right: 8 }} />
+        </Box>
       ) : (
-        buildSnapshotSteps(snapshot).map((step, index) => (
-          <Stack key={step.id} sx={{ gap: 1, borderLeft: 3, borderColor: "primary.light", paddingLeft: 2 }}>
-            <Typography variant="h6" sx={{ margin: 0 }}>
-              {`${index + 1} · ${localized(step.displayName, step.id)}`}
-            </Typography>
-            {step.implementation && (
-              <Typography variant="body2" sx={{ color: "text.secondary", overflowWrap: "anywhere" }}>
-                <TechnicalText>{step.implementation}</TechnicalText>
-              </Typography>
-            )}
-            {step.config.length > 0 && (
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t("configuration")}</TableCell>
-                    <TableCell>{t("configOrigin")}</TableCell>
-                    <TableCell>{t("value")}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {step.config.map(entry => (
-                    <TableRow key={entry.key}>
-                      <TableCell>
-                        <TechnicalText>{entry.key}</TechnicalText>
-                      </TableCell>
-                      <TableCell>{t(originKey[entry.origin])}</TableCell>
-                      <TableCell sx={{ overflowWrap: "anywhere" }}>
-                        <TechnicalText>{entry.value}</TechnicalText>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-            {step.inputs.length > 0 && (
-              <TitledList title={t("input")}>
-                {step.inputs.map(input => (
-                  <Typography key={input.key} component="li" variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                    <TechnicalText>{`${input.key} ← ${input.expression}`}</TechnicalText>
-                  </Typography>
-                ))}
-              </TitledList>
-            )}
-            {step.conditionGroups.map(group => (
-              <TitledList
-                key={`${group.phase}-${group.kind}`}
-                title={`${t(conditionKindKeys[group.kind] ?? "conditions")} (${t(conditionPhaseKeys[group.phase])})`}>
-                {group.conditions.map((condition, conditionIndex) => (
-                  <Typography key={conditionIndex} component="li" variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                    {condition.id && (
-                      <>
-                        <TechnicalText>{condition.id}</TechnicalText>
-                        {": "}
-                      </>
-                    )}
-                    <TechnicalText>{condition.expression}</TechnicalText>
-                  </Typography>
-                ))}
-              </TitledList>
-            ))}
-            {step.outputs.length > 0 && (
-              <TitledList title={t("output")}>
-                {step.outputs.map(output => (
-                  <Typography key={output.property} component="li" variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                    <TechnicalText>{output.property}</TechnicalText>
-                    {` → ${output.actions.map(actionLabel).join(", ")}`}
-                  </Typography>
-                ))}
-              </TitledList>
-            )}
-          </Stack>
-        ))
+        <Box>
+          {buildSnapshotSteps(snapshot).map((step, index) => (
+            <Accordion key={step.id} defaultExpanded data-cy={`pipelineSnapshotStep-${step.id}`}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: 2 }}>
+                  <StepIcon step={index + 1} state={DeliveryStepState.Enabled} variant="outlined" />
+                  <Typography>{localized(step.displayName, step.id)}</Typography>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack sx={{ gap: 2 }}>
+                  {step.implementation && (
+                    <SummaryField labelVariant="h5" label="process">
+                      {step.implementation}
+                    </SummaryField>
+                  )}
+                  {step.config.length > 0 && (
+                    <SummaryField labelVariant="h5" label="configuration">
+                      <DetailTable
+                        columns={[
+                          { label: t("parameter"), width: nameColumnWidth },
+                          { label: t("value") },
+                          { label: t("configOrigin"), width: "20%" },
+                        ]}>
+                        {step.config.map(entry => (
+                          <TableRow key={entry.key}>
+                            <TableCell>{entry.key}</TableCell>
+                            <TableCell>{entry.value}</TableCell>
+                            <TableCell>{t(originKey[entry.origin])}</TableCell>
+                          </TableRow>
+                        ))}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
+                  {step.inputs.length > 0 && (
+                    <SummaryField labelVariant="h5" label="input">
+                      <DetailTable
+                        columns={[{ label: t("parameter"), width: nameColumnWidth }, { label: t("inputSource") }]}>
+                        {step.inputs.map(input => (
+                          <TableRow key={input.key}>
+                            <TableCell>{input.key}</TableCell>
+                            <TableCell>
+                              <TechnicalText>{input.expression}</TechnicalText>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
+                  {step.outputs.length > 0 && (
+                    <SummaryField labelVariant="h5" label="output">
+                      <DetailTable
+                        columns={[{ label: t("result"), width: nameColumnWidth }, { label: t("outputActions") }]}>
+                        {step.outputs.map(output => (
+                          <TableRow key={output.property}>
+                            <TableCell>{output.property}</TableCell>
+                            <TableCell>{output.actions.map(actionLabel).join(", ")}</TableCell>
+                          </TableRow>
+                        ))}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
+                  {step.conditionGroups.length > 0 && (
+                    <SummaryField labelVariant="h5" label="conditions">
+                      <DetailTable
+                        columns={[
+                          { label: t("conditionId"), width: nameColumnWidth },
+                          { label: t("conditionPhase"), width: "12%" },
+                          { label: t("conditionExpression") },
+                          { label: t("conditionType"), width: "20%" },
+                        ]}>
+                        {step.conditionGroups.flatMap(group =>
+                          group.conditions.map((condition, conditionIndex) => (
+                            <TableRow key={`${group.phase}-${group.kind}-${conditionIndex}`}>
+                              <TableCell>{condition.id}</TableCell>
+                              <TableCell>{t(conditionPhaseKeys[group.phase])}</TableCell>
+                              <TableCell>
+                                <TechnicalText>{condition.expression}</TechnicalText>
+                              </TableCell>
+                              <TableCell>{t(conditionKindKeys[group.kind] ?? "conditions")}</TableCell>
+                            </TableRow>
+                          )),
+                        )}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
       )}
     </Stack>
   );
