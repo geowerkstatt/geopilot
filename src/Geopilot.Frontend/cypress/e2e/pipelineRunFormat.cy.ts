@@ -1,8 +1,8 @@
 import { TFunction } from "i18next";
-import { ClientKind, DeclarerKind } from "../../src/api/generated";
+import { ClientKind } from "../../src/api/generated";
 import {
   formatBlockingSteps,
-  formatDeclarer,
+  formatClientKind,
   formatDuration,
 } from "../../src/pages/admin/pipelineRuns/pipelineRunFormat";
 
@@ -10,11 +10,10 @@ import {
 const t = ((key: string) => key) as unknown as TFunction;
 
 describe("pipeline run format", () => {
-  it("names who processed with the kind of client in parentheses, and leaves out an unknown kind", () => {
-    const declarer = { kind: DeclarerKind.Person, id: 12, name: "Erika Muster" };
-    expect(formatDeclarer(t, declarer, ClientKind.WebClient)).to.equal("Erika Muster (clientKindWeb)");
-    expect(formatDeclarer(t, null, ClientKind.ApiClient)).to.equal("anonymous (clientKindApi)");
-    expect(formatDeclarer(t, declarer, ClientKind.Unknown)).to.equal("Erika Muster");
+  it("names the kind of client a run was started over, and nothing for an unknown kind", () => {
+    expect(formatClientKind(t, ClientKind.WebClient)).to.equal("clientKindWeb");
+    expect(formatClientKind(t, ClientKind.ApiClient)).to.equal("clientKindApi");
+    expect(formatClientKind(t, ClientKind.Unknown)).to.equal(undefined);
   });
 
   it("names the first blocking step and counts the others", () => {

@@ -5,13 +5,14 @@ import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typograp
 import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
+import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
+import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
 import { PipelineRunFiles } from "./pipelineRunFiles.tsx";
 import { formatClientKind, formatDuration } from "./pipelineRunFormat.ts";
-import { PipelineRunOutcomeLabel } from "./pipelineRunOutcomeLabel.tsx";
 import { parseJobId, PipelineRunTab, tabFromHash } from "./pipelineRunQuery.ts";
 import { PipelineRunReactionEvents } from "./pipelineRunReactionEvents.tsx";
 import { PipelineRunSteps } from "./pipelineRunSteps.tsx";
@@ -145,13 +146,16 @@ export const PipelineRunDetail: FC = () => {
           {t("summary")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-          <SummaryField label="outcome">
-            <PipelineRunOutcomeLabel outcome={run.outcome} allSteps linkDelivery />
-            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {t("pipelineRunNotDeliveredHint")}
-              </Typography>
-            )}
+          <SummaryField label="processingState">
+            <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+              <ProcessingStateLabel
+                state={run.terminalState}
+                running={run.outcome.kind === PipelineRunOutcomeKind.Running}
+                blockingSteps={run.outcome.blockingSteps}
+                allSteps
+              />
+              {duration && `(${duration})`}
+            </Stack>
           </SummaryField>
           <SummaryField label="processedBy">
             {declarerPath ? (
@@ -161,6 +165,17 @@ export const PipelineRunDetail: FC = () => {
             ) : (
               (run.declarer?.name ?? t("anonymous"))
             )}
+          </SummaryField>
+          <SummaryField label="delivery">
+            <PipelineRunDeliveryLabel outcome={run.outcome} linkDelivery />
+            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("pipelineRunNotDeliveredHint")}
+              </Typography>
+            )}
+          </SummaryField>
+          <SummaryField label="forwarding">
+            {run.outcome.forwardingState ? <ReactionStateLabel state={run.outcome.forwardingState} /> : "-"}
           </SummaryField>
           <SummaryField label="mandate">
             {run.mandate ? (
@@ -175,15 +190,6 @@ export const PipelineRunDetail: FC = () => {
           <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
           <SummaryField label="startedVia">{formatClientKind(t, run.clientKind) ?? "-"}</SummaryField>
           {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
-          <SummaryField label="state">
-            <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
-              <ProcessingStateLabel
-                state={run.terminalState}
-                running={run.outcome.kind === PipelineRunOutcomeKind.Running}
-              />
-              {duration && `(${duration})`}
-            </Stack>
-          </SummaryField>
           <SummaryField label="jobId">{run.jobId}</SummaryField>
           <SummaryField label="appVersion">{run.appVersion}</SummaryField>
           {run.failureReason && (

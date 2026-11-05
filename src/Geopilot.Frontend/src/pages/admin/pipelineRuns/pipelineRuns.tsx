@@ -5,12 +5,13 @@ import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
+import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { PipelineRunAttempts } from "./pipelineRunAttempts.tsx";
+import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
 import { PipelineRunFilters } from "./pipelineRunFilters.tsx";
-import { formatDeclarer, formatDuration } from "./pipelineRunFormat.ts";
-import { PipelineRunOutcomeLabel } from "./pipelineRunOutcomeLabel.tsx";
+import { formatDuration } from "./pipelineRunFormat.ts";
 import {
   PipelineRunFilterValues,
   readPipelineRunSearchParams,
@@ -88,7 +89,7 @@ export const PipelineRuns: FC = () => {
     {
       field: "declarer",
       headerName: t("processedBy"),
-      valueGetter: (_value, row) => formatDeclarer(t, row.declarer, row.clientKind),
+      valueGetter: (_value, row) => row.declarer?.name ?? t("anonymous"),
       flex: 0.5,
       minWidth: 200,
     },
@@ -101,20 +102,32 @@ export const PipelineRuns: FC = () => {
     },
     {
       field: "terminalState",
-      headerName: t("state"),
-      width: 210,
+      headerName: t("processingState"),
+      flex: 0.6,
+      minWidth: 260,
       display: "flex",
       renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => (
-        <ProcessingStateLabel state={row.terminalState} running={row.outcome.kind === PipelineRunOutcomeKind.Running} />
+        <ProcessingStateLabel
+          state={row.terminalState}
+          running={row.outcome.kind === PipelineRunOutcomeKind.Running}
+          blockingSteps={row.outcome.blockingSteps}
+        />
       ),
     },
     {
       field: "outcome",
-      headerName: t("outcome"),
-      flex: 0.6,
-      minWidth: 260,
+      headerName: t("delivery"),
+      width: 160,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => <PipelineRunOutcomeLabel outcome={row.outcome} />,
+      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => <PipelineRunDeliveryLabel outcome={row.outcome} />,
+    },
+    {
+      field: "forwardingState",
+      headerName: t("forwarding"),
+      width: 160,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) =>
+        row.outcome.forwardingState && <ReactionStateLabel state={row.outcome.forwardingState} />,
     },
     {
       field: "duration",

@@ -1,5 +1,5 @@
 import { TFunction } from "i18next";
-import { ClientKind, PipelineRunDeclarer } from "../../../api/generated";
+import { ClientKind } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 
 /** The time between start and end as minutes and seconds, or undefined while there is no end. */
@@ -41,15 +41,4 @@ const clientKindLabelKey: Record<ClientKind, TranslationKey | undefined> = {
 export const formatClientKind = (t: TFunction, clientKind: ClientKind): string | undefined => {
   const kindKey = clientKindLabelKey[clientKind];
   return kindKey && t(kindKey);
-};
-
-/** Who started a run and over which kind of client, such as "Erika Muster (Web)". */
-export const formatDeclarer = (
-  t: TFunction,
-  declarer: PipelineRunDeclarer | null | undefined,
-  clientKind: ClientKind,
-): string => {
-  const name = declarer?.name ?? t("anonymous");
-  const kind = formatClientKind(t, clientKind);
-  return kind ? `${name} (${kind})` : name;
 };

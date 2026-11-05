@@ -127,7 +127,7 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
         dataCy="pipelineRunFilter-mandate"
       />
       <FormSelect
-        label="state"
+        label="processingState"
         values={stateValues}
         selected={values.state}
         onChange={update("state")}
