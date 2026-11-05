@@ -1,22 +1,22 @@
 import {
-  emptyPipelineRunFilters,
+  emptyProcessingRunFilters,
   listQueryOf,
   listQueryState,
   parseJobId,
-  readPipelineRunSearchParams,
+  readProcessingRunSearchParams,
   tabFromHash,
-  toPipelineRunQuery,
-  toPipelineRunSearchParams,
-} from "../../src/pages/admin/pipelineRuns/pipelineRunQuery";
+  toProcessingRunQuery,
+  toProcessingRunSearchParams,
+} from "../../src/pages/admin/processingRuns/processingRunQuery";
 
 describe("pipeline run query", () => {
   it("sends only the page without filters", () => {
-    expect(toPipelineRunQuery(emptyPipelineRunFilters, 2, 25)).to.equal("page=2&pageSize=25");
+    expect(toProcessingRunQuery(emptyProcessingRunFilters, 2, 25)).to.equal("page=2&pageSize=25");
   });
 
   it("ends the period where the minute after the last minute starts", () => {
     const params = new URLSearchParams(
-      toPipelineRunQuery({ ...emptyPipelineRunFilters, from: "2026-10-28T08:00", to: "2026-10-30T23:59" }, 0, 25),
+      toProcessingRunQuery({ ...emptyProcessingRunFilters, from: "2026-10-28T08:00", to: "2026-10-30T23:59" }, 0, 25),
     );
 
     expect(params.get("from")).to.equal(new Date("2026-10-28T08:00:00").toISOString());
@@ -25,10 +25,10 @@ describe("pipeline run query", () => {
 
   it("splits who processed into kind and id", () => {
     const person = new URLSearchParams(
-      toPipelineRunQuery({ ...emptyPipelineRunFilters, declarer: "person:12" }, 0, 25),
+      toProcessingRunQuery({ ...emptyProcessingRunFilters, declarer: "person:12" }, 0, 25),
     );
     const allClients = new URLSearchParams(
-      toPipelineRunQuery({ ...emptyPipelineRunFilters, declarer: "machineClient" }, 0, 25),
+      toProcessingRunQuery({ ...emptyProcessingRunFilters, declarer: "machineClient" }, 0, 25),
     );
 
     expect(person.get("declarerKind")).to.equal("person");
@@ -70,12 +70,12 @@ describe("pipeline run query", () => {
       state: "failed",
     };
 
-    const params = toPipelineRunSearchParams(filters, 3);
+    const params = toProcessingRunSearchParams(filters, 3);
 
-    expect(readPipelineRunSearchParams(params)).to.deep.equal({ filters, page: 3 });
-    expect(toPipelineRunSearchParams(emptyPipelineRunFilters, 0).toString()).to.equal("");
-    expect(readPipelineRunSearchParams(new URLSearchParams("page=abc"))).to.deep.equal({
-      filters: emptyPipelineRunFilters,
+    expect(readProcessingRunSearchParams(params)).to.deep.equal({ filters, page: 3 });
+    expect(toProcessingRunSearchParams(emptyProcessingRunFilters, 0).toString()).to.equal("");
+    expect(readProcessingRunSearchParams(new URLSearchParams("page=abc"))).to.deep.equal({
+      filters: emptyProcessingRunFilters,
       page: 0,
     });
   });

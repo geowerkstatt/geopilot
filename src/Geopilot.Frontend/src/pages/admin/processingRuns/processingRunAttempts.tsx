@@ -5,10 +5,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SubdirectoryArrowRightIcon from "@mui/icons-material/SubdirectoryArrowRight";
 import { Stack, Typography } from "@mui/material";
 import { IconButton } from "../../../components/buttons.tsx";
-import { PipelineRunRow } from "./pipelineRunRows.ts";
+import { ProcessingRunRow } from "./processingRunRows.ts";
 
-interface PipelineRunAttemptsProps {
-  row: PipelineRunRow;
+interface ProcessingRunAttemptsProps {
+  row: ProcessingRunRow;
   expanded: boolean;
   onToggle: () => void;
 }
@@ -17,7 +17,7 @@ interface PipelineRunAttemptsProps {
  * The attempts of a delivery as a row of the list shows them: on the newest of several, a switch for the earlier ones
  * and how many there are in all; on an earlier one, a mark that it belongs to the row above.
  */
-export const PipelineRunAttempts: FC<PipelineRunAttemptsProps> = ({ row, expanded, onToggle }) => {
+export const ProcessingRunAttempts: FC<ProcessingRunAttemptsProps> = ({ row, expanded, onToggle }) => {
   const { t } = useTranslation();
 
   if (row.kind === "earlier") {

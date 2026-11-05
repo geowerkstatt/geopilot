@@ -8,7 +8,7 @@ export const listQueryOf = (state: unknown): string =>
     : "";
 
 /** The filters of the list of pipeline runs as the fields hold them; an empty string sets no filter. */
-export interface PipelineRunFilterValues {
+export interface ProcessingRunFilterValues {
   /** The start of the period in local time, as yyyy-mm-ddThh:mm. */
   from: string;
   /** The last minute of the period, included, in local time as yyyy-mm-ddThh:mm. */
@@ -19,7 +19,7 @@ export interface PipelineRunFilterValues {
   state: string;
 }
 
-export const emptyPipelineRunFilters: PipelineRunFilterValues = {
+export const emptyProcessingRunFilters: ProcessingRunFilterValues = {
   from: "",
   to: "",
   declarer: "",
@@ -27,10 +27,10 @@ export const emptyPipelineRunFilters: PipelineRunFilterValues = {
   state: "",
 };
 
-const filterFields: (keyof PipelineRunFilterValues)[] = ["from", "to", "declarer", "mandateId", "state"];
+const filterFields: (keyof ProcessingRunFilterValues)[] = ["from", "to", "declarer", "mandateId", "state"];
 
 // The names in the address of the list, shorter where the field name says more than the address needs.
-const searchParamNames: Record<keyof PipelineRunFilterValues, string> = {
+const searchParamNames: Record<keyof ProcessingRunFilterValues, string> = {
   from: "from",
   to: "to",
   declarer: "declarer",
@@ -39,7 +39,7 @@ const searchParamNames: Record<keyof PipelineRunFilterValues, string> = {
 };
 
 /** The address of the list for the filters and the page, so going back to it shows the same runs. */
-export const toPipelineRunSearchParams = (filters: PipelineRunFilterValues, page: number): URLSearchParams => {
+export const toProcessingRunSearchParams = (filters: ProcessingRunFilterValues, page: number): URLSearchParams => {
   const params = new URLSearchParams();
   filterFields.filter(field => filters[field]).forEach(field => params.set(searchParamNames[field], filters[field]));
   if (page > 0) {
@@ -49,10 +49,10 @@ export const toPipelineRunSearchParams = (filters: PipelineRunFilterValues, page
 };
 
 /** The filters and the page from the address of the list; anything unreadable sets no filter or the first page. */
-export const readPipelineRunSearchParams = (
+export const readProcessingRunSearchParams = (
   params: URLSearchParams,
-): { filters: PipelineRunFilterValues; page: number } => {
-  const filters = { ...emptyPipelineRunFilters };
+): { filters: ProcessingRunFilterValues; page: number } => {
+  const filters = { ...emptyProcessingRunFilters };
   filterFields.forEach(field => {
     filters[field] = params.get(searchParamNames[field]) ?? "";
   });
@@ -80,7 +80,7 @@ const toInstant = (localDateTime: string, offsetMinutes = 0) => {
 };
 
 /** The query string of GET api/v1/pipelinerun for the filters and the page. */
-export const toPipelineRunQuery = (filters: PipelineRunFilterValues, page: number, pageSize: number): string => {
+export const toProcessingRunQuery = (filters: ProcessingRunFilterValues, page: number, pageSize: number): string => {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
   if (filters.from) {
     params.set("from", toInstant(filters.from));
@@ -105,10 +105,11 @@ export const toPipelineRunQuery = (filters: PipelineRunFilterValues, page: numbe
   return params.toString();
 };
 
-const pipelineRunTabs = ["steps", "files", "reactions", "pipeline"] as const;
+const processingRunTabs = ["steps", "files", "reactions", "pipeline"] as const;
 
 /** A tab of the page of one pipeline run. */
-export type PipelineRunTab = (typeof pipelineRunTabs)[number];
+export type ProcessingRunTab = (typeof processingRunTabs)[number];
 
 /** The tab the address names, such as #files, or the steps for any other address. */
-export const tabFromHash = (hash: string): PipelineRunTab => pipelineRunTabs.find(tab => `#${tab}` === hash) ?? "steps";
+export const tabFromHash = (hash: string): ProcessingRunTab =>
+  processingRunTabs.find(tab => `#${tab}` === hash) ?? "steps";

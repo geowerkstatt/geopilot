@@ -9,11 +9,11 @@ import { FormDateTimePicker } from "../../../components/form/formDateTimePicker.
 import { FormSelectValue } from "../../../components/form/formSelect.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { emptyPipelineRunFilters, parseJobId, PipelineRunFilterValues } from "./pipelineRunQuery.ts";
+import { emptyProcessingRunFilters, parseJobId, ProcessingRunFilterValues } from "./processingRunQuery.ts";
 
-interface PipelineRunFiltersProps {
-  values: PipelineRunFilterValues;
-  onChange: (values: PipelineRunFilterValues) => void;
+interface ProcessingRunFiltersProps {
+  values: ProcessingRunFilterValues;
+  onChange: (values: ProcessingRunFilterValues) => void;
   /** Called with a complete job id typed or pasted into the job id field, to open its run. */
   onJobIdEntered: (jobId: string) => void;
 }
@@ -29,7 +29,7 @@ const stateLabelKey: Record<PipelineRunStateFilter, TranslationKey> = {
 };
 
 /** The filters of the list of pipeline runs: period, who started the run, mandate and state, plus a job id lookup. */
-export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChange, onJobIdEntered }) => {
+export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, onChange, onJobIdEntered }) => {
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
@@ -79,7 +79,7 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
     name: t(stateLabelKey[state]),
   }));
 
-  const update = (field: keyof PipelineRunFilterValues) => (value: string | number) =>
+  const update = (field: keyof ProcessingRunFilterValues) => (value: string | number) =>
     onChange({ ...values, [field]: String(value) });
 
   const changeJobId = (text: string) => {
@@ -92,7 +92,7 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
 
   const clearFilters = () => {
     setJobIdText("");
-    onChange(emptyPipelineRunFilters);
+    onChange(emptyProcessingRunFilters);
   };
 
   return (

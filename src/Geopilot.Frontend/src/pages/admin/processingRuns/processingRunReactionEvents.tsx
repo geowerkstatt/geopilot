@@ -7,7 +7,7 @@ import { DetailTable } from "../../../components/detailTable.tsx";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 
-interface PipelineRunReactionEventsProps {
+interface ProcessingRunReactionEventsProps {
   events: PipelineRunReactionEventResponse[];
 }
 
@@ -23,7 +23,7 @@ const reactionEventKey: Record<ReactionEvent, TranslationKey> = {
 };
 
 /** What happened to the reactions of the delivery a run produced, in the order it happened. */
-export const PipelineRunReactionEvents: FC<PipelineRunReactionEventsProps> = ({ events }) => {
+export const ProcessingRunReactionEvents: FC<ProcessingRunReactionEventsProps> = ({ events }) => {
   const { t } = useTranslation();
 
   return (

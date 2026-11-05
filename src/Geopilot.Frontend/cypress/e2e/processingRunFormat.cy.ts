@@ -4,7 +4,7 @@ import {
   formatBlockingSteps,
   formatClientKind,
   formatDuration,
-} from "../../src/pages/admin/pipelineRuns/pipelineRunFormat";
+} from "../../src/pages/admin/processingRuns/processingRunFormat";
 
 // Echoes the key, so the assertions read the keys instead of a language. TFunction has overloads a lambda cannot match.
 const t = ((key: string) => key) as unknown as TFunction;

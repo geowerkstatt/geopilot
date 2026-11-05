@@ -4,17 +4,17 @@ import { Stack, TableCell, TableRow, Typography } from "@mui/material";
 import { PipelineRunFileResponse, ScanState } from "../../../api/generated";
 import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { formatFileSize } from "./pipelineRunFormat.ts";
+import { formatFileSize } from "./processingRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
-interface PipelineRunFilesProps {
+interface ProcessingRunFilesProps {
   files: PipelineRunFileResponse[];
   scanState: ScanState;
   scanDetails?: string | null;
 }
 
 /** The files uploaded for a run with their size and hash, and what the virus scan found. */
-export const PipelineRunFiles: FC<PipelineRunFilesProps> = ({ files, scanState, scanDetails }) => {
+export const ProcessingRunFiles: FC<ProcessingRunFilesProps> = ({ files, scanState, scanDetails }) => {
   const { t } = useTranslation();
 
   const scanResult = () => {

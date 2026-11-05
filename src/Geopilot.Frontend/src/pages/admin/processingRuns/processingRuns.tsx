@@ -8,35 +8,35 @@ import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { PipelineRunAttempts } from "./pipelineRunAttempts.tsx";
-import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
-import { PipelineRunFilters } from "./pipelineRunFilters.tsx";
-import { formatDuration } from "./pipelineRunFormat.ts";
+import { ProcessingRunAttempts } from "./processingRunAttempts.tsx";
+import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
+import { ProcessingRunFilters } from "./processingRunFilters.tsx";
+import { formatDuration } from "./processingRunFormat.ts";
 import {
   listQueryState,
-  PipelineRunFilterValues,
-  readPipelineRunSearchParams,
-  toPipelineRunQuery,
-  toPipelineRunSearchParams,
-} from "./pipelineRunQuery.ts";
-import { PipelineRunRow, toPipelineRunRows } from "./pipelineRunRows.ts";
+  ProcessingRunFilterValues,
+  readProcessingRunSearchParams,
+  toProcessingRunQuery,
+  toProcessingRunSearchParams,
+} from "./processingRunQuery.ts";
+import { ProcessingRunRow, toProcessingRunRows } from "./processingRunRows.ts";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 
 /** All pipeline runs of the installation, newest first, paged and filtered on the server. */
-export const PipelineRuns: FC = () => {
+export const ProcessingRuns: FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
   // Filters and page live in the address, so going back from a run shows the same runs again.
   const [searchParams, setSearchParams] = useSearchParams();
-  const { filters, page } = readPipelineRunSearchParams(searchParams);
+  const { filters, page } = readProcessingRunSearchParams(searchParams);
   const [pageSize, setPageSize] = useState(25);
   const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
   // The deliveries that show their earlier attempts, by the job id of their newest attempt.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
-  const query = toPipelineRunQuery(filters, page, pageSize);
+  const query = toProcessingRunQuery(filters, page, pageSize);
   // Loading lasts until the answer to the current query is there, so no effect has to switch it on.
   const isLoading = loaded?.query !== query;
 
@@ -51,12 +51,12 @@ export const PipelineRuns: FC = () => {
     };
   }, [fetchApi, query]);
 
-  const changeFilters = (values: PipelineRunFilterValues) =>
-    setSearchParams(toPipelineRunSearchParams(values, 0), { replace: true });
+  const changeFilters = (values: ProcessingRunFilterValues) =>
+    setSearchParams(toProcessingRunSearchParams(values, 0), { replace: true });
 
   const changePagination = (model: GridPaginationModel) => {
     setPageSize(model.pageSize);
-    setSearchParams(toPipelineRunSearchParams(filters, model.page), { replace: true });
+    setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
   };
 
   const toggleExpanded = (jobId: string) =>
@@ -70,14 +70,18 @@ export const PipelineRuns: FC = () => {
       return next;
     });
 
-  const columns: GridColDef<PipelineRunRow>[] = [
+  const columns: GridColDef<ProcessingRunRow>[] = [
     {
       field: "attempts",
       headerName: t("attempts"),
       width: 100,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => (
-        <PipelineRunAttempts row={row} expanded={expanded.has(row.jobId)} onToggle={() => toggleExpanded(row.jobId)} />
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
+        <ProcessingRunAttempts
+          row={row}
+          expanded={expanded.has(row.jobId)}
+          onToggle={() => toggleExpanded(row.jobId)}
+        />
       ),
     },
     {
@@ -107,7 +111,7 @@ export const PipelineRuns: FC = () => {
       flex: 0.6,
       minWidth: 260,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => (
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
         <ProcessingStateLabel
           state={row.terminalState}
           running={row.outcome.kind === PipelineRunOutcomeKind.Running}
@@ -120,14 +124,16 @@ export const PipelineRuns: FC = () => {
       headerName: t("delivery"),
       width: 160,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => <PipelineRunDeliveryLabel outcome={row.outcome} />,
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
+        <ProcessingRunDeliveryLabel outcome={row.outcome} />
+      ),
     },
     {
       field: "forwardingState",
       headerName: t("forwarding"),
       width: 160,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) =>
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) =>
         row.outcome.forwardingState && <ReactionStateLabel state={row.outcome.forwardingState} />,
     },
     {
@@ -140,7 +146,7 @@ export const PipelineRuns: FC = () => {
 
   return (
     <Stack sx={{ height: "100%" }}>
-      <PipelineRunFilters
+      <ProcessingRunFilters
         values={filters}
         onChange={changeFilters}
         onJobIdEntered={jobId =>
@@ -151,7 +157,7 @@ export const PipelineRuns: FC = () => {
         <GeopilotDataGrid
           name="pipelineRuns"
           loading={isLoading}
-          rows={toPipelineRunRows(loaded?.page?.items ?? [], expanded)}
+          rows={toProcessingRunRows(loaded?.page?.items ?? [], expanded)}
           getRowId={row => row.jobId}
           columns={columns}
           paginationMode="server"

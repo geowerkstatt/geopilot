@@ -24,10 +24,10 @@ import { DetailTable, nameColumnWidth } from "../../../components/detailTable.ts
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { formatDuration } from "./pipelineRunFormat.ts";
+import { formatDuration } from "./processingRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
-interface PipelineRunStepsProps {
+interface ProcessingRunStepsProps {
   steps: PipelineRunStepResponse[];
 }
 
@@ -63,7 +63,7 @@ const artifactKindKey: Record<ArtifactKind, TranslationKey> = {
 };
 
 /** The steps of a run in pipeline order, each with its state, duration, messages, conditions and results. */
-export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
+export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
 

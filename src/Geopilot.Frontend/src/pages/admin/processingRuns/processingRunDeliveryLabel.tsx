@@ -5,7 +5,7 @@ import { Link, Typography } from "@mui/material";
 import { PipelineRunOutcome, PipelineRunOutcomeKind } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 
-interface PipelineRunDeliveryLabelProps {
+interface ProcessingRunDeliveryLabelProps {
   outcome: PipelineRunOutcome;
   /** Make the delivery a link to its detail page. */
   linkDelivery?: boolean;
@@ -20,7 +20,7 @@ const deliveryLabelKey: Partial<Record<PipelineRunOutcomeKind, TranslationKey>> 
 };
 
 /** What became of the delivery of a run: its id, or why there is none. */
-export const PipelineRunDeliveryLabel: FC<PipelineRunDeliveryLabelProps> = ({ outcome, linkDelivery }) => {
+export const ProcessingRunDeliveryLabel: FC<ProcessingRunDeliveryLabelProps> = ({ outcome, linkDelivery }) => {
   const { t } = useTranslation();
 
   if (outcome.kind === PipelineRunOutcomeKind.Delivered && linkDelivery) {

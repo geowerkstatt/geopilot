@@ -11,7 +11,7 @@ import { PipelineRunBlockingStep, ProcessingState } from "../../../api/generated
 import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { formatBlockingSteps } from "./pipelineRunFormat.ts";
+import { formatBlockingSteps } from "./processingRunFormat.ts";
 
 interface ProcessingStateLabelProps {
   /** The state the run ended in; without one, its outcome is unknown or it still runs. */

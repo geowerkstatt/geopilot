@@ -1,4 +1,4 @@
-import { buildSnapshotSteps } from "../../src/pages/admin/pipelineRuns/pipelineSnapshotModel";
+import { buildSnapshotSteps } from "../../src/pages/admin/processingRuns/pipelineSnapshotModel";
 
 describe("pipeline snapshot model", () => {
   it("merges the configuration of a step and names where each value comes from", () => {

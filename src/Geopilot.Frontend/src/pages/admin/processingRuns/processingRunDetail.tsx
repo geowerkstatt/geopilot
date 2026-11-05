@@ -11,13 +11,13 @@ import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
-import { PipelineRunFiles } from "./pipelineRunFiles.tsx";
-import { formatClientKind, formatDuration } from "./pipelineRunFormat.ts";
-import { listQueryOf, listQueryState, parseJobId, PipelineRunTab, tabFromHash } from "./pipelineRunQuery.ts";
-import { PipelineRunReactionEvents } from "./pipelineRunReactionEvents.tsx";
-import { PipelineRunSteps } from "./pipelineRunSteps.tsx";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
+import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
+import { ProcessingRunFiles } from "./processingRunFiles.tsx";
+import { formatClientKind, formatDuration } from "./processingRunFormat.ts";
+import { listQueryOf, listQueryState, parseJobId, ProcessingRunTab, tabFromHash } from "./processingRunQuery.ts";
+import { ProcessingRunReactionEvents } from "./processingRunReactionEvents.tsx";
+import { ProcessingRunSteps } from "./processingRunSteps.tsx";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 
 // The tab row overlaps the top border of the box by one pixel, so the selected tab can cover it and join the box.
@@ -72,7 +72,7 @@ const listPath = "/admin/processing-runs";
 const panelId = "pipelineRunPanel";
 
 /** One pipeline run: who started it, what became of it, its steps, files, reactions and pipeline. */
-export const PipelineRunDetail: FC = () => {
+export const ProcessingRunDetail: FC = () => {
   const { t } = useTranslation();
   const { jobId: jobIdParam } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
@@ -102,7 +102,7 @@ export const PipelineRunDetail: FC = () => {
   const tab = tabFromHash(location.hash);
   // Switching tabs replaces the entry, so the new entry keeps the query of the list the run was opened from.
   const listQuery = listQueryOf(location.state);
-  const showTab = (value: PipelineRunTab) =>
+  const showTab = (value: ProcessingRunTab) =>
     navigate({ hash: value }, { replace: true, state: listQueryState(listQuery) });
 
   // Back shows the list with the filters and page it was left with; opened from anywhere else, the whole list.
@@ -147,7 +147,7 @@ export const PipelineRunDetail: FC = () => {
         : undefined;
   // A run without reactions offers no tab for them, so the page must not stay on it.
   const visibleTab = tab === "reactions" && run.reactionEvents.length === 0 ? "steps" : tab;
-  const tabProps = (value: PipelineRunTab, label: string) => ({
+  const tabProps = (value: ProcessingRunTab, label: string) => ({
     value,
     label,
     id: `pipelineRunTab-${value}`,
@@ -183,7 +183,7 @@ export const PipelineRunDetail: FC = () => {
             )}
           </SummaryField>
           <SummaryField label="delivery">
-            <PipelineRunDeliveryLabel outcome={run.outcome} linkDelivery />
+            <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
             {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {t("pipelineRunNotDeliveredHint")}
@@ -217,7 +217,7 @@ export const PipelineRunDetail: FC = () => {
       <Stack spacing={0}>
         <Tabs
           value={visibleTab}
-          onChange={(_event, value: PipelineRunTab) => showTab(value)}
+          onChange={(_event, value: ProcessingRunTab) => showTab(value)}
           sx={folderTabsSx}
           slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps", t("processingSteps"))} />
@@ -230,11 +230,11 @@ export const PipelineRunDetail: FC = () => {
           id={panelId}
           aria-labelledby={`pipelineRunTab-${visibleTab}`}
           sx={{ borderTopLeftRadius: theme => theme.radius.none }}>
-          {visibleTab === "steps" && <PipelineRunSteps steps={run.steps} />}
+          {visibleTab === "steps" && <ProcessingRunSteps steps={run.steps} />}
           {visibleTab === "files" && (
-            <PipelineRunFiles files={run.files} scanState={run.scanState} scanDetails={run.scanDetails} />
+            <ProcessingRunFiles files={run.files} scanState={run.scanState} scanDetails={run.scanDetails} />
           )}
-          {visibleTab === "reactions" && <PipelineRunReactionEvents events={run.reactionEvents} />}
+          {visibleTab === "reactions" && <ProcessingRunReactionEvents events={run.reactionEvents} />}
           {visibleTab === "pipeline" && <PipelineSnapshot jobId={run.jobId} pipelineId={run.pipelineId} />}
         </GeopilotBox>
       </Stack>
