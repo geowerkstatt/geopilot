@@ -86,7 +86,7 @@ const markedTexts = (marks: JQuery) => [...marks].map(mark => mark.textContent);
 describe("XTF diff visualization", () => {
   it("filters the changes by class", () => {
     openDiffVisualization();
-    cy.dataCy("treeFilterToggle-button").click();
+    cy.dataCy("toggleFilters-button").click();
     cy.dataCy("metadata-filter-class").find("input").type("Grundstueck{downArrow}{enter}");
     cy.dataCy("diff-object").should("have.length", 1).and("contain", "Grundstueck");
   });
@@ -168,7 +168,7 @@ describe("XTF diff visualization", () => {
 
   it("marks a reference whose target the filter hides", () => {
     openDiffVisualization();
-    cy.dataCy("treeFilterToggle-button").click();
+    cy.dataCy("toggleFilters-button").click();
     cy.dataCy("metadata-filter-class").find("input").type("Gebaeudeeingang{downArrow}{enter}");
     expand(ENTRANCE);
     change("c3").dataCy("diff-value-new").dataCy("diff-reference").should("not.have.attr", "role", "button");

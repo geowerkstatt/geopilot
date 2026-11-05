@@ -1,15 +1,15 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack } from "@mui/material";
 import { MachineClient, Mandate, PipelineRunStateFilter, User } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
-import { px2rem } from "../../../appTheme.ts";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { FormInput, FormSelect, FormValueType } from "../../../components/form/form.ts";
+import { FilterBar } from "../../../components/filterBar.tsx";
+import { FormSelect } from "../../../components/form/form.ts";
+import { FormDateTimePicker } from "../../../components/form/formDateTimePicker.tsx";
 import { FormSelectValue } from "../../../components/form/formSelect.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { parseJobId, PipelineRunFilterValues } from "./pipelineRunQuery.ts";
+import { emptyPipelineRunFilters, parseJobId, PipelineRunFilterValues } from "./pipelineRunQuery.ts";
 
 interface PipelineRunFiltersProps {
   values: PipelineRunFilterValues;
@@ -27,8 +27,6 @@ const stateLabelKey: Record<PipelineRunStateFilter, TranslationKey> = {
   [PipelineRunStateFilter.Cancelled]: "stepStateCancelled",
   [PipelineRunStateFilter.Open]: "pipelineRunStateOpen",
 };
-
-const fieldWidth = { minWidth: px2rem(180), flex: "1 1 0" };
 
 /** The filters of the list of pipeline runs: period, who started the run, mandate and state, plus a job id lookup. */
 export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChange, onJobIdEntered }) => {
@@ -92,30 +90,32 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
     }
   };
 
+  const clearFilters = () => {
+    setJobIdText("");
+    onChange(emptyPipelineRunFilters);
+  };
+
   return (
-    <Stack direction={{ xs: "column", md: "row" }} sx={{ gap: 2, flexWrap: "wrap" }} data-cy="pipelineRunFilters">
-      <FormInput
+    <FilterBar
+      searchPlaceholder="pipelineRunJobIdSearch"
+      searchQuery={jobIdText}
+      onSearchQueryChange={changeJobId}
+      activeFilterCount={Object.values(values).filter(Boolean).length}
+      onClearFilters={clearFilters}
+      columns={5}
+      dataCy="pipelineRunFilters">
+      <FormDateTimePicker
         label="periodFrom"
-        type={FormValueType.Date}
         value={values.from}
         onChange={update("from")}
-        sx={fieldWidth}
         dataCy="pipelineRunFilter-from"
       />
-      <FormInput
-        label="periodTo"
-        type={FormValueType.Date}
-        value={values.to}
-        onChange={update("to")}
-        sx={fieldWidth}
-        dataCy="pipelineRunFilter-to"
-      />
+      <FormDateTimePicker label="periodTo" value={values.to} onChange={update("to")} dataCy="pipelineRunFilter-to" />
       <FormSelect
         label="processedBy"
         values={declarerValues}
         selected={values.declarer}
         onChange={update("declarer")}
-        sx={fieldWidth}
         dataCy="pipelineRunFilter-declarer"
       />
       <FormSelect
@@ -123,7 +123,6 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
         values={mandateValues}
         selected={values.mandateId}
         onChange={update("mandateId")}
-        sx={fieldWidth}
         dataCy="pipelineRunFilter-mandate"
       />
       <FormSelect
@@ -131,16 +130,8 @@ export const PipelineRunFilters: FC<PipelineRunFiltersProps> = ({ values, onChan
         values={stateValues}
         selected={values.state}
         onChange={update("state")}
-        sx={fieldWidth}
         dataCy="pipelineRunFilter-state"
       />
-      <FormInput
-        label="jobId"
-        value={jobIdText}
-        onChange={changeJobId}
-        sx={fieldWidth}
-        dataCy="pipelineRunFilter-jobId"
-      />
-    </Stack>
+    </FilterBar>
   );
 };

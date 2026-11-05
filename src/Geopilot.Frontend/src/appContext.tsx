@@ -4,6 +4,16 @@ import { GlobalStyles, ThemeProvider } from "@mui/material";
 import { deDE as coreDe, enUS as coreEn, frFR as coreFr, itIT as coreIt } from "@mui/material/locale";
 import { createTheme, Theme } from "@mui/material/styles";
 import { deDE as gridDe, enUS as gridEn, frFR as gridFr, itIT as gridIt } from "@mui/x-data-grid/locales";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV2";
+import {
+  deDE as pickersDe,
+  enUS as pickersEn,
+  frFR as pickersFr,
+  itIT as pickersIt,
+} from "@mui/x-date-pickers/locales";
+import { Locale } from "date-fns";
+import { de, enGB, fr, it } from "date-fns/locale";
 import App from "./app.tsx";
 import { Language } from "./appInterfaces.ts";
 import { geopilotTheme, NEOGEO_LETTERSPACING, px2rem } from "./appTheme.ts";
@@ -14,6 +24,20 @@ import { AppSettingsProvider } from "./components/appSettings/appSettingsProvide
 import { Prompt } from "./components/prompt/prompt.tsx";
 import { PromptProvider } from "./components/prompt/promptProvider.tsx";
 import i18n from "./i18n";
+
+const dateLocales: Record<Language, Locale> = {
+  [Language.DE]: de,
+  [Language.FR]: fr,
+  [Language.IT]: it,
+  [Language.EN]: enGB,
+};
+
+const pickerLocales: Record<Language, typeof pickersEn> = {
+  [Language.DE]: pickersDe,
+  [Language.FR]: pickersFr,
+  [Language.IT]: pickersIt,
+  [Language.EN]: pickersEn,
+};
 
 export const AppContext = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
@@ -68,17 +92,22 @@ export const AppContext = () => {
             },
           }}
         />
-        <PromptProvider>
-          <Prompt />
-          <AlertProvider>
-            <AlertBanner />
-            <AppSettingsProvider>
-              <GeopilotAuthProvider>
-                <App />
-              </GeopilotAuthProvider>
-            </AppSettingsProvider>
-          </AlertProvider>
-        </PromptProvider>
+        <LocalizationProvider
+          dateAdapter={AdapterDateFns}
+          adapterLocale={dateLocales[language]}
+          localeText={pickerLocales[language].components.MuiLocalizationProvider.defaultProps.localeText}>
+          <PromptProvider>
+            <Prompt />
+            <AlertProvider>
+              <AlertBanner />
+              <AppSettingsProvider>
+                <GeopilotAuthProvider>
+                  <App />
+                </GeopilotAuthProvider>
+              </AppSettingsProvider>
+            </AlertProvider>
+          </PromptProvider>
+        </LocalizationProvider>
       </ThemeProvider>
     </I18nextProvider>
   );

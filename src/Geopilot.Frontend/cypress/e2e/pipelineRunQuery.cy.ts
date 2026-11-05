@@ -12,12 +12,12 @@ describe("pipeline run query", () => {
     expect(toPipelineRunQuery(emptyPipelineRunFilters, 2, 25)).to.equal("page=2&pageSize=25");
   });
 
-  it("ends the period where the day after the last day starts", () => {
+  it("ends the period where the minute after the last minute starts", () => {
     const params = new URLSearchParams(
-      toPipelineRunQuery({ ...emptyPipelineRunFilters, from: "2026-10-28", to: "2026-10-30" }, 0, 25),
+      toPipelineRunQuery({ ...emptyPipelineRunFilters, from: "2026-10-28T08:00", to: "2026-10-30T23:59" }, 0, 25),
     );
 
-    expect(params.get("from")).to.equal(new Date("2026-10-28T00:00:00").toISOString());
+    expect(params.get("from")).to.equal(new Date("2026-10-28T08:00:00").toISOString());
     expect(params.get("to")).to.equal(new Date("2026-10-31T00:00:00").toISOString());
   });
 
@@ -54,7 +54,13 @@ describe("pipeline run query", () => {
   });
 
   it("keeps filters and page in the address of the list", () => {
-    const filters = { from: "2026-10-28", to: "2026-10-30", declarer: "person:12", mandateId: "5", state: "failed" };
+    const filters = {
+      from: "2026-10-28T08:00",
+      to: "2026-10-30T17:30",
+      declarer: "person:12",
+      mandateId: "5",
+      state: "failed",
+    };
 
     const params = toPipelineRunSearchParams(filters, 3);
 

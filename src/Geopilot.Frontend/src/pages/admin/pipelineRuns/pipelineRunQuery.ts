@@ -1,8 +1,8 @@
 /** The filters of the list of pipeline runs as the fields hold them; an empty string sets no filter. */
 export interface PipelineRunFilterValues {
-  /** The first day of the period, as yyyy-mm-dd. */
+  /** The start of the period in local time, as yyyy-mm-ddThh:mm. */
   from: string;
-  /** The last day of the period, included, as yyyy-mm-dd. */
+  /** The last minute of the period, included, in local time as yyyy-mm-ddThh:mm. */
   to: string;
   /** "person:<id>", "machineClient:<id>", or "machineClient" for all machine clients. */
   declarer: string;
@@ -63,10 +63,10 @@ export const parseJobId = (text: string): string | undefined => {
   return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join("-");
 };
 
-// The day starts at midnight in the time zone of the browser, as the dates in the list are shown there.
-const startOfDay = (day: string, offsetDays = 0) => {
-  const date = new Date(`${day}T00:00:00`);
-  date.setDate(date.getDate() + offsetDays);
+// The field holds the local time of the browser, as the times in the list are shown there.
+const toInstant = (localDateTime: string, offsetMinutes = 0) => {
+  const date = new Date(localDateTime);
+  date.setMinutes(date.getMinutes() + offsetMinutes);
   return date.toISOString();
 };
 
@@ -74,11 +74,11 @@ const startOfDay = (day: string, offsetDays = 0) => {
 export const toPipelineRunQuery = (filters: PipelineRunFilterValues, page: number, pageSize: number): string => {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
   if (filters.from) {
-    params.set("from", startOfDay(filters.from));
+    params.set("from", toInstant(filters.from));
   }
   if (filters.to) {
-    // The API excludes the end, so the last day ends where the next one starts.
-    params.set("to", startOfDay(filters.to, 1));
+    // The API excludes the end, so the last minute ends where the next one starts.
+    params.set("to", toInstant(filters.to, 1));
   }
   if (filters.declarer) {
     const [kind, id] = filters.declarer.split(":");

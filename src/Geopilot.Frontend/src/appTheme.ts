@@ -184,6 +184,7 @@ export const geopilotTheme = createTheme({
           lineHeight: px2rem(24),
         },
         root: {
+          backgroundColor: themePalette.background.content,
           "&:hover .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.primary.main,
           },
@@ -196,6 +197,42 @@ export const geopilotTheme = createTheme({
           "&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.error.dark,
           },
+        },
+      },
+    },
+    MuiPickersTextField: {
+      defaultProps: {
+        size: "small",
+      },
+    },
+    MuiPickersOutlinedInput: {
+      defaultProps: {
+        notched: true,
+      },
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: themePalette.primary.light,
+        },
+        root: {
+          backgroundColor: themePalette.background.content,
+          "&:hover .MuiPickersOutlinedInput-notchedOutline, &.Mui-focused .MuiPickersOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+        },
+      },
+    },
+    MuiPickerPopper: {
+      styleOverrides: {
+        paper: {
+          border: `1px solid ${themePalette.primary.light}`,
+          borderRadius: themeRadius.default,
+        },
+      },
+    },
+    MuiPickersLayout: {
+      styleOverrides: {
+        actionBar: {
+          padding: themeSpacing(1.5),
         },
       },
     },
