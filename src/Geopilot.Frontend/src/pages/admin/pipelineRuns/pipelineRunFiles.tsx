@@ -2,8 +2,8 @@ import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, TableCell, TableRow, Typography } from "@mui/material";
 import { PipelineRunFileResponse, ScanState } from "../../../api/generated";
+import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { formatFileSize } from "./pipelineRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
@@ -31,7 +31,7 @@ export const PipelineRunFiles: FC<PipelineRunFilesProps> = ({ files, scanState, 
   };
 
   return (
-    <Stack sx={{ gap: 2 }} data-cy="pipelineRunFiles">
+    <Stack data-cy="pipelineRunFiles">
       <SummaryField labelVariant="h5" label="uploadedFiles">
         <DetailTable
           columns={[

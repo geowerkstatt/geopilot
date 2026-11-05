@@ -1,6 +1,6 @@
 import type { DeliveryDetailResponse, DeliveryReactionResponse } from "@/api/generated";
 import { ReactionKind, ReactionState } from "@/api/generated";
-import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
+import { getTableRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
 describe("Admin delivery detail", () => {
@@ -72,7 +72,7 @@ describe("Admin delivery detail", () => {
       .find('a[href="/browser/stac/collections/coll_1/items/item_9001"]')
       .should("contain", "item_9001");
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
-    getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Ended");
+    getTableRowThatContains("reactions-table", "ablage").should("contain", "File drop").and("contain", "Ended");
     cy.dataCy("retryReaction").should("not.exist");
   });
 
@@ -83,7 +83,7 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-stacBrowser").should("contain", "Only available after forwarding");
     cy.dataCy("summary-precursor").should("not.exist");
     cy.dataCy("summary-partialDelivery").should("not.exist");
-    getGridRowThatContains("reactions-grid", "ablage").should("contain", "Waits until");
+    getTableRowThatContains("reactions-table", "ablage").should("contain", "Waits until");
   });
 
   it("shows that the notifications wait for the forwarding", () => {
@@ -94,7 +94,7 @@ describe("Admin delivery detail", () => {
       ]),
     );
 
-    getGridRowThatContains("reactions-grid", "info_mail").should("contain", "Waits for the forwarding");
+    getTableRowThatContains("reactions-table", "info_mail").should("contain", "Waits for the forwarding");
   });
 
   it("retries a reaction that gave up", () => {
@@ -110,7 +110,7 @@ describe("Admin delivery detail", () => {
     );
     cy.intercept("POST", "/api/v1/delivery/9002/reactions/ablage/reset", { statusCode: 204 }).as("retry");
 
-    getGridRowThatContains("reactions-grid", "ablage")
+    getTableRowThatContains("reactions-table", "ablage")
       .should("not.contain", "File drop")
       .and("contain", "does not exist")
       .find('[data-cy="retryReaction"]')

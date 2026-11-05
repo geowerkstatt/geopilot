@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { TableCell, TableRow } from "@mui/material";
 import { PipelineRunReactionEventResponse, ReactionEvent, ReactionKind } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
+import { DetailTable } from "../../../components/detailTable.tsx";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { DetailTable } from "./detailTable.tsx";
 
 interface PipelineRunReactionEventsProps {
   events: PipelineRunReactionEventResponse[];

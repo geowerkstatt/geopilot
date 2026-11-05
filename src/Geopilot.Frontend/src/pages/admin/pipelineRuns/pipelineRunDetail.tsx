@@ -14,14 +14,11 @@ import { SummaryField } from "../deliveries/summaryField.tsx";
 import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
 import { PipelineRunFiles } from "./pipelineRunFiles.tsx";
 import { formatClientKind, formatDuration } from "./pipelineRunFormat.ts";
-import { parseJobId, PipelineRunTab, tabFromHash } from "./pipelineRunQuery.ts";
+import { listQueryOf, listQueryState, parseJobId, PipelineRunTab, tabFromHash } from "./pipelineRunQuery.ts";
 import { PipelineRunReactionEvents } from "./pipelineRunReactionEvents.tsx";
 import { PipelineRunSteps } from "./pipelineRunSteps.tsx";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
-
-const isOpenedDirectlyState = (state: unknown): boolean =>
-  typeof state === "object" && state !== null && "openedDirectly" in state && state.openedDirectly === true;
 
 // The tab row overlaps the top border of the box by one pixel, so the selected tab can cover it and join the box.
 const folderTabsSx: SxProps<Theme> = theme => ({
@@ -103,12 +100,13 @@ export const PipelineRunDetail: FC = () => {
   }, [fetchApi, jobId]);
 
   const tab = tabFromHash(location.hash);
-  // Switching tabs replaces the entry, which gives it a new key, so the entry remembers that the page was opened directly.
-  const openedDirectly = location.key === "default" || isOpenedDirectlyState(location.state);
-  const showTab = (value: PipelineRunTab) => navigate({ hash: value }, { replace: true, state: { openedDirectly } });
+  // Switching tabs replaces the entry, so the new entry keeps the query of the list the run was opened from.
+  const listQuery = listQueryOf(location.state);
+  const showTab = (value: PipelineRunTab) =>
+    navigate({ hash: value }, { replace: true, state: listQueryState(listQuery) });
 
-  // Back returns to where the admin came from, such as a filtered list or a delivery; opened directly, to the list.
-  const goBack = () => (openedDirectly ? navigate(listPath) : navigate(-1));
+  // Back shows the list with the filters and page it was left with; opened from anywhere else, the whole list.
+  const goBack = () => navigate({ pathname: listPath, search: listQuery });
   const renderHeader = (jobId?: string) => (
     <AdminDetailHeader backLabel="backToPipelineRuns" onBack={goBack} id={jobId} idLabel="jobId" />
   );
@@ -162,7 +160,7 @@ export const PipelineRunDetail: FC = () => {
     <Stack>
       {renderHeader(run.jobId)}
       <GeopilotBox>
-        <Typography variant="h3" sx={{ marginTop: 0 }}>
+        <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>

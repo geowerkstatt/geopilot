@@ -13,6 +13,7 @@ import { PipelineRunDeliveryLabel } from "./pipelineRunDeliveryLabel.tsx";
 import { PipelineRunFilters } from "./pipelineRunFilters.tsx";
 import { formatDuration } from "./pipelineRunFormat.ts";
 import {
+  listQueryState,
   PipelineRunFilterValues,
   readPipelineRunSearchParams,
   toPipelineRunQuery,
@@ -138,11 +139,13 @@ export const PipelineRuns: FC = () => {
   ];
 
   return (
-    <Stack sx={{ gap: 2, height: "100%" }}>
+    <Stack sx={{ height: "100%" }}>
       <PipelineRunFilters
         values={filters}
         onChange={changeFilters}
-        onJobIdEntered={jobId => navigate(`/admin/processing-runs/${jobId}`)}
+        onJobIdEntered={jobId =>
+          navigate(`/admin/processing-runs/${jobId}`, { state: listQueryState(searchParams.toString()) })
+        }
       />
       <Box sx={{ flex: "1 1 0", minHeight: 0 }}>
         <GeopilotDataGrid
@@ -157,7 +160,9 @@ export const PipelineRuns: FC = () => {
           onPaginationModelChange={changePagination}
           disableColumnSorting
           disableColumnFilter
-          onSelect={jobId => navigate(`/admin/processing-runs/${jobId}`)}
+          onSelect={jobId =>
+            navigate(`/admin/processing-runs/${jobId}`, { state: listQueryState(searchParams.toString()) })
+          }
         />
       </Box>
     </Stack>

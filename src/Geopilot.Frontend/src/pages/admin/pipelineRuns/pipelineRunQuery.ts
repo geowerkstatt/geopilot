@@ -1,3 +1,12 @@
+/** The state a run is opened with from the list: the query of the list, so going back shows the same runs. */
+export const listQueryState = (listQuery: string) => ({ listQuery });
+
+/** The query of the list a run was opened from, or an empty string when it was opened from anywhere else. */
+export const listQueryOf = (state: unknown): string =>
+  typeof state === "object" && state !== null && "listQuery" in state && typeof state.listQuery === "string"
+    ? state.listQuery
+    : "";
+
 /** The filters of the list of pipeline runs as the fields hold them; an empty string sets no filter. */
 export interface PipelineRunFilterValues {
   /** The start of the period in local time, as yyyy-mm-ddThh:mm. */

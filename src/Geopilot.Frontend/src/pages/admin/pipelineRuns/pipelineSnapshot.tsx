@@ -18,11 +18,11 @@ import {
 import { DefinitionSnapshot, DeliveryStepState } from "../../../api/apiInterfaces.ts";
 import { TranslationKey } from "../../../appInterfaces";
 import { CopyButton } from "../../../components/copyButton.tsx";
+import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { buildSnapshotSteps, SnapshotConfigOrigin } from "./pipelineSnapshotModel.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
@@ -90,9 +90,9 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
   const json = JSON.stringify(snapshot, null, 2);
 
   return (
-    <Stack sx={{ gap: 2 }} data-cy="pipelineSnapshot">
+    <Stack data-cy="pipelineSnapshot">
       <Alert severity="warning">{t("pipelineSnapshotSecretsHint")}</Alert>
-      <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
         <Typography sx={{ flex: "1 1 0" }}>{t("pipelineSnapshotIntro", { pipelineId })}</Typography>
         <ToggleButtonGroup
           exclusive
@@ -134,13 +134,13 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
           {buildSnapshotSteps(snapshot).map((step, index) => (
             <Accordion key={step.id} defaultExpanded disableGutters data-cy={`pipelineSnapshotStep-${step.id}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack direction="row" sx={{ alignItems: "center", gap: 2 }}>
+                <Stack direction="row" sx={{ alignItems: "center" }}>
                   <StepIcon step={index + 1} state={DeliveryStepState.Enabled} variant="outlined" />
                   <Typography>{localized(step.displayName, step.id)}</Typography>
                 </Stack>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack sx={{ gap: 2 }}>
+                <Stack>
                   {step.implementation && (
                     <SummaryField labelVariant="h5" label="process">
                       {step.implementation}

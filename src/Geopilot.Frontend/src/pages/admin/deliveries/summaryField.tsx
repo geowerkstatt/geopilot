@@ -26,7 +26,10 @@ export const SummaryField: FC<SummaryFieldProps> = ({ label, labelVariant = "cap
   const { t } = useTranslation();
 
   return (
-    <Stack spacing={0.5} sx={{ gridColumn: wide ? "1 / -1" : undefined, minWidth: 0 }} data-cy={`summary-${label}`}>
+    <Stack
+      spacing={labelVariant === "h5" ? 1 : 0.5}
+      sx={{ gridColumn: wide ? "1 / -1" : undefined, minWidth: 0 }}
+      data-cy={`summary-${label}`}>
       <FieldLabel variant={labelVariant}>{t(label)}</FieldLabel>
       <Typography variant="body1" component="div" sx={{ overflowWrap: "anywhere" }}>
         {children}

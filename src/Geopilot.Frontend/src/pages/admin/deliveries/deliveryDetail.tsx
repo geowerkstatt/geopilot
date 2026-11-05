@@ -6,7 +6,7 @@ import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, Reactio
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { ReactionsGrid } from "../../../components/grids/reactionsGrid.tsx";
+import { ReactionsTable } from "../../../components/reactionsTable.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -83,7 +83,7 @@ export const DeliveryDetail: FC = () => {
     <Stack>
       <AdminDetailHeader backLabel="backToDeliveryOverview" onBack={() => navigate(overviewPath)} id={delivery.id} />
       <GeopilotBox>
-        <Typography variant="h3" sx={{ marginTop: 0 }}>
+        <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -156,7 +156,7 @@ export const DeliveryDetail: FC = () => {
           <Typography variant="h3" sx={{ marginTop: 0 }}>
             {t("reactions")}
           </Typography>
-          <ReactionsGrid reactions={delivery.reactions} forwarded={!!stacItem} onRetry={retryReaction} />
+          <ReactionsTable reactions={delivery.reactions} forwarded={!!stacItem} onRetry={retryReaction} />
         </GeopilotBox>
       )}
       <Stack direction="row">

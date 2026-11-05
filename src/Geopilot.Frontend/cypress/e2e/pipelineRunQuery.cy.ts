@@ -1,5 +1,7 @@
 import {
   emptyPipelineRunFilters,
+  listQueryOf,
+  listQueryState,
   parseJobId,
   readPipelineRunSearchParams,
   tabFromHash,
@@ -44,6 +46,12 @@ describe("pipeline run query", () => {
     expect(parseJobId("3f9c2a715b0e4c1d9a8f0d2e6b7c1e21")).to.equal(jobId);
     expect(parseJobId("3f9c2a71")).to.equal(undefined);
     expect(parseJobId("")).to.equal(undefined);
+  });
+
+  it("keeps the query of the list a run was opened from, and none for a run opened elsewhere", () => {
+    expect(listQueryOf(listQueryState("state=failed&page=2"))).to.equal("state=failed&page=2");
+    expect(listQueryOf(undefined)).to.equal("");
+    expect(listQueryOf({ listQuery: 3 })).to.equal("");
   });
 
   it("opens the tab the address names, and the steps for any other address", () => {

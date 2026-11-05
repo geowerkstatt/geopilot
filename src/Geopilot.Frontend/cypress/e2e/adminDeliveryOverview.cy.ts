@@ -118,6 +118,6 @@ describe("Admin delivery overview with reactions", () => {
     cy.location("pathname").should("eq", "/admin/deliveries/9004");
     cy.go("back");
     cy.location("pathname").should("eq", "/admin/deliveries");
-    cy.dataCy("reactions-grid").should("not.exist");
+    cy.dataCy("reactions-table").should("not.exist");
   });
 });

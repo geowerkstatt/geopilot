@@ -20,10 +20,10 @@ import {
   StepState,
 } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
+import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { formatDuration } from "./pipelineRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
@@ -68,7 +68,7 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
   const { localized } = useLocalized();
 
   return (
-    <Stack sx={{ gap: 2 }} data-cy="pipelineRunSteps">
+    <Stack data-cy="pipelineRunSteps">
       <Alert severity="info">{t("inputsNotRecorded")}</Alert>
       <Box>
         {steps.map((step, index) => {
@@ -90,7 +90,7 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
                 </Stack>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack sx={{ gap: 2 }}>
+                <Stack>
                   <SummaryField labelVariant="h5" label="process">
                     {step.processImplementation}
                     {step.processAssemblyVersion && (
