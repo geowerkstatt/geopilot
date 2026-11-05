@@ -302,7 +302,6 @@
   "sha256": "SHA-256",
   "showDetails": "Show details",
   "showEarlierAttempts": "Show earlier attempts",
-  "showPipelineRun": "Show processing run",
   "spatialExtent": "Spatial extent",
   "spatialExtentInvalidOrder": "Bottom left must be smaller than upper right",
   "stacAccess": "Access",

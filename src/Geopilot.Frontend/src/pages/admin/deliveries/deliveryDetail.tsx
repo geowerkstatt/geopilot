@@ -113,9 +113,8 @@ export const DeliveryDetail: FC = () => {
             <SummaryField label="partialDelivery">{t(delivery.partial ? "yes" : "no")}</SummaryField>
           )}
           <SummaryField label="jobId">
-            {`${delivery.jobId} `}
             <Link component={RouterLink} to={`/admin/processing-runs/${delivery.jobId}`} data-cy="showPipelineRun">
-              {t("showPipelineRun")}
+              {delivery.jobId}
             </Link>
           </SummaryField>
           <SummaryField label="files">
