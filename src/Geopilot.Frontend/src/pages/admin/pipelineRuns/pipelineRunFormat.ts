@@ -7,7 +7,11 @@ export const formatDuration = (startedAt?: string | null, endedAt?: string | nul
   if (!startedAt || !endedAt) {
     return undefined;
   }
-  const seconds = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000));
+  const milliseconds = Math.max(0, new Date(endedAt).getTime() - new Date(startedAt).getTime());
+  if (milliseconds < 1000) {
+    return `${milliseconds} ms`;
+  }
+  const seconds = Math.round(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
   return minutes > 0 ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 };
