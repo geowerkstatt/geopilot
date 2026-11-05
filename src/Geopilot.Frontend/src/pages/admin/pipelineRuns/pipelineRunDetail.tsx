@@ -1,15 +1,16 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Box, CircularProgress, Stack, Tab, Tabs, Typography } from "@mui/material";
-import { PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
+import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Box, CircularProgress, Link, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 import { PipelineRunFiles } from "./pipelineRunFiles.tsx";
-import { formatDeclarer, formatDuration } from "./pipelineRunFormat.ts";
+import { formatClientKind, formatDuration } from "./pipelineRunFormat.ts";
 import { PipelineRunOutcomeLabel } from "./pipelineRunOutcomeLabel.tsx";
 import { parseJobId } from "./pipelineRunQuery.ts";
 import { PipelineRunReactionEvents } from "./pipelineRunReactionEvents.tsx";
@@ -31,6 +32,7 @@ export const PipelineRunDetail: FC = () => {
   const location = useLocation();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
+  const { machineDeliveryEnabled } = useCapabilities();
   const [loaded, setLoaded] = useState<{ jobId: string; run?: PipelineRunResponse }>();
   const [tab, setTab] = useState<DetailTab>("steps");
 
@@ -81,6 +83,13 @@ export const PipelineRunDetail: FC = () => {
   }
 
   const duration = formatDuration(run.startedAt, run.terminalAt);
+  // Without machine delivery the pages of the machine clients are not routed.
+  const declarerPath =
+    run.declarer?.kind === DeclarerKind.Person
+      ? `/admin/users/${run.declarer.id}`
+      : run.declarer?.kind === DeclarerKind.MachineClient && machineDeliveryEnabled
+        ? `/admin/machine-clients/${run.declarer.id}`
+        : undefined;
   // A run without reactions offers no tab for them, so the page must not stay on it.
   const visibleTab = tab === "reactions" && run.reactionEvents.length === 0 ? "steps" : tab;
   const tabProps = (value: DetailTab) => ({
@@ -98,25 +107,38 @@ export const PipelineRunDetail: FC = () => {
           {t("summary")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-          <SummaryField label="outcome" wide>
-            <PipelineRunOutcomeLabel outcome={run.outcome} allSteps />
+          <SummaryField label="outcome">
+            <PipelineRunOutcomeLabel outcome={run.outcome} allSteps linkDelivery />
             {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {t("pipelineRunNotDeliveredHint")}
               </Typography>
             )}
           </SummaryField>
-          <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
-          <SummaryField label="processedBy">{formatDeclarer(t, run.declarer, run.clientKind)}</SummaryField>
-          {run.clientReference && (
-            <SummaryField label="clientReference">
-              <TechnicalText>{run.clientReference}</TechnicalText>
-            </SummaryField>
-          )}
-          <SummaryField label="mandate">{run.mandate ? localized(run.mandate.name) : run.mandateId}</SummaryField>
+          <SummaryField label="processedBy">
+            {declarerPath ? (
+              <Link component={RouterLink} to={declarerPath}>
+                {run.declarer?.name}
+              </Link>
+            ) : (
+              (run.declarer?.name ?? t("anonymous"))
+            )}
+          </SummaryField>
+          <SummaryField label="mandate">
+            {run.mandate ? (
+              <Link component={RouterLink} to={`/admin/mandates/${run.mandate.id}`}>
+                {localized(run.mandate.name)}
+              </Link>
+            ) : (
+              run.mandateId
+            )}
+          </SummaryField>
           <SummaryField label="pipeline">
             <TechnicalText>{run.pipelineId}</TechnicalText>
           </SummaryField>
+          <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
+          <SummaryField label="startedVia">{formatClientKind(t, run.clientKind) ?? "-"}</SummaryField>
+          {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
           <SummaryField label="state">
             <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
               <ProcessingStateLabel
@@ -126,11 +148,11 @@ export const PipelineRunDetail: FC = () => {
               {duration && `(${duration})`}
             </Stack>
           </SummaryField>
-          <SummaryField label="appVersion">
-            <TechnicalText>{run.appVersion}</TechnicalText>
-          </SummaryField>
           <SummaryField label="jobId">
             <TechnicalText>{run.jobId}</TechnicalText>
+          </SummaryField>
+          <SummaryField label="appVersion">
+            <TechnicalText>{run.appVersion}</TechnicalText>
           </SummaryField>
           {run.failureReason && (
             <SummaryField label="failureReason" wide>

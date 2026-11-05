@@ -1,4 +1,4 @@
-import { FC, MouseEvent } from "react";
+import { FC } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink } from "react-router-dom";
 import { Link, Stack, Tooltip, Typography } from "@mui/material";
@@ -12,6 +12,8 @@ interface PipelineRunOutcomeLabelProps {
   outcome: PipelineRunOutcome;
   /** Name every step that kept the run from allowing a delivery, rather than the first and how many more. */
   allSteps?: boolean;
+  /** Make the delivery a link to its detail page. */
+  linkDelivery?: boolean;
 }
 
 const outcomeLabelKey: Record<PipelineRunOutcomeKind, TranslationKey> = {
@@ -24,11 +26,8 @@ const outcomeLabelKey: Record<PipelineRunOutcomeKind, TranslationKey> = {
   [PipelineRunOutcomeKind.Unknown]: "pipelineRunOutcomeUnknown",
 };
 
-// In a grid row the link must not open the run as well.
-const stopRowClick = (event: MouseEvent) => event.stopPropagation();
-
 /** What became of a pipeline run: its delivery with the state of the forwarding, or why there is none. */
-export const PipelineRunOutcomeLabel: FC<PipelineRunOutcomeLabelProps> = ({ outcome, allSteps }) => {
+export const PipelineRunOutcomeLabel: FC<PipelineRunOutcomeLabelProps> = ({ outcome, allSteps, linkDelivery }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const label = t(outcomeLabelKey[outcome.kind], { id: outcome.deliveryId });
@@ -36,9 +35,15 @@ export const PipelineRunOutcomeLabel: FC<PipelineRunOutcomeLabelProps> = ({ outc
   if (outcome.kind === PipelineRunOutcomeKind.Delivered) {
     return (
       <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 2 }} data-cy="pipelineRunOutcome">
-        <Link component={RouterLink} to={`/admin/delivery-overview/${outcome.deliveryId}`} onClick={stopRowClick}>
-          {label}
-        </Link>
+        {linkDelivery ? (
+          <Link component={RouterLink} to={`/admin/delivery-overview/${outcome.deliveryId}`}>
+            {label}
+          </Link>
+        ) : (
+          <Typography component="span" variant="inherit">
+            {label}
+          </Typography>
+        )}
         {outcome.forwardingState && <ReactionStateLabel state={outcome.forwardingState} />}
       </Stack>
     );

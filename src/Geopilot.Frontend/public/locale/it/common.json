@@ -299,6 +299,7 @@
   "stacBrowser": "Browser STAC",
   "stacItemAfterForwarding": "Disponibile solo dopo l'inoltro",
   "startProcessing": "Avvia elaborazione",
+  "startedVia": "Avviato tramite",
   "state": "Stato",
   "stepStateCancelled": "Annullato",
   "stepStateDeliveryRestriction": "Consegna limitata",

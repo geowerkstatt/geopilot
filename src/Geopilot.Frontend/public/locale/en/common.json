@@ -299,6 +299,7 @@
   "stacBrowser": "STAC Browser",
   "stacItemAfterForwarding": "Only available after forwarding",
   "startProcessing": "Start processing",
+  "startedVia": "Started via",
   "state": "State",
   "stepStateCancelled": "Cancelled",
   "stepStateDeliveryRestriction": "Delivery restricted",

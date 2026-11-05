@@ -1,6 +1,22 @@
-import { formatBlockingSteps, formatDuration } from "../../src/pages/admin/pipelineRuns/pipelineRunFormat";
+import { TFunction } from "i18next";
+import { ClientKind, DeclarerKind } from "../../src/api/generated";
+import {
+  formatBlockingSteps,
+  formatDeclarer,
+  formatDuration,
+} from "../../src/pages/admin/pipelineRuns/pipelineRunFormat";
+
+// Echoes the key, so the assertions read the keys instead of a language. TFunction has overloads a lambda cannot match.
+const t = ((key: string) => key) as unknown as TFunction;
 
 describe("pipeline run format", () => {
+  it("names who processed with the kind of client in parentheses, and leaves out an unknown kind", () => {
+    const declarer = { kind: DeclarerKind.Person, id: 12, name: "Erika Muster" };
+    expect(formatDeclarer(t, declarer, ClientKind.WebClient)).to.equal("Erika Muster (clientKindWeb)");
+    expect(formatDeclarer(t, null, ClientKind.ApiClient)).to.equal("anonymous (clientKindApi)");
+    expect(formatDeclarer(t, declarer, ClientKind.Unknown)).to.equal("Erika Muster");
+  });
+
   it("names the first blocking step and counts the others", () => {
     expect(formatBlockingSteps([])).to.equal("");
     expect(formatBlockingSteps(["XTF Validierung"])).to.equal("XTF Validierung");
