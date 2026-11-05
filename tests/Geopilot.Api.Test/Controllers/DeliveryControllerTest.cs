@@ -1093,6 +1093,8 @@ public class DeliveryControllerTest
 
         Assert.IsNotNull(detail);
         Assert.AreEqual(declarer.FullName, detail.DeclarerName);
+        Assert.AreEqual(declarer.Id, detail.DeclaringUserId);
+        Assert.IsNull(detail.DeclaringClientId);
         Assert.AreEqual(delivery.Mandate.Id, detail.Mandate.Id);
         Assert.AreEqual(precursor.Id, detail.PrecursorDelivery?.Id);
         Assert.IsTrue(detail.Partial);

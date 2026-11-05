@@ -103,6 +103,7 @@ const MachineClientDetail = () => {
             required={false}
             values={organisations}
             selected={machineClient?.organisations}
+            linkTo={id => `/admin/organisations/${id}`}
             valueFormatter={org => ({
               id: org.id,
               primaryText: org.name,

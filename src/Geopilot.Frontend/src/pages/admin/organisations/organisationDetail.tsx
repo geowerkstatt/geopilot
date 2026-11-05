@@ -110,6 +110,7 @@ const OrganisationDetail = () => {
             required={false}
             values={mandates}
             selected={organisation?.mandates}
+            linkTo={id => `/admin/mandates/${id}`}
             valueFormatter={man => ({
               id: man.id,
               primaryText: localized(man.name),
@@ -124,6 +125,7 @@ const OrganisationDetail = () => {
             required={false}
             values={users}
             selected={organisation?.users}
+            linkTo={id => `/admin/users/${id}`}
             valueFormatter={user => ({
               id: user.id,
               primaryText: user.fullName,
@@ -139,6 +141,7 @@ const OrganisationDetail = () => {
               required={false}
               values={machineClients}
               selected={organisation?.machineClients}
+              linkTo={id => `/admin/machine-clients/${id}`}
               valueFormatter={client => ({
                 id: client.id,
                 primaryText: client.name,

@@ -36,6 +36,7 @@ describe("Admin delivery detail", () => {
     date: "2026-10-23T08:00:00Z",
     mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
     declarerName: "Kelvin Spencer",
+    declaringUserId: 7,
     jobId: "3f2a9c1e-6b7d-4e58-9a0b-2c4d6e8f1a3b",
     files: [
       { id: 41, fileName: "strassen.xtf" },
@@ -62,7 +63,8 @@ describe("Admin delivery detail", () => {
       }),
     );
 
-    cy.dataCy("summary-deliveredBy").should("contain", "Kelvin Spencer");
+    cy.dataCy("summary-deliveredBy").find('a[href="/admin/users/7"]').should("contain", "Kelvin Spencer");
+    cy.dataCy("summary-mandate").find('a[href="/admin/mandates/1"]').should("contain", "Mandate");
     cy.dataCy("summary-precursor").find('a[href="/admin/delivery-overview/9000"]').should("contain", "9000");
     cy.dataCy("summary-partialDelivery").should("contain", "No");
     cy.dataCy("summary-files").find('a[href="/api/v1/delivery/assets/41"]').should("contain", "strassen.xtf");

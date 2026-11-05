@@ -217,6 +217,19 @@ describe("Organisations tests", () => {
     removeAutocompleteValue("users", "Nick Purdy");
     evaluateAutocomplete("users", ["Regina Streich"]);
 
+    getFormField("users")
+      .find(".MuiChip-root:visible a")
+      .should("exist")
+      .closest('[role="button"]')
+      .should("not.exist");
+
+    // A chip links to its page, but leaving the edited form still asks first.
+    getFormField("users").contains(".MuiChip-root:visible a", "Regina Streich").click();
+    handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
+    });
+
     cy.dataCy("save-button").click();
     cy.wait("@updateOrganisation");
     // After saving we are redirected to the list, where the changes are visible.
@@ -234,7 +247,11 @@ describe("Organisations tests", () => {
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
-    getFormField("organisations").contains(randomOrganisationName);
+    getFormField("organisations").contains(".MuiChip-root:visible a", randomOrganisationName).click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
+    });
+    evaluateInput("name", randomOrganisationName + " updated");
   });
 
   it("should maintain chip values in autocomplete fields after reset", () => {

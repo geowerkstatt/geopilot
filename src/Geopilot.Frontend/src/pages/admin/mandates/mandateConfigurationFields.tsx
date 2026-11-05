@@ -78,6 +78,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             required={false}
             values={organisations}
             selected={mandate?.organisations}
+            linkTo={id => `/admin/organisations/${id}`}
             valueFormatter={org => ({
               id: org.id,
               primaryText: org.name,
