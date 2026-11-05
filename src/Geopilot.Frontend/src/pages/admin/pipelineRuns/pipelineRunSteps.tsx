@@ -5,6 +5,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Stack,
   TableCell,
@@ -22,10 +23,9 @@ import { TranslationKey } from "../../../appInterfaces";
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { DetailTable } from "./detailTable.tsx";
+import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { formatDuration } from "./pipelineRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
-import { TitledList } from "./titledList.tsx";
 
 interface PipelineRunStepsProps {
   steps: PipelineRunStepResponse[];
@@ -69,30 +69,38 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
 
   return (
     <Stack sx={{ gap: 2 }} data-cy="pipelineRunSteps">
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        {t("inputsNotRecorded")}
-      </Typography>
+      <Alert severity="info">{t("inputsNotRecorded")}</Alert>
       <Box>
         {steps.map((step, index) => {
-          const duration = formatDuration(step.startedAt, step.finishedAt);
+          // A skipped step has times too, but they only span the check of its skip conditions.
+          const duration = step.state !== StepState.Skipped && formatDuration(step.startedAt, step.finishedAt);
           return (
-            <Accordion key={step.stepId} disableGutters data-cy={`pipelineRunStep-${step.stepId}`}>
+            <Accordion key={step.stepId} defaultExpanded disableGutters data-cy={`pipelineRunStep-${step.stepId}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%" }}>
+                <Stack
+                  direction="row"
+                  sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
                   <StepIcon step={index + 1} state={step.state} variant="outlined" />
                   <Typography sx={{ flex: "1 1 0" }}>{localized(step.displayName, step.stepId)}</Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {duration ? `${t(stepStateKey[step.state])} · ${duration}` : t(stepStateKey[step.state])}
+                    {duration
+                      ? t("stepStateAfterDuration", { state: t(stepStateKey[step.state]), duration })
+                      : t(stepStateKey[step.state])}
                   </Typography>
                 </Stack>
               </AccordionSummary>
               <AccordionDetails>
                 <Stack sx={{ gap: 2 }}>
-                  <Typography variant="body2" sx={{ color: "text.secondary", overflowWrap: "anywhere" }}>
-                    <TechnicalText>
-                      {[step.processImplementation, step.processAssemblyVersion].filter(Boolean).join(" ")}
-                    </TechnicalText>
-                  </Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+                    <SummaryField labelVariant="h5" label="process">
+                      {step.processImplementation}
+                    </SummaryField>
+                    {step.processAssemblyVersion && (
+                      <SummaryField labelVariant="h5" label="version">
+                        {step.processAssemblyVersion}
+                      </SummaryField>
+                    )}
+                  </Box>
                   {step.statusMessage && (
                     <SummaryField labelVariant="h5" label="message">
                       {localized(step.statusMessage)}
@@ -112,24 +120,25 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
                     <SummaryField labelVariant="h5" label="conditions">
                       <DetailTable
                         columns={[
-                          { label: t("conditionId"), width: "20%" },
+                          { label: t("conditionId"), width: "16%" },
                           { label: t("conditionPhase"), width: "12%" },
-                          { label: t("expression") },
-                          { label: t("conditionType"), width: "18%" },
-                          { label: t("result"), width: "14%" },
+                          { label: t("conditionExpression") },
+                          { label: t("evaluatedValues"), width: "20%" },
+                          { label: t("conditionType"), width: "14%" },
+                          { label: t("result"), width: "12%" },
                         ]}>
                         {step.conditions.map((condition, conditionIndex) => (
                           <TableRow key={conditionIndex}>
-                            <TableCell>
-                              <TechnicalText>{condition.conditionId}</TechnicalText>
-                            </TableCell>
+                            <TableCell>{condition.conditionId}</TableCell>
                             <TableCell>{t(conditionPhaseKey[condition.phase])}</TableCell>
                             <TableCell>
                               <TechnicalText>{condition.expression}</TechnicalText>
+                            </TableCell>
+                            <TableCell>
                               {Object.entries(condition.evaluatedValues ?? {}).map(([name, value]) => (
-                                <Typography key={name} variant="body2" sx={{ color: "text.secondary" }}>
+                                <Box key={name}>
                                   <TechnicalText>{`${name} = ${value ?? "null"}`}</TechnicalText>
-                                </Typography>
+                                </Box>
                               ))}
                             </TableCell>
                             <TableCell>{t(conditionKindKey[condition.kind])}</TableCell>
@@ -139,24 +148,19 @@ export const PipelineRunSteps: FC<PipelineRunStepsProps> = ({ steps }) => {
                       </DetailTable>
                     </SummaryField>
                   )}
-                  {Object.values(ArtifactKind).map(kind => {
-                    const artifacts = step.artifacts.filter(artifact => artifact.kind === kind);
-                    return (
-                      artifacts.length > 0 && (
-                        <TitledList titleVariant="h5" key={kind} title={t(artifactKindKey[kind])}>
-                          {artifacts.map(artifact => (
-                            <Typography
-                              key={artifact.persistedFileName}
-                              component="li"
-                              variant="body2"
-                              sx={{ overflowWrap: "anywhere" }}>
-                              <TechnicalText>{artifact.originalFileName}</TechnicalText>
-                            </Typography>
-                          ))}
-                        </TitledList>
-                      )
-                    );
-                  })}
+                  {step.artifacts.length > 0 && (
+                    <SummaryField labelVariant="h5" label="output">
+                      <DetailTable
+                        columns={[{ label: t("fileName"), width: nameColumnWidth }, { label: t("outputActions") }]}>
+                        {step.artifacts.map(artifact => (
+                          <TableRow key={artifact.persistedFileName}>
+                            <TableCell>{artifact.originalFileName}</TableCell>
+                            <TableCell>{t(artifactKindKey[artifact.kind])}</TableCell>
+                          </TableRow>
+                        ))}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
                 </Stack>
               </AccordionDetails>
             </Accordion>

@@ -1,8 +1,9 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Stack, TableCell, TableRow, Typography } from "@mui/material";
 import { PipelineRunFileResponse, ScanState } from "../../../api/generated";
-import { TranslationKey } from "../../../appInterfaces";
+import { SummaryField } from "../deliveries/summaryField.tsx";
+import { DetailTable, nameColumnWidth } from "./detailTable.tsx";
 import { formatFileSize } from "./pipelineRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
@@ -12,44 +13,44 @@ interface PipelineRunFilesProps {
   scanDetails?: string | null;
 }
 
-const scanStateKey: Record<ScanState, TranslationKey> = {
-  [ScanState.NotScanned]: "scanStateNotScanned",
-  [ScanState.Clean]: "scanStateClean",
-  [ScanState.ThreatDetected]: "scanStateThreatDetected",
-};
-
 /** The files uploaded for a run with their size and hash, and what the virus scan found. */
 export const PipelineRunFiles: FC<PipelineRunFilesProps> = ({ files, scanState, scanDetails }) => {
   const { t } = useTranslation();
 
+  const scanResult = () => {
+    switch (scanState) {
+      case ScanState.Clean:
+        return t("scanResultClean", { count: files.length });
+      case ScanState.NotScanned:
+        return t("scanResultNotScanned", { count: files.length });
+      case ScanState.ThreatDetected:
+        return scanDetails
+          ? t("scanResultThreatDetectedWithDetails", { details: scanDetails })
+          : t("scanResultThreatDetected");
+    }
+  };
+
   return (
     <Stack sx={{ gap: 2 }} data-cy="pipelineRunFiles">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>{t("fileName")}</TableCell>
-            <TableCell>{t("fileSize")}</TableCell>
-            <TableCell>{t("sha256")}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
+      <SummaryField labelVariant="h5" label="uploadedFiles">
+        <DetailTable
+          columns={[
+            { label: t("fileName"), width: nameColumnWidth },
+            { label: t("fileSize"), width: "12%" },
+            { label: t("sha256") },
+          ]}>
           {files.map(file => (
             <TableRow key={file.storageKey}>
-              <TableCell sx={{ overflowWrap: "anywhere" }}>
-                <TechnicalText>{file.fileName}</TechnicalText>
-              </TableCell>
+              <TableCell>{file.fileName}</TableCell>
               <TableCell>{formatFileSize(file.declaredSize)}</TableCell>
-              <TableCell sx={{ overflowWrap: "anywhere", color: file.sha256 ? undefined : "text.secondary" }}>
+              <TableCell sx={{ color: file.sha256 ? undefined : "text.secondary" }}>
                 {file.sha256 ? <TechnicalText>{file.sha256}</TechnicalText> : t("hashNotComputed")}
               </TableCell>
             </TableRow>
           ))}
-        </TableBody>
-      </Table>
-      <Typography variant="body2">
-        {`${t("virusScan")}: ${t(scanStateKey[scanState])}`}
-        {scanDetails && ` (${scanDetails})`}
-      </Typography>
+        </DetailTable>
+      </SummaryField>
+      <Typography>{scanResult()}</Typography>
     </Stack>
   );
 };

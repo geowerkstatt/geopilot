@@ -5,7 +5,8 @@ export type SnapshotConfigOrigin = "base" | "definition" | "step";
 
 interface SnapshotConfigEntry {
   key: string;
-  value: string;
+  /** The value as text, empty for an empty text or list, null when the definition sets it to null. */
+  value: string | null;
   origin: SnapshotConfigOrigin;
 }
 
@@ -22,7 +23,16 @@ export interface SnapshotStepView {
   outputs: { property: string; actions: string[] }[];
 }
 
-const formatValue = (value: unknown): string => (typeof value === "string" ? value : JSON.stringify(value));
+/** A value of the definition as text: a list as its items separated by commas, a value that is not set as null. */
+const formatValue = (value: unknown): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => formatValue(item) ?? "null").join(", ");
+  }
+  return typeof value === "string" ? value : JSON.stringify(value);
+};
 
 const entries = (values: Record<string, unknown> | undefined, origin: SnapshotConfigOrigin): SnapshotConfigEntry[] =>
   Object.entries(values ?? {}).map(([key, value]) => ({ key, value: formatValue(value), origin }));
@@ -56,7 +66,10 @@ export const buildSnapshotSteps = (snapshot: DefinitionSnapshot): SnapshotStepVi
       displayName: step.display_name,
       implementation,
       config: [...config.values()],
-      inputs: Object.entries(step.input ?? {}).map(([key, value]) => ({ key, expression: formatValue(value) })),
+      inputs: Object.entries(step.input ?? {}).map(([key, value]) => ({
+        key,
+        expression: formatValue(value) ?? "null",
+      })),
       conditionGroups,
       outputs: (step.output_actions ?? []).map(output => ({
         property: output.property ?? "",

@@ -91,7 +91,7 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
 
   return (
     <Stack sx={{ gap: 2 }} data-cy="pipelineSnapshot">
-      <Alert severity="info">{t("pipelineSnapshotSecretsHint")}</Alert>
+      <Alert severity="warning">{t("pipelineSnapshotSecretsHint")}</Alert>
       <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Typography sx={{ flex: "1 1 0" }}>{t("pipelineSnapshotIntro", { pipelineId })}</Typography>
         <ToggleButtonGroup
@@ -132,7 +132,7 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
       ) : (
         <Box>
           {buildSnapshotSteps(snapshot).map((step, index) => (
-            <Accordion key={step.id} defaultExpanded data-cy={`pipelineSnapshotStep-${step.id}`}>
+            <Accordion key={step.id} defaultExpanded disableGutters data-cy={`pipelineSnapshotStep-${step.id}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack direction="row" sx={{ alignItems: "center", gap: 2 }}>
                   <StepIcon step={index + 1} state={DeliveryStepState.Enabled} variant="outlined" />
@@ -157,7 +157,13 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
                         {step.config.map(entry => (
                           <TableRow key={entry.key}>
                             <TableCell>{entry.key}</TableCell>
-                            <TableCell>{entry.value}</TableCell>
+                            {entry.value ? (
+                              <TableCell>{entry.value}</TableCell>
+                            ) : (
+                              <TableCell sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                                {t(entry.value === null ? "configValueNotSet" : "configValueEmpty")}
+                              </TableCell>
+                            )}
                             <TableCell>{t(originKey[entry.origin])}</TableCell>
                           </TableRow>
                         ))}

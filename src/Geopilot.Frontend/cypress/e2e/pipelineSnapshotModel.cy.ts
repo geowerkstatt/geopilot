@@ -30,6 +30,26 @@ describe("pipeline snapshot model", () => {
     expect(step.config.filter(entry => entry.key === "toolVersion")).to.have.length(1);
   });
 
+  it("writes a list as its items, keeps an empty value empty and a null value null", () => {
+    const [step] = buildSnapshotSteps({
+      pipelines: [{ steps: [{ id: "matching", process_id: "matcher" }] }],
+      processes: [
+        {
+          id: "matcher",
+          default_config: { fileExtensions: ["xtf", "itf"], iliModels: null, profile: "", patterns: [], strict: true },
+        },
+      ],
+    });
+
+    expect(step.config.map(entry => [entry.key, entry.value])).to.deep.equal([
+      ["fileExtensions", "xtf, itf"],
+      ["iliModels", null],
+      ["profile", ""],
+      ["patterns", ""],
+      ["strict", "true"],
+    ]);
+  });
+
   it("lists the inputs, conditions and outputs of a step", () => {
     const [step] = buildSnapshotSteps({
       pipelines: [
@@ -50,7 +70,7 @@ describe("pipeline snapshot model", () => {
 
     expect(step.inputs).to.deep.equal([
       { key: "files", expression: "${upload()}" },
-      { key: "extensions", expression: '["xtf","itf"]' },
+      { key: "extensions", expression: "xtf, itf" },
     ]);
     expect(step.conditionGroups).to.deep.equal([
       {
