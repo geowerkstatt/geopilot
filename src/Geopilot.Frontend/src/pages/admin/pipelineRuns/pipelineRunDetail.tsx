@@ -26,9 +26,12 @@ const folderTabsSx: SxProps<Theme> = theme => ({
   position: "relative",
   zIndex: 1,
   marginBottom: "-1px",
+  minHeight: 0,
   "& .MuiTab-root": {
     ...theme.typography.h3,
     margin: 0,
+    minHeight: 0,
+    padding: theme.spacing(1, 2),
     color: theme.palette.text.secondary,
     backgroundColor: theme.palette.primary.states.hover,
     border: `1px solid ${theme.palette.primary.light}`,
