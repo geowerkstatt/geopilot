@@ -22,6 +22,8 @@ interface ProcessingStateLabelProps {
   blockingSteps?: PipelineRunBlockingStep[];
   /** Name every blocking step, rather than the first and how many more. */
   allSteps?: boolean;
+  /** How long the run took, named after the state. */
+  duration?: string;
 }
 
 // The same names as the steps of the delivery wizard.
@@ -65,11 +67,18 @@ const renderIcon = (state: ProcessingState) => {
 };
 
 /** The state of a pipeline run as a colored icon with its name. */
-export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({ state, running, blockingSteps, allSteps }) => {
+export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
+  state,
+  running,
+  blockingSteps,
+  allSteps,
+  duration,
+}) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const shownState = state ?? (running ? ProcessingState.Running : undefined);
-  const label = t(shownState ? stateLabelKey[shownState] : "processingStateUnknown");
+  const stateName = t(shownState ? stateLabelKey[shownState] : "processingStateUnknown");
+  const label = duration ? t("stepStateAfterDuration", { state: stateName, duration }) : stateName;
 
   // A restriction does not stop the pipeline, so several steps can keep the run from allowing a delivery.
   const steps = (blockingSteps ?? []).map(step => localized(step.displayName, step.stepId));

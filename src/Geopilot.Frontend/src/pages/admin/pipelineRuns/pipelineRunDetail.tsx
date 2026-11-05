@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typography } from "@mui/material";
 import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
+import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../../../appTheme.ts";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
@@ -30,6 +31,8 @@ const folderTabsSx: SxProps<Theme> = theme => ({
   minHeight: 0,
   "& .MuiTab-root": {
     ...theme.typography.h3,
+    fontSize: px2rem(18),
+    fontWeight: NEOGEO_FONTWEIGHT_REGULAR,
     margin: 0,
     minHeight: 0,
     padding: theme.spacing(1, 2),
@@ -42,6 +45,16 @@ const folderTabsSx: SxProps<Theme> = theme => ({
     // Keeps the hover background off the transparent bottom border, where the top border of the box shows through.
     backgroundClip: "padding-box",
   },
+  // An invisible copy of the label in the selected style keeps a tab as wide as it becomes once selected.
+  "& .MuiTab-root::after": {
+    content: "attr(data-label)",
+    display: "block",
+    height: 0,
+    overflow: "hidden",
+    visibility: "hidden",
+    fontSize: px2rem(20),
+    fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+  },
   "& .MuiTabs-list": {
     gap: theme.spacing(1),
   },
@@ -50,6 +63,8 @@ const folderTabsSx: SxProps<Theme> = theme => ({
     backgroundColor: theme.palette.primary.states.selected,
   },
   "& .MuiTab-root.Mui-selected": {
+    fontSize: px2rem(20),
+    fontWeight: NEOGEO_FONTWEIGHT_BOLD,
     color: theme.palette.text.primary,
     backgroundColor: theme.palette.background.content,
     borderBottomColor: theme.palette.background.content,
@@ -134,11 +149,13 @@ export const PipelineRunDetail: FC = () => {
         : undefined;
   // A run without reactions offers no tab for them, so the page must not stay on it.
   const visibleTab = tab === "reactions" && run.reactionEvents.length === 0 ? "steps" : tab;
-  const tabProps = (value: PipelineRunTab) => ({
+  const tabProps = (value: PipelineRunTab, label: string) => ({
     value,
+    label,
     id: `pipelineRunTab-${value}`,
     "aria-controls": panelId,
     "data-cy": `pipelineRunTab-${value}`,
+    "data-label": label,
   });
 
   return (
@@ -150,15 +167,13 @@ export const PipelineRunDetail: FC = () => {
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="processingState">
-            <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
-              <ProcessingStateLabel
-                state={run.terminalState}
-                running={run.outcome.kind === PipelineRunOutcomeKind.Running}
-                blockingSteps={run.outcome.blockingSteps}
-                allSteps
-              />
-              {duration && `(${duration})`}
-            </Stack>
+            <ProcessingStateLabel
+              state={run.terminalState}
+              running={run.outcome.kind === PipelineRunOutcomeKind.Running}
+              blockingSteps={run.outcome.blockingSteps}
+              allSteps
+              duration={duration}
+            />
           </SummaryField>
           <SummaryField label="processedBy">
             {declarerPath ? (
@@ -207,10 +222,10 @@ export const PipelineRunDetail: FC = () => {
           onChange={(_event, value: PipelineRunTab) => showTab(value)}
           sx={folderTabsSx}
           slotProps={{ indicator: { sx: { display: "none" } } }}>
-          <Tab {...tabProps("steps")} label={t("processingSteps")} />
-          <Tab {...tabProps("files")} label={t("files")} />
-          {run.reactionEvents.length > 0 && <Tab {...tabProps("reactions")} label={t("reactions")} />}
-          <Tab {...tabProps("pipeline")} label={t("pipeline")} />
+          <Tab {...tabProps("steps", t("processingSteps"))} />
+          <Tab {...tabProps("files", t("files"))} />
+          {run.reactionEvents.length > 0 && <Tab {...tabProps("reactions", t("reactions"))} />}
+          <Tab {...tabProps("pipeline", t("pipeline"))} />
         </Tabs>
         <GeopilotBox
           role="tabpanel"
