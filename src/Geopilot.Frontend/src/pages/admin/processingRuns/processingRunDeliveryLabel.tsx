@@ -13,10 +13,10 @@ interface ProcessingRunDeliveryLabelProps {
 
 // A run that still runs or whose outcome is unknown has nothing to say about a delivery yet.
 const deliveryLabelKey: Partial<Record<PipelineRunOutcomeKind, TranslationKey>> = {
-  [PipelineRunOutcomeKind.DeliveredAndDeleted]: "pipelineRunDeliveryDeleted",
-  [PipelineRunOutcomeKind.NotDelivered]: "pipelineRunDeliveryNotDelivered",
-  [PipelineRunOutcomeKind.NotDeliverable]: "pipelineRunDeliveryNotPossible",
-  [PipelineRunOutcomeKind.NotDeclarable]: "pipelineRunDeliveryNotPermitted",
+  [PipelineRunOutcomeKind.DeliveredAndDeleted]: "processingRunDeliveryDeleted",
+  [PipelineRunOutcomeKind.NotDelivered]: "processingRunDeliveryNotDelivered",
+  [PipelineRunOutcomeKind.NotDeliverable]: "processingRunDeliveryNotPossible",
+  [PipelineRunOutcomeKind.NotDeclarable]: "processingRunDeliveryNotPermitted",
 };
 
 /** What became of the delivery of a run: its id, or why there is none. */
@@ -25,7 +25,7 @@ export const ProcessingRunDeliveryLabel: FC<ProcessingRunDeliveryLabelProps> = (
 
   if (outcome.kind === PipelineRunOutcomeKind.Delivered && linkDelivery) {
     return (
-      <Link component={RouterLink} to={`/admin/deliveries/${outcome.deliveryId}`} data-cy="pipelineRunDelivery">
+      <Link component={RouterLink} to={`/admin/deliveries/${outcome.deliveryId}`} data-cy="processingRunDelivery">
         {outcome.deliveryId}
       </Link>
     );
@@ -39,7 +39,7 @@ export const ProcessingRunDeliveryLabel: FC<ProcessingRunDeliveryLabelProps> = (
   // Inherits the font of where it stands, a grid cell or a summary field.
   return (
     text && (
-      <Typography component="span" variant="inherit" data-cy="pipelineRunDelivery">
+      <Typography component="span" variant="inherit" data-cy="processingRunDelivery">
         {text}
       </Typography>
     )

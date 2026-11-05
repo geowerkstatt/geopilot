@@ -25,7 +25,7 @@ const stateLabelKey: Record<PipelineRunStateFilter, TranslationKey> = {
   [PipelineRunStateFilter.DeliveryRestriction]: "stepStateDeliveryRestriction",
   [PipelineRunStateFilter.Failed]: "stepStateFailed",
   [PipelineRunStateFilter.Cancelled]: "stepStateCancelled",
-  [PipelineRunStateFilter.Open]: "pipelineRunStateOpen",
+  [PipelineRunStateFilter.Open]: "processingRunStateOpen",
 };
 
 /** The filters of the list of pipeline runs: period, who started the run, mandate and state, plus a job id lookup. */
@@ -97,40 +97,40 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
 
   return (
     <FilterBar
-      searchPlaceholder="pipelineRunJobIdSearch"
+      searchPlaceholder="processingRunJobIdSearch"
       searchQuery={jobIdText}
       onSearchQueryChange={changeJobId}
       activeFilterCount={Object.values(values).filter(Boolean).length}
       onClearFilters={clearFilters}
       columns={5}
-      dataCy="pipelineRunFilters">
+      dataCy="processingRunFilters">
       <FormDateTimePicker
         label="periodFrom"
         value={values.from}
         onChange={update("from")}
-        dataCy="pipelineRunFilter-from"
+        dataCy="processingRunFilter-from"
       />
-      <FormDateTimePicker label="periodTo" value={values.to} onChange={update("to")} dataCy="pipelineRunFilter-to" />
+      <FormDateTimePicker label="periodTo" value={values.to} onChange={update("to")} dataCy="processingRunFilter-to" />
       <FormSelect
         label="processedBy"
         values={declarerValues}
         selected={values.declarer}
         onChange={update("declarer")}
-        dataCy="pipelineRunFilter-declarer"
+        dataCy="processingRunFilter-declarer"
       />
       <FormSelect
         label="mandate"
         values={mandateValues}
         selected={values.mandateId}
         onChange={update("mandateId")}
-        dataCy="pipelineRunFilter-mandate"
+        dataCy="processingRunFilter-mandate"
       />
       <FormSelect
         label="processingState"
         values={stateValues}
         selected={values.state}
         onChange={update("state")}
-        dataCy="pipelineRunFilter-state"
+        dataCy="processingRunFilter-state"
       />
     </FilterBar>
   );

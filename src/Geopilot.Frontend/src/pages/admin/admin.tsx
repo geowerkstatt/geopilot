@@ -74,14 +74,14 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               <ListItemText primary={t("deliveryOverview")} />
             </ListItemButton>
           </ListItem>
-          <ListItem key={"pipelineRuns"} disablePadding>
+          <ListItem key={"processingRuns"} disablePadding>
             <ListItemButton
               component={RouterLink}
               to="/admin/processing-runs"
               selected={isActive("processing-runs")}
               onClick={handleNavClick("/admin/processing-runs")}
               data-cy={isPermanent ? "admin-processing-runs-nav" : undefined}>
-              <ListItemText primary={t("pipelineRuns")} />
+              <ListItemText primary={t("processingRuns")} />
             </ListItemButton>
           </ListItem>
         </List>

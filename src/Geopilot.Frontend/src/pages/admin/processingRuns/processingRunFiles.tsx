@@ -31,7 +31,7 @@ export const ProcessingRunFiles: FC<ProcessingRunFilesProps> = ({ files, scanSta
   };
 
   return (
-    <Stack data-cy="pipelineRunFiles">
+    <Stack data-cy="processingRunFiles">
       <SummaryField labelVariant="h5" label="uploadedFiles">
         <DetailTable
           columns={[

@@ -69,7 +69,7 @@ const folderTabsSx: SxProps<Theme> = theme => ({
 });
 
 const listPath = "/admin/processing-runs";
-const panelId = "pipelineRunPanel";
+const panelId = "processingRunPanel";
 
 /** One pipeline run: who started it, what became of it, its steps, files, reactions and pipeline. */
 export const ProcessingRunDetail: FC = () => {
@@ -90,7 +90,7 @@ export const ProcessingRunDetail: FC = () => {
       return;
     }
     let current = true;
-    fetchApi<PipelineRunResponse>(`/api/v1/pipelinerun/${jobId}`, { errorMessageLabel: "pipelineRunLoadingError" })
+    fetchApi<PipelineRunResponse>(`/api/v1/pipelinerun/${jobId}`, { errorMessageLabel: "processingRunLoadingError" })
       .then(run => current && setLoaded({ jobId, run }))
       // useFetch has shown why; the page then says that there is no such run instead of waiting.
       .catch(() => current && setLoaded({ jobId }));
@@ -108,7 +108,7 @@ export const ProcessingRunDetail: FC = () => {
   // Back shows the list with the filters and page it was left with; opened from anywhere else, the whole list.
   const goBack = () => navigate({ pathname: listPath, search: listQuery });
   const renderHeader = (jobId?: string) => (
-    <AdminDetailHeader backLabel="backToPipelineRuns" onBack={goBack} id={jobId} idLabel="jobId" />
+    <AdminDetailHeader backLabel="backToProcessingRuns" onBack={goBack} id={jobId} idLabel="jobId" />
   );
   const header = renderHeader();
 
@@ -119,7 +119,7 @@ export const ProcessingRunDetail: FC = () => {
       <Stack>
         {header}
         <GeopilotBox>
-          <Typography data-cy="pipelineRunNotFound">{t("pipelineRunNotFound")}</Typography>
+          <Typography data-cy="processingRunNotFound">{t("processingRunNotFound")}</Typography>
         </GeopilotBox>
       </Stack>
     );
@@ -150,9 +150,9 @@ export const ProcessingRunDetail: FC = () => {
   const tabProps = (value: ProcessingRunTab, label: string) => ({
     value,
     label,
-    id: `pipelineRunTab-${value}`,
+    id: `processingRunTab-${value}`,
     "aria-controls": panelId,
-    "data-cy": `pipelineRunTab-${value}`,
+    "data-cy": `processingRunTab-${value}`,
     "data-label": label,
   });
 
@@ -186,7 +186,7 @@ export const ProcessingRunDetail: FC = () => {
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
             {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {t("pipelineRunNotDeliveredHint")}
+                {t("processingRunNotDeliveredHint")}
               </Typography>
             )}
           </SummaryField>
@@ -228,7 +228,7 @@ export const ProcessingRunDetail: FC = () => {
         <GeopilotBox
           role="tabpanel"
           id={panelId}
-          aria-labelledby={`pipelineRunTab-${visibleTab}`}
+          aria-labelledby={`processingRunTab-${visibleTab}`}
           sx={{ borderTopLeftRadius: theme => theme.radius.none }}>
           {visibleTab === "steps" && <ProcessingRunSteps steps={run.steps} />}
           {visibleTab === "files" && (

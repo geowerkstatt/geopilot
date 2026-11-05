@@ -68,14 +68,14 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
   const { localized } = useLocalized();
 
   return (
-    <Stack data-cy="pipelineRunSteps">
+    <Stack data-cy="processingRunSteps">
       <Alert severity="info">{t("inputsNotRecorded")}</Alert>
       <Box>
         {steps.map((step, index) => {
           // A skipped step has times too, but they only span the check of its skip conditions.
           const duration = step.state !== StepState.Skipped && formatDuration(step.startedAt, step.finishedAt);
           return (
-            <Accordion key={step.stepId} defaultExpanded disableGutters data-cy={`pipelineRunStep-${step.stepId}`}>
+            <Accordion key={step.stepId} defaultExpanded disableGutters data-cy={`processingRunStep-${step.stepId}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack
                   direction="row"

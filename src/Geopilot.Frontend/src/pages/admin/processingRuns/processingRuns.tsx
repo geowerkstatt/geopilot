@@ -42,7 +42,9 @@ export const ProcessingRuns: FC = () => {
 
   useEffect(() => {
     let current = true;
-    fetchApi<PipelineRunPageResponse>(`/api/v1/pipelinerun?${query}`, { errorMessageLabel: "pipelineRunsLoadingError" })
+    fetchApi<PipelineRunPageResponse>(`/api/v1/pipelinerun?${query}`, {
+      errorMessageLabel: "processingRunsLoadingError",
+    })
       .then(page => current && setLoaded({ query, page }))
       // useFetch has shown why; an empty page ends the loading.
       .catch(() => current && setLoaded({ query }));
@@ -155,7 +157,7 @@ export const ProcessingRuns: FC = () => {
       />
       <Box sx={{ flex: "1 1 0", minHeight: 0 }}>
         <GeopilotDataGrid
-          name="pipelineRuns"
+          name="processingRuns"
           loading={isLoading}
           rows={toProcessingRunRows(loaded?.page?.items ?? [], expanded)}
           getRowId={row => row.jobId}

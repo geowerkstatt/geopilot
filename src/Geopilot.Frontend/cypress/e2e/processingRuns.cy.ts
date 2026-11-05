@@ -3,19 +3,21 @@ import { loginAsAdmin } from "./helpers/appHelpers";
 // The list holds one delivery with two attempts, answered from a fixture.
 describe("Pipeline runs", () => {
   beforeEach(() => {
-    cy.intercept({ method: "GET", pathname: "/api/v1/pipelinerun" }, { fixture: "pipelineRunGroups.json" }).as("runs");
+    cy.intercept({ method: "GET", pathname: "/api/v1/pipelinerun" }, { fixture: "processingRunGroups.json" }).as(
+      "runs",
+    );
     loginAsAdmin();
-    cy.visit("/admin/pipeline-runs");
+    cy.visit("/admin/processing-runs");
     cy.wait("@runs");
   });
 
   it("shows the earlier attempts below the newest without opening a run", () => {
-    cy.dataCy("pipelineRuns-grid").find(".MuiDataGrid-row").should("have.length", 1);
+    cy.dataCy("processingRuns-grid").find(".MuiDataGrid-row").should("have.length", 1);
 
     cy.dataCy("showEarlierAttempts-button").click();
 
-    cy.dataCy("pipelineRuns-grid").find(".MuiDataGrid-row").should("have.length", 2);
-    cy.location("pathname").should("eq", "/admin/pipeline-runs");
+    cy.dataCy("processingRuns-grid").find(".MuiDataGrid-row").should("have.length", 2);
+    cy.location("pathname").should("eq", "/admin/processing-runs");
   });
 
   it("leaves the space key to the switch", () => {
