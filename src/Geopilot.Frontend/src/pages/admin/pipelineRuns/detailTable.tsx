@@ -13,7 +13,13 @@ interface DetailTableProps {
 
 /** A small table inside a step, with fixed column widths so long values wrap instead of widening a column. */
 export const DetailTable: FC<DetailTableProps> = ({ columns, children }) => (
-  <Table size="small" sx={{ tableLayout: "fixed", "& td": { overflowWrap: "anywhere" } }}>
+  <Table
+    size="small"
+    sx={{
+      tableLayout: "fixed",
+      "& td": { overflowWrap: "anywhere" },
+      "& th, & td": { paddingLeft: 0, textAlign: "left", verticalAlign: "top" },
+    }}>
     <TableHead>
       <TableRow>
         {columns.map(column => (

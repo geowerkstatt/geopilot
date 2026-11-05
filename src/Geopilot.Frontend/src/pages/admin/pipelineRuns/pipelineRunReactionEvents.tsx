@@ -1,10 +1,11 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { TableCell, TableRow } from "@mui/material";
 import { PipelineRunReactionEventResponse, ReactionEvent, ReactionKind } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
-import { TechnicalText } from "./technicalText.tsx";
+import { SummaryField } from "../deliveries/summaryField.tsx";
+import { DetailTable } from "./detailTable.tsx";
 
 interface PipelineRunReactionEventsProps {
   events: PipelineRunReactionEventResponse[];
@@ -26,30 +27,27 @@ export const PipelineRunReactionEvents: FC<PipelineRunReactionEventsProps> = ({ 
   const { t } = useTranslation();
 
   return (
-    <Table size="small" data-cy="pipelineRunReactionEvents">
-      <TableHead>
-        <TableRow>
-          <TableCell>{t("time")}</TableCell>
-          <TableCell>{t("reaction")}</TableCell>
-          <TableCell>{t("event")}</TableCell>
-          <TableCell>{t("state")}</TableCell>
-          <TableCell>{t("message")}</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
+    <SummaryField labelVariant="h5" label="reactionEvents">
+      <DetailTable
+        columns={[
+          { label: t("time"), width: "18%" },
+          { label: t("reaction"), width: "16%" },
+          { label: t("kind"), width: "12%" },
+          { label: t("event"), width: "16%" },
+          { label: t("state"), width: "14%" },
+          { label: t("message") },
+        ]}>
         {events.map((reactionEvent, index) => (
           <TableRow key={index}>
             <TableCell>{new Date(reactionEvent.occurredAt).toLocaleString()}</TableCell>
-            <TableCell>
-              <TechnicalText>{reactionEvent.reactionId}</TechnicalText>
-              {` · ${t(reactionKindKey[reactionEvent.reactionKind])}`}
-            </TableCell>
+            <TableCell>{reactionEvent.reactionId}</TableCell>
+            <TableCell>{t(reactionKindKey[reactionEvent.reactionKind])}</TableCell>
             <TableCell>{t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}</TableCell>
             <TableCell>{reactionEvent.state && <ReactionStateLabel state={reactionEvent.state} />}</TableCell>
-            <TableCell sx={{ overflowWrap: "anywhere" }}>{reactionEvent.message}</TableCell>
+            <TableCell>{reactionEvent.message}</TableCell>
           </TableRow>
         ))}
-      </TableBody>
-    </Table>
+      </DetailTable>
+    </SummaryField>
   );
 };
