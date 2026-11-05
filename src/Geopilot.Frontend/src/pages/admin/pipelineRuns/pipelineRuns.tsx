@@ -129,7 +129,7 @@ export const PipelineRuns: FC = () => {
       <PipelineRunFilters
         values={filters}
         onChange={changeFilters}
-        onJobIdEntered={jobId => navigate(`/admin/pipeline-runs/${jobId}`)}
+        onJobIdEntered={jobId => navigate(`/admin/processing-runs/${jobId}`)}
       />
       <Box sx={{ flex: "1 1 0", minHeight: 0 }}>
         <GeopilotDataGrid
@@ -144,7 +144,7 @@ export const PipelineRuns: FC = () => {
           onPaginationModelChange={changePagination}
           disableColumnSorting
           disableColumnFilter
-          onSelect={jobId => navigate(`/admin/pipeline-runs/${jobId}`)}
+          onSelect={jobId => navigate(`/admin/processing-runs/${jobId}`)}
         />
       </Box>
     </Stack>

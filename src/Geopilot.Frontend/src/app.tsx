@@ -98,11 +98,11 @@ const App: FC = () => {
                           <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
                         </CapabilitiesProvider>
                       }>
-                      <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
-                      <Route path="delivery-overview" element={<DeliveryOverview />} />
-                      <Route path="delivery-overview/:id" element={<DeliveryDetail />} />
-                      <Route path="pipeline-runs" element={<PipelineRuns />} />
-                      <Route path="pipeline-runs/:jobId" element={<PipelineRunDetail />} />
+                      <Route index element={<Navigate to="/admin/deliveries" replace />} />
+                      <Route path="deliveries" element={<DeliveryOverview />} />
+                      <Route path="deliveries/:id" element={<DeliveryDetail />} />
+                      <Route path="processing-runs" element={<PipelineRuns />} />
+                      <Route path="processing-runs/:jobId" element={<PipelineRunDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />

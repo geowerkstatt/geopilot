@@ -52,7 +52,7 @@ const folderTabsSx: SxProps<Theme> = theme => ({
   },
 });
 
-const listPath = "/admin/pipeline-runs";
+const listPath = "/admin/processing-runs";
 const panelId = "pipelineRunPanel";
 
 /** One pipeline run: who started it, what became of it, its steps, files, reactions and pipeline. */

@@ -50,7 +50,7 @@ describe("Admin delivery detail", () => {
   const visit = (detail: DeliveryDetailResponse) => {
     cy.intercept("GET", `/api/v1/delivery/${detail.id}`, { statusCode: 200, body: detail }).as("delivery");
     loginAsAdmin();
-    cy.visit(`/admin/delivery-overview/${detail.id}`);
+    cy.visit(`/admin/deliveries/${detail.id}`);
     cy.wait("@delivery");
   };
 
@@ -65,7 +65,7 @@ describe("Admin delivery detail", () => {
 
     cy.dataCy("summary-deliveredBy").find('a[href="/admin/users/7"]').should("contain", "Kelvin Spencer");
     cy.dataCy("summary-mandate").find('a[href="/admin/mandates/1"]').should("contain", "Mandate");
-    cy.dataCy("summary-precursor").find('a[href="/admin/delivery-overview/9000"]').should("contain", "9000");
+    cy.dataCy("summary-precursor").find('a[href="/admin/deliveries/9000"]').should("contain", "9000");
     cy.dataCy("summary-partialDelivery").should("contain", "No");
     cy.dataCy("summary-files").find('a[href="/api/v1/delivery/assets/41"]').should("contain", "strassen.xtf");
     cy.dataCy("summary-stacBrowser")
@@ -134,6 +134,6 @@ describe("Admin delivery detail", () => {
     );
 
     cy.wait("@deleteDelivery");
-    cy.location("pathname").should("eq", "/admin/delivery-overview");
+    cy.location("pathname").should("eq", "/admin/deliveries");
   });
 });

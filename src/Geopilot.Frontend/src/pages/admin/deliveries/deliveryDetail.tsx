@@ -13,7 +13,7 @@ import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "./summaryField.tsx";
 
-const overviewPath = "/admin/delivery-overview";
+const overviewPath = "/admin/deliveries";
 
 const formatTime = (value: string) => new Date(value).toLocaleString();
 
@@ -114,7 +114,7 @@ export const DeliveryDetail: FC = () => {
           )}
           <SummaryField label="jobId">
             {`${delivery.jobId} `}
-            <Link component={RouterLink} to={`/admin/pipeline-runs/${delivery.jobId}`} data-cy="showPipelineRun">
+            <Link component={RouterLink} to={`/admin/processing-runs/${delivery.jobId}`} data-cy="showPipelineRun">
               {t("showPipelineRun")}
             </Link>
           </SummaryField>

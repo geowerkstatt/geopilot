@@ -36,7 +36,7 @@ export const PipelineRunOutcomeLabel: FC<PipelineRunOutcomeLabelProps> = ({ outc
     return (
       <Stack component="span" direction="row" sx={{ alignItems: "center", gap: 2 }} data-cy="pipelineRunOutcome">
         {linkDelivery ? (
-          <Link component={RouterLink} to={`/admin/delivery-overview/${outcome.deliveryId}`}>
+          <Link component={RouterLink} to={`/admin/deliveries/${outcome.deliveryId}`}>
             {label}
           </Link>
         ) : (

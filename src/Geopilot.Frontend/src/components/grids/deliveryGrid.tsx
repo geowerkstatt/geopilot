@@ -69,7 +69,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
     loadDeliveries();
   }, [loadDeliveries]);
 
-  const openDetails = (id: GridRowId) => navigate(`/admin/delivery-overview/${id}`);
+  const openDetails = (id: GridRowId) => navigate(`/admin/deliveries/${id}`);
 
   const namedColumnDefs: Record<ColumnName, GridColDef> = {
     id: { field: "id", headerName: t("id"), width: 60 },
