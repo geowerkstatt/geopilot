@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Box, CircularProgress, Link, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typography } from "@mui/material";
 import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -20,6 +20,37 @@ import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 import { TechnicalText } from "./technicalText.tsx";
 
 type DetailTab = "steps" | "files" | "reactions" | "pipeline";
+
+// The tab row overlaps the top border of the box by one pixel, so the selected tab can cover it and join the box.
+const folderTabsSx: SxProps<Theme> = theme => ({
+  position: "relative",
+  zIndex: 1,
+  marginBottom: "-1px",
+  "& .MuiTab-root": {
+    ...theme.typography.h3,
+    margin: 0,
+    color: theme.palette.text.secondary,
+    backgroundColor: theme.palette.primary.states.hover,
+    border: `1px solid ${theme.palette.primary.light}`,
+    borderBottomColor: "transparent",
+    borderTopLeftRadius: theme.radius.default,
+    borderTopRightRadius: theme.radius.default,
+    // Keeps the hover background off the transparent bottom border, where the top border of the box shows through.
+    backgroundClip: "padding-box",
+  },
+  "& .MuiTabs-list": {
+    gap: theme.spacing(1),
+  },
+  "& .MuiTab-root:hover": {
+    color: theme.palette.text.primary,
+    backgroundColor: theme.palette.primary.states.selected,
+  },
+  "& .MuiTab-root.Mui-selected": {
+    color: theme.palette.text.primary,
+    backgroundColor: theme.palette.background.content,
+    borderBottomColor: theme.palette.background.content,
+  },
+});
 
 const listPath = "/admin/pipeline-runs";
 const panelId = "pipelineRunPanel";
@@ -161,22 +192,30 @@ export const PipelineRunDetail: FC = () => {
           )}
         </Box>
       </GeopilotBox>
-      <GeopilotBox>
-        <Tabs value={visibleTab} onChange={(_event, value: DetailTab) => setTab(value)}>
+      <Stack spacing={0}>
+        <Tabs
+          value={visibleTab}
+          onChange={(_event, value: DetailTab) => setTab(value)}
+          sx={folderTabsSx}
+          slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps")} label={t("processingSteps")} />
           <Tab {...tabProps("files")} label={t("files")} />
           {run.reactionEvents.length > 0 && <Tab {...tabProps("reactions")} label={t("reactions")} />}
           <Tab {...tabProps("pipeline")} label={t("pipeline")} />
         </Tabs>
-        <Box role="tabpanel" id={panelId} aria-labelledby={`pipelineRunTab-${visibleTab}`}>
+        <GeopilotBox
+          role="tabpanel"
+          id={panelId}
+          aria-labelledby={`pipelineRunTab-${visibleTab}`}
+          sx={{ borderTopLeftRadius: theme => theme.radius.none }}>
           {visibleTab === "steps" && <PipelineRunSteps steps={run.steps} />}
           {visibleTab === "files" && (
             <PipelineRunFiles files={run.files} scanState={run.scanState} scanDetails={run.scanDetails} />
           )}
           {visibleTab === "reactions" && <PipelineRunReactionEvents events={run.reactionEvents} />}
           {visibleTab === "pipeline" && <PipelineSnapshot jobId={run.jobId} pipelineId={run.pipelineId} />}
-        </Box>
-      </GeopilotBox>
+        </GeopilotBox>
+      </Stack>
     </Stack>
   );
 };

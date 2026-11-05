@@ -372,6 +372,13 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
+      },
+    },
     MuiStepContent: {
       styleOverrides: {
         root: {
