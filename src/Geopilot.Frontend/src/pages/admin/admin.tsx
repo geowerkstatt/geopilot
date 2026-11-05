@@ -1,7 +1,18 @@
 import { FC, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Divider,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListSubheader,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { TranslationKey } from "../../appInterfaces";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useCapabilities } from "../../components/capabilities/capabilitiesInterface.ts";
@@ -52,7 +63,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const drawerContent = (isPermanent: boolean) => (
     <div>
       <Box sx={{ overflow: "auto" }}>
-        <List>
+        <List subheader={<ListSubheader>{t("overviews")}</ListSubheader>}>
           <ListItem key={"deliveryOverview"} disablePadding>
             <ListItemButton
               component={RouterLink}
@@ -75,7 +86,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           </ListItem>
         </List>
         <Divider />
-        <List>
+        <List subheader={<ListSubheader>{t("management")}</ListSubheader>}>
           {adminPages.map(({ path, label }) => (
             <ListItem key={path} disablePadding>
               <ListItemButton
