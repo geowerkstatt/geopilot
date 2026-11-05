@@ -10,7 +10,8 @@ using System.Xml.Linq;
 namespace Geopilot.Pipeline.Processes.XtfMetadata;
 
 /// <summary>
-/// Reads metadata of a delivery, such as its validation scope, from an INTERLIS 2.4 transfer file in a single pass.
+/// Reads what metadata a transfer file of a delivery offers: its INTERLIS version and, from an INTERLIS 2.4 transfer,
+/// the validation scope in a single pass.
 /// </summary>
 internal class XtfMetadataExtractorProcess
 {
@@ -100,10 +101,26 @@ internal class XtfMetadataExtractorProcess
 
     private static readonly LocalizedText UnsupportedStatusMessage = new Dictionary<string, string>
     {
-        { "de", "Die Datei ist kein INTERLIS-2.4-Transfer, darum werden keine Metadaten gelesen." },
-        { "fr", "Le fichier n'est pas un transfert INTERLIS 2.4, aucune métadonnée n'est donc lue." },
-        { "it", "Il file non è un trasferimento INTERLIS 2.4, quindi non vengono letti metadati." },
-        { "en", "The file is not an INTERLIS 2.4 transfer, so no metadata is read." },
+        { "de", "Die Datei ist kein INTERLIS-2.4-Transfer, darum wird kein Scope gelesen." },
+        { "fr", "Le fichier n'est pas un transfert INTERLIS 2.4, aucun scope n'est donc lu." },
+        { "it", "Il file non è un trasferimento INTERLIS 2.4, quindi non viene letto alcuno scope." },
+        { "en", "The file is not an INTERLIS 2.4 transfer, so no scope is read." },
+    };
+
+    private static readonly LocalizedText VersionStatusMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Die Datei ist ein INTERLIS-{0}-Transfer." },
+        { "fr", "Le fichier est un transfert INTERLIS {0}." },
+        { "it", "Il file è un trasferimento INTERLIS {0}." },
+        { "en", "The file is an INTERLIS {0} transfer." },
+    };
+
+    private static readonly LocalizedText UnknownVersionStatusMessage = new Dictionary<string, string>
+    {
+        { "de", "Die INTERLIS-Version der Datei wurde nicht erkannt." },
+        { "fr", "La version INTERLIS du fichier n'a pas été reconnue." },
+        { "it", "La versione INTERLIS del file non è stata riconosciuta." },
+        { "en", "The INTERLIS version of the file was not recognized." },
     };
 
     private static readonly LocalizedText UnreadableStatusMessageFormat = new Dictionary<string, string>
@@ -122,15 +139,15 @@ internal class XtfMetadataExtractorProcess
         { "en", "The file is not readable XML." },
     };
 
-    private readonly XtfMetadataQuery scope;
+    private readonly XtfMetadataQuery? scope;
     private readonly ILogger logger;
 
     /// <summary>
     /// Create a new instance of the <see cref="XtfMetadataExtractorProcess"/> class.
     /// </summary>
-    /// <param name="scope">Where the validation scope comes from: an XPath applied to every object of the transfer file and the rule for several matches. A definition without it does not start.</param>
+    /// <param name="scope">Where the validation scope comes from: an XPath applied to every object of the transfer file and the rule for several matches. Without it, no scope is read.</param>
     /// <param name="logger">Logger instance for logging messages during the extraction.</param>
-    public XtfMetadataExtractorProcess(XtfMetadataQuery scope, ILogger logger)
+    public XtfMetadataExtractorProcess(XtfMetadataQuery? scope, ILogger logger)
     {
         this.scope = scope;
         this.logger = logger;
@@ -139,7 +156,7 @@ internal class XtfMetadataExtractorProcess
     /// <summary>
     /// Reads the configured metadata from the transfer file.
     /// </summary>
-    /// <param name="transferFile">The INTERLIS 2.4 transfer file of the delivery.</param>
+    /// <param name="transferFile">The transfer file of the delivery.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The metadata read, how far the file could be read, and a status message.</returns>
     [PipelineProcessRun]
@@ -149,12 +166,17 @@ internal class XtfMetadataExtractorProcess
         cancellationToken.ThrowIfCancellationRequested();
 
         // A number beyond the three fetch values passes the startup validation, so it is refused here, naming it.
-        if (!Enum.IsDefined(scope.Fetch))
+        if (scope is not null && !Enum.IsDefined(scope.Fetch))
             throw new InvalidOperationException($"The fetch value <{scope.Fetch}> of scope is unknown. Use Single, First or CurrentlyValid.");
 
-        var matches = new ScopeMatches(XtfObjectPath.Compile(scope.Path), scope.Fetch);
+        // Without a configured scope only the INTERLIS version is read, and the status message names it.
+        var matches = scope is null ? null : new ScopeMatches(XtfObjectPath.Compile(scope.Path), scope.Fetch);
 
         logger.LogInformation($"Reading metadata from transfer file <{transferFile.OriginalFileName}>...");
+
+        var interlisVersion = await InterlisVersionDetection.DetectAsync(transferFile, cancellationToken);
+        var versionName = interlisVersion?.ToString();
+        var versionStatusMessage = VersionStatusMessage(interlisVersion);
 
         try
         {
@@ -164,33 +186,47 @@ internal class XtfMetadataExtractorProcess
             await reader.MoveToContentAsync();
             if (!IsInterlis24Transfer(reader))
             {
-                logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not an INTERLIS 2.4 transfer.");
-                return new XtfMetadataExtractorResult { FileState = XtfFileState.Unsupported, StatusMessage = UnsupportedStatusMessage };
+                logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not an INTERLIS 2.4 transfer. INTERLIS version: <{versionName}>.");
+                return new XtfMetadataExtractorResult
+                {
+                    InterlisVersion = versionName,
+                    FileState = XtfFileState.Unsupported,
+                    StatusMessage = matches is null ? versionStatusMessage : UnsupportedStatusMessage,
+                };
             }
 
-            await foreach (var transferObject in ReadObjectsAsync(reader, isNeeded: matches.Needs, cancellationToken))
+            if (matches is not null)
             {
-                if (matches.Add(transferObject))
-                    break;
+                await foreach (var transferObject in ReadObjectsAsync(reader, isNeeded: matches.Needs, cancellationToken))
+                {
+                    if (matches.Add(transferObject))
+                        break;
+                }
             }
         }
         catch (XmlException e)
         {
             // The status message names the position only: the parser text is English and addressed to developers.
-            logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not readable XML: {e.Message}");
+            logger.LogInformation($"Transfer file <{transferFile.OriginalFileName}> is not readable XML: {e.Message} INTERLIS version: <{versionName}>.");
             var statusMessage = e.LineNumber > 0
                 ? Format(UnreadableStatusMessageFormat, e.LineNumber, e.LinePosition)
                 : UnreadableStatusMessage;
-            return new XtfMetadataExtractorResult { FileState = XtfFileState.Unreadable, StatusMessage = statusMessage };
+            return new XtfMetadataExtractorResult
+            {
+                InterlisVersion = versionName,
+                FileState = XtfFileState.Unreadable,
+                StatusMessage = matches is null ? versionStatusMessage : statusMessage,
+            };
         }
 
-        var extractedScope = matches.ToScope();
-        logger.LogInformation($"Metadata of transfer file <{transferFile.OriginalFileName}> read. Scope: <{extractedScope.Value}>.");
+        var extractedScope = matches?.ToScope();
+        logger.LogInformation($"Metadata of transfer file <{transferFile.OriginalFileName}> read. INTERLIS version: <{versionName}>, scope: <{extractedScope?.Value}>.");
         return new XtfMetadataExtractorResult
         {
-            Scope = extractedScope.Value,
+            Scope = extractedScope?.Value,
+            InterlisVersion = versionName,
             FileState = XtfFileState.Readable,
-            StatusMessage = extractedScope.StatusMessage,
+            StatusMessage = extractedScope?.StatusMessage ?? versionStatusMessage,
         };
     }
 
@@ -400,6 +436,15 @@ internal class XtfMetadataExtractorProcess
 
     private static LocalizedText Format(LocalizedText format, params object[] arguments) =>
         format.Map(message => string.Format(CultureInfo.InvariantCulture, message, arguments));
+
+    // Names the version the way INTERLIS writes it, such as 2.4.
+    private static LocalizedText VersionStatusMessage(InterlisVersion? version) => version switch
+    {
+        InterlisVersion.Interlis1 => Format(VersionStatusMessageFormat, "1"),
+        InterlisVersion.Interlis23 => Format(VersionStatusMessageFormat, "2.3"),
+        InterlisVersion.Interlis24 => Format(VersionStatusMessageFormat, "2.4"),
+        _ => UnknownVersionStatusMessage,
+    };
 
     // An unusable value is listed as a question mark, further values as an ellipsis.
     private static string ListOf(IReadOnlyList<string> values) =>

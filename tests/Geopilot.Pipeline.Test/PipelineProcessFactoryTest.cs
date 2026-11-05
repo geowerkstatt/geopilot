@@ -179,19 +179,26 @@ public class PipelineProcessFactoryTest
         Assert.Contains("scope", exception.Message);
     }
 
-    [TestMethod(DisplayName = "Validate Rejects A Metadata Extractor Without Scope")]
-    public void ValidateRejectsAMetadataExtractorWithoutScope()
+    [TestMethod(DisplayName = "Build Binds A Metadata Extractor Without Scope")]
+    public void BuildBindsAMetadataExtractorWithoutScope()
     {
+        // Without scope the extractor still reads the INTERLIS version, so the definition starts.
         using var pipelineProcessFactory = CreateFactoryWithoutBaseConfig();
+        var processes = new List<ProcessConfig> { MetadataProcess(new Parameterization()) };
 
-        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory
+        pipelineProcessFactory.Builder().StepConfig(MetadataStep()).Processes(processes).Validate();
+        var process = pipelineProcessFactory
             .Builder()
             .StepConfig(MetadataStep())
-            .Processes(new List<ProcessConfig> { MetadataProcess(new Parameterization()) })
-            .Validate());
+            .Processes(processes)
+            .PipelineDirectory(Path.GetTempPath())
+            .JobId(Guid.NewGuid())
+            .Build();
 
-        Assert.Contains("<scope>", exception.Message);
-        Assert.Contains("not nullable", exception.Message);
+        Assert.IsInstanceOfType<XtfMetadataExtractorProcess>(process);
+        var scopeField = typeof(XtfMetadataExtractorProcess).GetField("scope", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(scopeField);
+        Assert.IsNull(scopeField.GetValue(process));
     }
 
     private PipelineProcessFactory CreateFactoryWithoutBaseConfig()

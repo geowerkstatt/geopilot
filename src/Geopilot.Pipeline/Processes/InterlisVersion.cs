@@ -1,7 +1,8 @@
-﻿namespace Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
+﻿namespace Geopilot.Pipeline.Processes;
 
 /// <summary>
-/// The INTERLIS version of a transfer file, as the <see cref="XtfMatcherProcess"/> recognizes it.
+/// The INTERLIS version of a transfer file. Every process that reports it uses these names, so a condition compares
+/// against the same text whichever process recognized the version.
 /// </summary>
 internal enum InterlisVersion
 {
