@@ -18,6 +18,8 @@ import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
 import Mandates from "./pages/admin/mandates/mandates.tsx";
 import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
 import Organisations from "./pages/admin/organisations/organisations.tsx";
+import { PipelineRunDetail } from "./pages/admin/pipelineRuns/pipelineRunDetail.tsx";
+import { PipelineRuns } from "./pages/admin/pipelineRuns/pipelineRuns.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
@@ -99,6 +101,8 @@ const App: FC = () => {
                       <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
                       <Route path="delivery-overview" element={<DeliveryOverview />} />
                       <Route path="delivery-overview/:id" element={<DeliveryDetail />} />
+                      <Route path="pipeline-runs" element={<PipelineRuns />} />
+                      <Route path="pipeline-runs/:jobId" element={<PipelineRunDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />

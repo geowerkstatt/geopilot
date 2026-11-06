@@ -69,6 +69,10 @@ export const FormInput: FC<FormInputProps> = ({
 
   const resolvedLabel = typeof label === "string" ? t(label) : label;
 
+  // An empty date field still shows the date format of the browser, which an unshrunk label would cover.
+  const isDate = type === FormValueType.Date || type === FormValueType.DateTime;
+  const slotProps = { input: { ...inputProps }, inputLabel: isDate ? { shrink: true } : undefined };
+
   const getDefaultValue = (value: string | number | undefined) => {
     if (value == undefined) {
       return "";
@@ -97,7 +101,7 @@ export const FormInput: FC<FormInputProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
-        slotProps={{ input: { ...inputProps } }}
+        slotProps={slotProps}
       />
     );
   }
@@ -141,7 +145,7 @@ export const FormInput: FC<FormInputProps> = ({
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
       data-cy={dataCy ?? fieldName + "-formInput"}
-      slotProps={{ input: { ...inputProps } }}
+      slotProps={slotProps}
     />
   );
 };
