@@ -156,6 +156,7 @@ export {
   type PipelineRunConditionResponse,
   type PipelineRunDeclarer,
   type PipelineRunFileResponse,
+  type PipelineRunGroupResponse,
   type PipelineRunOutcome,
   PipelineRunOutcomeKind,
   type PipelineRunPageResponse,

@@ -1,17 +1,19 @@
 ﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
-/// Filters and pages the list of pipeline runs. Every filter that is set narrows the list.
+/// Filters and pages the list of pipeline runs, whose rows are the attempts of one delivery each (see
+/// <see cref="PipelineRunGroupResponse"/>). Every filter that is set narrows the list. Mandate and declarer are the
+/// same for all attempts of a delivery.
 /// </summary>
 public class PipelineRunQuery
 {
     /// <summary>
-    /// Only runs started at or after this time (UTC).
+    /// Only deliveries with an attempt started at or after this time (UTC), and before <see cref="To"/> if set.
     /// </summary>
     public DateTime? From { get; set; }
 
     /// <summary>
-    /// Only runs started before this time (UTC).
+    /// Only deliveries with an attempt started before this time (UTC), and at or after <see cref="From"/> if set.
     /// </summary>
     public DateTime? To { get; set; }
 
@@ -31,7 +33,7 @@ public class PipelineRunQuery
     public int? DeclarerId { get; set; }
 
     /// <summary>
-    /// Only runs in this state.
+    /// Only deliveries whose newest attempt is in this state.
     /// </summary>
     public PipelineRunStateFilter? State { get; set; }
 

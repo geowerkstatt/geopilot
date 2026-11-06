@@ -16,6 +16,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="UserId">The user that started the run, or <see langword="null"/> when a machine client started it or the job was started anonymously. Who declared the delivery is recorded on the delivery itself.</param>
 /// <param name="MachineClientId">The machine client that started the run, or <see langword="null"/> when a user started it or the job was started anonymously.</param>
 /// <param name="ClientKind">The kind of client that started the run.</param>
+/// <param name="ClientReference">The client's own identifier of the delivery a machine delivery attempt belongs to, or <see langword="null"/> when it carried none.</param>
 /// <param name="UploadId">The id of the upload the run processed.</param>
 /// <param name="UploadStorageLocation">Where the uploaded files were stored, credential-free.</param>
 /// <param name="UploadInitiatedAt">When the upload session was initiated (UTC).</param>
@@ -39,6 +40,7 @@ public record PipelineRunResponse(
     int? UserId,
     int? MachineClientId,
     ClientKind ClientKind,
+    string? ClientReference,
     Guid UploadId,
     string UploadStorageLocation,
     DateTime UploadInitiatedAt,

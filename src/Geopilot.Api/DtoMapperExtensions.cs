@@ -199,6 +199,7 @@ internal static class DtoMapperExtensions
             run.UserId,
             run.MachineClientId,
             run.ClientKind,
+            run.ClientReference,
             run.UploadId,
             run.UploadStorageLocation,
             run.UploadInitiatedAt,

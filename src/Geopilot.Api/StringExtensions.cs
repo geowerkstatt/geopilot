@@ -45,6 +45,6 @@ public static class StringExtensions
         => !string.IsNullOrWhiteSpace(fileName) && string.Equals(fileName.SanitizeFileName(), fileName, StringComparison.Ordinal);
 
     // shortcut: checks UTF-16 code units, so format characters outside the BMP (such as tag characters) pass.
-    private static bool IsControlOrFormat(char c) => char.GetUnicodeCategory(c)
+    internal static bool IsControlOrFormat(char c) => char.GetUnicodeCategory(c)
         is UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator;
 }

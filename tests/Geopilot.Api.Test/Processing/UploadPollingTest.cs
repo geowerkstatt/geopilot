@@ -217,7 +217,7 @@ public class UploadPollingTest
         pipeline.Setup(p => p.Dispose());
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), deliveryFields);
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), deliveryFields, null);
 
         return (job.Id, uploadId, mandate, user);
     }

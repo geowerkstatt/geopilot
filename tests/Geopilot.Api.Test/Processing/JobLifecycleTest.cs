@@ -161,10 +161,11 @@ public class JobLifecycleTest
         var upload = await CreateUploadAsync();
         SetupPipeline();
 
-        var job = await StartJobAsync(upload, declarer, deliveryFields: Fields);
+        var job = await StartJobAsync(upload, declarer, deliveryFields: Fields, clientReference: "AV-2026-0042");
 
-        // Bound when the job is created, so no run can end before geopilot knows to declare its delivery.
-        Assert.AreEqual(new DeliveryIntent(declarer, mandateKey, Fields), job.DeliveryIntent);
+        // Bound when the job is created, so no run can end before geopilot knows to declare its delivery. The client
+        // reference travels with it, because the protocol records it when the job starts.
+        Assert.AreEqual(new DeliveryIntent(declarer, mandateKey, Fields, "AV-2026-0042"), job.DeliveryIntent);
     }
 
     [TestMethod]
@@ -467,8 +468,8 @@ public class JobLifecycleTest
         return (job.Id, upload.Id, pipeline);
     }
 
-    private Task<ProcessingJob> StartJobAsync(UploadInfo upload, Declarer? startedBy = null, bool isDeclarable = true, DeliveryFields? deliveryFields = null)
-        => lifecycle.StartAsync(upload, mandate, PipelineId, startedBy, isDeclarable, deliveryFields);
+    private Task<ProcessingJob> StartJobAsync(UploadInfo upload, Declarer? startedBy = null, bool isDeclarable = true, DeliveryFields? deliveryFields = null, string? clientReference = null)
+        => lifecycle.StartAsync(upload, mandate, PipelineId, startedBy, isDeclarable, deliveryFields, clientReference);
 
     private async Task<UploadInfo> CreateUploadAsync()
     {

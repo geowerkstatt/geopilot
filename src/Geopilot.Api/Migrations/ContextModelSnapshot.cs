@@ -322,6 +322,10 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("Definition")
                         .IsRequired()
                         .HasColumnType("jsonb");

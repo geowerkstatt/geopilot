@@ -110,6 +110,16 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetNamesTheClientReference()
+    {
+        var run = SeedRun(r => r.ClientReference = "AV-2026-0042");
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual("AV-2026-0042", response.ClientReference);
+    }
+
+    [TestMethod]
     public async Task GetReportsTheDeliveryAsOutcome()
     {
         var run = SeedRun();
@@ -217,7 +227,7 @@ public sealed class PipelineRunControllerTest
         Assert.AreEqual(1, (await List(InWindow(q => q.DeclarerKind = DeclarerKind.MachineClient))).TotalCount);
         Assert.AreEqual(1, (await List(byPerson)).TotalCount);
         Assert.AreEqual(1, (await List(InWindow(q => q.State = PipelineRunStateFilter.Failed))).TotalCount);
-        Assert.AreEqual(open.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().JobId);
+        Assert.AreEqual(open.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().Latest.JobId);
     }
 
     [TestMethod]
@@ -231,7 +241,7 @@ public sealed class PipelineRunControllerTest
             q.Page = 1;
         }));
         Assert.AreEqual(5, page.TotalCount);
-        CollectionAssert.AreEqual(new[] { runs[2].JobId, runs[1].JobId }, page.Items.Select(item => item.JobId).ToArray(), "newest first, so the second page holds the third and fourth newest.");
+        CollectionAssert.AreEqual(new[] { runs[2].JobId, runs[1].JobId }, page.Items.Select(item => item.Latest.JobId).ToArray(), "newest first, so the second page holds the third and fourth newest.");
 
         var beyond = await List(InWindow(q =>
         {
@@ -259,7 +269,7 @@ public sealed class PipelineRunControllerTest
 
         var page = await List(new PipelineRunQuery { From = Window, To = Window.AddHours(1) });
 
-        Assert.AreEqual(atFrom.JobId, page.Items.Single().JobId);
+        Assert.AreEqual(atFrom.JobId, page.Items.Single().Latest.JobId);
     }
 
     [TestMethod]
@@ -274,7 +284,7 @@ public sealed class PipelineRunControllerTest
             To = DateTime.SpecifyKind(Window.AddHours(1), DateTimeKind.Unspecified),
         });
 
-        Assert.AreEqual(run.JobId, page.Items.Single().JobId);
+        Assert.AreEqual(run.JobId, page.Items.Single().Latest.JobId);
     }
 
     [TestMethod]
@@ -301,7 +311,7 @@ public sealed class PipelineRunControllerTest
             r.TerminalState = ProcessingState.Success;
         });
 
-        var item = (await List(InWindow())).Items.Single();
+        var item = (await List(InWindow())).Items.Single().Latest;
 
         Assert.IsNull(item.Declarer);
         Assert.IsNull(item.Mandate);
@@ -320,6 +330,141 @@ public sealed class PipelineRunControllerTest
         ActionResultAssert.IsBadRequest(await controller.List(InWindow(q => q.DeclarerId = 1)));
     }
 
+    [TestMethod]
+    public async Task ListGroupsTheAttemptsOfOneDeliveryUnderTheNewest()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        var first = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        var second = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
+        var third = SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
+
+        var page = await List(InWindow());
+
+        Assert.AreEqual(1, page.TotalCount, "The attempts of one delivery are one row.");
+        var group = page.Items.Single();
+        Assert.AreEqual(third.JobId, group.Latest.JobId);
+        Assert.AreEqual("AV-1", group.Latest.ClientReference);
+        CollectionAssert.AreEqual(new[] { second.JobId, first.JobId }, group.EarlierAttempts.Select(a => a.JobId).ToArray(), "The earlier attempts follow, newest first.");
+    }
+
+    [TestMethod]
+    public async Task ListKeepsTheAttemptsOfOtherSendersMandatesAndReferencesApart()
+    {
+        var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
+        var client = AddMachineClient();
+        var otherClient = AddMachineClient();
+        var user = context.Users.First();
+        SeedAttempt(Window.AddMinutes(1), "AV-1", mandates[0].Id, client.Id);
+        SeedAttempt(Window.AddMinutes(2), "AV-1", mandates[0].Id, otherClient.Id);
+        SeedAttempt(Window.AddMinutes(3), "AV-1", mandates[0].Id, userId: user.Id);
+        SeedAttempt(Window.AddMinutes(4), "AV-1", mandates[1].Id, client.Id);
+        SeedAttempt(Window.AddMinutes(5), "av-1", mandates[0].Id, client.Id);
+
+        var page = await List(InWindow());
+
+        Assert.AreEqual(5, page.TotalCount, "Another client, a person, another mandate or another spelling is another delivery.");
+        Assert.IsTrue(page.Items.All(group => group.EarlierAttempts.Count == 0));
+    }
+
+    [TestMethod]
+    public async Task ListKeepsRunsWithoutClientReferenceApart()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        SeedAttempt(Window.AddMinutes(1), null, mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(2), null, mandate.Id, client.Id);
+
+        Assert.AreEqual(2, (await List(InWindow())).TotalCount, "Without a reference nothing says that two attempts belong together.");
+    }
+
+    [TestMethod]
+    public async Task ListShowsAGroupWhenOneOfItsAttemptsLiesInThePeriod()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        var inWindow = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        var newestOutside = SeedAttempt(Window.AddDays(2), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddDays(3), "AV-2", mandate.Id, client.Id);
+
+        var page = await List(InWindow());
+
+        Assert.AreEqual(1, page.TotalCount, "A delivery shows when one of its attempts lies in the period; the other one lies wholly outside.");
+        var group = page.Items.Single();
+        Assert.AreEqual(newestOutside.JobId, group.Latest.JobId, "The row shows the newest attempt, even one after the period.");
+        Assert.AreEqual(inWindow.JobId, group.EarlierAttempts.Single().JobId);
+    }
+
+    [TestMethod]
+    public async Task ListFiltersTheStateOnTheNewestAttempt()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id, configure: r => r.TerminalState = ProcessingState.Failed);
+        SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id, configure: r => r.TerminalState = ProcessingState.Success);
+        SeedAttempt(Window.AddMinutes(3), "AV-2", mandate.Id, client.Id, configure: r => r.TerminalState = ProcessingState.Success);
+        var openNewest = SeedAttempt(Window.AddMinutes(4), "AV-2", mandate.Id, client.Id, configure: r =>
+        {
+            r.TerminalState = null;
+            r.TerminalAt = null;
+        });
+
+        Assert.AreEqual(0, (await List(InWindow(q => q.State = PipelineRunStateFilter.Failed))).TotalCount, "A delivery that went through in its second attempt no longer fails.");
+        Assert.HasCount(1, (await List(InWindow(q => q.State = PipelineRunStateFilter.Success))).Items.Single().EarlierAttempts, "The newest attempt decides; the failed one still counts.");
+        Assert.AreEqual(openNewest.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().Latest.JobId);
+    }
+
+    [TestMethod]
+    public async Task ListOrdersTheEarlierAttemptsLikeTheGrouping()
+    {
+        // The protocol writes a row when a job starts, so the higher id is the later attempt, also where two hosts
+        // disagree on the time.
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        var first = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
+        var second = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        var third = SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
+
+        var group = (await List(InWindow())).Items.Single();
+
+        Assert.AreEqual(third.JobId, group.Latest.JobId);
+        CollectionAssert.AreEqual(new[] { second.JobId, first.JobId }, group.EarlierAttempts.Select(a => a.JobId).ToArray());
+    }
+
+    [TestMethod]
+    public async Task ListGroupsWithoutAPeriod()
+    {
+        // The default view sends no period; a client of its own keeps the other runs of the database out.
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        var newest = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(3), null, mandate.Id, client.Id);
+
+        var page = await List(new PipelineRunQuery { DeclarerKind = DeclarerKind.MachineClient, DeclarerId = client.Id });
+
+        Assert.AreEqual(2, page.TotalCount);
+        Assert.AreEqual(newest.JobId, page.Items.Single(group => group.EarlierAttempts.Count == 1).Latest.JobId);
+    }
+
+    [TestMethod]
+    public async Task ListPagesGroupsAsOneRow()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        SeedAttempt(Window.AddMinutes(1), null, mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(2), null, mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(4), "AV-1", mandate.Id, client.Id);
+        var groupNewest = SeedAttempt(Window.AddMinutes(5), "AV-1", mandate.Id, client.Id);
+
+        var page = await List(InWindow(q => q.PageSize = 2));
+
+        Assert.AreEqual(3, page.TotalCount, "Three attempts of one delivery and two single runs make three rows.");
+        Assert.HasCount(2, page.Items);
+        Assert.AreEqual(groupNewest.JobId, page.Items[0].Latest.JobId);
+    }
+
     private static PipelineRunQuery InWindow(Action<PipelineRunQuery>? configure = null)
     {
         var query = new PipelineRunQuery { From = Window, To = Window.AddDays(1) };
@@ -329,6 +474,25 @@ public sealed class PipelineRunControllerTest
 
     private async Task<PipelineRunPageResponse> List(PipelineRunQuery query)
         => ActionResultAssert.IsOkObjectResult<PipelineRunPageResponse>(await controller.List(query));
+
+    private MachineClient AddMachineClient()
+    {
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "Test client" }).Entity;
+        context.SaveChanges();
+        return client;
+    }
+
+    // An attempt of a delivery, started by the machine client or by the user given.
+    private PipelineRun SeedAttempt(DateTime startedAt, string? clientReference, int mandateId, int? machineClientId = null, int? userId = null, Action<PipelineRun>? configure = null)
+        => SeedRun(r =>
+        {
+            r.StartedAt = startedAt;
+            r.ClientReference = clientReference;
+            r.MandateId = mandateId;
+            r.MachineClientId = machineClientId;
+            r.UserId = userId;
+            configure?.Invoke(r);
+        });
 
     private void SeedMinimalRuns(int count)
     {
