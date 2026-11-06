@@ -97,6 +97,11 @@ public class MachineClientController : ControllerBase
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
 
+            var responsibleUserIds = machineClient.ResponsibleUsers.Select(u => u.Id).ToList();
+            machineClient.ResponsibleUsers = await context.Users
+                .Where(u => responsibleUserIds.Contains(u.Id))
+                .ToListAsync();
+
             var entityEntry = await context.AddAsync(machineClient).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
@@ -160,6 +165,13 @@ public class MachineClientController : ControllerBase
                 .ToListAsync();
             existingClient.Organisations.Clear();
             existingClient.Organisations.AddRange(organisations);
+
+            var responsibleUserIds = machineClient.ResponsibleUsers.Select(u => u.Id).ToList();
+            var responsibleUsers = await context.Users
+                .Where(u => responsibleUserIds.Contains(u.Id))
+                .ToListAsync();
+            existingClient.ResponsibleUsers.Clear();
+            existingClient.ResponsibleUsers.AddRange(responsibleUsers);
 
             await context.SaveChangesAsync().ConfigureAwait(false);
 

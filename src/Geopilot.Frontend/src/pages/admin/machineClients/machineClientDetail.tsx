@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { MachineClientFormValues } from "../../../api/apiInterfaces.ts";
-import { MachineClient, MachineClientState, Organisation } from "../../../api/generated";
+import { MachineClient, MachineClientState, Organisation, User } from "../../../api/generated";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FormAutocomplete, FormCheckbox, FormContainer, FormInput } from "../../../components/form/form.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
@@ -25,6 +25,7 @@ const newMachineClient: MachineClientFormValues = {
   name: "",
   state: MachineClientState.Active,
   organisations: [],
+  responsibleUsers: [],
   isActive: true,
 };
 
@@ -35,10 +36,11 @@ const MachineClientDetail = () => {
 
   const [loadedMachineClient, setLoadedMachineClient] = useState<MachineClientFormValues>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
+  const [users, setUsers] = useState<User[]>();
 
-  // Derived rather than set in the effect, and only once the organisations are there: a form that mounts in the
-  // very first render starts out dirty, so a new client waits for the one request it needs anyway.
-  const machineClient = id === "0" ? (organisations ? newMachineClient : undefined) : loadedMachineClient;
+  // Derived rather than set in the effect, and only once the choices are there: a form that mounts in the very
+  // first render starts out dirty, so a new client waits for the requests it needs anyway.
+  const machineClient = id === "0" ? (organisations && users ? newMachineClient : undefined) : loadedMachineClient;
 
   const loadMachineClient = useCallback(
     (id: string) => {
@@ -55,17 +57,25 @@ const MachineClientDetail = () => {
     );
   }, [fetchApi]);
 
+  const loadUsers = useCallback(() => {
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
+  }, [fetchApi]);
+
   useEffect(() => {
     if (id !== "0") {
       loadMachineClient(id);
     }
     loadOrganisations();
-  }, [id, loadMachineClient, loadOrganisations]);
+    loadUsers();
+  }, [id, loadMachineClient, loadOrganisations, loadUsers]);
 
   const prepareMachineClientForSave = (formData: FieldValues): MachineClientFormValues => {
     const editedClient = formData as MachineClientFormValues;
     editedClient.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
+    );
+    editedClient.responsibleUsers = formData["responsibleUsers"]?.map(
+      (value: FormAutocompleteValue) => ({ id: value.id }) as User,
     );
     editedClient.state = formData["isActive"] ? MachineClientState.Active : MachineClientState.Inactive;
     delete editedClient.deliveries;
@@ -108,6 +118,21 @@ const MachineClientDetail = () => {
               id: org.id,
               primaryText: org.name,
               detailText: `${org.name} (ID: ${org.id})`,
+            })}
+          />
+        </FormContainer>
+        <FormContainer>
+          <FormAutocomplete<User>
+            fieldName={"responsibleUsers"}
+            label={"responsibleUsers"}
+            required={false}
+            values={users}
+            selected={machineClient?.responsibleUsers}
+            linkTo={id => `/admin/users/${id}`}
+            valueFormatter={user => ({
+              id: user.id,
+              primaryText: user.fullName,
+              detailText: `${user.fullName} (${user.email})`,
             })}
           />
         </FormContainer>

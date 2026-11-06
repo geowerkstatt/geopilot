@@ -51,8 +51,20 @@ public class MailChannelTest
     }
 
     [TestMethod]
+    public void BuildMessageAddressesTheUsersResponsibleForAMachineClient()
+    {
+        var channel = Channel(to: ["empfang@example.com"], includeDeclarer: true);
+        var declarer = MachineClient with { ResponsibleUsers = [new("Betrieb Fachschale", "betrieb@example.com"), new("Ohne Domain", "betrieb")] };
+
+        using var message = channel.BuildMessage(Delivery with { Declarer = declarer }, []);
+
+        CollectionAssert.AreEqual(new[] { "empfang@example.com", "betrieb@example.com" }, message.To.Mailboxes.Select(mailbox => mailbox.Address).ToList());
+        Assert.AreEqual("Betrieb Fachschale", message.To.Mailboxes.Last().Name);
+    }
+
+    [TestMethod]
     [DataRow(false, DisplayName = "Switch off")]
-    [DataRow(true, DisplayName = "Machine client")]
+    [DataRow(true, DisplayName = "Machine client without responsible users")]
     public void BuildMessageLeavesOutTheDeclarer(bool includeDeclarer)
     {
         var channel = Channel(to: ["empfang@example.com"], includeDeclarer: includeDeclarer);

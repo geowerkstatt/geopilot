@@ -41,8 +41,8 @@ internal sealed class MailChannel : IDeliveryChannel
     /// <param name="to">The addresses the mail goes to.</param>
     /// <param name="cc">The addresses that get a copy.</param>
     /// <param name="bcc">The addresses that get a copy no other recipient sees.</param>
-    /// <param name="includeDeclarer">Whether the declarer goes into <c>To</c> as well, when it is a person with an
-    /// address.</param>
+    /// <param name="includeDeclarer">Whether the declarer goes into <c>To</c> as well: a person at the own address, a
+    /// machine client through the users responsible for it.</param>
     /// <exception cref="ArgumentException">A value is missing or invalid, a login comes without encryption or the
     /// template is refused.</exception>
     public MailChannel(
@@ -130,19 +130,27 @@ internal sealed class MailChannel : IDeliveryChannel
         };
         message.From.Add(sender);
         message.To.AddRange(to);
-        if (includeDeclarer && DeclarerAddress(delivery.Declarer) is MailboxAddress declarer)
-            message.To.Add(declarer);
+        if (includeDeclarer)
+            message.To.AddRange(DeclarerAddresses(delivery.Declarer));
 
         message.Cc.AddRange(cc);
         message.Bcc.AddRange(bcc);
         return message;
     }
 
-    // Only a person has an address; a machine client never gets the mail.
-    private static MailboxAddress? DeclarerAddress(DeclarerInfo declarer)
-        => declarer.Kind == DeclarerKind.User && TryParseAddress(declarer.Email, out var mailbox)
-            ? new MailboxAddress(declarer.Name, mailbox.Address)
-            : null;
+    // A person gets the mail at the own address; a machine client has none and gets it through the users responsible for it.
+    private static IEnumerable<MailboxAddress> DeclarerAddresses(DeclarerInfo declarer)
+    {
+        IEnumerable<(string Name, string? Email)> contacts = declarer.Kind == DeclarerKind.User
+            ? [(declarer.Name, declarer.Email)]
+            : declarer.ResponsibleUsers.Select(user => (user.Name, (string?)user.Email));
+
+        foreach (var (name, email) in contacts)
+        {
+            if (TryParseAddress(email, out var mailbox))
+                yield return new MailboxAddress(name, mailbox.Address);
+        }
+    }
 
     private static List<MailboxAddress> ParseAddresses(IReadOnlyList<string>? addresses, string parameterName)
         => (addresses ?? []).Select(address => ParseAddress(address, parameterName)).ToList();

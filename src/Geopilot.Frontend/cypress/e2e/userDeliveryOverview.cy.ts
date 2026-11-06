@@ -26,6 +26,11 @@ describe("User Delivery Overview tests", () => {
       .find('[role="columnheader"][data-field="date"]')
       .should("have.attr", "aria-sort", "descending");
 
+    // Who delivered, so the own deliveries stand apart from those of a machine client the user is responsible for.
+    cy.dataCy("deliveryOverview-grid").find('[role="columnheader"][data-field="userName"]').contains("Delivered by");
+    // The name of the identity provider, which replaced the seeded one when the uploader signed in.
+    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Ursula Uploader");
+
     // Unsorted, in the order of the server
     cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");

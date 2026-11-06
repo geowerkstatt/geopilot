@@ -372,7 +372,7 @@ volumes:
 
 ## Löschen von Lieferungen
 
-Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.
+Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, und die eines Maschinen-Clients, für den sie verantwortlich sind, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.
 
 ```json
 "Delivery": {
