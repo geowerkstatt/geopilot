@@ -582,6 +582,20 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task EditRefusesInvalidMetadataFields()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+            toEdit.MetadataFields = [new MetadataField("1abc", TestHelpers.Localized("Projekt"), MetadataFieldType.Text, FieldEvaluationType.Optional)];
+
+            var result = await mandateController.Edit(toEdit);
+
+            var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
+            StringAssert.Contains(Assert.IsInstanceOfType<string>(badRequest.Value), "<1abc>");
+            var reloaded = await context.MandatesWithIncludes.AsNoTracking().SingleAsync(m => m.Id == toEdit.Id);
+            Assert.IsEmpty(reloaded.MetadataFields);
+        }
+
+        [TestMethod]
         public async Task EditMandateKeepsTheReactionSetWhenTheValuesAreLeftOut()
         {
             var toEdit = await CreateMandateWithReactionSet();
