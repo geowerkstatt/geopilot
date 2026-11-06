@@ -11,6 +11,11 @@ namespace Geopilot.Api.Models;
 public class PipelineRun
 {
     /// <summary>
+    /// How many characters the client reference of a machine delivery may have, wherever it is accepted.
+    /// </summary>
+    public const int ClientReferenceMaxLength = 128;
+
+    /// <summary>
     /// The unique identifier for the run record.
     /// </summary>
     public int Id { get; set; }
@@ -77,6 +82,13 @@ public class PipelineRun
     /// Makes unattended machine deliveries countable (re-evaluation trigger of ADR 0010).
     /// </summary>
     public ClientKind ClientKind { get; set; }
+
+    /// <summary>
+    /// The client's own identifier of the delivery a machine delivery attempt belongs to, as sent with the attempt,
+    /// or <see langword="null"/> when it carried none. Attempts of one delivery share it, which is all the list of
+    /// runs needs to group them; it is never checked against earlier attempts.
+    /// </summary>
+    public string? ClientReference { get; set; }
 
     /// <summary>
     /// The id of the upload whose files the run processed.

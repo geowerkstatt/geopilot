@@ -146,6 +146,10 @@ public class SubmissionController : ControllerBase
         }
 
         var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment);
+        var clientReference = ReadClientReference(request.ClientReference, nameof(SubmissionRequest.ClientReference));
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
         var fieldErrors = await ValidateDeliveryFieldsAsync(mandate.Id, fields, cancellationToken);
         if (fieldErrors.Count > 0)
         {
@@ -166,7 +170,7 @@ public class SubmissionController : ControllerBase
         ProcessingJob job;
         try
         {
-            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer, fields);
+            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer, fields, clientReference);
         }
         catch (JobAlreadyActiveException)
         {
@@ -223,7 +227,7 @@ public class SubmissionController : ControllerBase
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // Set when the first file part arrives, which is the moment the fields are complete and checked.
-        (Mandate Mandate, DeliveryFields Fields)? declaration = null;
+        (Mandate Mandate, DeliveryFields Fields, string? ClientReference)? declaration = null;
         var accepted = false;
 
         try
@@ -265,11 +269,11 @@ public class SubmissionController : ControllerBase
 
                 if (declaration is null)
                 {
-                    var (resolvedMandate, resolvedFields, failure) = await ResolveMandateAsync(fields, declarer, cancellationToken);
+                    var (resolvedMandate, resolvedFields, resolvedReference, failure) = await ResolveMandateAsync(fields, declarer, cancellationToken);
                     if (resolvedMandate is null || resolvedFields is null)
                         return failure ?? BadRequest("The mandate and the delivery details could not be read from the request.");
 
-                    declaration = (resolvedMandate, resolvedFields);
+                    declaration = (resolvedMandate, resolvedFields, resolvedReference);
                 }
 
                 var fileFailure = await StoreFileAsync(section, disposition, declaration.Value.Mandate, directStorage, uploadId, storedFiles, cancellationToken);
@@ -282,10 +286,10 @@ public class SubmissionController : ControllerBase
                 return BadRequest("The request carries no files. Send the mandate and the delivery details as form fields, followed by the files.");
             }
 
-            var (mandate, deliveryFields) = declaration.Value;
+            var (mandate, deliveryFields, clientReference) = declaration.Value;
             uploadStore.CreateUpload(uploadId, storedFiles.ToImmutableList());
 
-            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer, deliveryFields);
+            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer, deliveryFields, clientReference);
             accepted = true;
 
             logger.LogInformation("Accepted machine delivery <{JobId}> with {FileCount} files for mandate <{MandateId}>.", job.Id, storedFiles.Count, mandate.Id);
@@ -432,7 +436,7 @@ public class SubmissionController : ControllerBase
                 new Dictionary<string, string> { ["en"] = job.DeclarationFailure }));
         }
 
-        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, deliveryId, messages, downloads);
+        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, job.DeliveryIntent?.ClientReference, deliveryId, messages, downloads);
     }
 
     private static SubmissionState DeriveState(ProcessingJob job, int? deliveryId)
@@ -464,30 +468,31 @@ public class SubmissionController : ControllerBase
         _ => SubmissionMessageSeverity.Info,
     };
 
-    private async Task<(Mandate? Mandate, DeliveryFields? Fields, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, Declarer declarer, CancellationToken cancellationToken)
+    private async Task<(Mandate? Mandate, DeliveryFields? Fields, string? ClientReference, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, Declarer declarer, CancellationToken cancellationToken)
     {
         if (!fields.TryGetValue("mandateKey", out var mandateKey) || string.IsNullOrWhiteSpace(mandateKey))
-            return (null, null, BadRequest("The form field <mandateKey> is required and must be sent before the files."));
+            return (null, null, null, BadRequest("The form field <mandateKey> is required and must be sent before the files."));
 
         // The key is free text from the request: it may be reflected to its sender, but it must not reach the log.
         var mandate = await mandateService.GetMandateByKeyAsync(mandateKey, declarer);
         if (mandate is null)
         {
             logger.LogInformation("A machine delivery was refused because no accessible mandate carries the given key.");
-            return (null, null, NotFound($"No mandate with key <{mandateKey}> found."));
+            return (null, null, null, NotFound($"No mandate with key <{mandateKey}> found."));
         }
 
         // Without an upload id this covers everything but the file types, which are checked per file below.
         var deliverability = await mandateService.GetDeliverabilityAsync(mandate, uploadId: null);
         if (deliverability == MandateDeliverability.DeliveryNotAllowed)
-            return (null, null, Conflict($"Mandate <{mandateKey}> does not accept deliveries."));
+            return (null, null, null, Conflict($"Mandate <{mandateKey}> does not accept deliveries."));
 
         if (deliverability == MandateDeliverability.PipelineNotConfigured)
-            return (null, null, Conflict($"Mandate <{mandateKey}> names no pipeline this installation offers, which is a configuration issue of the installation."));
+            return (null, null, null, Conflict($"Mandate <{mandateKey}> names no pipeline this installation offers, which is a configuration issue of the installation."));
 
         var deliveryFields = ReadDeliveryFields(fields);
+        var clientReference = ReadClientReference(fields.GetValueOrDefault("clientReference"), "clientReference");
         if (!ModelState.IsValid)
-            return (null, null, ValidationProblem(ModelState));
+            return (null, null, null, ValidationProblem(ModelState));
 
         var fieldErrors = await ValidateDeliveryFieldsAsync(mandate.Id, deliveryFields, cancellationToken);
         if (fieldErrors.Count > 0)
@@ -500,10 +505,10 @@ public class SubmissionController : ControllerBase
                 }
             }
 
-            return (null, null, ValidationProblem(ModelState));
+            return (null, null, null, ValidationProblem(ModelState));
         }
 
-        return (mandate, deliveryFields, null);
+        return (mandate, deliveryFields, clientReference, null);
     }
 
     private DeliveryFields ReadDeliveryFields(Dictionary<string, string> fields)
@@ -528,6 +533,26 @@ public class SubmissionController : ControllerBase
 
         fields.TryGetValue("comment", out var comment);
         return new DeliveryFields(partialDelivery, precursorDeliveryId, comment);
+    }
+
+    /// <summary>
+    /// Reads the caller's own identifier of the delivery, trimmed; nothing but white space means none. The protocol
+    /// keeps it as sent, so what its column cannot hold is refused, and so is an invisible character, which would make
+    /// two references that look alike two deliveries. Free text from the request: it may be reflected to its sender,
+    /// but it must not reach the log.
+    /// </summary>
+    private string? ReadClientReference(string? value, string fieldName)
+    {
+        var reference = value?.Trim();
+        if (string.IsNullOrEmpty(reference))
+            return null;
+
+        if (reference.Length > PipelineRun.ClientReferenceMaxLength)
+            ModelState.AddModelError(fieldName, $"Must be at most {PipelineRun.ClientReferenceMaxLength} characters.");
+        else if (reference.Any(StringExtensions.IsControlOrFormat))
+            ModelState.AddModelError(fieldName, "Must not contain control or invisible format characters.");
+
+        return reference;
     }
 
     private async Task<IActionResult?> StoreFileAsync(

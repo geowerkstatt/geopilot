@@ -10,6 +10,7 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 - der gelaufenen Pipeline und einem **Definitions-Snapshot** (siehe unten),
 - Mandat und Urheber, entweder der Benutzer oder der Maschinen-Client (`UserId` oder `MachineClientId`, nie beide zugleich, was die Datenbank erzwingt; beide leer, wenn der Job anonym auf einem öffentlichen Mandat gestartet wurde; anonym darf prozessiert, aber nicht geliefert werden, und wer die Lieferung deklariert hat, steht an der Lieferung selbst) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert. Die Art des Clients sagt, auf welchem Weg der Job gestartet wurde, nicht von wem: eine Person, die die API direkt aufruft, etwa aus Swagger, ist ebenso `ApiClient` wie ein Maschinen-Client, und wer es war, steht in den beiden Id-Spalten,
+- bei einer maschinellen Lieferung der Kennung, die der Client für die Lieferung mitgeschickt hat (`ClientReference`), so wie sie kam, ohne Prüfung gegen frühere Versuche. Versuche mit derselben Kennung, demselben Urheber und demselben Mandat sind Versuche derselben Lieferung,
 - dem Upload-Manifest (`PipelineRunFiles`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
 - dem Resultat des Virenscans (`Clean`, `ThreatDetected` mit Details, oder `NotScanned` wenn die Prüfung deaktiviert ist),
 - der Applikationsversion und allen Zeitstempeln in UTC.
@@ -50,6 +51,7 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen, die Modell-Repositori
 
 Administratoren können das Protokoll über die API lesen:
 
+- `GET api/v1/pipelinerun`: die Läufe seitenweise, neueste zuerst, gefiltert nach Zeitraum, Mandat, Urheber und Zustand. Die Versuche einer Lieferung bilden eine Gruppe und zählen beim Blättern als eine Zeile; ein Lauf ohne `ClientReference` ist eine Gruppe für sich. Eine Gruppe erscheint, wenn einer ihrer Versuche im Zeitraum liegt, der Zustand gilt ihrem neuesten Versuch, und die früheren Versuche kommen mit, auch die ausserhalb des Zeitraums.
 - `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten, Condition-Auswertungen, Artefaktnamen und den Zustellversuchen der Reaktionen (`reactionEvents`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
@@ -78,6 +80,12 @@ SELECT "PipelineId", "Definition", count(*), min("StartedAt"), max("StartedAt")
 FROM "PipelineRuns"
 GROUP BY "PipelineId", "Definition";
 
+-- Alle Versuche einer maschinellen Lieferung, ältester zuerst.
+SELECT "JobId", "StartedAt", "TerminalState"
+FROM "PipelineRuns"
+WHERE "ClientReference" = 'LIEF-2026-0815' AND "MachineClientId" = 3 AND "MandateId" = 7
+ORDER BY "StartedAt";
+
 -- Wie wurde Delivery X weitergegeben?
 SELECT e."ReactionId", e."Attempt", e."OccurredAt", e."FinishedAt", e."State", e."Message"
 FROM "PipelineRunReactionEvents" e
@@ -87,7 +95,7 @@ ORDER BY e."OccurredAt", e."Id";
 
 ## Aufbewahrung
 
-`Processing:ProtocolRetention` (Standard: 3650 Tage) bestimmt, wie lange Protokoll-Datensätze aufbewahrt werden, unabhängig von der viel kürzeren `Processing:JobRetention`. Der Aufräumdienst löscht ältere Läufe samt Kind-Datensätzen. Ist der Schlüssel nicht gesetzt, wird nie gelöscht: ein fehlender Konfigurationswert kann das Protokoll nicht stillschweigend leeren. Die Frist ist mit den Datenschutz-Anforderungen des Betreibers abzustimmen, das Protokoll enthält Benutzerreferenzen und Dateinamen.
+`Processing:ProtocolRetention` (Standard: 3650 Tage) bestimmt, wie lange Protokoll-Datensätze aufbewahrt werden, unabhängig von der viel kürzeren `Processing:JobRetention`. Der Aufräumdienst löscht ältere Läufe samt Kind-Datensätzen. Ist der Schlüssel nicht gesetzt, wird nie gelöscht: ein fehlender Konfigurationswert kann das Protokoll nicht stillschweigend leeren. Die Frist ist mit den Datenschutz-Anforderungen des Betreibers abzustimmen, das Protokoll enthält Benutzerreferenzen und Dateinamen, und mit der `ClientReference` einen Freitext, den ein Client für seine Lieferungen wählt.
 
 ## Dateien
 

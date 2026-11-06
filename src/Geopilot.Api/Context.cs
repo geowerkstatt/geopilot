@@ -313,6 +313,7 @@ public class Context : DbContext
             run.HasIndex(r => r.JobId).IsUnique();
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
+            run.Property(r => r.ClientReference).HasMaxLength(PipelineRun.ClientReferenceMaxLength);
             run.Property(r => r.ScanState).HasConversion<string>();
             run.Property(r => r.TerminalState).HasConversion<string>();
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Api.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Api.Contracts;
 
@@ -36,4 +37,13 @@ public class SubmissionRequest
     /// The comment accompanying the delivery. Required, optional or rejected, depending on the mandate.
     /// </summary>
     public string? Comment { get; set; }
+
+    /// <summary>
+    /// Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
+    /// the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
+    /// control or invisible format characters; white space at either end is dropped, and nothing but white space
+    /// counts as none. Never checked against earlier attempts.
+    /// </summary>
+    [MaxLength(PipelineRun.ClientReferenceMaxLength)]
+    public string? ClientReference { get; set; }
 }

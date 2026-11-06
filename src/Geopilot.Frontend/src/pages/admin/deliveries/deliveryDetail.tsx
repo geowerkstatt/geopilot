@@ -112,7 +112,12 @@ export const DeliveryDetail: FC = () => {
           {delivery.partial != null && (
             <SummaryField label="partialDelivery">{t(delivery.partial ? "yes" : "no")}</SummaryField>
           )}
-          <SummaryField label="jobId">{delivery.jobId}</SummaryField>
+          <SummaryField label="jobId">
+            {`${delivery.jobId} `}
+            <Link component={RouterLink} to={`/admin/pipeline-runs/${delivery.jobId}`} data-cy="showPipelineRun">
+              {t("showPipelineRun")}
+            </Link>
+          </SummaryField>
           <SummaryField label="files">
             {delivery.files.map((file, index) => (
               <Fragment key={file.id}>

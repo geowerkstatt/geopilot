@@ -10,4 +10,6 @@ namespace Geopilot.Api.Processing;
 /// may read the attempt.</param>
 /// <param name="MandateKey">The key of the mandate, echoed in the status of the attempt.</param>
 /// <param name="Fields">The delivery fields the caller supplied up front.</param>
-public sealed record DeliveryIntent(Declarer Declarer, string MandateKey, DeliveryFields Fields);
+/// <param name="ClientReference">The caller's own identifier of the delivery, recorded with the run and echoed in the
+/// status of the attempt, or <see langword="null"/> when the attempt carries none.</param>
+public sealed record DeliveryIntent(Declarer Declarer, string MandateKey, DeliveryFields Fields, string? ClientReference = null);

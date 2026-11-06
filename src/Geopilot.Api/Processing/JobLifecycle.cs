@@ -59,6 +59,8 @@ public class JobLifecycle
     /// <param name="deliveryFields">The delivery fields of a machine delivery, which geopilot then declares itself
     /// once the run allows it (see <see cref="ProcessingJob.DeliveryIntent"/>); <see langword="null"/> for a start
     /// whose delivery is declared by hand, if at all.</param>
+    /// <param name="clientReference">The caller's own identifier of the delivery, kept in the intent and thereby in
+    /// the protocol; without <paramref name="deliveryFields"/> there is no intent to keep it in.</param>
     /// <returns>The pending job with its pipeline attached.</returns>
     /// <exception cref="ArgumentException">If <paramref name="deliveryFields"/> come without a
     /// <paramref name="declarer"/> to declare the delivery for.</exception>
@@ -68,7 +70,7 @@ public class JobLifecycle
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
     /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
     /// </remarks>
-    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer, bool isDeclarable, DeliveryFields? deliveryFields)
+    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer, bool isDeclarable, DeliveryFields? deliveryFields, string? clientReference)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(mandate);
@@ -80,7 +82,8 @@ public class JobLifecycle
             : new DeliveryIntent(
                 declarer ?? throw new ArgumentException("A delivery can only be declared for a known declarer.", nameof(declarer)),
                 mandate.Key ?? string.Empty,
-                deliveryFields);
+                deliveryFields,
+                clientReference);
 
         var job = jobStore.CreateJob(upload.Id, isDeclarable, deliveryIntent);
         IPipeline? pipeline = null;

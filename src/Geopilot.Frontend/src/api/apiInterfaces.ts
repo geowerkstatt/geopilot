@@ -157,6 +157,49 @@ export interface TableVisualizationConfig {
 }
 
 /**
+ * The definition snapshot a pipeline run executed on, as GET api/v1/pipelinerun/{jobId}/definition passes it through:
+ * shaped like a definition file, so its keys are the YAML keys. Every part is optional, as older snapshots may lack it.
+ */
+export interface DefinitionSnapshot {
+  pipelines?: SnapshotPipeline[];
+  processes?: SnapshotProcess[];
+  /** The base configuration of the installation, per process implementation. */
+  process_configs?: Record<string, Record<string, unknown>>;
+}
+
+/** The pipeline of a definition snapshot. */
+interface SnapshotPipeline {
+  id?: string;
+  display_name?: LocalizedText;
+  steps?: SnapshotStep[];
+}
+
+/** A step of the pipeline in a definition snapshot. */
+interface SnapshotStep {
+  id?: string;
+  display_name?: LocalizedText;
+  process_id?: string;
+  process_config_overwrites?: Record<string, unknown>;
+  input?: Record<string, unknown>;
+  output_actions?: { property?: string; actions?: string[] }[];
+  /** The conditions per phase, keyed by their kind such as fail_conditions. */
+  conditions?: { pre?: Record<string, SnapshotCondition[]>; post?: Record<string, SnapshotCondition[]> };
+}
+
+/** A condition of a step in a definition snapshot. */
+interface SnapshotCondition {
+  id?: string;
+  expression?: string;
+}
+
+/** A process catalog entry in a definition snapshot. */
+interface SnapshotProcess {
+  id?: string;
+  implementation?: string;
+  default_config?: Record<string, unknown>;
+}
+
+/**
  * A processing job as used throughout the app: identical to {@link ProcessingJobResponse} except the
  * job-level {@link state} has been normalized to the shared {@link StepState} (see {@link normalizeProcessingJob}).
  */

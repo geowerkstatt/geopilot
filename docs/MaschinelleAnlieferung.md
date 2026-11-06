@@ -49,6 +49,7 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 {
   "mandateKey": "av-2026",
   "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
+  "clientReference": "LIEF-2026-0815",
   "comment": "Nachlieferung Perimeter Nord",
   "partialDelivery": false,
   "precursorDeliveryId": 42
@@ -56,6 +57,8 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 ```
 
 `mandateKey` und `uploadId` sind Pflicht. Ob `comment`, `partialDelivery` und `precursorDeliveryId` verboten, erlaubt oder Pflicht sind, legt das Mandat fest.
+
+`clientReference` ist optional: die eigene Kennung des Clients für die Lieferung, etwa seine Lieferungsnummer. Der Client schickt bei jedem Versuch derselben Lieferung dieselbe Kennung mit, ob er nach `failed` dieselben Daten oder nach `rejected` korrigierte schickt. Vergeben muss sie der Client, weil ein gescheiterter Versuch oft gar keine Id von geopilot erhält, etwa bei `503` oder einem Timeout vor der Antwort. geopilot hält die Kennung im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) fest, gibt sie im Statusdokument zurück und fasst in der Übersicht der Verarbeitungen die Versuche mit derselben Kennung, vom selben Absender und für dasselbe Mandat zusammen. Leerzeichen und Zeilenumbrüche am Anfang und am Ende fallen weg, danach wird exakt verglichen, Gross- und Kleinschreibung eingeschlossen; eine Kennung nur aus solchen Zeichen gilt als keine. Die Kennung darf höchstens 128 Zeichen lang sein und keine Steuer- oder unsichtbaren Formatzeichen enthalten, die zwei gleich aussehende Kennungen zu zwei Lieferungen machen würden; sonst antwortet geopilot mit `400`. Darüber hinaus prüft geopilot sie nicht, auch nicht gegen frühere Versuche.
 
 ### Variante mit Dateien im Request
 
@@ -65,6 +68,7 @@ Ein Aufruf genügt. Die Formularfelder heissen wie die JSON-Felder oben, ohne `u
 curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -H "Authorization: Bearer $TOKEN" \
   -F "mandateKey=av-2026" \
+  -F "clientReference=LIEF-2026-0815" \
   -F "comment=Nachlieferung Perimeter Nord" \
   -F "file=@lieferung.xtf"
 ```
@@ -86,6 +90,7 @@ Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpun
   "id": "3f7a2b91-8c4d-4e5f-a1b2-c3d4e5f60718",
   "state": "rejected",
   "mandateKey": "av-2026",
+  "clientReference": "LIEF-2026-0815",
   "deliveryId": null,
   "messages": [
     {
@@ -121,6 +126,8 @@ Ein fertiger Lauf bleibt kurz auf `processing`, bis die Lieferung geschrieben is
 
 `messages` sammelt, was die Schritte gemeldet haben, je mit Schritt und Gewicht (`info`, `warning`, `error`). Die Texte sind mehrsprachig, wie überall in geopilot.
 
+`clientReference` ist die Kennung der Lieferung, die der Versuch trug, oder `null`, wenn er keine trug.
+
 ## Was der Lauf zum Herunterladen anbietet
 
 Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in `downloads`, je mit dem Schritt, der es erzeugt hat. Was das ist, entscheidet die Pipeline-Definition: bei der mitgelieferten XTF-Validierung ist es das Validierungsprotokoll, eine andere Pipeline kann dort einen Bericht oder umgewandelte Daten anbieten. geopilot weiss nur, dass die Datei zum Herunterladen markiert wurde.
@@ -140,7 +147,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | Code | Wann |
 | --- | --- |
 | `202` | Der Versuch ist angenommen und läuft. |
-| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
+| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, die `clientReference` ist zu lang oder enthält Steuer- oder unsichtbare Formatzeichen, oder die Lieferangaben verletzen die Regeln des Mandats (die beiden letzten als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |

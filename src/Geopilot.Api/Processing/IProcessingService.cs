@@ -18,11 +18,13 @@ public interface IProcessingService
     /// <param name="deliveryFields">The delivery fields of a machine delivery, whose delivery geopilot then declares
     /// itself once the run allows it; <see langword="null"/> for a start whose delivery is declared by hand, if at
     /// all. Requires a <paramref name="declarer"/>.</param>
+    /// <param name="clientReference">The caller's own identifier of the delivery, already trimmed, which the protocol
+    /// records; kept only together with <paramref name="deliveryFields"/>.</param>
     /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists, or
     /// <paramref name="deliveryFields"/> come without a <paramref name="declarer"/>.</exception>
     /// <exception cref="InvalidOperationException">If the job could not be started with the given mandate.</exception>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>
-    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer, DeliveryFields? deliveryFields);
+    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Declarer? declarer, DeliveryFields? deliveryFields, string? clientReference);
 
     /// <summary>
     /// Gets the processing job.
