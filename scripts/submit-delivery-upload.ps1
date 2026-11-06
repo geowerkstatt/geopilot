@@ -54,6 +54,10 @@
 .PARAMETER PrecursorDeliveryId
     The delivery this one supersedes. Left out when not given; the mandate decides whether it has to be given.
 
+.PARAMETER ClientReference
+    Your own identifier of the delivery, such as your delivery number. Give the same one with every attempt of the
+    same delivery, so geopilot shows the attempts together. Left out when not given.
+
 .PARAMETER PollSeconds
     Seconds between two status requests.
 
@@ -82,6 +86,7 @@ param(
     [string]$Comment,
     [nullable[bool]]$PartialDelivery,
     [nullable[int]]$PrecursorDeliveryId,
+    [string]$ClientReference,
     [int]$PollSeconds = 5,
     [int]$TimeoutMinutes = 30,
     [switch]$SkipCertificateCheck
@@ -259,6 +264,7 @@ $request = @{ mandateKey = $MandateKey; uploadId = $upload.uploadId }
 if ($Comment) { $request.comment = $Comment }
 if ($null -ne $PartialDelivery) { $request.partialDelivery = $PartialDelivery }
 if ($null -ne $PrecursorDeliveryId) { $request.precursorDeliveryId = $PrecursorDeliveryId }
+if ($ClientReference) { $request.clientReference = $ClientReference }
 
 $submission = Invoke-Submission ($request | ConvertTo-Json)
 Write-Host "Accepted as attempt $($submission.Response.id); status at $($submission.StatusUrl)"
