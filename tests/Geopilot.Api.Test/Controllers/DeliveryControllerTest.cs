@@ -1108,6 +1108,30 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task CreateRefusesAMissingRequiredMetadataValue()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(
+            new Mandate
+            {
+                Name = TestHelpers.Localized(nameof(CreateRefusesAMissingRequiredMetadataValue)),
+                EvaluateComment = FieldEvaluationType.NotEvaluated,
+                EvaluatePartial = FieldEvaluationType.NotEvaluated,
+                EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+                AllowDelivery = true,
+                MetadataFields = [new MetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Required)],
+            });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupProcessingJob(mandate.Id);
+
+        // A request that bypasses the form: no metadata at all.
+        var result = await deliveryController.Create(new DeliveryRequest { JobId = jobId });
+
+        var problem = Assert.IsInstanceOfType<ValidationProblemDetails>((result as ObjectResult)?.Value);
+        Assert.IsTrue(problem.Errors.ContainsKey("metadata.project_number"));
+        Assert.IsFalse(context.Deliveries.Any(d => d.JobId == jobId));
+    }
+
+    [TestMethod]
     public async Task GetByIdReturnsTheMetadataCopy()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
