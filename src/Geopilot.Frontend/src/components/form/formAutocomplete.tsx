@@ -14,6 +14,8 @@ export interface FormAutocompleteProps<T> {
   label: TranslationKey;
   required?: boolean;
   disabled?: boolean;
+  /** Shows the selection without letting it change; unlike `disabled`, the chips stay links. */
+  readOnly?: boolean;
   /** Selected values: the default value in form-context mode, the controlled value when `onChange` is provided. */
   selected?: T[];
   values?: T[];
@@ -69,6 +71,7 @@ export const FormAutocomplete = <T,>({
   label,
   required,
   disabled,
+  readOnly,
   selected,
   values,
   valueFormatter,
@@ -126,6 +129,7 @@ export const FormAutocomplete = <T,>({
       popupIcon={<ExpandMoreIcon />}
       multiple
       disabled={disabled ?? false}
+      readOnly={readOnly ?? false}
       value={value}
       onChange={handleChange}
       renderValue={(tagValue, getItemProps) => (

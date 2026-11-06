@@ -206,6 +206,8 @@
   "reactions": "Reactions",
   "removeFile": "Remove file",
   "reset": "Reset",
+  "responsibleForMachineClients": "Responsible for machine clients",
+  "responsibleUsers": "Responsible users",
   "restart": "Restart",
   "restartPrompt": "Do you really want to restart the delivery? This will reset all steps and cannot be undone.",
   "retry": "Retry",

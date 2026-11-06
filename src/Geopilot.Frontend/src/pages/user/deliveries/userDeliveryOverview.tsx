@@ -11,7 +11,7 @@ export const UserDeliveryOverview = () => {
       <Typography variant="h2">{t("myDeliveries")}</Typography>
       <DeliveryGrid
         fetchUrl="/api/v1/delivery/uploads"
-        columns={["date", "mandateName", "comment"]}
+        columns={["date", "userName", "mandateName", "comment"]}
         rowAction="delete"
       />
     </CenteredContent>

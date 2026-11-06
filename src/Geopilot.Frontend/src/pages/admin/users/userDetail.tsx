@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { UserFormValues } from "../../../api/apiInterfaces.ts";
-import { Organisation, User, UserState } from "../../../api/generated";
+import { MachineClient, Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -28,6 +29,7 @@ const prepareUserForForm = (user: User): UserFormValues => {
 const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
+  const { machineDeliveryEnabled } = useCapabilities();
   const { fetchApi } = useFetch();
   const { id } = useParams<{ id: string }>();
 
@@ -74,7 +76,9 @@ const UserDetail = () => {
       editedUser.state = editableUser?.state ?? UserState.Inactive;
     }
 
+    // Only shown here: who is responsible for a machine client is set on the page of the client.
     delete editedUser.deliveries;
+    delete editedUser.responsibleForMachineClients;
     return editedUser;
   };
 
@@ -128,6 +132,19 @@ const UserDetail = () => {
               })}
             />
           </FormContainer>
+          {machineDeliveryEnabled && (
+            <FormContainer>
+              <FormAutocomplete<MachineClient>
+                fieldName={"responsibleForMachineClients"}
+                label={"responsibleForMachineClients"}
+                readOnly={true}
+                values={editableUser?.responsibleForMachineClients}
+                selected={editableUser?.responsibleForMachineClients}
+                linkTo={id => `/admin/machine-clients/${id}`}
+                valueFormatter={client => ({ id: client.id, primaryText: client.name })}
+              />
+            </FormContainer>
+          )}
         </GeopilotBox>
       </AdminDetailForm>
     )

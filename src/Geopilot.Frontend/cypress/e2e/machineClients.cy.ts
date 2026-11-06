@@ -49,6 +49,7 @@ describe("Machine clients tests", () => {
     hasError("authIdentifier", false);
     evaluateCheckbox("isActive", true);
     setAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("responsibleUsers", "Ursula User");
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
     cy.wait("@saveNew").its("response.statusCode").should("eq", 201);
@@ -63,6 +64,11 @@ describe("Machine clients tests", () => {
     cy.dataCy("admin-organisations-nav").click();
     getGridRowThatContains("organisations-grid", "Brown and Sons").click();
     getFormField("machineClients").contains(name);
+
+    // And the responsibility from the person, who only sees it there.
+    cy.dataCy("admin-users-nav").click();
+    getGridRowThatContains("users-grid", "Ursula User").click();
+    getFormField("responsibleForMachineClients").contains(name);
   });
 
   it("can edit a machine client and deactivate it", () => {
@@ -83,6 +89,7 @@ describe("Machine clients tests", () => {
     });
     evaluateInput("name", name);
     evaluateAutocomplete("organisations", []);
+    evaluateAutocomplete("responsibleUsers", []);
 
     setInput("name", `${name} updated`);
     toggleCheckbox("isActive");
