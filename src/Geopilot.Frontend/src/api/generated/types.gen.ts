@@ -177,6 +177,10 @@ export type DeliveredMetadataField = {
   };
   type: MetadataFieldType;
   evaluation: FieldEvaluationType;
+  /**
+   * The options of a Geopilot.Api.Models.MetadataFieldType.Selection, null for every other field.
+   * An empty list counts as none, and a field without options leaves the key out of its JSON.
+   */
   options?: Array<MetadataFieldOption> | null;
   value?: unknown;
 };
@@ -646,8 +650,8 @@ export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateVal
 
 /**
  * The definition of an additional field a deliverer fills in for a mandate. The Id is the key
- * of the value in a delivery. Options is set only for Geopilot.Api.Models.MetadataFieldType.Selection.
- * Evaluation is Geopilot.Api.Models.FieldEvaluationType.Optional or Geopilot.Api.Models.FieldEvaluationType.Required.
+ * of the value in a delivery. Evaluation is Geopilot.Api.Models.FieldEvaluationType.Optional or
+ * Geopilot.Api.Models.FieldEvaluationType.Required.
  */
 export type MetadataField = {
   id: string;
@@ -656,6 +660,10 @@ export type MetadataField = {
   };
   type: MetadataFieldType;
   evaluation: FieldEvaluationType;
+  /**
+   * The options of a Geopilot.Api.Models.MetadataFieldType.Selection, null for every other field.
+   * An empty list counts as none, and a field without options leaves the key out of its JSON.
+   */
   options?: Array<MetadataFieldOption> | null;
 };
 

@@ -882,8 +882,6 @@ describe("Mandate with metadata fields", () => {
     title: { de: "Projektnummer", en: "Project number" },
     type: "text",
     evaluation: "required",
-    // The server answers a field without options with null.
-    options: null,
   };
   const responsible: MetadataField = {
     id: "responsible",
@@ -983,7 +981,6 @@ describe("Mandate with metadata fields", () => {
           title: { de: "Projektnummer", en: "", fr: "", it: "" },
           type: "text",
           evaluation: "required",
-          options: [],
         },
         {
           id: "responsible",
@@ -1058,7 +1055,7 @@ describe("Mandate with metadata fields", () => {
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
       expect(body.metadataFields[0].type).to.equal("text");
-      expect(body.metadataFields[0].options).to.deep.equal([]);
+      expect(body.metadataFields[0]).not.to.have.property("options");
     });
   });
 

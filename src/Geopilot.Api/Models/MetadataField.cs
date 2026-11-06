@@ -6,15 +6,23 @@ namespace Geopilot.Api.Models;
 
 /// <summary>
 /// The definition of an additional field a deliverer fills in for a mandate. The <paramref name="Id"/> is the key
-/// of the value in a delivery. <paramref name="Options"/> is set only for <see cref="MetadataFieldType.Selection"/>.
-/// <paramref name="Evaluation"/> is <see cref="FieldEvaluationType.Optional"/> or <see cref="FieldEvaluationType.Required"/>.
+/// of the value in a delivery. <paramref name="Evaluation"/> is <see cref="FieldEvaluationType.Optional"/> or
+/// <see cref="FieldEvaluationType.Required"/>.
 /// </summary>
 public record MetadataField(
     string Id,
     LocalizedText Title,
     MetadataFieldType Type,
     FieldEvaluationType Evaluation,
-    IReadOnlyList<MetadataFieldOption>? Options = null);
+    IReadOnlyList<MetadataFieldOption>? Options = null)
+{
+    /// <summary>
+    /// The options of a <see cref="MetadataFieldType.Selection"/>, <see langword="null"/> for every other field.
+    /// An empty list counts as none, and a field without options leaves the key out of its JSON.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<MetadataFieldOption>? Options { get; init; } = Options is { Count: 0 } ? null : Options;
+}
 
 /// <summary>
 /// One option of a <see cref="MetadataFieldType.Selection"/> field. The <paramref name="Id"/> is what a delivery

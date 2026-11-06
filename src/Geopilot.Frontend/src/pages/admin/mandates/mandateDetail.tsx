@@ -124,10 +124,10 @@ const MandateDetail = () => {
       mandate.reactionSetValues = {};
     }
 
-    // Only a selection has options. A field switched away from one still holds them in the form, which the server
-    // would refuse.
+    // Only a selection has options, so every other field leaves them out, like the server does. A field switched away
+    // from a selection still holds them in the form.
     mandate.metadataFields = mandate.metadataFields.map(field =>
-      field.type === MetadataFieldType.Selection ? field : { ...field, options: [] },
+      field.type === MetadataFieldType.Selection ? field : { ...field, options: undefined },
     );
 
     return mandate;

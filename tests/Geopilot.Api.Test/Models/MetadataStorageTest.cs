@@ -32,7 +32,7 @@ public class MetadataStorageTest
                         new MetadataFieldOption("canton", TestHelpers.Localized("Kanton")),
                         new MetadataFieldOption("municipality", TestHelpers.Localized("Gemeinde")),
                     ]),
-                new MetadataField("project_number", TestHelpers.Localized("Projektnummer"), MetadataFieldType.Text, FieldEvaluationType.Optional),
+                new MetadataField("project_number", TestHelpers.Localized("Projektnummer"), MetadataFieldType.Text, FieldEvaluationType.Optional, []),
                 new MetadataField("pieces", TestHelpers.Localized("Anzahl"), MetadataFieldType.WholeNumber, FieldEvaluationType.Optional),
                 new MetadataField("area", TestHelpers.Localized("Fläche"), MetadataFieldType.DecimalNumber, FieldEvaluationType.Optional),
             ],
@@ -51,6 +51,7 @@ public class MetadataStorageTest
         Assert.AreEqual("Zuständig", fields[0].GetProperty("title").GetProperty("de").GetString());
         Assert.AreEqual("municipality", fields[0].GetProperty("options")[1].GetProperty("id").GetString());
         Assert.AreEqual("text", fields[1].GetProperty("type").GetString());
+        Assert.IsFalse(fields[1].TryGetProperty("options", out _), "An empty list of options counts as none and is left out.");
         Assert.AreEqual("integer", fields[2].GetProperty("type").GetString());
         Assert.AreEqual("decimal", fields[3].GetProperty("type").GetString());
     }
