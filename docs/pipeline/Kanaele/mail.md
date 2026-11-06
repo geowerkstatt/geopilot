@@ -1,6 +1,6 @@
 # Mail
 
-Schickt eine Mail über eine weitergegebene Lieferung, etwa an die Stelle, welche sie übernimmt. Der Mail-Kanal ist eine Benachrichtigung (`notifications`): Er läuft, sobald die Lieferung weitergegeben ist, und ändert ihren Zustand nie. Mit dem Schalter `includeDeclarer` geht dieselbe Mail auch an den Lieferanten und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
+Schickt eine Mail über eine weitergegebene Lieferung, etwa an die Stelle, welche sie übernimmt. Der Mail-Kanal ist eine Benachrichtigung (`notifications`): Er läuft, sobald die Lieferung weitergegeben ist, und ändert ihren Zustand nie. Mit dem Schalter `includeDeclarer` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
 
 ## Implementierung
 
@@ -17,7 +17,7 @@ Ein Mail-Kanal muss unter `channels[X].implementation` den Wert `Geopilot.Pipeli
 | `encryption` | Basis-Konfiguration, optional | `StartTls` (Vorgabe), `SslOnConnect` oder `None`. Ohne Verschlüsselung sendet der Kanal nur ohne Anmeldung, etwa an einen Relay im eigenen Netz. |
 | `template` | Pipeline-Definition (`default_config`, in einer Reaktion überschreibbar) | Der Pfad des Templates relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), siehe [Template](#template). |
 | `to`, `cc`, `bcc` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Listen von Mail-Adressen für `To`, `Cc` und `Bcc`. |
-| `includeDeclarer` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Ob der Lieferant ebenfalls ins `To` kommt. Nicht gesetzt heisst nein. |
+| `includeDeclarer` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Ob der Lieferant ebenfalls ins `To` kommt, bei einer maschinellen Lieferung die für den Client verantwortlichen Personen. Nicht gesetzt heisst nein. |
 
 Die Werte der Basis-Konfiguration setzt nur der Betrieb: Setzt die Pipeline-Definition einen davon, startet geopilot nicht. Server und Absender stehen in den Appsettings:
 
@@ -107,7 +107,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 
 ## Ablauf
 
-- Die Mail geht an `to`, `cc` und `bcc`, und mit `includeDeclarer` an den Lieferanten, sofern er eine Person mit Mail-Adresse ist. Ein Client einer maschinellen Lieferung bekommt keine Mail.
+- Die Mail geht an `to`, `cc` und `bcc`, und mit `includeDeclarer` an den Lieferanten, sofern er eine Person mit Mail-Adresse ist. Bei einer maschinellen Lieferung geht sie an die aktiven Personen, die ein Admin für den Client verantwortlich gemacht hat, so wie die Zuordnung beim Versand steht; der Client selbst hat keine Adresse.
 - Bleibt kein Empfänger, endet die Reaktion ohne Versand und ohne Fehler, mit einer Meldung dazu.
 - Weist der Server einen Empfänger ab, geht die Mail an niemanden hinaus. Der Versuch scheitert mit der abgewiesenen Adresse in der Meldung und wird wiederholt wie jeder andere, zuletzt steht die Reaktion auf `Error`. Ein falscher Empfänger fällt so auf, statt still zu fehlen. Korrigiert wird er am Mandat, für die folgenden Lieferungen.
 - Jeder andere Fehler des Servers zählt gleich: Der Versuch scheitert und wird wiederholt.
@@ -115,7 +115,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 
 ## Personendaten
 
-Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeDeclarer` geht sie an seine Adresse. Weist der Server die Adresse des Lieferanten ab, steht sie in der Meldung der Reaktion und damit im Ausführungsprotokoll.
+Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeDeclarer` geht sie an seine Adresse, bei einem Maschinen-Client an die Adressen der verantwortlichen Personen. Weist der Server eine dieser Adressen ab, steht sie in der Meldung der Reaktion und damit im Ausführungsprotokoll.
 
 ## Betrieb
 
