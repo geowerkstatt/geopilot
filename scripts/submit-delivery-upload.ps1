@@ -1,4 +1,5 @@
 #Requires -Version 7
+
 <#
 .SYNOPSIS
     Delivers files to geopilot as a machine client, on an installation that keeps its uploads in an object storage.
@@ -54,6 +55,11 @@
 .PARAMETER PrecursorDeliveryId
     The delivery this one supersedes. Left out when not given; the mandate decides whether it has to be given.
 
+.PARAMETER Metadata
+    The values of the further fields the mandate defines, keyed by field id. A number goes in as a number,
+    a date as 'yyyy-MM-dd', a selection as the id of the option and a list of texts as an array. Left out
+    when not given; the mandate decides which fields there are and which of them are required.
+
 .PARAMETER PollSeconds
     Seconds between two status requests.
 
@@ -69,6 +75,9 @@
 
 .EXAMPLE
     ./scripts/submit-delivery-upload.ps1 -ApiUrl https://geopilot.example.ch -TokenUrl https://idp.example.ch/oauth2/token -ClientId my-client -ClientSecret '...' -MandateKey av-2026 -File .\a.xtf, .\b.xtf -Comment 'Nachlieferung'
+
+.EXAMPLE
+    ./scripts/submit-delivery-upload.ps1 -MandateKey av-2026 -File .\lieferung.xtf -Metadata @{ project_number = '2026-117'; municipalities = @('Aarau', 'Buchs'); due_date = '2026-11-04' }
 #>
 [CmdletBinding()]
 param(
@@ -82,6 +91,7 @@ param(
     [string]$Comment,
     [nullable[bool]]$PartialDelivery,
     [nullable[int]]$PrecursorDeliveryId,
+    [hashtable]$Metadata,
     [int]$PollSeconds = 5,
     [int]$TimeoutMinutes = 30,
     [switch]$SkipCertificateCheck
@@ -259,6 +269,7 @@ $request = @{ mandateKey = $MandateKey; uploadId = $upload.uploadId }
 if ($Comment) { $request.comment = $Comment }
 if ($null -ne $PartialDelivery) { $request.partialDelivery = $PartialDelivery }
 if ($null -ne $PrecursorDeliveryId) { $request.precursorDeliveryId = $PrecursorDeliveryId }
+if ($null -ne $Metadata) { $request.metadata = $Metadata }
 
 $submission = Invoke-Submission ($request | ConvertTo-Json)
 Write-Host "Accepted as attempt $($submission.Response.id); status at $($submission.StatusUrl)"
