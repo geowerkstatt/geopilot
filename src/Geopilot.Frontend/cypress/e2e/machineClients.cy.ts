@@ -49,7 +49,9 @@ describe("Machine clients tests", () => {
     hasError("authIdentifier", false);
     evaluateCheckbox("isActive", true);
     setAutocomplete("organisations", "Brown and Sons");
-    setAutocomplete("responsibleUsers", "Ursula User");
+    // Signing in replaces the seeded name with the one of the identity provider. Only the admin is named alike in
+    // both, so the name holds no matter which spec signed in first.
+    setAutocomplete("responsibleUsers", "Andreas Admin");
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
     cy.wait("@saveNew").its("response.statusCode").should("eq", 201);
@@ -67,7 +69,7 @@ describe("Machine clients tests", () => {
 
     // And the responsibility from the person, who only sees it there.
     cy.dataCy("admin-users-nav").click();
-    getGridRowThatContains("users-grid", "Ursula User").click();
+    getGridRowThatContains("users-grid", "Andreas Admin").click();
     getFormField("responsibleForMachineClients").contains(name);
   });
 
