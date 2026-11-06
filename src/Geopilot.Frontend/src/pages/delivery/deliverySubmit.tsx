@@ -10,6 +10,7 @@ import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import { DeliveryMetadataFields } from "./deliveryMetadataFields.tsx";
 
 export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
@@ -87,7 +88,9 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
                 />
               </FormContainer>
             ) : null}
+            <DeliveryMetadataFields fields={selectedMandate?.metadataFields ?? []} disabled={completed} />
             {selectedMandate &&
+              selectedMandate.metadataFields.length === 0 &&
               selectedMandate.evaluatePrecursorDelivery === FieldEvaluationType.NotEvaluated &&
               selectedMandate.evaluatePartial === FieldEvaluationType.NotEvaluated &&
               selectedMandate.evaluateComment === FieldEvaluationType.NotEvaluated && (

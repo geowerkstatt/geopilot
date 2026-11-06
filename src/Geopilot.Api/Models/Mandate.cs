@@ -113,6 +113,11 @@ public class Mandate
     public FieldEvaluationType EvaluateComment { get; set; }
 
     /// <summary>
+    /// Additional fields a deliverer fills in, in the order the form shows them.
+    /// </summary>
+    public List<MetadataField> MetadataFields { get; set; } = [];
+
+    /// <summary>
     /// Organisations allowed to deliver data fulfilling the mandate.
     /// </summary>
     public List<Organisation> Organisations { get; set; } = new List<Organisation>();

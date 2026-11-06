@@ -118,6 +118,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             PrecursorDelivery = precursorDelivery,
             Partial = fields.PartialDelivery,
             Comment = fields.Comment?.Trim() ?? string.Empty,
+            Metadata = MetadataFieldValidator.CheckValues(mandate.MetadataFields, fields.Metadata).Snapshot.ToList(),
             Assets = new List<Asset>(),
         };
 

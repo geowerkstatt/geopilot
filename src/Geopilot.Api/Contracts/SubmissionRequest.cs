@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace Geopilot.Api.Contracts;
 
@@ -36,4 +37,10 @@ public class SubmissionRequest
     /// The comment accompanying the delivery. Required, optional or rejected, depending on the mandate.
     /// </summary>
     public string? Comment { get; set; }
+
+    /// <summary>
+    /// The values of the metadata fields of the mandate, keyed by field id. Which fields are required follows the
+    /// mandate.
+    /// </summary>
+    public Dictionary<string, JsonElement>? Metadata { get; set; }
 }

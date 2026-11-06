@@ -1,4 +1,10 @@
-import type { AvailablePipelinesResponse, CapabilitiesResponse, Mandate, Organisation } from "@/api/generated";
+import type {
+  AvailablePipelinesResponse,
+  CapabilitiesResponse,
+  Mandate,
+  MetadataField,
+  Organisation,
+} from "@/api/generated";
 import { MandateValueType } from "@/api/generated";
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers";
 import {
@@ -503,6 +509,7 @@ describe("Mandate with a removed pipeline", () => {
     ],
     organisations: [],
     deliveries: [],
+    metadataFields: [],
     evaluatePrecursorDelivery: "optional",
     evaluatePartial: "required",
     evaluateComment: "notEvaluated",
@@ -571,6 +578,7 @@ describe("Public mandate with organisations", () => {
     ],
     organisations: [organisation],
     deliveries: [],
+    metadataFields: [],
     evaluatePrecursorDelivery: "optional",
     evaluatePartial: "required",
     evaluateComment: "notEvaluated",
@@ -630,6 +638,7 @@ describe("Mandate with a file type in upper case", () => {
     ],
     organisations: [],
     deliveries: [],
+    metadataFields: [],
     evaluatePrecursorDelivery: "optional",
     evaluatePartial: "required",
     evaluateComment: "notEvaluated",
@@ -717,6 +726,7 @@ describe("Mandate with a reaction set", () => {
     ],
     organisations: [],
     deliveries: [],
+    metadataFields: [],
     evaluatePrecursorDelivery: "optional",
     evaluatePartial: "required",
     evaluateComment: "notEvaluated",
@@ -863,5 +873,237 @@ describe("Mandate with a reaction set", () => {
 
     cy.dataCy("stacAccess-formSelect").should("exist");
     cy.dataCy("reactionSetId-formSelect").should("not.exist");
+  });
+});
+
+describe("Mandate with metadata fields", () => {
+  const projectNumber: MetadataField = {
+    id: "project_number",
+    title: { de: "Projektnummer", en: "Project number" },
+    type: "text",
+    evaluation: "required",
+  };
+  const responsible: MetadataField = {
+    id: "responsible",
+    title: { de: "Zuständig", en: "Responsible" },
+    type: "selection",
+    evaluation: "optional",
+    options: [
+      { id: "canton", title: { de: "Kanton", en: "Canton" } },
+      { id: "municipality", title: { de: "Gemeinde", en: "Municipality" } },
+    ],
+  };
+  const mandateWithMetadataFields: Mandate = {
+    id: 9994,
+    name: { de: "Metadata Mandate" },
+    description: { de: "Metadata Mandate Description" },
+    isPublic: false,
+    stacAccess: "adminsOnly",
+    allowDelivery: true,
+    fileTypes: [".xtf"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [],
+    deliveries: [],
+    metadataFields: [projectNumber, responsible],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: "valid-pipeline",
+  };
+
+  const openMandateWith = (metadataFields: MetadataField[]) => {
+    cy.intercept("GET", "/api/v1/mandate/9994", {
+      statusCode: 200,
+      body: { ...mandateWithMetadataFields, metadataFields },
+    }).as("getMandate");
+    cy.visit("/admin/mandates/9994");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+  };
+
+  const savedMandate = () =>
+    cy.wait("@updateMandate").then(({ request }) => {
+      // The intercepted body is parsed JSON, which carries no type of its own.
+      return (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
+    });
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", {
+      statusCode: 200,
+      body: {
+        pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+        reactionSets: [],
+      } satisfies AvailablePipelinesResponse,
+    }).as("getPipelines");
+    cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
+  });
+
+  it("adds metadata fields to a mandate", () => {
+    openMandateWith([]);
+    cy.dataCy("metadataFields-language-tab-de").click();
+
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.0.id", "project_number");
+    setInput("metadataFields.0.title.de", "Projektnummer");
+    toggleCheckbox("metadataFields.0.evaluation");
+
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.1.id", "responsible");
+    setInput("metadataFields.1.title.de", "Zuständig");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // A selection cannot be saved until it has an option. The type select says why, linked for assistive technology.
+    setSelect("metadataFields.1.type", 2, 6);
+    cy.dataCy("metadataFields.1.type-formSelect")
+      .find(".MuiFormHelperText-root")
+      .should("have.text", "A selection needs at least one option")
+      .invoke("attr", "id")
+      .then(id => {
+        cy.dataCy("metadataFields.1.type-formSelect")
+          .find('[role="combobox"]')
+          .should("have.attr", "aria-describedby", id);
+      });
+    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("addMetadataFieldOption-button").click();
+    cy.dataCy("metadataFields.1.type-formSelect").find(".MuiFormHelperText-root").should("not.exist");
+    setInput("metadataFields.1.options.0.id", "canton");
+    setInput("metadataFields.1.options.0.title.de", "Kanton");
+
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.metadataFields).to.deep.equal([
+        {
+          id: "project_number",
+          title: { de: "Projektnummer", en: "", fr: "", it: "" },
+          type: "text",
+          evaluation: "required",
+        },
+        {
+          id: "responsible",
+          title: { de: "Zuständig", en: "", fr: "", it: "" },
+          type: "selection",
+          evaluation: "optional",
+          options: [{ id: "canton", title: { de: "Kanton", en: "", fr: "", it: "" } }],
+        },
+      ]);
+    });
+  });
+
+  it("opens a mandate with metadata fields unchanged", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    evaluateInput("metadataFields.0.id", "project_number");
+    evaluateCheckbox("metadataFields.0.evaluation", true);
+    evaluateSelect("metadataFields.1.type", "selection");
+    evaluateInput("metadataFields.1.options.1.id", "municipality");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
+
+    toggleCheckbox("metadataFields.0.evaluation");
+    cy.dataCy("save-button").should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled").click();
+    evaluateCheckbox("metadataFields.0.evaluation", true);
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
+  });
+
+  it("names the language rows, the fields and their buttons for assistive technology", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
+    cy.dataCy("metadataFields-language-tabs").should(
+      "have.attr",
+      "aria-label",
+      "Input language of the additional fields",
+    );
+    cy.get('[role="group"][aria-label="Field 2"]').within(() => {
+      cy.dataCy("metadataFields.1.id-formInput").should("exist");
+      cy.get('[role="group"][aria-label="Option 2"]').dataCy("metadataFields.1.options.1.id-formInput").should("exist");
+    });
+    cy.dataCy("removeMetadataField-button").eq(1).should("have.attr", "aria-label", "Remove field 2");
+    cy.dataCy("removeMetadataFieldOption-button").eq(1).should("have.attr", "aria-label", "Remove option 2 of field 2");
+  });
+
+  it("switches the language of the titles apart from the general data", () => {
+    openMandateWith([projectNumber]);
+
+    setFormLanguage("de");
+    cy.dataCy("name.de-formInput").should("be.visible");
+    cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
+
+    cy.dataCy("metadataFields-language-tab-de").click();
+    cy.dataCy("metadataFields.0.title.de-formInput").should("be.visible");
+    cy.dataCy("metadataFields-language-tab-en").click();
+    cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
+    cy.dataCy("name.de-formInput").should("be.visible");
+  });
+
+  it("saves a former selection without its options", () => {
+    openMandateWith([responsible]);
+
+    // An option left empty marks its id as required. Once the options are hidden, that must not block saving.
+    cy.dataCy("addMetadataFieldOption-button").click();
+    cy.dataCy("metadataFields.0.options.2.id-formInput").find("input").blur();
+    hasError("metadataFields.0.options.2.id");
+    setSelect("metadataFields.0.type", 0, 6);
+    cy.dataCy("metadataFields.0.options.0.id-formInput").should("not.exist");
+
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.metadataFields[0].type).to.equal("text");
+      expect(body.metadataFields[0]).not.to.have.property("options");
+    });
+  });
+
+  it("refuses an id that does not start with a letter or is reserved", () => {
+    openMandateWith([]);
+
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.0.id", "1abc");
+    hasError("metadataFields.0.id");
+    cy.dataCy("save-button").should("be.disabled");
+
+    setInput("metadataFields.0.id", "abc1");
+    hasError("metadataFields.0.id", false);
+
+    // react-hook-form refuses the word as a path segment, so the delivery form could not hold its value.
+    setInput("metadataFields.0.id", "constructor");
+    hasError("metadataFields.0.id");
+    cy.dataCy("metadataFields.0.id-formInput")
+      .find(".MuiFormHelperText-root")
+      .should("contain", "constructor and prototype are reserved");
+  });
+
+  it("refuses a field id or an option id that is already taken", () => {
+    openMandateWith([responsible]);
+
+    // Both entries are marked, and changing one of them checks the other one again.
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.1.id", "responsible");
+    hasError("metadataFields.0.id");
+    hasError("metadataFields.1.id");
+    cy.dataCy("save-button").should("be.disabled");
+    setInput("metadataFields.1.id", "contact");
+    hasError("metadataFields.0.id", false);
+    hasError("metadataFields.1.id", false);
+    cy.dataCy("save-button").should("be.enabled");
+
+    // An option id only has to be unique within its field. Removing the duplicate checks the remaining ids again.
+    cy.dataCy("addMetadataFieldOption-button").click();
+    setInput("metadataFields.0.options.2.id", "canton");
+    hasError("metadataFields.0.options.0.id");
+    hasError("metadataFields.0.options.2.id");
+    cy.dataCy("save-button").should("be.disabled");
+    // Leaving the input starts an asynchronous check. A browser finishes it before the next input event, but Cypress
+    // could click first, and the late check would mark the removed option again.
+    cy.dataCy("metadataFields.0.options.2.id-formInput").find("input").blur();
+    cy.wait(0);
+    cy.dataCy("removeMetadataFieldOption-button").eq(2).click();
+    hasError("metadataFields.0.options.0.id", false);
+    cy.dataCy("save-button").should("be.enabled");
   });
 });
