@@ -108,6 +108,11 @@ export const PipelineRunDetail: FC = () => {
           </SummaryField>
           <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
           <SummaryField label="processedBy">{formatDeclarer(t, run.declarer, run.clientKind)}</SummaryField>
+          {run.clientReference && (
+            <SummaryField label="clientReference">
+              <TechnicalText>{run.clientReference}</TechnicalText>
+            </SummaryField>
+          )}
           <SummaryField label="mandate">{run.mandate ? localized(run.mandate.name) : run.mandateId}</SummaryField>
           <SummaryField label="pipeline">
             <TechnicalText>{run.pipelineId}</TechnicalText>

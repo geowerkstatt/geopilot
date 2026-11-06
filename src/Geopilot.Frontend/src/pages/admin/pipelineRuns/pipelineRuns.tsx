@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
-import { PipelineRunOutcomeKind, PipelineRunPageResponse, PipelineRunSummaryResponse } from "../../../api/generated";
+import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { PipelineRunAttempts } from "./pipelineRunAttempts.tsx";
 import { PipelineRunFilters } from "./pipelineRunFilters.tsx";
 import { formatDeclarer, formatDuration } from "./pipelineRunFormat.ts";
 import { PipelineRunOutcomeLabel } from "./pipelineRunOutcomeLabel.tsx";
@@ -16,6 +17,7 @@ import {
   toPipelineRunQuery,
   toPipelineRunSearchParams,
 } from "./pipelineRunQuery.ts";
+import { PipelineRunRow, toPipelineRunRows } from "./pipelineRunRows.ts";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 
 /** All pipeline runs of the installation, newest first, paged and filtered on the server. */
@@ -29,6 +31,8 @@ export const PipelineRuns: FC = () => {
   const { filters, page } = readPipelineRunSearchParams(searchParams);
   const [pageSize, setPageSize] = useState(25);
   const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
+  // The deliveries that show their earlier attempts, by the job id of their newest attempt.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
   const query = toPipelineRunQuery(filters, page, pageSize);
   // Loading lasts until the answer to the current query is there, so no effect has to switch it on.
@@ -53,7 +57,27 @@ export const PipelineRuns: FC = () => {
     setSearchParams(toPipelineRunSearchParams(filters, model.page), { replace: true });
   };
 
-  const columns: GridColDef<PipelineRunSummaryResponse>[] = [
+  const toggleExpanded = (jobId: string) =>
+    setExpanded(current => {
+      const next = new Set(current);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+
+  const columns: GridColDef<PipelineRunRow>[] = [
+    {
+      field: "attempts",
+      headerName: t("attempts"),
+      width: 100,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => (
+        <PipelineRunAttempts row={row} expanded={expanded.has(row.jobId)} onToggle={() => toggleExpanded(row.jobId)} />
+      ),
+    },
     {
       field: "startedAt",
       headerName: t("processingStarted"),
@@ -80,7 +104,7 @@ export const PipelineRuns: FC = () => {
       headerName: t("state"),
       width: 210,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunSummaryResponse>) => (
+      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => (
         <ProcessingStateLabel state={row.terminalState} running={row.outcome.kind === PipelineRunOutcomeKind.Running} />
       ),
     },
@@ -90,9 +114,7 @@ export const PipelineRuns: FC = () => {
       flex: 0.6,
       minWidth: 260,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<PipelineRunSummaryResponse>) => (
-        <PipelineRunOutcomeLabel outcome={row.outcome} />
-      ),
+      renderCell: ({ row }: GridRenderCellParams<PipelineRunRow>) => <PipelineRunOutcomeLabel outcome={row.outcome} />,
     },
     {
       field: "duration",
@@ -113,7 +135,7 @@ export const PipelineRuns: FC = () => {
         <GeopilotDataGrid
           name="pipelineRuns"
           loading={isLoading}
-          rows={loaded?.page?.items ?? []}
+          rows={toPipelineRunRows(loaded?.page?.items ?? [], expanded)}
           getRowId={row => row.jobId}
           columns={columns}
           paginationMode="server"
