@@ -51,7 +51,8 @@ public static class ContextSeedExtensions
             .RuleFor(u => u.IsAdmin, f => f.IndexFaker == 0)
             .RuleFor(u => u.State, f => UserState.Active)
             .RuleFor(u => u.Organisations, _ => new List<Organisation>())
-            .RuleFor(u => u.Deliveries, _ => new List<Delivery>());
+            .RuleFor(u => u.Deliveries, _ => new List<Delivery>())
+            .RuleFor(u => u.ResponsibleForMachineClients, _ => new List<MachineClient>());
 
         User SeedUsers(int seed) => userFaker.UseSeed(seed).Generate();
         context.Users.AddRange(Enumerable.Range(0, 10).Select(SeedUsers));

@@ -43,4 +43,11 @@ public class MachineClient
     /// Deliveries the client has declared.
     /// </summary>
     public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
+
+    /// <summary>
+    /// Persons an administrator made responsible for the client. They see its deliveries among their own, may
+    /// delete them like their own and receive the mail a delivery sends to its declarer, but gain no right on
+    /// the client's mandates.
+    /// </summary>
+    public List<User> ResponsibleUsers { get; set; } = new List<User>();
 }

@@ -49,4 +49,9 @@ public class User
     /// Deliveries the user has declared.
     /// </summary>
     public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
+
+    /// <summary>
+    /// Machine clients the user is responsible for, see <see cref="MachineClient.ResponsibleUsers"/>.
+    /// </summary>
+    public List<MachineClient> ResponsibleForMachineClients { get; set; } = new List<MachineClient>();
 }
