@@ -104,5 +104,5 @@ Weist die Installation einen Aufruf ab, weil sie gerade nicht mehr annimmt, wart
 | 0 | geliefert |
 | 1 | ein Request wurde abgewiesen; die Meldung des Servers steht in der Ausgabe |
 | 2 | die Pipeline hat die Daten abgewiesen, keine Lieferung |
-| 3 | der Versuch ist gescheitert, bevor die Daten beurteilt waren |
+| 3 | der Versuch ist gescheitert, bevor die Daten beurteilt waren, oder die Lieferung liess sich nicht anlegen, etwa weil die Metadaten nicht mehr zu den Feldern des Mandats passen; die Meldungen in der Ausgabe nennen den Grund |
 | 4 | nach der Wartezeit noch in Verarbeitung; der Versuch läuft weiter, die Status-URL steht in der Ausgabe |

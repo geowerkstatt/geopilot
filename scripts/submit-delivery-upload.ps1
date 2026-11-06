@@ -17,9 +17,10 @@
     multipart form instead; use submit-delivery-files.ps1 there. Which of the two applies is a property
     of the installation, not of the mandate, so a client is set up once with the matching script.
 
-    Exit code 0 means the delivery was made, 2 the pipeline rejected the data, 3 the attempt failed
-    before the data could be judged, 4 the status was still processing when the wait ran out, and 1
-    that a request was refused; the server's message is in the output.
+    Exit code 0 means the delivery was made, 2 the pipeline rejected the data, 3 the attempt failed,
+    either before the data could be judged or because the delivery could not be created, 4 the status
+    was still processing when the wait ran out, and 1 that a request was refused; the server's message
+    is in the output.
 
 .PARAMETER MandateKey
     The key of the mandate to deliver to, as set in the administration. Compared exactly, including case.
