@@ -28,6 +28,9 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
 /// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
+/// <param name="Declarer">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
+/// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
+/// <param name="Outcome">What became of the run.</param>
 public record PipelineRunResponse(
     Guid JobId,
     string PipelineId,
@@ -47,7 +50,10 @@ public record PipelineRunResponse(
     string? FailureReason,
     List<PipelineRunFileResponse> Files,
     List<PipelineRunStepResponse> Steps,
-    List<PipelineRunReactionEventResponse> ReactionEvents);
+    List<PipelineRunReactionEventResponse> ReactionEvents,
+    PipelineRunDeclarer? Declarer,
+    MandateReference? Mandate,
+    PipelineRunOutcome Outcome);
 
 /// <summary>
 /// One uploaded file of the run.

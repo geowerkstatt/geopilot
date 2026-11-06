@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -10,14 +11,19 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public sealed class PipelineRunControllerTest
 {
+    // The list tests seed their runs into a window of their own, so nothing else in the database counts.
+    private static readonly DateTime Window = new(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private Context context;
+    private Mock<IProcessingService> processingServiceMock;
     private PipelineRunController controller;
 
     [TestInitialize]
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        controller = new PipelineRunController(Mock.Of<ILogger<PipelineRunController>>(), context);
+        processingServiceMock = new Mock<IProcessingService>();
+        controller = new PipelineRunController(Mock.Of<ILogger<PipelineRunController>>(), context, processingServiceMock.Object);
     }
 
     [TestCleanup]
@@ -83,6 +89,69 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetNamesDeclarerAndMandate()
+    {
+        var user = context.Users.First();
+        var mandate = context.Mandates.First();
+        var run = SeedRun(r =>
+        {
+            r.UserId = user.Id;
+            r.MandateId = mandate.Id;
+        });
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.IsNotNull(response.Declarer);
+        Assert.AreEqual(DeclarerKind.Person, response.Declarer.Kind);
+        Assert.AreEqual(user.Id, response.Declarer.Id);
+        Assert.AreEqual(user.FullName, response.Declarer.Name);
+        Assert.IsNotNull(response.Mandate);
+        Assert.AreEqual(mandate.Id, response.Mandate.Id);
+    }
+
+    [TestMethod]
+    public async Task GetReportsTheDeliveryAsOutcome()
+    {
+        var run = SeedRun();
+        var delivery = SeedDelivery(run.JobId, deleted: false);
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(PipelineRunOutcomeKind.Delivered, response.Outcome.Kind);
+        Assert.AreEqual(delivery.Id, response.Outcome.DeliveryId);
+    }
+
+    [TestMethod]
+    public async Task GetPrefersTheLiveDeliveryOverADeletedOne()
+    {
+        var run = SeedRun();
+        SeedDelivery(run.JobId, deleted: true);
+        var live = SeedDelivery(run.JobId, deleted: false);
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(PipelineRunOutcomeKind.Delivered, response.Outcome.Kind);
+        Assert.AreEqual(live.Id, response.Outcome.DeliveryId);
+    }
+
+    [TestMethod]
+    public async Task GetReportsAnUnfinishedRunAsRunningWhileItsJobIsActive()
+    {
+        var run = SeedRun(r =>
+        {
+            r.TerminalState = null;
+            r.TerminalAt = null;
+        });
+        processingServiceMock
+            .Setup(service => service.GetJob(run.JobId))
+            .Returns(new ProcessingJob(run.JobId, run.UploadId, null, DateTime.UtcNow) { State = ProcessingState.Running });
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(PipelineRunOutcomeKind.Running, response.Outcome.Kind);
+    }
+
+    [TestMethod]
     public async Task GetDefinitionServesTheSnapshotVerbatim()
     {
         var run = SeedRun();
@@ -101,7 +170,193 @@ public sealed class PipelineRunControllerTest
         ActionResultAssert.IsNotFound(await controller.GetDefinition(Guid.NewGuid()));
     }
 
-    private PipelineRun SeedRun()
+    [TestMethod]
+    public async Task ListFiltersByMandateDeclarerAndState()
+    {
+        var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
+        var user = context.Users.First();
+        var client = new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "Test client" };
+        context.MachineClients.Add(client);
+        context.SaveChanges();
+
+        SeedRun(r =>
+        {
+            r.StartedAt = Window.AddMinutes(1);
+            r.UserId = user.Id;
+            r.MandateId = mandates[0].Id;
+            r.TerminalState = ProcessingState.Success;
+        });
+        SeedRun(r =>
+        {
+            r.StartedAt = Window.AddMinutes(2);
+            r.MachineClientId = client.Id;
+            r.MandateId = mandates[0].Id;
+            r.TerminalState = ProcessingState.Failed;
+        });
+        SeedRun(r =>
+        {
+            r.StartedAt = Window.AddMinutes(3);
+            r.MandateId = mandates[1].Id;
+            r.TerminalState = ProcessingState.Warning;
+        });
+        var open = SeedRun(r =>
+        {
+            r.StartedAt = Window.AddMinutes(4);
+            r.MandateId = mandates[1].Id;
+            r.TerminalState = null;
+            r.TerminalAt = null;
+        });
+
+        var byPerson = InWindow(q =>
+        {
+            q.DeclarerKind = DeclarerKind.Person;
+            q.DeclarerId = user.Id;
+        });
+
+        Assert.AreEqual(2, (await List(InWindow(q => q.MandateId = mandates[0].Id))).TotalCount);
+        Assert.AreEqual(1, (await List(InWindow(q => q.DeclarerKind = DeclarerKind.MachineClient))).TotalCount);
+        Assert.AreEqual(1, (await List(byPerson)).TotalCount);
+        Assert.AreEqual(1, (await List(InWindow(q => q.State = PipelineRunStateFilter.Failed))).TotalCount);
+        Assert.AreEqual(open.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().JobId);
+    }
+
+    [TestMethod]
+    public async Task ListPagesNewestFirstWithTotalCount()
+    {
+        var runs = Enumerable.Range(0, 5).Select(i => SeedRun(r => r.StartedAt = Window.AddMinutes(i))).ToList();
+
+        var page = await List(InWindow(q =>
+        {
+            q.PageSize = 2;
+            q.Page = 1;
+        }));
+        Assert.AreEqual(5, page.TotalCount);
+        CollectionAssert.AreEqual(new[] { runs[2].JobId, runs[1].JobId }, page.Items.Select(item => item.JobId).ToArray(), "newest first, so the second page holds the third and fourth newest.");
+
+        var beyond = await List(InWindow(q =>
+        {
+            q.PageSize = 2;
+            q.Page = 9;
+        }));
+        Assert.AreEqual(5, beyond.TotalCount);
+        Assert.HasCount(0, beyond.Items);
+    }
+
+    [TestMethod]
+    public async Task ListCapsThePageSize()
+    {
+        SeedMinimalRuns(101);
+
+        Assert.HasCount(100, (await List(InWindow(q => q.PageSize = 1000))).Items);
+        Assert.HasCount(1, (await List(InWindow(q => q.PageSize = 0))).Items);
+    }
+
+    [TestMethod]
+    public async Task ListFiltersByTimeRangeWithExclusiveEnd()
+    {
+        var atFrom = SeedRun(r => r.StartedAt = Window);
+        SeedRun(r => r.StartedAt = Window.AddHours(1));
+
+        var page = await List(new PipelineRunQuery { From = Window, To = Window.AddHours(1) });
+
+        Assert.AreEqual(atFrom.JobId, page.Items.Single().JobId);
+    }
+
+    [TestMethod]
+    public async Task ListReadsTimesWithoutOffsetAsUtc()
+    {
+        var run = SeedRun(r => r.StartedAt = Window.AddMinutes(30));
+
+        // A query string time without offset binds as unspecified, and the API documents its times as UTC.
+        var page = await List(new PipelineRunQuery
+        {
+            From = DateTime.SpecifyKind(Window, DateTimeKind.Unspecified),
+            To = DateTime.SpecifyKind(Window.AddHours(1), DateTimeKind.Unspecified),
+        });
+
+        Assert.AreEqual(run.JobId, page.Items.Single().JobId);
+    }
+
+    [TestMethod]
+    public async Task ListAnswersAnEmptyPageForAPageNumberBeyondAnyOffset()
+    {
+        SeedRun(r => r.StartedAt = Window);
+
+        var page = await List(InWindow(q =>
+        {
+            q.Page = 21474837;
+            q.PageSize = 100;
+        }));
+
+        Assert.AreEqual(1, page.TotalCount);
+        Assert.HasCount(0, page.Items);
+    }
+
+    [TestMethod]
+    public async Task ListShowsAnonymousRunsWithoutMandate()
+    {
+        SeedRun(r =>
+        {
+            r.StartedAt = Window;
+            r.TerminalState = ProcessingState.Success;
+        });
+
+        var item = (await List(InWindow())).Items.Single();
+
+        Assert.IsNull(item.Declarer);
+        Assert.IsNull(item.Mandate);
+        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, item.Outcome.Kind);
+    }
+
+    [TestMethod]
+    public async Task ListRejectsFromAfterTo()
+    {
+        ActionResultAssert.IsBadRequest(await controller.List(new PipelineRunQuery { From = Window.AddDays(1), To = Window }));
+    }
+
+    [TestMethod]
+    public async Task ListRejectsADeclarerIdWithoutKind()
+    {
+        ActionResultAssert.IsBadRequest(await controller.List(InWindow(q => q.DeclarerId = 1)));
+    }
+
+    private static PipelineRunQuery InWindow(Action<PipelineRunQuery>? configure = null)
+    {
+        var query = new PipelineRunQuery { From = Window, To = Window.AddDays(1) };
+        configure?.Invoke(query);
+        return query;
+    }
+
+    private async Task<PipelineRunPageResponse> List(PipelineRunQuery query)
+        => ActionResultAssert.IsOkObjectResult<PipelineRunPageResponse>(await controller.List(query));
+
+    private void SeedMinimalRuns(int count)
+    {
+        context.PipelineRuns.AddRange(Enumerable.Range(0, count).Select(i => new PipelineRun
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "3.0-test",
+            ClientKind = ClientKind.ApiClient,
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = Window,
+            StartedAt = Window.AddSeconds(i),
+            ScanState = ScanState.Clean,
+        }));
+        context.SaveChanges();
+    }
+
+    private Delivery SeedDelivery(Guid jobId, bool deleted)
+    {
+        var delivery = new Delivery { JobId = jobId, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(), Deleted = deleted };
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+        return delivery;
+    }
+
+    private PipelineRun SeedRun(Action<PipelineRun>? configure = null)
     {
         var run = new PipelineRun
         {
@@ -164,6 +419,7 @@ public sealed class PipelineRunControllerTest
                 ReactionAttempt(1, DateTime.UtcNow.AddMinutes(-3), ReactionState.Pending, "The target is not reachable."),
             },
         };
+        configure?.Invoke(run);
 
         context.PipelineRuns.Add(run);
         context.SaveChanges();
