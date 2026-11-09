@@ -54,7 +54,8 @@ public class PipelineRunStep
     public string? ProcessAssemblyName { get; set; }
 
     /// <summary>
-    /// The version of the assembly the process implementation came from.
+    /// The build of the assembly the process implementation came from: its informational version, as for
+    /// <see cref="PipelineRun.AppVersion"/>, or its assembly version if it has none.
     /// </summary>
     public string? ProcessAssemblyVersion { get; set; }
 
