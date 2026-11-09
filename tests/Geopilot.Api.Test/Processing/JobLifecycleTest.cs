@@ -141,9 +141,9 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
-    [DataRow(true)]
-    [DataRow(false)]
-    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable)
+    [DataRow(true, Declarability.Declarable)]
+    [DataRow(false, Declarability.NotDeclarable)]
+    public async Task StartRecordsWhetherAnybodyCanDeclareTheRun(bool isDeclarable, Declarability expectedDeclarability)
     {
         var upload = await CreateUploadAsync();
         SetupPipeline();
@@ -153,6 +153,7 @@ public class JobLifecycleTest
         // Both values, because a value fixed on the way to the job would pass with true alone.
         Assert.AreEqual(isDeclarable, job.IsDeclarable);
         Assert.AreEqual(isDeclarable, jobStore.GetJob(job.Id)!.IsDeclarable);
+        Assert.AreEqual(expectedDeclarability, (await ReadRunAsync(job.Id)).Declarability, "The protocol keeps it beyond the job's retention and a restart.");
     }
 
     [TestMethod]
@@ -283,7 +284,9 @@ public class JobLifecycleTest
         var job = jobStore.GetJob(jobId)!;
         Assert.AreEqual(ProcessingState.Success, job.State);
         Assert.AreEqual("The delivery could not be declared because of an unexpected error.", job.DeclarationFailure);
-        Assert.AreEqual(ProcessingState.Success, (await ReadRunAsync(jobId)).TerminalState);
+        var run = await ReadRunAsync(jobId);
+        Assert.AreEqual(ProcessingState.Success, run.TerminalState);
+        Assert.AreEqual("The delivery could not be declared because of an unexpected error.", run.DeclarationFailure);
         AssertUploadKept(uploadId, false);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
@@ -300,8 +303,10 @@ public class JobLifecycleTest
         await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
 
         // A created or adopted delivery is its own record, and data that did not pass is a rejected attempt, not a
-        // failed declaration. Every other refusal is the one thing the caller of the attempt gets to read.
+        // failed declaration. Every other refusal is the one thing the caller of the attempt gets to read, and the
+        // protocol keeps it beyond the job's retention.
         Assert.AreEqual(expectedFailure, jobStore.GetJob(jobId)!.DeclarationFailure);
+        Assert.AreEqual(expectedFailure, (await ReadRunAsync(jobId)).DeclarationFailure);
     }
 
     [TestMethod]

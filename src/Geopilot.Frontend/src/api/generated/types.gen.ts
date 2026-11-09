@@ -167,6 +167,16 @@ export type Coordinate = {
 };
 
 /**
+ * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ */
+export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
+
+/**
+ * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ */
+export type Declarability = (typeof Declarability)[keyof typeof Declarability];
+
+/**
  * Whether a person or a machine client started a pipeline run.
  */
 export const DeclarerKind = { Person: "person", MachineClient: "machineClient" } as const;
@@ -175,6 +185,25 @@ export const DeclarerKind = { Person: "person", MachineClient: "machineClient" }
  * Whether a person or a machine client started a pipeline run.
  */
 export type DeclarerKind = (typeof DeclarerKind)[keyof typeof DeclarerKind];
+
+/**
+ * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
+ * Value is null for a field that was not filled in.
+ */
+export type DeliveredMetadataField = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+  type: MetadataFieldType;
+  evaluation: FieldEvaluationType;
+  /**
+   * The options of a Geopilot.Api.Models.MetadataFieldType.Selection, null for every other field.
+   * An empty list counts as none, and a field without options leaves the key out of its JSON.
+   */
+  options?: Array<MetadataFieldOption> | null;
+  value?: unknown;
+};
 
 /**
  * A fullfillment of a Geopilot.Api.Models.Delivery.Mandate. Contains all relevant meta information and assets provided or created by the validation and delivery process.
@@ -220,6 +249,10 @@ export type Delivery = {
    * Comment to describe the delivery.
    */
   comment: string;
+  /**
+   * The metadata fields of the mandate as they were at delivery time, each with the delivered value.
+   */
+  metadata: Array<DeliveredMetadataField>;
   /**
    * The deletion status of the delivery.
    */
@@ -268,6 +301,10 @@ export type DeliveryDetailResponse = {
    * The comment that came with the delivery.
    */
   comment: string;
+  /**
+   * The copy of the mandate's metadata fields taken at declaration, with the delivered values.
+   */
+  metadata: Array<DeliveredMetadataField>;
   stacItem?: StacItemReference;
   /**
    * The reactions of the delivery, in the order they were created.
@@ -335,6 +372,12 @@ export type DeliveryRequest = {
    * Optional. Comment to describe the delivery.
    */
   comment?: string | null;
+  /**
+   * The values of the metadata fields, keyed by field id.
+   */
+  metadata?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -425,6 +468,24 @@ export type InitiateUploadResponse = {
   files: Array<FileUploadInfo>;
   expiresAt: string;
 };
+
+export const InputKind = {
+  Value: "value",
+  File: "file",
+  Absent: "absent",
+} as const;
+
+export type InputKind = (typeof InputKind)[keyof typeof InputKind];
+
+export const InputOrigin = {
+  Definition: "definition",
+  StepOutput: "stepOutput",
+  Resource: "resource",
+  Upload: "upload",
+  Configuration: "configuration",
+} as const;
+
+export type InputOrigin = (typeof InputOrigin)[keyof typeof InputOrigin];
 
 /**
  * A machine that delivers data on behalf of an organisation, authenticated with client credentials at the
@@ -536,6 +597,10 @@ export type Mandate = {
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
   /**
+   * Additional fields a deliverer fills in, in the order the form shows them.
+   */
+  metadataFields: Array<MetadataField>;
+  /**
    * Organisations allowed to deliver data fulfilling the mandate.
    */
   organisations: Array<Organisation>;
@@ -607,6 +672,10 @@ export type MandateSummary = {
   evaluatePrecursorDelivery: FieldEvaluationType;
   evaluatePartial: FieldEvaluationType;
   evaluateComment: FieldEvaluationType;
+  /**
+   * The additional metadata fields a deliverer fills in, in the order the mandate defines them.
+   */
+  metadataFields: Array<MetadataField>;
 };
 
 export const MandateValueType = {
@@ -616,6 +685,55 @@ export const MandateValueType = {
 } as const;
 
 export type MandateValueType = (typeof MandateValueType)[keyof typeof MandateValueType];
+
+/**
+ * The definition of an additional field a deliverer fills in for a mandate. The Id is the key
+ * of the value in a delivery. Evaluation is Geopilot.Api.Models.FieldEvaluationType.Optional or
+ * Geopilot.Api.Models.FieldEvaluationType.Required.
+ */
+export type MetadataField = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+  type: MetadataFieldType;
+  evaluation: FieldEvaluationType;
+  /**
+   * The options of a Geopilot.Api.Models.MetadataFieldType.Selection, null for every other field.
+   * An empty list counts as none, and a field without options leaves the key out of its JSON.
+   */
+  options?: Array<MetadataFieldOption> | null;
+};
+
+/**
+ * One option of a Geopilot.Api.Models.MetadataFieldType.Selection field. The Id is what a delivery
+ * carries as value, the Title is for display.
+ */
+export type MetadataFieldOption = {
+  id: string;
+  title: {
+    [key: string]: string;
+  };
+};
+
+/**
+ * The kind of value a Geopilot.Api.Models.MetadataField takes. Serialized as camelCase: `text`, `textList`,
+ * `selection`, `integer`, `decimal`, `date`.
+ */
+export const MetadataFieldType = {
+  Text: "text",
+  TextList: "textList",
+  Selection: "selection",
+  Integer: "integer",
+  Decimal: "decimal",
+  Date: "date",
+} as const;
+
+/**
+ * The kind of value a Geopilot.Api.Models.MetadataField takes. Serialized as camelCase: `text`, `textList`,
+ * `selection`, `integer`, `decimal`, `date`.
+ */
+export type MetadataFieldType = (typeof MetadataFieldType)[keyof typeof MetadataFieldType];
 
 /**
  * A company or group of users that may have a mandate for delivering data to the system owner.
@@ -754,6 +872,43 @@ export type PipelineRunGroupResponse = {
 };
 
 /**
+ * One value a step's process was given when it started: an element bound to a parameter of its run method, or a file
+ * the process configuration supplied to its constructor.
+ */
+export type PipelineRunInputResponse = {
+  /**
+   * The name of the run method parameter, or of the constructor parameter for a configured file.
+   */
+  parameter: string;
+  origin: InputOrigin;
+  /**
+   * The referenced output as `stepId.Property`, or for a resource or a configured file its path below the resources directory.
+   */
+  reference?: string | null;
+  kind: InputKind;
+  /**
+   * For a value its text, formatted with the invariant culture and cut after 500 characters.
+   */
+  value?: string | null;
+  /**
+   * For a file its original name.
+   */
+  fileName?: string | null;
+  /**
+   * For a file its size in bytes, when known.
+   */
+  size?: number | null;
+  /**
+   * The SHA-256 of a file as lowercase hex: for an upload when it was scanned, for a resource or a configured file always. Files of an earlier step carry none.
+   */
+  sha256?: string | null;
+  /**
+   * For a file whether it is an uploaded file passed on unchanged.
+   */
+  fromUpload?: boolean | null;
+};
+
+/**
  * What became of a pipeline run, derived from its protocol, its delivery and whether its job still runs.
  */
 export type PipelineRunOutcome = {
@@ -778,6 +933,7 @@ export const PipelineRunOutcomeKind = {
   NotDelivered: "notDelivered",
   NotDeliverable: "notDeliverable",
   NotDeclarable: "notDeclarable",
+  DeclarationFailed: "declarationFailed",
   Running: "running",
   Unknown: "unknown",
 } as const;
@@ -879,6 +1035,7 @@ export type PipelineRunResponse = {
    * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.
    */
   clientReference?: string | null;
+  declarability?: Declarability;
   /**
    * The id of the upload the run processed.
    */
@@ -909,6 +1066,10 @@ export type PipelineRunResponse = {
    * Why the run failed or was cancelled, when known.
    */
   failureReason?: string | null;
+  /**
+   * Why geopilot could not declare the delivery of a machine delivery although the run allowed it.
+   */
+  declarationFailure?: string | null;
   /**
    * The manifest of the uploaded files.
    */
@@ -994,6 +1155,10 @@ export type PipelineRunStepResponse = {
   conditionMessage?: {
     [key: string]: string;
   } | null;
+  /**
+   * What the step's process was given when it started, in the order of its parameters; empty for a step that ran no process.
+   */
+  inputs: Array<PipelineRunInputResponse>;
   /**
    * The evaluation result of every checked condition, matching or not.
    */
@@ -1382,6 +1547,11 @@ export type SubmissionMultipartRequest = {
    */
   comment?: string | null;
   /**
+   * The values of the metadata fields of the mandate as text: the same JSON object the `metadata` of the
+   * referencing route carries, with the field ids as keys. Sent before the files.
+   */
+  metadata?: string | null;
+  /**
    * Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
    * the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
    * control or invisible format characters; white space at either end is dropped, and nothing but white space
@@ -1421,6 +1591,13 @@ export type SubmissionRequest = {
    * The comment accompanying the delivery. Required, optional or rejected, depending on the mandate.
    */
   comment?: string | null;
+  /**
+   * The values of the metadata fields of the mandate, keyed by field id. Which fields are required follows the
+   * mandate.
+   */
+  metadata?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
    * the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without

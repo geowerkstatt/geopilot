@@ -11,11 +11,28 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 - der gelaufenen Pipeline und einem **Definitions-Snapshot** (siehe unten),
 - Mandat und Urheber, entweder der Benutzer oder der Maschinen-Client (`UserId` oder `MachineClientId`, nie beide zugleich, was die Datenbank erzwingt; beide leer, wenn der Job anonym auf einem öffentlichen Mandat gestartet wurde; anonym darf prozessiert, aber nicht geliefert werden, und wer die Lieferung deklariert hat, steht an der Lieferung selbst) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert. Die Art des Clients sagt, auf welchem Weg der Job gestartet wurde, nicht von wem: eine Person, die die API direkt aufruft, etwa aus Swagger, ist ebenso `ApiClient` wie ein Maschinen-Client, und wer es war, steht in den beiden Id-Spalten,
 - bei einer maschinellen Lieferung der Kennung, die der Client für die Lieferung mitgeschickt hat (`ClientReference`), so wie sie kam, ohne Prüfung gegen frühere Versuche. Versuche mit derselben Kennung, demselben Urheber und demselben Mandat sind Versuche derselben Lieferung,
+- der **Deklarierbarkeit** (`Declarability`), also ob aus dem Lauf je eine Lieferung werden kann: `Declarable`, wenn der Urheber Mitglied einer Organisation des Mandats ist und das Mandat Lieferungen annimmt, sonst `NotDeclarable`, auch bei einem anonymen Start. Entschieden wird einmal beim Start. Läufe, die aufgezeichnet wurden, bevor das Protokoll diese Angabe kannte, haben keine (`NULL`): unbekannt, nicht «nicht deklarierbar»,
 - dem Upload-Manifest (`PipelineRunFiles`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
 - dem Resultat des Virenscans (`Clean`, `ThreatDetected` mit Details, oder `NotScanned` wenn die Prüfung deaktiviert ist),
 - der Applikationsversion und allen Zeitstempeln in UTC.
 
 Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, die Prozessor-Implementierung samt Assembly und Version, Fehlermeldung bei Abbruch, Statusmeldung, sowie die **Auswertung jeder geprüften Condition** (`PipelineRunConditions`): Ausdruck, optionale stabile Kennung (`id` in der Definition), die referenzierten Werte und ob sie zutraf. Auch nicht zutreffende Auswertungen werden festgehalten, damit "geprüft und nicht zugetroffen" von "nie geprüft" unterscheidbar bleibt. Die Namen der erzeugten Artefakte (Downloads, Visualisierungen, Lieferdateien) stehen in `PipelineRunArtifacts`.
+
+Als Version eines Schritts (`ProcessAssemblyVersion`) hält das Protokoll, wie bei der Applikationsversion, die `InformationalVersion` der Assembly fest, aus der die Prozessor-Implementierung stammt; fehlt sie, die Assembly-Version. Bei einem Plugin nennt sie so den Build, der lief, samt Vorabzusatz: `1.4.0-preview.12`, wo die Assembly-Version nur `1.4.0.0` hergibt. Hält der Build seinen Commit fest, folgt dieser nach einem `+`. Die eingebauten Prozessoren stammen aus `Geopilot.Pipeline`, das eine feste Version hat und mit geopilot gebaut wird. Ihre Version nennt denselben Commit wie die Applikationsversion und sagt nichts, was diese nicht schon sagt.
+
+Die **Eingaben** jedes Schritts stehen in `PipelineRunInputs`: was sein Prozessor beim Start bekam, eine Zeile pro Wert oder Datei, in der Reihenfolge seiner Parameter und auch innerhalb von Listen pro Element. Jede Zeile nennt den Parameter (`Parameter`), die Herkunft (`Origin`) und die Art (`Kind`: `Value`, `File` oder `Absent`):
+
+- `Definition`: ein Wert, der in der Pipeline-Definition steht.
+- `StepOutput`: ein Ergebnis eines früheren Schritts, in `Reference` als `schritt.Eigenschaft`. Ein Bezug auf einen übersprungenen Schritt steht als `Absent` da: Er trägt nichts bei, so wie bei der Bindung der Eingaben.
+- `Resource`: eine Datei aus `${file(...)}`, in `Reference` ihr Pfad unter dem Ressourcenverzeichnis.
+- `Upload`: eine Datei aus `${upload()}`.
+- `Configuration`: eine Datei, die die Konfiguration des Prozessors über einen Parameter vom Typ `IPipelineFile` übergibt, etwa `refMappingFile`, in `Reference` ihr Pfad unter dem Ressourcenverzeichnis.
+
+Ein Wert steht als Text in `Value` (Invariant Culture, nach 500 Zeichen abgeschnitten), eine Datei mit Name und Grösse (`FileName`, `Size`). Ressourcen und Dateien aus der Konfiguration tragen zusätzlich den SHA-256, berechnet beim Beginn des Schritts; so bleibt nachvollziehbar, welchen Stand einer Ressource ein Schritt bekam. Ein Upload trägt Grösse und SHA-256 aus dem Manifest, den SHA-256 nur, soweit der Virenscan ihn berechnet hat. Reicht ein früherer Schritt einen Upload unverändert weiter, etwa ein Matcher, markiert ihn `FromUpload`; seine Grösse kommt dann ebenfalls aus dem Manifest, einen Hash trägt er dort nicht, den trägt die Upload-Zeile des Schritts, der ihn aus dem Upload bekam. Andere Dateien aus früheren Schritten stehen ohne Hash da. Ein Schritt, dessen Prozessor nicht lief (übersprungen, per Pre-Condition gescheitert oder mit Eingaben, die sich nicht binden liessen), hat keine Eingaben; den Grund nennen seine Conditions oder seine Fehlermeldung.
+
+Das Protokoll setzt dabei an der Grenze des Schritts an. Was ein Prozessor intern tut oder ein entfernter Dienst auflöst, etwa Modelle und Referenzdaten über `modelDirs`, hält es nicht fest; dafür bleibt das Log des Werkzeugs.
+
+Scheitert bei einer [maschinellen Lieferung](MaschinelleAnlieferung.md) die Deklaration, die geopilot selbst vornimmt, obwohl der Lauf sie zuliess, steht der Grund in `DeclarationFailure`: derselbe Text, den der Versuch in `messages` meldet. Er besteht aus festen Meldungen, nie aus dem Inhalt der Lieferangaben, denn ein Kommentar ist Freitext und gehört nicht in einen Datensatz, der jahrelang aufbewahrt wird. Leer heisst: geopilot hat deklariert oder hatte nichts zu deklarieren; bei einem älteren Lauf ohne `Declarability` ist es unbekannt. Ob eine Lieferung entstand, sagt die Lieferung selbst (`Deliveries.JobId`).
 
 Wird die Lieferung eines Laufs weitergegeben (siehe [Reaktionen nach dem Abschluss](pipeline/Pipelines.md#reaktionen-nach-dem-abschluss)), steht jeder Zustellversuch ihrer Reaktionen in `PipelineRunReactionEvents`: die Lieferung, die Id der Reaktion im Satz, ob die Reaktion die Lieferung weitergibt oder begleitet, der Kanal, die Nummer des Versuchs, Beginn und Ende, der Zustand der Reaktion danach und die Meldung des Kanals. Personendaten des Lieferanten und Werte des Mandats stehen nicht darin; die Meldung kann den Zielpfad enthalten. Wird die Lieferung gelöscht, kommt pro Reaktion eine Zeile `Deletion` dazu, mit dem Benutzer, der gelöscht hat, und dem Zustand der Reaktion danach: `Done` hatte die Lieferung schon weitergegeben, `Error` war schon endgültig gescheitert, `Deleted` endete mit der Löschung. Setzt ein Admin Reaktionen zurück, die aufgegeben hatten, kommt pro Reaktion eine Zeile `Reset` dazu, mit dem Admin und dem Zustand `Pending`; die Versuche danach zählen wieder ab 1, die Zeilen davor behalten ihren Ausgang. Die Spalte `UserId` nennt nur, wer ein Ereignis ausgelöst hat: Einen Zustellversuch führt die Applikation aus, dort bleibt sie leer. Wer die Lieferung deklariert hat, steht an der Lieferung (`DeclaringUserId` oder `DeclaringClientId`), wer den Lauf gestartet hat, am Lauf.
 
@@ -24,6 +41,7 @@ Wird die Lieferung eines Laufs weitergegeben (siehe [Reaktionen nach dem Abschlu
 - **Beim Job-Start, hart:** Kann der Startdatensatz nicht geschrieben werden, wird der Job nicht angenommen und der Aufrufer erhält einen Fehler statt einer Bestätigung. Eine angenommene Lieferung ohne Protokoll gibt es nicht.
 - **Danach weich:** Schreibfehler während des Laufs brechen die Pipeline nicht ab, sie werden als Warnung geloggt.
 - Alle Schritt-Zeilen werden mit dem Startdatensatz als `Pending` angelegt, beim Erreichen auf `Running` gesetzt und beim Abschluss aktualisiert. Ein unterbrochener Lauf zeigt so das volle Bild: erledigte Schritte tragen ihren Endzustand, der laufende steht auf `Running`, und ein Schritt, der `Pending` geblieben ist, wurde nie erreicht.
+- Die Eingaben eines Schritts werden geschrieben, sobald er sie gebunden hat und bevor sein Prozessor läuft. Ein unterbrochener Lauf zeigt so auch, womit der laufende Schritt arbeitete.
 - **Ein Lauf ohne Terminal-Status bedeutet "Ausgang unbekannt":** die Instanz ist während des Laufs gestorben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, ein harter Abbruch hinterlässt keinen Terminal-Status. Beides ist zählbar und macht messbar, wie oft Neustarts laufende Jobs treffen (Re-Evaluations-Trigger von ADR 0010).
 - Ein Zustellversuch wird angelegt, sobald eine Instanz ihn beginnt, mit dem Zustand `Running`, und bei seiner Rückmeldung abgeschlossen. Steht ein Versuch ohne Ende auf `Running`, während keine Instanz ihn mehr ausführt, ist sein Ausgang unbekannt, wie bei einem Lauf ohne Terminal-Status. So bleibt auch der letzte Versuch einer Reaktion stehen, die aufgegeben wurde, weil er sich nie zurückmeldete: Das Aufgeben selbst hält das Protokoll nicht fest. Ein leerer Zustand heisst, dass der Versuch seine Reaktion bei der Rückmeldung nicht mehr hielt; was er getan hat, sagt die Meldung.
 
@@ -45,14 +63,14 @@ Pipeline-Definitionen sind nicht versioniert: nach einer Änderung der YAML exis
 - `processes`: nur die von diesen Schritten referenzierten Katalogeinträge,
 - `process_configs`: die wirksame Basis-Konfiguration (`Pipeline:ProcessConfigs`) dieser Implementierungen. Sie steht nicht in der YAML, entscheidet aber mit über das Verhalten, etwa `modelDirs`, also gegen welche Modell-Repositories eine INTERLIS-Validierung prüft.
 
-Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen, die Modell-Repositories hinter `modelDirs` und die Version der ilitools-wrapper. Der Snapshot beantwortet "auf welcher Grundlage lief das", er macht den Lauf nicht wiederholbar.
+Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Schritt bekam, zeigt der SHA-256 in seinen Eingaben), die Modell-Repositories hinter `modelDirs` und die Version der ilitools-wrapper. Der Snapshot beantwortet "auf welcher Grundlage lief das", er macht den Lauf nicht wiederholbar.
 
 ## Abfrage
 
 Administratoren können das Protokoll über die API lesen:
 
 - `GET api/v1/pipelinerun`: die Läufe seitenweise, neueste zuerst, gefiltert nach Zeitraum, Mandat, Urheber und Zustand. Die Versuche einer Lieferung bilden eine Gruppe und zählen beim Blättern als eine Zeile; ein Lauf ohne `ClientReference` ist eine Gruppe für sich. Eine Gruppe erscheint, wenn einer ihrer Versuche im Zeitraum liegt, der Zustand gilt ihrem neuesten Versuch, und die früheren Versuche kommen mit, auch die ausserhalb des Zeitraums.
-- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten, Condition-Auswertungen, Artefaktnamen und den Zustellversuchen der Reaktionen (`reactionEvents`).
+- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
 Für Auswertungen über mehrere Läufe ist SQL das Werkzeug. Beispiele:
@@ -67,6 +85,23 @@ LEFT JOIN "PipelineRunConditions" c ON c."PipelineRunStepId" = s."Id"
 WHERE d."Id" = 42
 ORDER BY s."Order";
 
+-- Womit arbeiteten die Schritte von Delivery X?
+SELECT s."StepId", i."Parameter", i."Origin", i."Reference", i."Kind", i."Value", i."FileName", i."Size", i."Sha256"
+FROM "Deliveries" d
+JOIN "PipelineRuns" r ON r."JobId" = d."JobId"
+JOIN "PipelineRunSteps" s ON s."PipelineRunId" = r."Id"
+JOIN "PipelineRunInputs" i ON i."PipelineRunStepId" = s."Id"
+WHERE d."Id" = 42
+ORDER BY s."Order", i."Id";
+
+-- Welche Läufe bekamen eine Ressource in welchem Stand?
+SELECT r."JobId", r."StartedAt", s."StepId", i."Sha256"
+FROM "PipelineRunInputs" i
+JOIN "PipelineRunSteps" s ON s."Id" = i."PipelineRunStepId"
+JOIN "PipelineRuns" r ON r."Id" = s."PipelineRunId"
+WHERE i."Origin" IN ('Resource', 'Configuration') AND i."Reference" = 'dmav/refdata_mapping.xtf'
+ORDER BY r."StartedAt";
+
 -- Welche Läufe nutzten eine bestimmte Prozessor-Implementierung?
 SELECT r."JobId", r."StartedAt"
 FROM "PipelineRuns" r
@@ -74,6 +109,12 @@ WHERE r."Definition" @> '{"processes": [{"implementation": "Geopilot.Pipeline.Pr
 
 -- Wie viele Läufe blieben ohne Terminal-Status (Restart-Opfer)?
 SELECT count(*) FROM "PipelineRuns" WHERE "TerminalState" IS NULL AND "StartedAt" < now() - interval '1 day';
+
+-- Lieferbare Läufe ohne Lieferung: nicht deklarierbar, an der Deklaration gescheitert oder nie abgegeben?
+SELECT r."JobId", r."StartedAt", r."Declarability", r."DeclarationFailure"
+FROM "PipelineRuns" r
+WHERE r."TerminalState" IN ('Success', 'Warning')
+  AND NOT EXISTS (SELECT 1 FROM "Deliveries" d WHERE d."JobId" = r."JobId");
 
 -- Läufe gruppiert nach identischer Definitions-Fassung.
 SELECT "PipelineId", "Definition", count(*), min("StartedAt"), max("StartedAt")

@@ -174,7 +174,8 @@ internal static class DtoMapperExtensions
             deliverableMandateIds.Contains(m.Id),
             m.EvaluatePrecursorDelivery,
             m.EvaluatePartial,
-            m.EvaluateComment));
+            m.EvaluateComment,
+            m.MetadataFields));
     }
 
     /// <summary>
@@ -200,6 +201,7 @@ internal static class DtoMapperExtensions
             run.MachineClientId,
             run.ClientKind,
             run.ClientReference,
+            run.Declarability,
             run.UploadId,
             run.UploadStorageLocation,
             run.UploadInitiatedAt,
@@ -209,6 +211,7 @@ internal static class DtoMapperExtensions
             run.TerminalState,
             run.TerminalAt,
             run.FailureReason,
+            run.DeclarationFailure,
             run.Files
                 .OrderBy(file => file.Id)
                 .Select(file => new PipelineRunFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))
@@ -276,6 +279,19 @@ internal static class DtoMapperExtensions
             step.ErrorMessage,
             step.StatusMessage,
             step.ConditionMessage,
+            step.Inputs
+                .OrderBy(input => input.Id)
+                .Select(input => new PipelineRunInputResponse(
+                    input.Parameter,
+                    input.Origin,
+                    input.Reference,
+                    input.Kind,
+                    input.Value,
+                    input.FileName,
+                    input.Size,
+                    input.Sha256,
+                    input.FromUpload))
+                .ToList(),
             step.Conditions
                 .OrderBy(condition => condition.Id)
                 .Select(condition => new PipelineRunConditionResponse(

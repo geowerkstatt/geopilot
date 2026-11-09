@@ -184,7 +184,13 @@ export const ProcessingRunDetail: FC = () => {
           </SummaryField>
           <SummaryField label="delivery">
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
-            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && (
+            {run.outcome.kind === PipelineRunOutcomeKind.DeclarationFailed && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeclarationFailure">
+                {run.declarationFailure}
+              </Typography>
+            )}
+            {/* Runs recorded before the protocol kept the declarability can only guess why there is no delivery. */}
+            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && !run.declarability && (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {t("processingRunNotDeliveredHint")}
               </Typography>

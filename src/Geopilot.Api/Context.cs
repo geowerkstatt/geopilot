@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api;
 
@@ -168,6 +169,11 @@ public class Context : DbContext
     public DbSet<PipelineRunFile> PipelineRunFiles { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="PipelineRunInput"/> records.
+    /// </summary>
+    public DbSet<PipelineRunInput> PipelineRunInputs { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="PipelineRunCondition"/> records.
     /// </summary>
     public DbSet<PipelineRunCondition> PipelineRunConditions { get; set; }
@@ -191,6 +197,8 @@ public class Context : DbContext
         {
             return PipelineRuns
                 .Include(r => r.Files)
+                .Include(r => r.Steps)
+                .ThenInclude(s => s.Inputs)
                 .Include(r => r.Steps)
                 .ThenInclude(s => s.Conditions)
                 .Include(r => r.Steps)
@@ -306,6 +314,27 @@ public class Context : DbContext
             .HasConversion(reactionSetValuesConverter, reactionSetValuesComparer)
             .IsRequired();
 
+        // The stored JSON has the shape the API writes: camelCase properties and camelCase enum strings.
+        var metadataJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        };
+
+        modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.MetadataFields)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_array()")
+            .HasConversion(MetadataConverter<MetadataField>(metadataJsonOptions), MetadataComparer<MetadataField>(metadataJsonOptions))
+            .IsRequired();
+
+        modelBuilder.Entity<Delivery>()
+            .Property(delivery => delivery.Metadata)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_array()")
+            .HasConversion(MetadataConverter<DeliveredMetadataField>(metadataJsonOptions), MetadataComparer<DeliveredMetadataField>(metadataJsonOptions))
+            .IsRequired();
+
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
         // text so the tables stay readable in SQL and reordering an enum cannot reinterpret history.
         modelBuilder.Entity<PipelineRun>(run =>
@@ -314,6 +343,7 @@ public class Context : DbContext
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
             run.Property(r => r.ClientReference).HasMaxLength(PipelineRun.ClientReferenceMaxLength);
+            run.Property(r => r.Declarability).HasConversion<string>();
             run.Property(r => r.ScanState).HasConversion<string>();
             run.Property(r => r.TerminalState).HasConversion<string>();
 
@@ -354,8 +384,15 @@ public class Context : DbContext
             // for the nullable properties, while EF never passes null through a converter anyway.
             step.Property(s => s.StatusMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
             step.Property(s => s.ConditionMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
+            step.HasMany(s => s.Inputs).WithOne().HasForeignKey(i => i.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
             step.HasMany(s => s.Conditions).WithOne(c => c.Step).HasForeignKey(c => c.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
             step.HasMany(s => s.Artifacts).WithOne(a => a.Step).HasForeignKey(a => a.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PipelineRunInput>(input =>
+        {
+            input.Property(i => i.Origin).HasConversion<string>();
+            input.Property(i => i.Kind).HasConversion<string>();
         });
 
         modelBuilder.Entity<PipelineRunCondition>(condition =>
@@ -371,4 +408,14 @@ public class Context : DbContext
             .HasIndex(u => u.AuthIdentifier)
             .IsUnique();
     }
+
+    // A JsonElement has no value equality, so the comparer looks at the serialized JSON like the reaction set values do.
+    private static ValueConverter<List<T>, string> MetadataConverter<T>(JsonSerializerOptions options) => new(
+        list => JsonSerializer.Serialize(list, options),
+        json => JsonSerializer.Deserialize<List<T>>(json, options) ?? new List<T>());
+
+    private static ValueComparer<List<T>> MetadataComparer<T>(JsonSerializerOptions options) => new(
+        (left, right) => JsonSerializer.Serialize(left, options) == JsonSerializer.Serialize(right, options),
+        list => JsonSerializer.Serialize(list, options).GetHashCode(StringComparison.Ordinal),
+        list => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(list, options), options) ?? new List<T>());
 }

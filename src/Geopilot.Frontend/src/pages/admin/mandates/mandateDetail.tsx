@@ -3,18 +3,20 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Stack, Typography } from "@mui/material";
-import { MandateFormValues } from "../../../api/apiInterfaces.ts";
+import { LocalizedText, MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
   Coordinate,
   FieldEvaluationType,
   Mandate,
+  MetadataField,
+  MetadataFieldType,
   Organisation,
   PipelineSummary,
   ReactionSetSummary,
   StacAccess,
 } from "../../../api/generated";
-import { Language } from "../../../appInterfaces.ts";
+import { isLanguage, Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
@@ -29,7 +31,22 @@ import { FormAutocompleteValue } from "../../../components/form/formAutocomplete
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
+import MandateMetadataFields from "./mandateMetadataFields.tsx";
 import ReactionSetFields from "./reactionSetFields.tsx";
+
+const withEveryLanguage = (text: LocalizedText): LocalizedText => ({
+  ...Object.fromEntries(Object.values(Language).map(language => [language, ""])),
+  ...text,
+});
+
+// The form registers every language of a title and an option list for every field. A reset remounts the metadata
+// fields, and loaded values that differ from that only by a missing entry would mark the form as changed again.
+const inFormShape = (fields: MetadataField[]): MetadataField[] =>
+  fields.map(field => ({
+    ...field,
+    title: withEveryLanguage(field.title),
+    options: (field.options ?? []).map(option => ({ ...option, title: withEveryLanguage(option.title) })),
+  }));
 
 const MandateDetail = () => {
   const { t, i18n } = useTranslation();
@@ -41,12 +58,14 @@ const MandateDetail = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
   const [reactionSets, setReactionSets] = useState<ReactionSetSummary[]>();
-  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
+  const [activeLanguage, setActiveLanguage] = useState<Language>(
+    isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : Language.EN,
+  );
 
   const loadMandate = useCallback(
     async (id: string) => {
       const mandate = await fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" });
-      setMandate(mandate);
+      setMandate({ ...mandate, metadataFields: inFormShape(mandate.metadataFields) });
     },
     [fetchApi],
   );
@@ -79,6 +98,7 @@ const MandateDetail = () => {
         stacAccess: StacAccess.AdminsOnly,
         organisations: [],
         fileTypes: [],
+        metadataFields: [],
         // Prefill coordinates to allow editing them in the form
         coordinates: [
           { x: undefined, y: undefined },
@@ -104,6 +124,12 @@ const MandateDetail = () => {
       mandate.reactionSetValues = {};
     }
 
+    // Only a selection has options, so every other field leaves them out, like the server does. A field switched away
+    // from a selection still holds them in the form.
+    mandate.metadataFields = mandate.metadataFields.map(field =>
+      field.type === MetadataFieldType.Selection ? field : { ...field, options: undefined },
+    );
+
     return mandate;
   };
 
@@ -122,7 +148,11 @@ const MandateDetail = () => {
           <Typography variant={"h3"} sx={{ marginTop: 0 }}>
             {t("general")}
           </Typography>
-          <FormLanguageTabs language={activeLanguage} onLanguageChange={setActiveLanguage} />
+          <FormLanguageTabs
+            language={activeLanguage}
+            onLanguageChange={setActiveLanguage}
+            label={"generalInputLanguage"}
+          />
         </Stack>
         <FormContainer>
           <FormLocalizedInput
@@ -201,6 +231,7 @@ const MandateDetail = () => {
             ]}
           />
         </FormContainerHalfWidth>
+        <MandateMetadataFields mandate={mandate} />
       </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} sx={{ marginTop: 0 }}>

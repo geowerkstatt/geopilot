@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace Geopilot.Api.Contracts;
 
@@ -27,4 +28,9 @@ public class DeliveryRequest
     /// Optional. Comment to describe the delivery.
     /// </summary>
     public string? Comment { get; set; }
+
+    /// <summary>
+    /// The values of the metadata fields, keyed by field id.
+    /// </summary>
+    public Dictionary<string, JsonElement>? Metadata { get; set; }
 }

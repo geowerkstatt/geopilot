@@ -48,7 +48,7 @@ public class SubmissionRoutingTest
         var form = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("SubmissionMultipartRequest");
         var properties = form.GetProperty("properties");
         CollectionAssert.AreEquivalent(
-            new[] { "mandateKey", "partialDelivery", "precursorDeliveryId", "comment", "clientReference", "file" },
+            new[] { "mandateKey", "partialDelivery", "precursorDeliveryId", "comment", "metadata", "clientReference", "file" },
             properties.EnumerateObject().Select(p => p.Name).ToArray());
         Assert.AreEqual(128, properties.GetProperty("clientReference").GetProperty("maxLength").GetInt32(), "A generated client learns the limit only from the document.");
         Assert.AreEqual("array", properties.GetProperty("file").GetProperty("type").GetString());

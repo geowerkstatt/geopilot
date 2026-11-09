@@ -176,6 +176,69 @@ public class StacConverterTest
         Assert.AreEqual(expectedDescription, item.Description);
     }
 
+    private static DeliveredMetadataField Delivered(string title, MetadataFieldType type, string? valueJson, MetadataFieldOption[]? options = null)
+        => new(
+            title.ToLowerInvariant(),
+            TestHelpers.Localized(title),
+            type,
+            FieldEvaluationType.Optional,
+            options,
+            valueJson is null ? null : System.Text.Json.JsonDocument.Parse(valueJson).RootElement.Clone());
+
+    [TestMethod]
+    public void ConvertToStacItemAddsTheMetadataForAdmins()
+    {
+        SetupContextMocks();
+        testDelivery.Metadata =
+        [
+            Delivered("Projektnummer", MetadataFieldType.Text, "\"2026-117\""),
+            Delivered("Gemeinden", MetadataFieldType.TextList, "[\"Aarau\",\"Buchs\"]"),
+            Delivered("Zuständig", MetadataFieldType.Selection, "\"canton\"", [new MetadataFieldOption("canton", TestHelpers.Localized("Kanton"))]),
+            Delivered("Parzellen", MetadataFieldType.IntegerNumber, "12"),
+            Delivered("Fläche", MetadataFieldType.DecimalNumber, "12.5"),
+            Delivered("Stichtag", MetadataFieldType.Date, "\"2026-11-04\""),
+            Delivered("Leer", MetadataFieldType.Text, null),
+        ];
+
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
+
+        Assert.AreEqual("2026-117", item.Properties["Projektnummer"]);
+        CollectionAssert.AreEqual(new[] { "Aarau", "Buchs" }, (string[])item.Properties["Gemeinden"]);
+        Assert.AreEqual("Kanton", item.Properties["Zuständig"]);
+        Assert.AreEqual(12L, item.Properties["Parzellen"]);
+        Assert.AreEqual(12.5m, item.Properties["Fläche"]);
+        Assert.AreEqual("2026-11-04", item.Properties["Stichtag"]);
+        Assert.IsFalse(item.Properties.ContainsKey("Leer"));
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemOmitsTheMetadataForTheAudience()
+    {
+        SetupContextMocks();
+        testDelivery.Metadata =
+        [
+            Delivered("Projektnummer", MetadataFieldType.Text, "\"2026-117\""),
+            Delivered("Parzellen", MetadataFieldType.IntegerNumber, "12"),
+        ];
+
+        var item = converter.ToStacItem(testDelivery, includePersonalData: false);
+
+        Assert.IsFalse(item.Properties.ContainsKey("Projektnummer"));
+        Assert.IsFalse(item.Properties.ContainsKey("Parzellen"));
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemKeepsAFixedPropertyOfTheSameName()
+    {
+        SetupContextMocks();
+        testDelivery.Partial = true;
+        testDelivery.Metadata = [Delivered("Teillieferung", MetadataFieldType.Text, "\"x\"")];
+
+        var item = converter.ToStacItem(testDelivery, includePersonalData: true);
+
+        Assert.AreEqual("Ja", item.Properties["Teillieferung"]);
+    }
+
     [TestMethod]
     public void ConvertToStacItemOmitsPersonalDataForTheAudience()
     {

@@ -1,15 +1,47 @@
 import { TFunction } from "i18next";
-import { ClientKind } from "../../src/api/generated";
+import { ClientKind, InputKind, InputOrigin, PipelineRunInputResponse } from "../../src/api/generated";
 import {
   formatBlockingSteps,
   formatClientKind,
   formatDuration,
+  formatInputOrigin,
+  formatInputValue,
 } from "../../src/pages/admin/processingRuns/processingRunFormat";
 
 // Echoes the key, so the assertions read the keys instead of a language. TFunction has overloads a lambda cannot match.
 const t = ((key: string) => key) as unknown as TFunction;
 
+const input = (fields: Partial<PipelineRunInputResponse>): PipelineRunInputResponse => ({
+  parameter: "transferFile",
+  origin: InputOrigin.Definition,
+  kind: InputKind.Value,
+  ...fields,
+});
+
 describe("pipeline run format", () => {
+  it("shows a value as its text, a file with its size when known, and nothing for a skipped step", () => {
+    expect(formatInputValue(input({ value: "2.4" }))).to.equal("2.4");
+    expect(formatInputValue(input({ value: null }))).to.equal("null");
+    expect(formatInputValue(input({ kind: InputKind.File, fileName: "Sauge.xtf", size: 2048 }))).to.equal(
+      "Sauge.xtf (2 KB)",
+    );
+    expect(formatInputValue(input({ kind: InputKind.File, fileName: "Sauge.xtf", size: 0 }))).to.equal(
+      "Sauge.xtf (0 B)",
+    );
+    expect(formatInputValue(input({ kind: InputKind.File, fileName: "validation.log", size: null }))).to.equal(
+      "validation.log",
+    );
+    expect(formatInputValue(input({ kind: InputKind.Absent, origin: InputOrigin.StepOutput }))).to.equal(undefined);
+  });
+
+  it("names where an input came from", () => {
+    expect(formatInputOrigin(t, InputOrigin.Definition)).to.equal("inputOriginDefinition");
+    expect(formatInputOrigin(t, InputOrigin.StepOutput)).to.equal("inputOriginStepOutput");
+    expect(formatInputOrigin(t, InputOrigin.Resource)).to.equal("inputOriginResource");
+    expect(formatInputOrigin(t, InputOrigin.Upload)).to.equal("inputOriginUpload");
+    expect(formatInputOrigin(t, InputOrigin.Configuration)).to.equal("inputOriginConfiguration");
+  });
+
   it("names the kind of client a run was started over, and nothing for an unknown kind", () => {
     expect(formatClientKind(t, ClientKind.WebClient)).to.equal("clientKindWeb");
     expect(formatClientKind(t, ClientKind.ApiClient)).to.equal("clientKindApi");

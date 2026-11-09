@@ -50,19 +50,51 @@ public class PipelineRunOutcomesTest
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void NotDeliveredWhenDeliverableWithoutDelivery(ProcessingState terminalState)
+    public void NotDeliveredWhenDeclarableWithoutDelivery(ProcessingState terminalState)
     {
-        var outcome = PipelineRunOutcomes.Determine(Run(terminalState, userId: 1), isRunning: false, delivery: null);
+        var run = Run(terminalState, userId: 1);
+        run.Declarability = Declarability.Declarable;
+
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
         Assert.AreEqual(PipelineRunOutcomeKind.NotDelivered, outcome.Kind);
     }
 
     [TestMethod]
-    public void NotDeclarableWhenAnonymousAndDeliverable()
+    public void NotDeclarableWhenRecordedAsNotDeclarable()
     {
-        var outcome = PipelineRunOutcomes.Determine(Run(ProcessingState.Success), isRunning: false, delivery: null);
+        var run = Run(ProcessingState.Success, userId: 1);
+        run.Declarability = Declarability.NotDeclarable;
 
-        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, outcome.Kind, "nobody who processes without signing in may deliver.");
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
+
+        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, outcome.Kind, "a person who is no member of the mandate may not deliver.");
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Warning)]
+    public void DeclarationFailedWhenItsDeclarationFailed(ProcessingState terminalState)
+    {
+        var run = Run(terminalState);
+        run.MachineClientId = 1;
+        run.Declarability = Declarability.Declarable;
+        run.DeclarationFailure = "The mandate no longer accepts deliveries.";
+
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
+
+        Assert.AreEqual(PipelineRunOutcomeKind.DeclarationFailed, outcome.Kind);
+    }
+
+    [TestMethod]
+    [DataRow(null, PipelineRunOutcomeKind.NotDeclarable, DisplayName = "anonymous")]
+    [DataRow(1, PipelineRunOutcomeKind.NotDelivered, DisplayName = "person")]
+    public void WithoutRecordedDeclarabilityOnlyAnAnonymousRunIsNotDeclarable(int? userId, PipelineRunOutcomeKind expected)
+    {
+        // Runs recorded before the protocol kept the declarability; nobody who processes without signing in may deliver.
+        var outcome = PipelineRunOutcomes.Determine(Run(ProcessingState.Success, userId), isRunning: false, delivery: null);
+
+        Assert.AreEqual(expected, outcome.Kind);
     }
 
     [TestMethod]

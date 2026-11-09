@@ -51,4 +51,9 @@ internal sealed record DeliveryInfo
     /// Who declared the delivery.
     /// </summary>
     public required DeclarerInfo Declarer { get; init; }
+
+    /// <summary>
+    /// The metadata fields the declarer filled in, in the order of the mandate; fields left empty are not listed.
+    /// </summary>
+    public IReadOnlyList<MetadataInfo> Metadata { get; init; } = [];
 }
