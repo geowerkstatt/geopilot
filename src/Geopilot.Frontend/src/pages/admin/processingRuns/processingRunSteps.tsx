@@ -25,6 +25,7 @@ import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 import { formatDuration, formatInputOrigin, formatInputValue } from "./processingRunFormat.ts";
+import { StepTitle } from "./stepTitle.tsx";
 import { TechnicalText } from "./technicalText.tsx";
 
 interface ProcessingRunStepsProps {
@@ -80,7 +81,9 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
                   direction="row"
                   sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
                   <StepIcon step={index + 1} state={step.state} variant="outlined" />
-                  <Typography sx={{ flex: "1 1 0" }}>{localized(step.displayName, step.stepId)}</Typography>
+                  <Typography sx={{ flex: "1 1 0" }}>
+                    <StepTitle id={step.stepId} displayName={step.displayName} />
+                  </Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     {duration
                       ? t("stepStateAfterDuration", { state: t(stepStateKey[step.state]), duration })

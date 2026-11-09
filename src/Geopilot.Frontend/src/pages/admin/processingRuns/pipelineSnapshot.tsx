@@ -20,9 +20,9 @@ import { CopyButton } from "../../../components/copyButton.tsx";
 import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
-import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 import { buildSnapshotSteps, SnapshotConfigOrigin } from "./pipelineSnapshotModel.ts";
+import { StepTitle } from "./stepTitle.tsx";
 import { TechnicalText } from "./technicalText.tsx";
 
 interface PipelineSnapshotProps {
@@ -63,7 +63,6 @@ const outputActionKeys: Partial<Record<string, TranslationKey>> = {
 export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId }) => {
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
-  const { localized } = useLocalized();
   const [loaded, setLoaded] = useState<{ jobId: string; snapshot: DefinitionSnapshot }>();
   const [view, setView] = useState<SnapshotView>("readable");
 
@@ -134,7 +133,9 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack direction="row" sx={{ alignItems: "center" }}>
                   <StepIcon step={index + 1} state={DeliveryStepState.Enabled} variant="outlined" />
-                  <Typography>{localized(step.displayName, step.id)}</Typography>
+                  <Typography>
+                    <StepTitle id={step.id} displayName={step.displayName} />
+                  </Typography>
                 </Stack>
               </AccordionSummary>
               <AccordionDetails>
