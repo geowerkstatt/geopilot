@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Typography } from "@mui/material";
+import { Link, Typography } from "@mui/material";
 import { UserFormValues } from "../../../api/apiInterfaces.ts";
-import { MachineClient, Organisation, User, UserState } from "../../../api/generated";
+import { Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
+import { useControlledLinkClick } from "../../../components/controlledNavigate";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -18,6 +19,7 @@ import {
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
+import { SummaryField } from "../deliveries/summaryField.tsx";
 
 const prepareUserForForm = (user: User): UserFormValues => {
   return {
@@ -30,6 +32,7 @@ const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { machineDeliveryEnabled } = useCapabilities();
+  const linkClick = useControlledLinkClick();
   const { fetchApi } = useFetch();
   const { id } = useParams<{ id: string }>();
 
@@ -134,15 +137,20 @@ const UserDetail = () => {
           </FormContainer>
           {machineDeliveryEnabled && (
             <FormContainer>
-              <FormAutocomplete<MachineClient>
-                fieldName={"responsibleForMachineClients"}
-                label={"responsibleForMachineClients"}
-                readOnly={true}
-                values={editableUser?.responsibleForMachineClients}
-                selected={editableUser?.responsibleForMachineClients}
-                linkTo={id => `/admin/machine-clients/${id}`}
-                valueFormatter={client => ({ id: client.id, primaryText: client.name })}
-              />
+              <SummaryField label="responsibleForMachineClients">
+                {editableUser?.responsibleForMachineClients?.length
+                  ? editableUser.responsibleForMachineClients.map((client, index) => (
+                      <Fragment key={client.id}>
+                        {index > 0 && ", "}
+                        <Link
+                          href={`/admin/machine-clients/${client.id}`}
+                          onClick={linkClick(`/admin/machine-clients/${client.id}`)}>
+                          {client.name}
+                        </Link>
+                      </Fragment>
+                    ))
+                  : "-"}
+              </SummaryField>
             </FormContainer>
           )}
         </GeopilotBox>

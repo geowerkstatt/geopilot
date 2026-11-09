@@ -70,7 +70,7 @@ describe("Machine clients tests", () => {
     // And the responsibility from the person, who only sees it there.
     cy.dataCy("admin-users-nav").click();
     getGridRowThatContains("users-grid", "Andreas Admin").click();
-    getFormField("responsibleForMachineClients").contains(name);
+    cy.dataCy("summary-responsibleForMachineClients").contains("a", name);
   });
 
   it("can edit a machine client and deactivate it", () => {
