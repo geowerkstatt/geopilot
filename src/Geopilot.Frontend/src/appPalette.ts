@@ -80,7 +80,6 @@ export const themePalette = {
     insertBackground: "#CDEBCF",
     deleteBackground: "#F9D0D0",
   },
-  // The MUI default, which the rows of a data grid show on hover.
   action: {
     hover: alpha("#000000", 0.04),
   },
