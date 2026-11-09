@@ -42,6 +42,15 @@ public interface IPipeline : IDisposable
     Func<IPipelineStep, CancellationToken, Task>? OnStepStarted { get; set; }
 
     /// <summary>
+    /// Optional callback invoked by <see cref="Run"/> once a step bound its inputs, right before its process runs, with
+    /// the step and what its process is given (see <see cref="StepInput"/>). Awaited before the process starts, so a
+    /// handler can record the inputs of a step that is interrupted while it runs. Not invoked for a step its
+    /// pre-conditions skipped or failed, nor for one whose inputs could not be bound. <see langword="null"/> (the
+    /// default) disables the callback.
+    /// </summary>
+    Func<IPipelineStep, IReadOnlyList<StepInput>, CancellationToken, Task>? OnStepInputsBound { get; set; }
+
+    /// <summary>
     /// Optional callback invoked by <see cref="Run"/> after each step has finished, in step order, with the
     /// just-completed step and its <see cref="StepResult"/>. Awaited before the next step runs, so a handler can
     /// reliably react to a step (e.g. persist its outputs) before the pipeline progresses. <see langword="null"/>

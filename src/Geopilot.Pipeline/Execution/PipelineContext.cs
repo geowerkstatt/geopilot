@@ -18,4 +18,10 @@ public class PipelineContext
     /// The results of each step in the pipeline.
     /// </summary>
     public required Dictionary<string, StepResult> StepResults { get; set; }
+
+    /// <summary>
+    /// Invoked by a step once it bound its inputs, right before its process runs. Set by the pipeline run from
+    /// <see cref="IPipeline.OnStepInputsBound"/>.
+    /// </summary>
+    internal Func<IPipelineStep, IReadOnlyList<StepInput>, CancellationToken, Task>? OnStepInputsBound { get; init; }
 }

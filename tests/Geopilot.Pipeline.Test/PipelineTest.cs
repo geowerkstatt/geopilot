@@ -254,6 +254,38 @@ public class PipelineTest
     }
 
     [TestMethod]
+    public async Task RunHandsOnStepInputsBoundToTheSteps()
+    {
+        var stepInputs = new[] { new StepInput("data", InputOrigin.Definition, null, InputKind.Value, "x") };
+        var step = new Mock<IPipelineStep>();
+        step.SetupGet(s => s.Id).Returns("step_1");
+        step.SetupProperty(s => s.State, StepState.Pending);
+        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .Returns(async (PipelineContext context, CancellationToken cancellationToken) =>
+            {
+                // What a step does once it bound its inputs.
+                if (context.OnStepInputsBound is { } onStepInputsBound)
+                    await onStepInputsBound(step.Object, stepInputs, cancellationToken);
+
+                return new StepResult();
+            });
+
+        using var pipeline = BuildPipeline(step.Object);
+        var reported = new List<(string StepId, IReadOnlyList<StepInput> Inputs)>();
+        pipeline.OnStepInputsBound = (reportingStep, inputs, cancellationToken) =>
+        {
+            reported.Add((reportingStep.Id, inputs));
+            return Task.CompletedTask;
+        };
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        Assert.HasCount(1, reported);
+        Assert.AreEqual("step_1", reported[0].StepId);
+        Assert.AreSame(stepInputs, reported[0].Inputs);
+    }
+
+    [TestMethod]
     [DataRow(OutputAction.Download)]
     [DataRow(OutputAction.Visualization)]
     public async Task RunFailsStepWhoseTaggedOutputIsMissing(OutputAction action)

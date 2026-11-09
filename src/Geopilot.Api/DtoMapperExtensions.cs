@@ -254,6 +254,19 @@ internal static class DtoMapperExtensions
             step.ErrorMessage,
             step.StatusMessage,
             step.ConditionMessage,
+            step.Inputs
+                .OrderBy(input => input.Id)
+                .Select(input => new PipelineRunInputResponse(
+                    input.Parameter,
+                    input.Origin,
+                    input.Reference,
+                    input.Kind,
+                    input.Value,
+                    input.FileName,
+                    input.Size,
+                    input.Sha256,
+                    input.FromUpload))
+                .ToList(),
             step.Conditions
                 .OrderBy(condition => condition.Id)
                 .Select(condition => new PipelineRunConditionResponse(

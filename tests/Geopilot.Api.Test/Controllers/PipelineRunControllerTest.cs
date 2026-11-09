@@ -55,6 +55,15 @@ public sealed class PipelineRunControllerTest
         var artifact = response.Steps[1].Artifacts.Single();
         Assert.AreEqual(ArtifactKind.Download, artifact.Kind);
         Assert.AreEqual("error.log", artifact.OriginalFileName);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new PipelineRunInputResponse("transferFile", InputOrigin.StepOutput, "matching.XtfFiles", InputKind.File, null, "data.xtf", 1024, null, true),
+                new PipelineRunInputResponse("profile", InputOrigin.Definition, null, InputKind.Value, "DMAV", null, null, null, null),
+            },
+            response.Steps[1].Inputs,
+            "the inputs are returned in the order they were recorded.");
     }
 
     [TestMethod]
@@ -171,6 +180,11 @@ public sealed class PipelineRunControllerTest
                     Artifacts = new List<PipelineRunArtifact>
                     {
                         new() { Kind = ArtifactKind.Download, OriginalFileName = "error.log", PersistedFileName = "validation_error.log" },
+                    },
+                    Inputs = new List<PipelineRunInput>
+                    {
+                        new() { Parameter = "transferFile", Origin = InputOrigin.StepOutput, Reference = "matching.XtfFiles", Kind = InputKind.File, FileName = "data.xtf", Size = 1024, FromUpload = true },
+                        new() { Parameter = "profile", Origin = InputOrigin.Definition, Kind = InputKind.Value, Value = "DMAV" },
                     },
                 },
                 new()

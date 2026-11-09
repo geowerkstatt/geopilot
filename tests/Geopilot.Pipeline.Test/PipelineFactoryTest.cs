@@ -298,6 +298,62 @@ public class PipelineFactoryTest
         }
     }
 
+    [TestMethod]
+    public async Task CreatedStepReportsTheFileItsProcessConfigurationNames()
+    {
+        // Unique per call, because the assembly runs test methods in parallel.
+        var workDirectory = Path.Combine(Path.GetTempPath(), $"geopilot-configured-file-{Guid.NewGuid()}");
+        var resourcesDirectory = Path.Combine(workDirectory, "resources");
+        Directory.CreateDirectory(Path.Combine(resourcesDirectory, "dmav"));
+        File.WriteAllText(Path.Combine(resourcesDirectory, "dmav", "mapping.xtf"), "hello");
+        try
+        {
+            var yaml = """
+                processes:
+                  - id: resource_file_process
+                    implementation: Geopilot.Pipeline.Test.Processes.ResourceFileTestProcess
+                    default_config:
+                      resource: dmav/mapping.xtf
+                pipelines:
+                  - id: resource_pipeline
+                    display_name:
+                      en: Resource pipeline
+                    steps:
+                      - id: resource_step
+                        display_name:
+                          en: Resource step
+                        process_id: resource_file_process
+                """;
+            using var processFactory = CreateProcessFactoryWithTestProcesses();
+            var factory = PipelineFactory
+                .Builder()
+                .Yaml(yaml)
+                .PipelineProcessFactory(processFactory)
+                .LoggerFactory(this.loggerFactory.Object)
+                .PipelineTempDirectory(Path.Combine(workDirectory, "pipeline"))
+                .ResourcesDirectory(resourcesDirectory)
+                .Build();
+            using var pipeline = factory.CreatePipeline("resource_pipeline", Guid.NewGuid());
+            var reported = new List<StepInput>();
+            pipeline.OnStepInputsBound = (step, inputs, cancellationToken) =>
+            {
+                reported.AddRange(inputs);
+                return Task.CompletedTask;
+            };
+
+            await pipeline.Run([], CancellationToken.None);
+
+            // The SHA-256 of the five bytes "hello".
+            CollectionAssert.AreEqual(
+                new[] { new StepInput("resource", InputOrigin.Configuration, "dmav/mapping.xtf", InputKind.File, FileName: "mapping.xtf", Size: 5, Sha256: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", FromUpload: false) },
+                reported);
+        }
+        finally
+        {
+            Directory.Delete(workDirectory, true);
+        }
+    }
+
     [TestMethod(DisplayName = "Definition snapshot of an unknown pipeline throws")]
     public void GetDefinitionSnapshotJsonUnknownPipelineThrows()
     {
@@ -318,6 +374,22 @@ public class PipelineFactoryTest
             .LoggerFactory(this.loggerFactory.Object)
             .PipelineTempDirectory(pipelineDirectory)
             .Build();
+    }
+
+    // Loads this test assembly as a processor plugin, because GetProcessorType resolves only the built-in processes
+    // from the app domain.
+    private PipelineProcessFactory CreateProcessFactoryWithTestProcesses()
+    {
+        var options = new Mock<IOptions<PipelineOptions>>();
+        options.SetupGet(o => o.Value).Returns(new PipelineOptions
+        {
+            Definition = "",
+            Plugins = [typeof(PipelineFactoryTest).Assembly.Location],
+            ProcessConfigs = new Dictionary<string, Parameterization>(),
+        });
+        var ilitoolsOptions = new Mock<IOptions<IlitoolsOptions>>();
+        ilitoolsOptions.SetupGet(o => o.Value).Returns(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" });
+        return new PipelineProcessFactory(options.Object, ilitoolsOptions.Object, this.loggerFactory.Object);
     }
 
     private static void AssertOutputAction(OutputActionConfig expected, OutputActionConfig actual)
