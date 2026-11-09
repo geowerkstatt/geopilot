@@ -49,6 +49,17 @@ public interface IPipelineRunRecorder
     Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
 
     /// <summary>
+    /// Writes what the step's process is given, once the step bound its inputs and before the process runs, so an
+    /// interrupted run shows what the step in flight was working on. An uploaded file gets its size, and if the step
+    /// took it from the upload itself also its hash, from the manifest. Soft.
+    /// </summary>
+    /// <param name="jobId">The job the step belongs to.</param>
+    /// <param name="pipelineStep">The step about to run its process.</param>
+    /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <param name="inputs">What the process is given, in the order of its parameters.</param>
+    Task RecordStepInputsAsync(Guid jobId, IPipelineStep pipelineStep, int order, IReadOnlyList<StepInput> inputs);
+
+    /// <summary>
     /// Updates the step row with its terminal state, timing, messages, condition evaluations and the
     /// artifacts persisted so far. Soft.
     /// </summary>
@@ -67,6 +78,13 @@ public interface IPipelineRunRecorder
     /// <param name="failureReason">Why the run failed or was cancelled, when known.</param>
     /// <param name="cancellationToken">Bounds the write; a cancelled write is logged like any other failed one.</param>
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records why geopilot could not declare the delivery of a machine delivery although the run allowed it. Soft.
+    /// </summary>
+    /// <param name="jobId">The job whose delivery could not be declared.</param>
+    /// <param name="reason">Why the declaration failed, as the caller of the attempt reads it.</param>
+    Task RecordDeclarationFailedAsync(Guid jobId, string reason);
 
     /// <summary>
     /// Writes the row of an attempt of a reaction the moment an instance claims it, into the run its delivery comes

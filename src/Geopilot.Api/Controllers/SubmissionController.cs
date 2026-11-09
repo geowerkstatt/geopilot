@@ -19,6 +19,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers;
 
@@ -145,7 +146,7 @@ public class SubmissionController : ControllerBase
                 break;
         }
 
-        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment);
+        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
         var clientReference = ReadClientReference(request.ClientReference, nameof(SubmissionRequest.ClientReference));
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -532,7 +533,24 @@ public class SubmissionController : ControllerBase
         }
 
         fields.TryGetValue("comment", out var comment);
-        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment);
+        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment, ReadMetadata(fields));
+    }
+
+    private Dictionary<string, JsonElement>? ReadMetadata(Dictionary<string, string> fields)
+    {
+        if (!fields.TryGetValue("metadata", out var metadataText) || string.IsNullOrWhiteSpace(metadataText))
+            return null;
+
+        try
+        {
+            // The text null is a valid JSON document and reads as no metadata.
+            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadataText);
+        }
+        catch (JsonException)
+        {
+            ModelState.AddModelError("metadata", "Must be a JSON object with the ids of the metadata fields as keys.");
+            return null;
+        }
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-import { FC, ReactNode } from "react";
+import { FC, ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, Typography } from "@mui/material";
 import { TranslationKey } from "../../../appInterfaces";
@@ -14,23 +14,26 @@ export const FieldLabel: FC<{ variant: FieldLabelVariant; children: ReactNode }>
 );
 
 interface SummaryFieldProps {
-  label: TranslationKey;
+  /** A translation key, or an element for a label that comes from the server. */
+  label: TranslationKey | ReactElement;
   labelVariant?: FieldLabelVariant;
+  /** The data-cy value; without it the label (a translation key) names the field. */
+  dataCy?: string;
   /** Spans both columns, for a text that may run long. */
   wide?: boolean;
   children: ReactNode;
 }
 
 /** A labelled value in the summary of a delivery. */
-export const SummaryField: FC<SummaryFieldProps> = ({ label, labelVariant = "caption", wide, children }) => {
+export const SummaryField: FC<SummaryFieldProps> = ({ label, labelVariant = "caption", dataCy, wide, children }) => {
   const { t } = useTranslation();
 
   return (
     <Stack
       spacing={labelVariant === "h5" ? 1 : 0.5}
       sx={{ gridColumn: wide ? "1 / -1" : undefined, minWidth: 0 }}
-      data-cy={`summary-${label}`}>
-      <FieldLabel variant={labelVariant}>{t(label)}</FieldLabel>
+      data-cy={dataCy ?? `summary-${label}`}>
+      <FieldLabel variant={labelVariant}>{typeof label === "string" ? t(label) : label}</FieldLabel>
       <Typography variant="body1" component="div" sx={{ overflowWrap: "anywhere" }}>
         {children}
       </Typography>

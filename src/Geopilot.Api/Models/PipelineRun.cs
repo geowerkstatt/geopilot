@@ -91,6 +91,13 @@ public class PipelineRun
     public string? ClientReference { get; set; }
 
     /// <summary>
+    /// Whether the run can ever become a delivery, decided when its job started (see
+    /// <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/> for a run recorded before the
+    /// protocol kept it: unknown, which is not the same as not declarable.
+    /// </summary>
+    public Declarability? Declarability { get; set; }
+
+    /// <summary>
     /// The id of the upload whose files the run processed.
     /// </summary>
     public Guid UploadId { get; set; }
@@ -139,6 +146,14 @@ public class PipelineRun
     /// timeout, or a host shutdown).
     /// </summary>
     public string? FailureReason { get; set; }
+
+    /// <summary>
+    /// Why geopilot could not declare the delivery of a machine delivery although the run allowed it, as the caller
+    /// of the attempt reads it. <see langword="null"/> when geopilot declared it or had nothing to declare, and unknown
+    /// for a run without <see cref="Declarability"/>. Whether a delivery exists is not kept here: the delivery itself
+    /// is the record of that, reachable via <see cref="JobId"/>.
+    /// </summary>
+    public string? DeclarationFailure { get; set; }
 
     /// <summary>
     /// The manifest of the uploaded files.

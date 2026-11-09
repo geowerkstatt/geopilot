@@ -229,6 +229,80 @@ public class DeliveryDeclarationServiceTest
             MandateConfig = mandateKeys.Select(key => new MandateConfigEntry { Key = key, DisplayName = TestHelpers.Localized(key) }).ToList(),
         };
 
+    [TestMethod]
+    public async Task KeepsACopyOfTheMetadataFieldsWithTheirValues()
+    {
+        var mandate = AddMandateWithMetadataFields(nameof(KeepsACopyOfTheMetadataFieldsWithTheirValues));
+
+        var deliveryId = await DeclareAsync(mandate, MetadataValues(("responsible", "canton")));
+
+        var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
+        Assert.HasCount(2, delivery.Metadata);
+        Assert.AreEqual("canton", delivery.Metadata[0].Value?.GetString());
+        Assert.HasCount(2, delivery.Metadata[0].Options ?? []);
+        Assert.IsNull(delivery.Metadata[1].Value);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheCopyWhenTheMandateChangesLater()
+    {
+        var mandate = AddMandateWithMetadataFields(nameof(KeepsTheCopyWhenTheMandateChangesLater));
+        var deliveryId = await DeclareAsync(mandate, MetadataValues(("responsible", "canton")));
+
+        mandate.MetadataFields =
+        [
+            mandate.MetadataFields[0] with { Title = TestHelpers.Localized("Renamed"), Options = [new MetadataFieldOption("canton", TestHelpers.Localized("Canton"))] },
+            mandate.MetadataFields[1],
+        ];
+        context.SaveChanges();
+        context.ChangeTracker.Clear();
+
+        var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
+        Assert.AreEqual("Responsible", delivery.Metadata[0].Title.GetDisplayText());
+        CollectionAssert.AreEqual(new[] { "canton", "municipality" }, (delivery.Metadata[0].Options ?? []).Select(o => o.Id).ToArray());
+    }
+
+    [TestMethod]
+    public async Task RefusesTheDeclarationWhenTheMandateGainedARequiredField()
+    {
+        var mandate = AddMandateWithMetadataFields(nameof(RefusesTheDeclarationWhenTheMandateGainedARequiredField));
+        var fields = MetadataValues(("responsible", "canton"));
+        mandate.MetadataFields = [mandate.MetadataFields[0], mandate.MetadataFields[1] with { Evaluation = FieldEvaluationType.Required }];
+        context.SaveChanges();
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
+        context.SaveChanges();
+        var declarer = Declarer.ForClient(client.Id);
+        var jobId = SetupDeliverableJob(mandate.Id);
+        mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
+
+        var result = await service.DeclareAsync(jobId, fields, declarer, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryDeclarationStatus.FieldRulesViolated, result.Status);
+        Assert.IsNotNull(result.FieldErrors);
+        Assert.IsTrue(result.FieldErrors.ContainsKey("metadata.project_number"));
+        Assert.IsFalse(context.Deliveries.Any(d => d.JobId == jobId));
+    }
+
+    private Mandate AddMandateWithMetadataFields(string name)
+    {
+        var mandate = AddMandate(name);
+        mandate.MetadataFields =
+        [
+            new MetadataField(
+                "responsible",
+                TestHelpers.Localized("Responsible"),
+                MetadataFieldType.Selection,
+                FieldEvaluationType.Required,
+                [new MetadataFieldOption("canton", TestHelpers.Localized("Canton")), new MetadataFieldOption("municipality", TestHelpers.Localized("Municipality"))]),
+            new MetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Optional),
+        ];
+        context.SaveChanges();
+        return mandate;
+    }
+
+    private static DeliveryFields MetadataValues(params (string Id, string Value)[] values)
+        => new(null, null, null, values.ToDictionary(v => v.Id, v => JsonSerializer.SerializeToElement(v.Value)));
+
     private Mandate AddMandate(string name)
         => context.Mandates.Add(new Mandate
         {
@@ -240,7 +314,7 @@ public class DeliveryDeclarationServiceTest
             EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
         }).Entity;
 
-    private async Task<int> DeclareAsync(Mandate mandate)
+    private async Task<int> DeclareAsync(Mandate mandate, DeliveryFields? fields = null)
     {
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         context.SaveChanges();
@@ -250,7 +324,7 @@ public class DeliveryDeclarationServiceTest
         mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
-        var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), declarer, CancellationToken.None);
+        var result = await service.DeclareAsync(jobId, fields ?? new DeliveryFields(null, null, null), declarer, CancellationToken.None);
 
         Assert.AreEqual(DeliveryDeclarationStatus.Created, result.Status);
         return result.DeliveryId ?? throw new AssertFailedException("A created delivery has an id.");

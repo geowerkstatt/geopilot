@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, ReactElement } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { MenuItem, SxProps, TextField } from "@mui/material";
@@ -11,7 +11,7 @@ const swipeSafeMenuProps = { slotProps: { paper: stopStepSwipePropagation } };
 export interface FormSelectProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
-  label: TranslationKey;
+  label: TranslationKey | ReactElement;
   required?: boolean;
   disabled?: boolean;
   helperText?: string;
@@ -65,6 +65,8 @@ export const FormSelect: FC<FormSelectProps> = ({
   const { t } = useTranslation();
   const formContext = useFormContext();
 
+  const resolvedLabel = typeof label === "string" ? t(label) : label;
+
   const menuItems: FormSelectMenuItem[] = [];
   if (!required) {
     menuItems.push({ key: -1, value: "", label: t("clear"), italic: true });
@@ -98,7 +100,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         error={error ?? false}
         helperText={helperText}
         sx={{ ...sx }}
-        label={t(label)}
+        label={resolvedLabel}
         value={selected ?? ""}
         onChange={e => onChange(e.target.value)}
         disabled={disabled ?? false}
@@ -134,7 +136,7 @@ export const FormSelect: FC<FormSelectProps> = ({
             formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : helperText
           }
           sx={{ ...sx }}
-          label={t(label)}
+          label={resolvedLabel}
           name={field.name}
           onChange={field.onChange}
           onBlur={field.onBlur}

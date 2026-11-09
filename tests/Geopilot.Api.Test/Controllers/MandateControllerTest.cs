@@ -7,6 +7,7 @@ using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -541,6 +542,60 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task CreateRefusesInvalidMetadataFields()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+            var sent = NewMandateWithKey(pipelineId, null);
+            sent.MetadataFields = [new MetadataField("1abc", TestHelpers.Localized("Projekt"), MetadataFieldType.Text, FieldEvaluationType.Optional)];
+            var mandateCount = context.Mandates.Count();
+
+            var result = await mandateController.Create(sent);
+
+            var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
+            StringAssert.Contains(Assert.IsInstanceOfType<string>(badRequest.Value), "<1abc>");
+            Assert.AreEqual(mandateCount, context.Mandates.Count());
+        }
+
+        [TestMethod]
+        public async Task EditSavesTheMetadataFields()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+            toEdit.MetadataFields =
+            [
+                new MetadataField("project", TestHelpers.Localized("Projekt"), MetadataFieldType.Text, FieldEvaluationType.Required),
+                new MetadataField(
+                    "level",
+                    TestHelpers.Localized("Stufe"),
+                    MetadataFieldType.Selection,
+                    FieldEvaluationType.Optional,
+                    [new MetadataFieldOption("canton", TestHelpers.Localized("Kanton")), new MetadataFieldOption("municipality", TestHelpers.Localized("Gemeinde"))]),
+            ];
+
+            var result = await mandateController.Edit(toEdit);
+
+            ActionResultAssert.IsOk(result);
+            var reloaded = await context.MandatesWithIncludes.AsNoTracking().SingleAsync(m => m.Id == toEdit.Id);
+            CollectionAssert.AreEqual(new[] { "project", "level" }, reloaded.MetadataFields.Select(field => field.Id).ToArray());
+            CollectionAssert.AreEqual(new[] { "canton", "municipality" }, (reloaded.MetadataFields[1].Options ?? []).Select(option => option.Id).ToArray());
+        }
+
+        [TestMethod]
+        public async Task EditRefusesInvalidMetadataFields()
+        {
+            var toEdit = await CreateMandateWithReactionSet();
+            toEdit.MetadataFields = [new MetadataField("1abc", TestHelpers.Localized("Projekt"), MetadataFieldType.Text, FieldEvaluationType.Optional)];
+
+            var result = await mandateController.Edit(toEdit);
+
+            var badRequest = Assert.IsInstanceOfType<BadRequestObjectResult>(result);
+            StringAssert.Contains(Assert.IsInstanceOfType<string>(badRequest.Value), "<1abc>");
+            var reloaded = await context.MandatesWithIncludes.AsNoTracking().SingleAsync(m => m.Id == toEdit.Id);
+            Assert.IsEmpty(reloaded.MetadataFields);
+        }
+
+        [TestMethod]
         public async Task EditMandateKeepsTheReactionSetWhenTheValuesAreLeftOut()
         {
             var toEdit = await CreateMandateWithReactionSet();
@@ -842,7 +897,8 @@ namespace Geopilot.Api.Controllers
                 mandate.AllowDelivery,
                 mandate.EvaluatePrecursorDelivery,
                 mandate.EvaluatePartial,
-                mandate.EvaluateComment);
+                mandate.EvaluateComment,
+                mandate.MetadataFields);
         }
     }
 }

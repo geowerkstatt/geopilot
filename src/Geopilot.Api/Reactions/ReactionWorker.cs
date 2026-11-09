@@ -6,7 +6,9 @@ using Geopilot.Pipeline.Channels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Geopilot.Api.Reactions;
 
@@ -216,6 +218,7 @@ public class ReactionWorker : BackgroundService
                 UserName = d.DeclaringUser == null ? null : d.DeclaringUser.FullName,
                 UserEmail = d.DeclaringUser == null ? null : d.DeclaringUser.Email,
                 ClientName = d.DeclaringClient == null ? null : d.DeclaringClient.Name,
+                d.Metadata,
                 FileNames = d.Assets.OrderBy(a => a.Id).Select(a => a.SanitizedFilename).ToList(),
             })
             .SingleOrDefaultAsync(cancellationToken);
@@ -235,8 +238,40 @@ public class ReactionWorker : BackgroundService
             Declarer = delivery.UserName is not null
                 ? new DeclarerInfo { Kind = DeclarerKind.User, Name = delivery.UserName, Email = string.IsNullOrEmpty(delivery.UserEmail) ? null : delivery.UserEmail }
                 : new DeclarerInfo { Kind = DeclarerKind.MachineClient, Name = delivery.ClientName ?? string.Empty },
+            Metadata = ToMetadataInfo(delivery.Metadata),
         };
         return new DeliveryToForward(info, delivery.FileNames);
+    }
+
+    // Only fields with a value go to the channel; the stored value is already normalized for its type.
+    private static List<MetadataInfo> ToMetadataInfo(IEnumerable<DeliveredMetadataField> fields)
+    {
+        var infos = new List<MetadataInfo>();
+        foreach (var field in fields)
+        {
+            if (field.Value is not { } value || value.ValueKind == JsonValueKind.Null)
+                continue;
+
+            infos.Add(field.Type switch
+            {
+                MetadataFieldType.Text => new MetadataInfo { Title = field.Title, Texts = [value.GetString() ?? string.Empty] },
+                MetadataFieldType.TextList => new MetadataInfo { Title = field.Title, Texts = value.EnumerateArray().Select(entry => entry.GetString() ?? string.Empty).ToList() },
+                MetadataFieldType.Selection => ToSelectionInfo(field, value.GetString() ?? string.Empty),
+                MetadataFieldType.IntegerNumber or MetadataFieldType.DecimalNumber => new MetadataInfo { Title = field.Title, Number = value.GetDecimal() },
+                MetadataFieldType.Date => new MetadataInfo { Title = field.Title, Date = DateOnly.ParseExact(value.GetString() ?? string.Empty, "yyyy-MM-dd", CultureInfo.InvariantCulture) },
+                _ => throw new InvalidOperationException($"The metadata field {field.Id} has the unknown type {field.Type}."),
+            });
+        }
+
+        return infos;
+    }
+
+    private static MetadataInfo ToSelectionInfo(DeliveredMetadataField field, string optionId)
+    {
+        var option = field.Options?.FirstOrDefault(candidate => candidate.Id == optionId);
+        return option is null
+            ? new MetadataInfo { Title = field.Title, Texts = [optionId] }
+            : new MetadataInfo { Title = field.Title, Option = option.Title };
     }
 
     private void LogOutcome(DeliveryReaction reaction, string message, ReactionState? state)

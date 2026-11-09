@@ -36,6 +36,12 @@ public class SubmissionMultipartRequest
     public string? Comment { get; set; }
 
     /// <summary>
+    /// The values of the metadata fields of the mandate as text: the same JSON object the <c>metadata</c> of the
+    /// referencing route carries, with the field ids as keys. Sent before the files.
+    /// </summary>
+    public string? Metadata { get; set; }
+
+    /// <summary>
     /// Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
     /// the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
     /// control or invisible format characters; white space at either end is dropped, and nothing but white space
