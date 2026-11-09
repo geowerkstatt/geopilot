@@ -11,10 +11,7 @@ namespace Geopilot.Api.Processing;
 /// <inheritdoc cref="IPipelineRunRecorder"/>
 public class PipelineRunRecorder : IPipelineRunRecorder
 {
-    private static readonly string AppVersion =
-        typeof(PipelineRunRecorder).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? typeof(PipelineRunRecorder).Assembly.GetName().Version?.ToString()
-        ?? string.Empty;
+    private static readonly string AppVersion = VersionOf(typeof(PipelineRunRecorder).Assembly) ?? string.Empty;
 
     private readonly Context context;
     private readonly IPipelineFactory pipelineFactory;
@@ -427,10 +424,15 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             DisplayName = step.DisplayName,
             ProcessImplementation = processType.FullName ?? processType.Name,
             ProcessAssemblyName = assemblyName.Name,
-            ProcessAssemblyVersion = assemblyName.Version?.ToString(),
+            ProcessAssemblyVersion = VersionOf(processType.Assembly),
             State = step.State,
         };
     }
+
+    // The informational version names the build: unlike the assembly version, it keeps a prerelease suffix such as 1.4.0-preview.12.
+    private static string? VersionOf(Assembly assembly) =>
+        assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? assembly.GetName().Version?.ToString();
 
     private static void UpdateStepRow(PipelineRunStep row, IPipelineStep step)
     {

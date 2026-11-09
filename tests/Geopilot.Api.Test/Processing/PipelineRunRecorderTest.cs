@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Immutable;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Geopilot.Api.Test.Processing;
 
@@ -166,6 +168,22 @@ public class PipelineRunRecorderTest
         await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
 
         await Assert.ThrowsAsync<DbUpdateException>(() => recorder.RecordJobStartedAsync(job, mandate, declarer, upload));
+    }
+
+    [TestMethod]
+    [DataRow("1.4.0-preview.12", "1.4.0-preview.12", DisplayName = "Prerelease build of a plugin")]
+    [DataRow(null, "1.4.0.0", DisplayName = "Plugin without informational version")]
+    public async Task RecordJobStartedWritesTheBuildOfTheProcessAssembly(string? informationalVersion, string expectedVersion)
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        step.SetupGet(s => s.Process).Returns(PluginProcess(informationalVersion));
+        var job = NewJob(out var upload, step.Object);
+
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        Assert.AreEqual(expectedVersion, row.ProcessAssemblyVersion);
     }
 
     [TestMethod]
@@ -553,6 +571,17 @@ public class PipelineRunRecorderTest
         step.SetupGet(s => s.Visualizations).Returns(new List<StepVisualization>());
         step.SetupGet(s => s.DeliveryFiles).Returns(new List<PersistedFile>());
         return step;
+    }
+
+    // Stands in for a plugin assembly with the assembly version 1.4.0.0; the informational version, if given, names its build.
+    private static object? PluginProcess(string? informationalVersion)
+    {
+        var plugin = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Geopilot.Test.Plugin") { Version = new Version(1, 4, 0, 0) }, AssemblyBuilderAccess.Run);
+        if (informationalVersion is not null)
+            plugin.SetCustomAttribute(new CustomAttributeBuilder(typeof(AssemblyInformationalVersionAttribute).GetConstructor([typeof(string)]), [informationalVersion]));
+
+        var processType = plugin.DefineDynamicModule("Geopilot.Test.Plugin").DefineType("Geopilot.Test.Plugin.ValidationProcess", TypeAttributes.Public).CreateType();
+        return Activator.CreateInstance(processType);
     }
 
     private async Task<PipelineRunStep> LoadStepRowAsync(Guid jobId, string stepId)
