@@ -167,6 +167,16 @@ export type Coordinate = {
 };
 
 /**
+ * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ */
+export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
+
+/**
+ * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ */
+export type Declarability = (typeof Declarability)[keyof typeof Declarability];
+
+/**
  * A fullfillment of a Geopilot.Api.Models.Delivery.Mandate. Contains all relevant meta information and assets provided or created by the validation and delivery process.
  */
 export type Delivery = {
@@ -774,6 +784,7 @@ export type PipelineRunResponse = {
    */
   machineClientId?: number | null;
   clientKind: ClientKind;
+  declarability?: Declarability;
   /**
    * The id of the upload the run processed.
    */
@@ -804,6 +815,10 @@ export type PipelineRunResponse = {
    * Why the run failed or was cancelled, when known.
    */
   failureReason?: string | null;
+  /**
+   * Why geopilot could not declare the delivery of a machine delivery although the run allowed it.
+   */
+  declarationFailure?: string | null;
   /**
    * The manifest of the uploaded files.
    */
