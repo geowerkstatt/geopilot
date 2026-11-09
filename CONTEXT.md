@@ -34,13 +34,17 @@ Ob aus einem Lauf je eine Lieferung werden kann: Wer ihn startet, ist Mitglied e
 
 Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung deklariert oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
+## Verantwortliche Person
+
+Eine Person, die ein Admin einem Maschinen-Client zuordnet, auf der Seite des Clients; die Seite der Person zeigt sie als «Verantwortlich für Maschinen-Clients». Sie sieht die Lieferungen des Clients unter «Meine Lieferungen», auch die vor der Zuordnung und die eines deaktivierten Clients, darf sie im Löschfenster löschen wie eigene und bekommt die Info-Mail mit `includeDeclarer`, solange sie aktiv ist. Rechte auf die Mandate des Clients bekommt sie dadurch nicht, und gemeinsame Organisationen machen niemanden verantwortlich. Im Code: `MachineClient.ResponsibleUsers`, Tabelle `MachineClientUser`.
+
 ## Lieferabsicht
 
 Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst deklariert, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Scheitert die Deklaration, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, deklariert in `JobLifecycle.RunFinishedAsync`.
 
 ## Löschfenster
 
-Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`). Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.
+Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`), bei einem Maschinen-Client eine verantwortliche Person. Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.
 
 ## Reaktion
 
@@ -64,4 +68,4 @@ Was eine Reaktion ausführt, etwa die Ablage. Die Pipeline-Definition führt die
 
 ## Info-Mail
 
-Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Satz nennt. Mit dem Schalter `includeDeclarer` geht sie auch an den Lieferanten und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.
+Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Satz nennt. Mit dem Schalter `includeDeclarer` geht sie auch an den Lieferanten, bei einem Maschinen-Client an seine verantwortlichen Personen, und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.

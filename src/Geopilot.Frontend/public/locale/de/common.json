@@ -230,6 +230,8 @@
   "removeMetadataField": "Feld {{position}} entfernen",
   "removeMetadataFieldOption": "Option {{option}} von Feld {{field}} entfernen",
   "reset": "Zurücksetzen",
+  "responsibleForMachineClients": "Verantwortlich für Maschinen-Clients",
+  "responsibleUsers": "Verantwortliche Personen",
   "restart": "Neustart",
   "restartPrompt": "Möchten Sie die Lieferung wirklich neu starten? Dies setzt alle Schritte zurück und kann nicht rückgängig gemacht werden.",
   "retry": "Erneut versuchen",

@@ -230,6 +230,8 @@
   "removeMetadataField": "Rimuovi il campo {{position}}",
   "removeMetadataFieldOption": "Rimuovi l'opzione {{option}} del campo {{field}}",
   "reset": "Reimposta",
+  "responsibleForMachineClients": "Responsabile dei client macchina",
+  "responsibleUsers": "Persone responsabili",
   "restart": "Riavvia",
   "restartPrompt": "Vuoi davvero riavviare la consegna? Questo resetterà tutti i passaggi e non può essere annullato.",
   "retry": "Riprova",

@@ -40,6 +40,32 @@ public class MachineClientControllerTest
     }
 
     [TestMethod]
+    public async Task CreateAssignsTheResponsibleUsers()
+    {
+        var user = AddUser();
+
+        var created = await CreateAsync(Guid.NewGuid().ToString(), user);
+
+        Assert.AreEqual(user.Id, Assert.ContainsSingle(created.ResponsibleUsers).Id);
+    }
+
+    [TestMethod]
+    public async Task EditReplacesTheResponsibleUsersAndRemovesThemAll()
+    {
+        var first = AddUser();
+        var second = AddUser();
+        var created = await CreateAsync(Guid.NewGuid().ToString(), first);
+
+        created.ResponsibleUsers = [new User { Id = second.Id }];
+        var replaced = ActionResultAssert.IsOkObjectResult<MachineClient>(await controller.Edit(created));
+        Assert.AreEqual(second.Id, Assert.ContainsSingle(replaced.ResponsibleUsers).Id);
+
+        replaced.ResponsibleUsers = [];
+        var cleared = ActionResultAssert.IsOkObjectResult<MachineClient>(await controller.Edit(replaced));
+        Assert.HasCount(0, cleared.ResponsibleUsers);
+    }
+
+    [TestMethod]
     public async Task CreateRefusesAClientWithoutIdentifier()
     {
         ActionResultAssert.IsBadRequest(await controller.Create(NewClient("   ", organisation.Id)));
@@ -136,11 +162,20 @@ public class MachineClientControllerTest
         ActionResultAssert.IsNotFound(await controller.GetById(int.MaxValue));
     }
 
-    private async Task<MachineClient> CreateAsync(string sub)
+    private async Task<MachineClient> CreateAsync(string sub, params User[] responsibleUsers)
     {
-        var result = await controller.Create(NewClient(sub, organisation.Id));
+        var client = NewClient(sub, organisation.Id);
+        client.ResponsibleUsers = responsibleUsers.Select(user => new User { Id = user.Id }).ToList();
+        var result = await controller.Create(client);
         ActionResultAssert.IsCreated(result);
         return Assert.IsInstanceOfType<MachineClient>((result as CreatedResult)?.Value);
+    }
+
+    private User AddUser()
+    {
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
+        context.SaveChanges();
+        return user;
     }
 
     private static MachineClient NewClient(string authIdentifier, int organisationId) => new()

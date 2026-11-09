@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq.Expressions;
 
 namespace Geopilot.Api.Controllers;
 
@@ -305,12 +306,12 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the deliveries the user declared.
+    /// Gets the deliveries the user declared, and those of the machine clients the user is responsible for.
     /// </summary>
     /// <returns>A list of <see cref="UploadedDelivery"/>.</returns>
     [HttpGet("uploads")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<UploadedDelivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user or by the machine clients the user is responsible for.", typeof(List<UploadedDelivery>), "application/json")]
     public async Task<IActionResult> GetUploads()
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -324,13 +325,21 @@ public class DeliveryController : ControllerBase
         var started = context.DeliveryReactions.DeliveryIdsWithStartedReactions();
         var deliveries = await context.Deliveries
             .AsNoTracking()
-            .Where(d => d.DeclaringUserId == user.Id)
+            .Where(DeclaredByOrForUser(user.Id))
             .OrderBy(d => d.Id)
-            .Select(d => new { d.Id, d.Date, d.Comment, Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name), Started = started.Contains(d.Id) })
+            .Select(d => new
+            {
+                d.Id,
+                d.Date,
+                d.Comment,
+                Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
+                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                Started = started.Contains(d.Id),
+            })
             .ToListAsync();
 
         return Ok(deliveries
-            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
+            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.DeclarerName, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
             .ToList());
     }
 
@@ -355,7 +364,7 @@ public class DeliveryController : ControllerBase
             var user = await context.GetUserByPrincipalAsync(User);
             if (!user.IsAdmin)
             {
-                deliveries = deliveries.Where(d => d.DeclaringUserId == user.Id);
+                deliveries = deliveries.Where(DeclaredByOrForUser(user.Id));
             }
 
             var delivery = await deliveries.SingleOrDefaultAsync(d => d.Id == deliveryId);
@@ -461,6 +470,13 @@ public class DeliveryController : ControllerBase
             logger.LogWarning(ex, "Ending the reactions of the deleted delivery <{DeliveryId}> failed.", deliveryId);
         }
     }
+
+    /// <summary>
+    /// The deliveries a user sees and deletes as their own: those the user declared, and those of the machine clients
+    /// the user is responsible for.
+    /// </summary>
+    private static Expression<Func<Delivery, bool>> DeclaredByOrForUser(int userId)
+        => d => d.DeclaringUserId == userId || (d.DeclaringClient != null && d.DeclaringClient.ResponsibleUsers.Any(u => u.Id == userId));
 
     internal bool IsDeleteAllowedForUploader(DateTime declaredAt, DateTime? utcNow = null)
     {

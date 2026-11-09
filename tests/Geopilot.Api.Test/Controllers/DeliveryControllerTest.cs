@@ -1327,8 +1327,102 @@ public class DeliveryControllerTest
         Assert.IsTrue(uploads.Where(upload => upload.Id != forwarded.Id).All(upload => upload.CanDelete));
     }
 
+    [TestMethod]
+    public async Task GetUploadsAddsTheDeliveriesOfTheClientsTheUserIsResponsibleFor()
+    {
+        var user = UserWithDeliveries();
+        deliveryController.SetupTestUser(user);
+        var client = AddMachineClient(MachineClientState.Inactive, user);
+        var clientDelivery = AddClientDelivery(client);
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.AreEqual(client.Name, uploads.Single(upload => upload.Id == clientDelivery.Id).DeclarerName, "A deactivated client's deliveries stay with the persons responsible for it.");
+        Assert.IsTrue(uploads.Where(upload => upload.Id != clientDelivery.Id).All(upload => upload.DeclarerName == user.FullName));
+    }
+
+    [TestMethod]
+    public async Task GetUploadsLeavesOutTheDeliveriesOfAClientOfTheSameOrganisation()
+    {
+        var user = UserWithDeliveries();
+        deliveryController.SetupTestUser(user);
+        var client = AddMachineClient(MachineClientState.Active);
+        context.Organisations.Add(new Organisation { Name = "SHARED HARBOUR", Users = [user], MachineClients = [client] });
+        context.SaveChanges();
+        var clientDelivery = AddClientDelivery(client);
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
+        Assert.IsFalse(uploads.Any(upload => upload.Id == clientDelivery.Id), "Only an explicit responsibility shows a client's deliveries, not a shared organisation.");
+    }
+
+    [TestMethod]
+    public async Task DeleteAsResponsibleUser()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = AddClientDelivery(AddMachineClient(MachineClientState.Active, user));
+        assetHandlerMock.Setup(h => h.DeleteJobAssets(delivery.JobId));
+
+        Assert.IsInstanceOfType<OkResult>(await deliveryController.Delete(delivery.Id));
+
+        Assert.IsTrue(context.Deliveries.IgnoreQueryFilters().AsNoTracking().Single(d => d.Id == delivery.Id).Deleted);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsResponsibleUserFailsOnceTheWindowClosed()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var delivery = AddClientDelivery(AddMachineClient(MachineClientState.Active, user), DateTime.UtcNow.AddHours(-12));
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(10) });
+
+        var result = Assert.IsInstanceOfType<ObjectResult>(await deliveryController.Delete(delivery.Id));
+
+        Assert.AreEqual(StatusCodes.Status403Forbidden, result.StatusCode);
+        AssertNotDeleted(delivery);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsUserFailsForAClientTheUserIsNotResponsibleFor()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        var responsible = context.Users.First(u => !u.IsAdmin && u.Id != user.Id);
+        deliveryController.SetupTestUser(user);
+        var delivery = AddClientDelivery(AddMachineClient(MachineClientState.Active, responsible));
+
+        var result = Assert.IsInstanceOfType<ObjectResult>(await deliveryController.Delete(delivery.Id));
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
+        AssertNotDeleted(delivery);
+    }
+
     private User UserWithDeliveries()
         => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
+
+    private MachineClient AddMachineClient(MachineClientState state, params User[] responsibleUsers)
+    {
+        var client = context.MachineClients.Add(new MachineClient
+        {
+            AuthIdentifier = Guid.NewGuid().ToString(),
+            Name = "Lieferroboter",
+            State = state,
+            ResponsibleUsers = responsibleUsers.ToList(),
+        }).Entity;
+        context.SaveChanges();
+        return client;
+    }
+
+    private Delivery AddClientDelivery(MachineClient client, DateTime? date = null)
+    {
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringClient = client, Date = date ?? DateTime.UtcNow };
+        delivery.Assets.Add(new Asset());
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+        return delivery;
+    }
 
     private static DeliveryReaction NewReaction(Delivery delivery, string reactionId, ReactionState state, ReactionKind kind = ReactionKind.Transfer, int attempts = 0) => new()
     {

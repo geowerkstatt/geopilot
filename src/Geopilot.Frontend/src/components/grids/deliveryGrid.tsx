@@ -16,7 +16,7 @@ import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 interface DeliveryInfo {
   id: number;
   date: string;
-  userName: string;
+  declarerName: string;
   mandateName: LocalizedText;
   forwardingState?: ReactionState | null;
   notificationState?: ReactionState | null;
@@ -51,7 +51,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
           response.map(d => ({
             id: d.id,
             date: d.date,
-            userName: "declarerName" in d ? d.declarerName : "",
+            declarerName: d.declarerName,
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             notificationState: "notificationState" in d ? d.notificationState : undefined,
@@ -80,7 +80,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       valueGetter: (date: string) => new Date(date),
       width: 180,
     },
-    userName: { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
+    declarerName: { field: "declarerName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 250 },
     mandateName: {
       field: "mandateName",
       headerName: t("mandate"),
@@ -104,7 +104,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
         row.notificationState && <ReactionStateLabel state={row.notificationState} />,
     },
-    comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 400 },
+    comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 300 },
   };
 
   const columnDefs = columns.map(column => namedColumnDefs[column]);

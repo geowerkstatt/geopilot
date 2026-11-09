@@ -230,6 +230,8 @@
   "removeMetadataField": "Remove field {{position}}",
   "removeMetadataFieldOption": "Remove option {{option}} of field {{field}}",
   "reset": "Reset",
+  "responsibleForMachineClients": "Responsible for machine clients",
+  "responsibleUsers": "Responsible users",
   "restart": "Restart",
   "restartPrompt": "Do you really want to restart the delivery? This will reset all steps and cannot be undone.",
   "retry": "Retry",

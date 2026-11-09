@@ -172,6 +172,25 @@ public class ReactionWorkerTest
     }
 
     [TestMethod]
+    public async Task RunNextNamesTheActiveUsersResponsibleForAMachineClient()
+    {
+        var responsible = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Betrieb Fachschale", Email = "betrieb@example.com" }).Entity;
+        var deactivated = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Ehemals Betrieb", Email = "ehemals@example.com", State = UserState.Inactive }).Entity;
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR", ResponsibleUsers = [responsible, deactivated] }).Entity;
+        var probe = new ChannelProbe(Answer(Delivered));
+        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(declaringClient: client));
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        Assert.IsNotNull(probe.Delivery);
+        Assert.AreEqual(
+            new ResponsibleUserInfo("Betrieb Fachschale", "betrieb@example.com"),
+            Assert.ContainsSingle(probe.Delivery.Declarer.ResponsibleUsers),
+            "A deactivated user no longer gets the mail meant for the client.");
+    }
+
+    [TestMethod]
     public async Task RunNextBindsTheSnapshotAndTheBaseConfiguration()
     {
         pipelineOptions.ChannelConfigs[Probe] = new Parameterization { ["baseValue"] = "aus der Basis" };
