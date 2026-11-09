@@ -56,7 +56,8 @@ public class Context : DbContext
         {
             return Users
                 .Include(u => u.Organisations)
-                .Include(u => u.Deliveries);
+                .Include(u => u.Deliveries)
+                .Include(u => u.ResponsibleForMachineClients);
         }
     }
 
@@ -74,7 +75,8 @@ public class Context : DbContext
         {
             return MachineClients
                 .Include(c => c.Organisations)
-                .Include(c => c.Deliveries);
+                .Include(c => c.Deliveries)
+                .Include(c => c.ResponsibleUsers);
         }
     }
 
@@ -239,6 +241,15 @@ public class Context : DbContext
             .HasIndex(client => client.AuthIdentifier)
             .IsUnique()
             .HasDatabaseName(MachineClientIdentifierIndexName);
+
+        // The columns are named like those of the other join tables, not after the navigations.
+        modelBuilder.Entity<MachineClient>()
+            .HasMany(client => client.ResponsibleUsers)
+            .WithMany(user => user.ResponsibleForMachineClients)
+            .UsingEntity(
+                "MachineClientUser",
+                right => right.HasOne(typeof(User)).WithMany().HasForeignKey("UsersId"),
+                left => left.HasOne(typeof(MachineClient)).WithMany().HasForeignKey("MachineClientsId"));
 
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)

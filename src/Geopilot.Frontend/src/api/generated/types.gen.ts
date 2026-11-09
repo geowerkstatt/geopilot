@@ -518,6 +518,12 @@ export type MachineClient = {
    * Deliveries the client has declared.
    */
   deliveries: Array<Delivery>;
+  /**
+   * Persons an administrator made responsible for the client. They see its deliveries among their own, may
+   * delete them like their own and receive the mail a delivery sends to its declarer, but gain no right on
+   * the client's mandates.
+   */
+  responsibleUsers: Array<User>;
 };
 
 /**
@@ -1663,8 +1669,9 @@ export type UploadSettingsResponse = {
 };
 
 /**
- * A delivery as the user who declared it sees it in the list of their deliveries. Of the mandate it carries no more
- * than its id and name, because the configuration of a mandate belongs to the administrators.
+ * A delivery as a user sees it in the list of their deliveries: one the user declared, or one of a machine client the
+ * user is responsible for. Of the mandate it carries no more than its id and name, because the configuration of a
+ * mandate belongs to the administrators.
  */
 export type UploadedDelivery = {
   /**
@@ -1677,7 +1684,11 @@ export type UploadedDelivery = {
   date: string;
   mandate: MandateReference;
   /**
-   * The comment of the user who declared the delivery.
+   * The name of whoever declared the delivery, the user or the machine client.
+   */
+  declarerName: string;
+  /**
+   * The comment given with the delivery.
    */
   comment: string;
   /**
@@ -1715,6 +1726,10 @@ export type User = {
    * Deliveries the user has declared.
    */
   deliveries: Array<Delivery>;
+  /**
+   * Machine clients the user is responsible for, see Geopilot.Api.Models.MachineClient.ResponsibleUsers.
+   */
+  responsibleForMachineClients: Array<MachineClient>;
 };
 
 /**
@@ -1982,7 +1997,7 @@ export type GetApiV1DeliveryUploadsData = {
 
 export type GetApiV1DeliveryUploadsResponses = {
   /**
-   * A list of deliveries uploaded by the user.
+   * A list of deliveries uploaded by the user or by the machine clients the user is responsible for.
    */
   200: Array<UploadedDelivery>;
 };

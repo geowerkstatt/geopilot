@@ -212,6 +212,6 @@ type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 // Field evaluation types are required when creating a mandate, but are initialized to empty (undefined) in the form
 export type MandateFormValues = Optional<Mandate, "evaluatePrecursorDelivery" | "evaluatePartial" | "evaluateComment">;
 
-export type UserFormValues = Optional<User, "deliveries"> & { isActive: boolean };
+export type UserFormValues = Optional<User, "deliveries" | "responsibleForMachineClients"> & { isActive: boolean };
 
 export type MachineClientFormValues = Optional<MachineClient, "deliveries"> & { isActive: boolean };

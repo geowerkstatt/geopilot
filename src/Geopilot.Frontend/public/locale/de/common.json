@@ -314,6 +314,8 @@
   "removeMetadataFieldOption": "Option {{option}} von Feld {{field}} entfernen",
   "reset": "Zurücksetzen",
   "resetFilters": "Filter zurücksetzen",
+  "responsibleForMachineClients": "Verantwortlich für Maschinen-Clients",
+  "responsibleUsers": "Verantwortliche Personen",
   "restart": "Neustart",
   "restartPrompt": "Möchten Sie die Lieferung wirklich neu starten? Dies setzt alle Schritte zurück und kann nicht rückgängig gemacht werden.",
   "result": "Ergebnis",

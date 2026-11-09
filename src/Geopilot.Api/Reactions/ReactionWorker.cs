@@ -218,6 +218,13 @@ public class ReactionWorker : BackgroundService
                 UserName = d.DeclaringUser == null ? null : d.DeclaringUser.FullName,
                 UserEmail = d.DeclaringUser == null ? null : d.DeclaringUser.Email,
                 ClientName = d.DeclaringClient == null ? null : d.DeclaringClient.Name,
+                ResponsibleUsers = context.MachineClients
+                    .Where(c => c.Id == d.DeclaringClientId)
+                    .SelectMany(c => c.ResponsibleUsers)
+                    .Where(u => u.State == UserState.Active)
+                    .OrderBy(u => u.Id)
+                    .Select(u => new ResponsibleUserInfo(u.FullName, u.Email))
+                    .ToList(),
                 d.Metadata,
                 FileNames = d.Assets.OrderBy(a => a.Id).Select(a => a.SanitizedFilename).ToList(),
             })
@@ -237,7 +244,7 @@ public class ReactionWorker : BackgroundService
             Mandate = new MandateInfo { Id = delivery.MandateId, Name = delivery.MandateName, Key = delivery.MandateKey },
             Declarer = delivery.UserName is not null
                 ? new DeclarerInfo { Kind = DeclarerKind.User, Name = delivery.UserName, Email = string.IsNullOrEmpty(delivery.UserEmail) ? null : delivery.UserEmail }
-                : new DeclarerInfo { Kind = DeclarerKind.MachineClient, Name = delivery.ClientName ?? string.Empty },
+                : new DeclarerInfo { Kind = DeclarerKind.MachineClient, Name = delivery.ClientName ?? string.Empty, ResponsibleUsers = delivery.ResponsibleUsers },
             Metadata = ToMetadataInfo(delivery.Metadata),
         };
         return new DeliveryToForward(info, delivery.FileNames);

@@ -88,6 +88,29 @@ public class UserControllerTest
     }
 
     [TestMethod]
+    public async Task GetUserByIdNamesTheMachineClientsTheUserIsResponsibleFor()
+    {
+        var testUser = AddResponsibleUser("SILENT KESTREL", "Lieferroboter");
+
+        var user = ActionResultAssert.IsOkObjectResult<User>(await userController.GetById(testUser.Id));
+
+        Assert.AreEqual("Lieferroboter", Assert.ContainsSingle(user.ResponsibleForMachineClients).Name);
+    }
+
+    [TestMethod]
+    public async Task EditKeepsTheMachineClientsTheUserIsResponsibleFor()
+    {
+        // The administration assigns responsible users on the page of the machine client; the page of the user only shows them.
+        var testUser = AddResponsibleUser("QUIET OSPREY", "Nachtlieferung");
+        var user = ActionResultAssert.IsOkObjectResult<User>(await userController.GetById(testUser.Id));
+        user.ResponsibleForMachineClients = [];
+
+        var edited = ActionResultAssert.IsOkObjectResult<User>(await userController.Edit(user));
+
+        Assert.AreEqual("Nachtlieferung", Assert.ContainsSingle(edited.ResponsibleForMachineClients).Name);
+    }
+
+    [TestMethod]
     public async Task GetUserByIdNotFound()
     {
         var userResult = await userController.GetById(int.MaxValue);
@@ -166,5 +189,13 @@ public class UserControllerTest
     {
         var result = await userController.Edit(new User { Id = 0 });
         ActionResultAssert.IsNotFound(result);
+    }
+
+    private User AddResponsibleUser(string fullName, string machineClientName)
+    {
+        var user = CreateUser(Guid.NewGuid().ToString(), fullName, "responsible@example.com", isAdmin: false);
+        context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = machineClientName, ResponsibleUsers = [user] });
+        context.SaveChanges();
+        return user;
     }
 }
