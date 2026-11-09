@@ -32,21 +32,24 @@ Button.displayName = "Button";
 export interface IconButtonProps extends MuiIconButtonProps {
   icon: ReactElement<SvgIconProps>;
   label: TranslationKey;
+  /** The values the label interpolates, for a label that names its entry, such as `Remove field {{position}}`. */
+  labelValues?: Record<string, string | number>;
   tooltipPlacement?: TooltipProps["placement"];
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ icon, label, size = "medium", tooltipPlacement, ...props }, ref) => {
+  ({ icon, label, labelValues, size = "medium", tooltipPlacement, ...props }, ref) => {
     const { t } = useTranslation();
+    const text = t(label, labelValues);
     const sizedIcon = cloneElement(icon, { fontSize: icon.props.fontSize ?? size });
     const button = (
-      <MuiIconButton ref={ref} size={size} data-cy={`${label}-button`} {...props} aria-label={t(label)}>
+      <MuiIconButton ref={ref} size={size} data-cy={`${label}-button`} {...props} aria-label={text}>
         {sizedIcon}
       </MuiIconButton>
     );
 
     return (
-      <Tooltip title={t(label)} placement={tooltipPlacement}>
+      <Tooltip title={text} placement={tooltipPlacement}>
         {props.disabled ? <span style={{ display: "inline-flex" }}>{button}</span> : button}
       </Tooltip>
     );

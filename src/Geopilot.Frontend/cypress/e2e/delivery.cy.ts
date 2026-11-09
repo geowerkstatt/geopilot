@@ -2,6 +2,7 @@ import type {
   BrowserAuthOptions,
   Delivery,
   DeliveryRequest,
+  MandateSummary,
   ProblemDetails,
   ProcessingSettingsResponse,
 } from "@/api/generated";
@@ -31,7 +32,7 @@ import {
   uploadFile,
   waitForProcessingToFinish,
 } from "./helpers/deliveryHelpers";
-import { hasError, setSelect, toggleCheckbox } from "./helpers/formHelpers";
+import { hasError, setChipInput, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {
@@ -539,6 +540,87 @@ describe("Delivery tests", () => {
     cy.dataCy("delivery-content-carousel").should("exist");
     cy.dataCy("file-dropzone").should("exist");
     cy.dataCy("mandate-selection-group").should("not.exist");
+  });
+});
+
+describe("Delivery metadata fields", () => {
+  const title = (de: string) => ({ de, en: de });
+  const mandateWithMetadata: MandateSummary = {
+    ...deliverableMandate(1, "Test Mandate"),
+    metadataFields: [
+      { id: "project_number", title: title("Projektnummer"), type: "text", evaluation: "required" },
+      { id: "municipalities", title: title("Gemeinden"), type: "textList", evaluation: "optional" },
+      {
+        id: "responsible",
+        title: title("Zuständig"),
+        type: "selection",
+        evaluation: "required",
+        options: [
+          { id: "canton", title: title("Kanton") },
+          { id: "municipality", title: title("Gemeinde") },
+        ],
+      },
+      { id: "parcel_count", title: title("Anzahl Parzellen"), type: "integer", evaluation: "required" },
+      { id: "area", title: title("Fläche"), type: "decimal", evaluation: "optional" },
+      { id: "due_date", title: title("Fällig am"), type: "date", evaluation: "optional" },
+    ],
+  };
+
+  const openDeliveryStep = () => {
+    const successJob = processingJob("e2e-metadata-job", "success", [
+      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
+    ]);
+    cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
+    runMockedProcessingJob(successJob, [mandateWithMetadata]);
+    // The page mounts twice on a fresh visit: act only once the finished job has enabled the way forward.
+    cy.dataCy("continue-button").should("be.enabled");
+    selectStep("delivery");
+    stepIsActive("delivery");
+    cy.dataCy("metadata.project_number-formInput").should("exist");
+  };
+
+  it("sends the metadata fields of the mandate with the delivery", () => {
+    openDeliveryStep();
+    cy.contains("No further information is required").should("not.exist");
+    cy.contains("keine weiteren Angaben erforderlich").should("not.exist");
+
+    setInput("metadata.project_number", "2026-117");
+    setChipInput("metadata.municipalities", "Aarau");
+    setSelect("metadata.responsible", 0);
+    setInput("metadata.parcel_count", "12");
+    setInput("metadata.due_date", "2026-11-04");
+
+    cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
+    cy.dataCy("createDelivery-button").should("be.enabled").click();
+    cy.wait<DeliveryRequest, Delivery>("@createDelivery").then(({ request }) => {
+      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+      expect(body.metadata).to.deep.equal({
+        project_number: "2026-117",
+        municipalities: ["Aarau"],
+        responsible: "canton",
+        parcel_count: 12,
+        area: null,
+        due_date: "2026-11-04",
+      });
+    });
+  });
+
+  it("keeps the delivery disabled while a required number is missing or has decimals", () => {
+    openDeliveryStep();
+    setInput("metadata.project_number", "2026-117");
+    setSelect("metadata.responsible", 0);
+    cy.dataCy("createDelivery-button").should("be.disabled");
+
+    setInput("metadata.parcel_count", "12.5");
+    hasError("metadata.parcel_count");
+    cy.dataCy("metadata.parcel_count-formInput")
+      .find(".MuiFormHelperText-root")
+      .should("have.text", "A number without decimal places");
+    cy.dataCy("createDelivery-button").should("be.disabled");
+
+    setInput("metadata.parcel_count", "12");
+    hasError("metadata.parcel_count", false);
+    cy.dataCy("createDelivery-button").should("be.enabled");
   });
 });
 

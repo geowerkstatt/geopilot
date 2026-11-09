@@ -91,6 +91,12 @@ namespace Geopilot.Api.Migrations
                     b.Property<int>("MandateId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_array()");
+
                     b.Property<bool?>("Partial")
                         .HasColumnType("boolean");
 
@@ -252,6 +258,12 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("Key")
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
+
+                    b.Property<string>("MetadataFields")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_array()");
 
                     b.Property<string>("Name")
                         .IsRequired()

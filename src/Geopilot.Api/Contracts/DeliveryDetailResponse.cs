@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Models;
+
+namespace Geopilot.Api.Contracts;
 
 /// <summary>
 /// A delivery as the administration shows it on a page of its own: what was delivered and how far its reactions got.
@@ -14,9 +16,10 @@
 /// <param name="JobId">The job the delivery comes from.</param>
 /// <param name="Files">Its files. Like the STAC item, they can be downloaded only once the delivery is forwarded.</param>
 /// <param name="Comment">The comment that came with the delivery.</param>
+/// <param name="Metadata">The copy of the mandate's metadata fields taken at declaration, with the delivered values.</param>
 /// <param name="StacItem">Where the delivery is in the STAC catalog, <see langword="null"/> until it is forwarded.</param>
 /// <param name="Reactions">The reactions of the delivery, in the order they were created.</param>
-public record DeliveryDetailResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, int? DeclaringUserId, int? DeclaringClientId, DeliverySummary? PrecursorDelivery, bool? Partial, Guid JobId, IReadOnlyList<AssetReference> Files, string Comment, StacItemReference? StacItem, IReadOnlyList<DeliveryReactionResponse> Reactions);
+public record DeliveryDetailResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, int? DeclaringUserId, int? DeclaringClientId, DeliverySummary? PrecursorDelivery, bool? Partial, Guid JobId, IReadOnlyList<AssetReference> Files, string Comment, IReadOnlyList<DeliveredMetadataField> Metadata, StacItemReference? StacItem, IReadOnlyList<DeliveryReactionResponse> Reactions);
 
 /// <summary>
 /// A file of a delivery.

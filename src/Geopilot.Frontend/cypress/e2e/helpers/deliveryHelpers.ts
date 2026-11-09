@@ -167,6 +167,7 @@ export const deliverableMandate = (id: number, name: string | { en: string; de: 
   evaluatePrecursorDelivery: "notEvaluated",
   evaluatePartial: "notEvaluated",
   evaluateComment: "notEvaluated",
+  metadataFields: [],
 });
 
 /**

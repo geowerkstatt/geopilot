@@ -35,6 +35,12 @@ public class SubmissionMultipartRequest
     public string? Comment { get; set; }
 
     /// <summary>
+    /// The values of the metadata fields of the mandate as text: the same JSON object the <c>metadata</c> of the
+    /// referencing route carries, with the field ids as keys. Sent before the files.
+    /// </summary>
+    public string? Metadata { get; set; }
+
+    /// <summary>
     /// The delivered files, after every field. The name of the part does not matter; a part counts as a file
     /// when it carries a file name.
     /// </summary>

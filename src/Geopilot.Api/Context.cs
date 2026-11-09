@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api;
 
@@ -313,6 +314,27 @@ public class Context : DbContext
             .HasConversion(reactionSetValuesConverter, reactionSetValuesComparer)
             .IsRequired();
 
+        // The stored JSON has the shape the API writes: camelCase properties and camelCase enum strings.
+        var metadataJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        };
+
+        modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.MetadataFields)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_array()")
+            .HasConversion(MetadataConverter<MetadataField>(metadataJsonOptions), MetadataComparer<MetadataField>(metadataJsonOptions))
+            .IsRequired();
+
+        modelBuilder.Entity<Delivery>()
+            .Property(delivery => delivery.Metadata)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_array()")
+            .HasConversion(MetadataConverter<DeliveredMetadataField>(metadataJsonOptions), MetadataComparer<DeliveredMetadataField>(metadataJsonOptions))
+            .IsRequired();
+
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
         // text so the tables stay readable in SQL and reordering an enum cannot reinterpret history.
         modelBuilder.Entity<PipelineRun>(run =>
@@ -385,4 +407,14 @@ public class Context : DbContext
             .HasIndex(u => u.AuthIdentifier)
             .IsUnique();
     }
+
+    // A JsonElement has no value equality, so the comparer looks at the serialized JSON like the reaction set values do.
+    private static ValueConverter<List<T>, string> MetadataConverter<T>(JsonSerializerOptions options) => new(
+        list => JsonSerializer.Serialize(list, options),
+        json => JsonSerializer.Deserialize<List<T>>(json, options) ?? new List<T>());
+
+    private static ValueComparer<List<T>> MetadataComparer<T>(JsonSerializerOptions options) => new(
+        (left, right) => JsonSerializer.Serialize(left, options) == JsonSerializer.Serialize(right, options),
+        list => JsonSerializer.Serialize(list, options).GetHashCode(StringComparison.Ordinal),
+        list => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(list, options), options) ?? new List<T>());
 }

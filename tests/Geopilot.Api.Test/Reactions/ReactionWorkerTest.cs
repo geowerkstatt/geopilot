@@ -129,6 +129,33 @@ public class ReactionWorkerTest
     }
 
     [TestMethod]
+    public async Task RunNextGivesTheChannelTheMetadataOfTheDelivery()
+    {
+        var options = new MetadataFieldOption[]
+        {
+            new("canton", TestHelpers.Localized("Kanton")),
+            new("municipality", TestHelpers.Localized("Gemeinde")),
+        };
+        var metadata = new List<DeliveredMetadataField>
+        {
+            new("responsible", TestHelpers.Localized("Verantwortlich"), MetadataFieldType.Selection, FieldEvaluationType.Required, options, JsonSerializer.SerializeToElement("canton")),
+            new("project_number", TestHelpers.Localized("Projektnummer"), MetadataFieldType.Text, FieldEvaluationType.Optional, null, null),
+            new("due_date", TestHelpers.Localized("Termin"), MetadataFieldType.Date, FieldEvaluationType.Optional, null, JsonSerializer.SerializeToElement("2026-11-04")),
+        };
+        var probe = new ChannelProbe(Answer(Delivered));
+        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(declaringUser: user, metadata: metadata));
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        var info = probe.Delivery;
+        Assert.IsNotNull(info);
+        Assert.HasCount(2, info.Metadata, "A field that was not filled in is left out.");
+        Assert.AreEqual("Kanton", info.Metadata[0].Option?.GetDisplayText("de"));
+        Assert.AreEqual(new DateOnly(2026, 11, 4), info.Metadata[1].Date);
+    }
+
+    [TestMethod]
     public async Task RunNextNamesAMachineClientWithoutAnEmailAddress()
     {
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
@@ -407,7 +434,7 @@ public class ReactionWorkerTest
     private Task<DeliveryReaction> ReloadAsync(DeliveryReaction reaction)
         => context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().SingleAsync(r => r.Id == reaction.Id);
 
-    private Delivery AddDelivery(User? declaringUser = null, MachineClient? declaringClient = null, Delivery? precursor = null)
+    private Delivery AddDelivery(User? declaringUser = null, MachineClient? declaringClient = null, Delivery? precursor = null, List<DeliveredMetadataField>? metadata = null)
     {
         var newDelivery = new Delivery
         {
@@ -418,6 +445,7 @@ public class ReactionWorkerTest
             DeclaringClient = declaringClient,
             PrecursorDelivery = precursor,
             Partial = true,
+            Metadata = metadata ?? [],
             Assets = [new Asset { OriginalFilename = FileName, SanitizedFilename = FileName, FileHash = [1, 2, 3] }],
         };
         context.Deliveries.Add(newDelivery);
