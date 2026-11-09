@@ -264,7 +264,6 @@
   "pipelineSnapshotIntro": "La pipeline «{{pipelineId}}» come era configurata per questa elaborazione.",
   "pipelineSnapshotLoadingError": "Si è verificato un errore durante il caricamento della definizione della pipeline: {{error}}",
   "pipelineSnapshotReadable": "Leggibile",
-  "pipelineSnapshotSecretsHint": "I valori della base dell'installazione non sono ancora mascherati e possono contenere segreti.",
   "pipelineSnapshotTechnical": "JSON",
   "pipelineSnapshotView": "Visualizzazione",
   "pipelinesLoadingError": "Si è verificato un errore durante il caricamento delle pipeline: {{error}}",

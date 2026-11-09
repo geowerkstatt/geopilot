@@ -264,7 +264,6 @@
   "pipelineSnapshotIntro": "Die Pipeline „{{pipelineId}}“, wie sie bei dieser Verarbeitung konfiguriert war.",
   "pipelineSnapshotLoadingError": "Beim Laden der Pipeline-Definition ist ein Fehler aufgetreten: {{error}}",
   "pipelineSnapshotReadable": "Lesbar",
-  "pipelineSnapshotSecretsHint": "Werte aus der Basis der Installation werden noch nicht maskiert und können geheime Werte enthalten.",
   "pipelineSnapshotTechnical": "JSON",
   "pipelineSnapshotView": "Darstellung",
   "pipelinesLoadingError": "Beim Laden der Pipelines ist ein Fehler aufgetreten: {{error}}",

@@ -5,7 +5,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Box,
   CircularProgress,
   Stack,
@@ -91,7 +90,6 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
 
   return (
     <Stack data-cy="pipelineSnapshot">
-      <Alert severity="warning">{t("pipelineSnapshotSecretsHint")}</Alert>
       <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
         <Typography sx={{ flex: "1 1 0" }}>{t("pipelineSnapshotIntro", { pipelineId })}</Typography>
         <ToggleButtonGroup

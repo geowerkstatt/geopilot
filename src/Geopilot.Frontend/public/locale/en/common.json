@@ -264,7 +264,6 @@
   "pipelineSnapshotIntro": "The pipeline “{{pipelineId}}” as it was configured for this processing run.",
   "pipelineSnapshotLoadingError": "An error occurred while loading the pipeline definition: {{error}}",
   "pipelineSnapshotReadable": "Readable",
-  "pipelineSnapshotSecretsHint": "Values from the installation base are not masked yet and may contain secrets.",
   "pipelineSnapshotTechnical": "JSON",
   "pipelineSnapshotView": "View",
   "pipelinesLoadingError": "An error occurred while loading the pipelines: {{error}}",
