@@ -33,11 +33,14 @@ internal static class PipelineRunOutcomes
 
         if (run.TerminalState is ProcessingState.Success or ProcessingState.Warning)
         {
-            // shortcut: whoever may not deliver (not a member, or a mandate that allows no delivery) and a machine
-            // delivery whose declaration failed show as not delivered until the protocol records IsDeclarable and
-            // DeclarationFailure.
-            var anonymous = run.UserId is null && run.MachineClientId is null;
-            return Outcome(anonymous ? PipelineRunOutcomeKind.NotDeclarable : PipelineRunOutcomeKind.NotDelivered);
+            if (run.DeclarationFailure is not null)
+                return Outcome(PipelineRunOutcomeKind.DeclarationFailed);
+
+            // A run recorded before the protocol kept its declarability has none; only an anonymous one surely was not.
+            var declarable = run.Declarability is { } declarability
+                ? declarability == Declarability.Declarable
+                : run.UserId is not null || run.MachineClientId is not null;
+            return Outcome(declarable ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotDeclarable);
         }
 
         // A restriction does not stop the pipeline, so later steps can restrict the delivery as well, or fail.

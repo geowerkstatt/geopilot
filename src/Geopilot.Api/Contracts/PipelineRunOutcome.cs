@@ -34,6 +34,11 @@ public enum PipelineRunOutcomeKind
     NotDeclarable,
 
     /// <summary>
+    /// The run allowed a delivery and was to be delivered on its client's behalf, but the declaration failed.
+    /// </summary>
+    DeclarationFailed,
+
+    /// <summary>
     /// The job of the run is still running.
     /// </summary>
     Running,

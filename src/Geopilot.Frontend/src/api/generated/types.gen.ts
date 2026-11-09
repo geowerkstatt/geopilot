@@ -933,6 +933,7 @@ export const PipelineRunOutcomeKind = {
   NotDelivered: "notDelivered",
   NotDeliverable: "notDeliverable",
   NotDeclarable: "notDeclarable",
+  DeclarationFailed: "declarationFailed",
   Running: "running",
   Unknown: "unknown",
 } as const;
