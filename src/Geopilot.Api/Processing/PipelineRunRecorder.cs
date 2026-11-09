@@ -174,6 +174,33 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
+    public async Task RecordStepInputsAsync(Guid jobId, IPipelineStep pipelineStep, int order, IReadOnlyList<StepInput> inputs)
+    {
+        ArgumentNullException.ThrowIfNull(pipelineStep);
+        ArgumentNullException.ThrowIfNull(inputs);
+
+        try
+        {
+            var run = await context.PipelineRuns.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId);
+            if (run is null)
+            {
+                LogRunMissing(jobId);
+                return;
+            }
+
+            var row = await context.PipelineRunSteps.SingleOrDefaultAsync(s => s.PipelineRunId == run.Id && s.StepId == pipelineStep.Id)
+                ?? CreateMissingStepRow(run.Id, jobId, pipelineStep, order);
+
+            row.Inputs.AddRange(inputs.Select(input => NewInputRow(input, run.Files)));
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            LogWriteFailed(jobId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order)
     {
         ArgumentNullException.ThrowIfNull(pipelineStep);
@@ -433,6 +460,31 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     private static string? VersionOf(Assembly assembly) =>
         assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         ?? assembly.GetName().Version?.ToString();
+
+    /// <summary>
+    /// Builds the row of one input. The runtime leaves an uploaded file to the manifest, so geopilot does not fetch it
+    /// just to measure it: its size comes from there, and its hash too when the step took it from the upload itself. A
+    /// file an earlier step passed on carries no hash, like every file of an earlier step.
+    /// </summary>
+    private static PipelineRunInput NewInputRow(StepInput input, IReadOnlyCollection<PipelineRunFile> manifest)
+    {
+        var uploadedFile = input.FromUpload == true
+            ? manifest.FirstOrDefault(file => string.Equals(file.FileName, input.FileName, StringComparison.Ordinal))
+            : null;
+
+        return new PipelineRunInput
+        {
+            Parameter = input.Parameter,
+            Origin = input.Origin,
+            Reference = input.Reference,
+            Kind = input.Kind,
+            Value = input.Value,
+            FileName = input.FileName,
+            Size = uploadedFile?.DeclaredSize ?? input.Size,
+            Sha256 = input.Origin == InputOrigin.Upload ? uploadedFile?.Sha256 : input.Sha256,
+            FromUpload = input.FromUpload,
+        };
+    }
 
     private static void UpdateStepRow(PipelineRunStep row, IPipelineStep step)
     {

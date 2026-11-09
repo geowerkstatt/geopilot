@@ -236,6 +236,54 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task RecordStepInputsWritesOneRowPerInputInOrder()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        var inputs = new[]
+        {
+            new StepInput("scope", InputOrigin.StepOutput, "metadata.Scope", InputKind.Value, "ch.dmav.sauge"),
+            new StepInput("profile", InputOrigin.Definition, null, InputKind.Value, "DMAV"),
+            new StepInput("modelFiles", InputOrigin.StepOutput, "unzip.Files", InputKind.Absent),
+            new StepInput("refMappingFile", InputOrigin.Configuration, "dmav/mapping.xtf", InputKind.File, FileName: "mapping.xtf", Size: 5, Sha256: "beef01", FromUpload: false),
+        };
+
+        await recorder.RecordStepInputsAsync(job.Id, step.Object, 0, inputs);
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        CollectionAssert.AreEqual(inputs, AsStepInputs(row.Inputs));
+    }
+
+    [TestMethod]
+    public async Task RecordStepInputsTakesSizeAndHashOfAnUploadFromTheManifest()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordScanOutcomeAsync(job.Id, new ScanResult(IsClean: true, Hashes: new Dictionary<string, string> { ["uploads/1/data.xtf"] = "cafe01", ["uploads/1/model.ili"] = "cafe02" }));
+
+        await recorder.RecordStepInputsAsync(job.Id, step.Object, 0, new[]
+        {
+            new StepInput("transferFiles", InputOrigin.Upload, null, InputKind.File, FileName: "data.xtf", FromUpload: true),
+            new StepInput("modelFiles", InputOrigin.StepOutput, "matcher.Files", InputKind.File, FileName: "model.ili", FromUpload: true),
+        });
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new StepInput("transferFiles", InputOrigin.Upload, null, InputKind.File, FileName: "data.xtf", Size: 1024, Sha256: "cafe01", FromUpload: true),
+
+                // Passed on by an earlier step: the size of the upload, but no hash, like every file of an earlier step.
+                new StepInput("modelFiles", InputOrigin.StepOutput, "matcher.Files", InputKind.File, FileName: "model.ili", Size: 256, FromUpload: true),
+            },
+            AsStepInputs(row.Inputs));
+    }
+
+    [TestMethod]
     public async Task RecordRunFinishedReconcilesStepsAndSetsTerminalState()
     {
         currentHttpContext = null;
@@ -340,6 +388,7 @@ public class PipelineRunRecorderTest
         var step = StepMock("validation");
 
         await recorder.RecordStepStartedAsync(unknownJobId, step.Object, 0);
+        await recorder.RecordStepInputsAsync(unknownJobId, step.Object, 0, [new StepInput("profile", InputOrigin.Definition, null, InputKind.Value, "DMAV")]);
         await recorder.RecordStepCompletedAsync(unknownJobId, step.Object, 0);
         await recorder.RecordRunFinishedAsync(unknownJobId, new List<IPipelineStep> { step.Object }, ProcessingState.Failed, "boom");
         await recorder.RecordPreflightFailedAsync(unknownJobId, "boom");
@@ -590,6 +639,12 @@ public class PipelineRunRecorderTest
         return await context.PipelineRunSteps
             .Include(s => s.Conditions)
             .Include(s => s.Artifacts)
+            .Include(s => s.Inputs)
             .SingleAsync(s => s.PipelineRunId == run.Id && s.StepId == stepId);
     }
+
+    private static StepInput[] AsStepInputs(IEnumerable<PipelineRunInput> rows) => rows
+        .OrderBy(row => row.Id)
+        .Select(row => new StepInput(row.Parameter, row.Origin, row.Reference, row.Kind, row.Value, row.FileName, row.Size, row.Sha256, row.FromUpload))
+        .ToArray();
 }

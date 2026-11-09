@@ -80,6 +80,7 @@ public record PipelineRunFileResponse(
 /// <param name="ErrorMessage">The message of the exception that failed or cancelled the step.</param>
 /// <param name="StatusMessage">The localized status message the process emitted.</param>
 /// <param name="ConditionMessage">The localized message of the conditions that determined the state.</param>
+/// <param name="Inputs">What the step's process was given when it started, in the order of its parameters; empty for a step that ran no process.</param>
 /// <param name="Conditions">The evaluation result of every checked condition, matching or not.</param>
 /// <param name="Artifacts">The artifacts the step produced, by name.</param>
 public record PipelineRunStepResponse(
@@ -94,8 +95,33 @@ public record PipelineRunStepResponse(
     string? ErrorMessage,
     LocalizedText? StatusMessage,
     LocalizedText? ConditionMessage,
+    List<PipelineRunInputResponse> Inputs,
     List<PipelineRunConditionResponse> Conditions,
     List<PipelineRunArtifactResponse> Artifacts);
+
+/// <summary>
+/// One value a step's process was given when it started: an element bound to a parameter of its run method, or a file
+/// the process configuration supplied to its constructor.
+/// </summary>
+/// <param name="Parameter">The name of the run method parameter, or of the constructor parameter for a configured file.</param>
+/// <param name="Origin">Where the value comes from.</param>
+/// <param name="Reference">The referenced output as <c>stepId.Property</c>, or for a resource or a configured file its path below the resources directory.</param>
+/// <param name="Kind">Whether the input is a value, a file or a reference to a step that was skipped, which contributes nothing.</param>
+/// <param name="Value">For a value its text, formatted with the invariant culture and cut after 500 characters.</param>
+/// <param name="FileName">For a file its original name.</param>
+/// <param name="Size">For a file its size in bytes, when known.</param>
+/// <param name="Sha256">The SHA-256 of a file as lowercase hex: for an upload when it was scanned, for a resource or a configured file always. Files of an earlier step carry none.</param>
+/// <param name="FromUpload">For a file whether it is an uploaded file passed on unchanged.</param>
+public record PipelineRunInputResponse(
+    string Parameter,
+    InputOrigin Origin,
+    string? Reference,
+    InputKind Kind,
+    string? Value,
+    string? FileName,
+    long? Size,
+    string? Sha256,
+    bool? FromUpload);
 
 /// <summary>
 /// The evaluation result of one step condition.

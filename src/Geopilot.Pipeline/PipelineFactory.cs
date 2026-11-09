@@ -284,6 +284,15 @@ public class PipelineFactory : IPipelineFactory
 
     private PipelineStep CreateStep(StepConfig stepConfig, string pipelineId, string pipelineTempDirectory, Guid jobId)
     {
+        var processBuilder = pipelineProcessFactory.Builder()
+            .PipelineId(pipelineId)
+            .StepConfig(stepConfig)
+            .Processes(PipelineProcessConfig.Processes)
+            .PipelineDirectory(pipelineTempDirectory)
+            .ResourcesDirectory(resourcesDirectory)
+            .JobId(jobId);
+        var process = processBuilder.Build();
+
         return PipelineStep.Builder()
             .Id(stepConfig.Id)
             .DisplayName(stepConfig.DisplayName)
@@ -292,14 +301,10 @@ public class PipelineFactory : IPipelineFactory
             .StepConditions(stepConfig.Conditions)
             .PipelineDirectory(pipelineTempDirectory)
             .ResourcesDirectory(resourcesDirectory)
-            .Process(pipelineProcessFactory.Builder()
-                .PipelineId(pipelineId)
-                .StepConfig(stepConfig)
-                .Processes(PipelineProcessConfig.Processes)
-                .PipelineDirectory(pipelineTempDirectory)
-                .ResourcesDirectory(resourcesDirectory)
-                .JobId(jobId)
-                .Build())
+            .Process(process)
+
+            // Only the runtime's own builder knows which constructor parameters it bound to files of the configuration.
+            .ConfiguredFiles((processBuilder as PipelineProcessFactory.PipelineProcessBuilder)?.ConfiguredFiles ?? [])
             .Logger(PipelineLogger
                     .Builder()
                     .Logger(loggerFactory.CreateLogger<PipelineStep>())
