@@ -452,9 +452,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             ArgumentNullException.ThrowIfNull(pipelineDirectory);
 
             var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
-            var configuredFiles = new List<ConfiguredFile>();
+            var configuredFiles = ResolveConfiguredFiles(constructor, processParameterization);
             var parameters = constructor.GetParameters()
-                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId, configuredFiles))
+                .Select(p => configuredFiles.FirstOrDefault(configuredFile => string.Equals(configuredFile.Parameter, p.Name, StringComparison.Ordinal))?.File
+                    ?? GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
                 .ToArray();
             var processInstance = Activator.CreateInstance(objectType, parameters);
             if (processInstance != null)
@@ -514,10 +515,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <summary>
-        /// Mirror of <see cref="GenerateParameter"/> without the side-effectful materialization
-        /// step (no <see cref="PipelineLogger"/> / <see cref="PipelineFileManager"/> allocation,
-        /// no value conversion kept). Throws with the same message <see cref="GenerateParameter"/>
-        /// would for an unsatisfiable non-nullable parameter.
+        /// Mirror of how <see cref="Build"/> binds a parameter (<see cref="ResolveConfiguredFiles"/>, then
+        /// <see cref="GenerateParameter"/>) without the side-effectful materialization step (no
+        /// <see cref="PipelineLogger"/> / <see cref="PipelineFileManager"/> allocation, no value conversion kept).
+        /// Throws with the same message <see cref="GenerateParameter"/> would for an unsatisfiable non-nullable
+        /// parameter.
         /// </summary>
         private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig, string? resourcesRoot)
         {
@@ -545,7 +547,27 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
         }
 
-        private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId, List<ConfiguredFile> configuredFiles)
+        /// <summary>
+        /// Resolves the constructor parameters of type <see cref="IPipelineFile"/> for which the configuration names a
+        /// file below the resources directory, each with the file the process receives.
+        /// </summary>
+        private IReadOnlyList<ConfiguredFile> ResolveConfiguredFiles(ConstructorInfo constructor, Parameterization processConfig)
+        {
+            var configuredFiles = new List<ConfiguredFile>();
+            foreach (var parameterInfo in constructor.GetParameters())
+            {
+                if (parameterInfo.ParameterType == typeof(IPipelineFile)
+                    && parameterInfo.Name is { } name
+                    && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath, out var configuredPath))
+                {
+                    configuredFiles.Add(new ConfiguredFile(name, configuredPath, new PipelineFile(resourcePath, Path.GetFileName(resourcePath))));
+                }
+            }
+
+            return configuredFiles;
+        }
+
+        private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
         {
             if (parameterInfo.ParameterType == typeof(ILogger))
             {
@@ -572,12 +594,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IXtfDiffClient))
             {
                 return new XtfDiffClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<XtfDiffClient>());
-            }
-            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath, out var configuredPath))
-            {
-                var file = new PipelineFile(resourcePath, Path.GetFileName(resourcePath));
-                configuredFiles.Add(new ConfiguredFile(parameterInfo.Name ?? string.Empty, configuredPath, file));
-                return file;
             }
             else if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out var convertedValue))
             {
