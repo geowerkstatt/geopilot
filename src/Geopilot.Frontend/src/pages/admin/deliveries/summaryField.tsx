@@ -4,10 +4,10 @@ import { Stack, Typography } from "@mui/material";
 import { TranslationKey } from "../../../appInterfaces";
 
 /** A caption above a value, as in a summary, or a heading above a section, as inside a step. */
-export type FieldLabelVariant = "caption" | "h5";
+type FieldLabelVariant = "caption" | "h5";
 
 /** The label of a field or a section in the variant it asks for. */
-export const FieldLabel: FC<{ variant: FieldLabelVariant; children: ReactNode }> = ({ variant, children }) => (
+const FieldLabel: FC<{ variant: FieldLabelVariant; children: ReactNode }> = ({ variant, children }) => (
   <Typography variant={variant} sx={variant === "caption" ? { color: "text.secondary" } : { margin: 0 }}>
     {children}
   </Typography>
