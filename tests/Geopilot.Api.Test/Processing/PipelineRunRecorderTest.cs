@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Immutable;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Geopilot.Api.Test.Processing;
 
@@ -169,6 +171,22 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    [DataRow("1.4.0-preview.12", "1.4.0-preview.12", DisplayName = "Prerelease build of a plugin")]
+    [DataRow(null, "1.4.0.0", DisplayName = "Plugin without informational version")]
+    public async Task RecordJobStartedWritesTheBuildOfTheProcessAssembly(string? informationalVersion, string expectedVersion)
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        step.SetupGet(s => s.Process).Returns(PluginProcess(informationalVersion));
+        var job = NewJob(out var upload, step.Object);
+
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        Assert.AreEqual(expectedVersion, row.ProcessAssemblyVersion);
+    }
+
+    [TestMethod]
     public async Task StepLifecycleUpsertsOneRowPerStep()
     {
         currentHttpContext = null;
@@ -215,6 +233,54 @@ public class PipelineRunRecorderTest
         Assert.HasCount(2, row.Artifacts);
         Assert.AreEqual(1, row.Artifacts.Count(a => a.Kind == ArtifactKind.Download));
         Assert.AreEqual(1, row.Artifacts.Count(a => a.Kind == ArtifactKind.Visualization));
+    }
+
+    [TestMethod]
+    public async Task RecordStepInputsWritesOneRowPerInputInOrder()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        var inputs = new[]
+        {
+            new StepInput("scope", InputOrigin.StepOutput, "metadata.Scope", InputKind.Value, "ch.dmav.sauge"),
+            new StepInput("profile", InputOrigin.Definition, null, InputKind.Value, "DMAV"),
+            new StepInput("modelFiles", InputOrigin.StepOutput, "unzip.Files", InputKind.Absent),
+            new StepInput("refMappingFile", InputOrigin.Configuration, "dmav/mapping.xtf", InputKind.File, FileName: "mapping.xtf", Size: 5, Sha256: "beef01", FromUpload: false),
+        };
+
+        await recorder.RecordStepInputsAsync(job.Id, step.Object, 0, inputs);
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        CollectionAssert.AreEqual(inputs, AsStepInputs(row.Inputs));
+    }
+
+    [TestMethod]
+    public async Task RecordStepInputsTakesSizeAndHashOfAnUploadFromTheManifest()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordScanOutcomeAsync(job.Id, new ScanResult(IsClean: true, Hashes: new Dictionary<string, string> { ["uploads/1/data.xtf"] = "cafe01", ["uploads/1/model.ili"] = "cafe02" }));
+
+        await recorder.RecordStepInputsAsync(job.Id, step.Object, 0, new[]
+        {
+            new StepInput("transferFiles", InputOrigin.Upload, null, InputKind.File, FileName: "data.xtf", FromUpload: true),
+            new StepInput("modelFiles", InputOrigin.StepOutput, "matcher.Files", InputKind.File, FileName: "model.ili", FromUpload: true),
+        });
+
+        var row = await LoadStepRowAsync(job.Id, "validation");
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new StepInput("transferFiles", InputOrigin.Upload, null, InputKind.File, FileName: "data.xtf", Size: 1024, Sha256: "cafe01", FromUpload: true),
+
+                // Passed on by an earlier step: the size of the upload, but no hash, like every file of an earlier step.
+                new StepInput("modelFiles", InputOrigin.StepOutput, "matcher.Files", InputKind.File, FileName: "model.ili", Size: 256, FromUpload: true),
+            },
+            AsStepInputs(row.Inputs));
     }
 
     [TestMethod]
@@ -303,15 +369,30 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task RecordDeclarationFailedKeepsTheReason()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+
+        await recorder.RecordDeclarationFailedAsync(job.Id, "No assets found.");
+
+        var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual("No assets found.", run.DeclarationFailure);
+    }
+
+    [TestMethod]
     public async Task SoftWritesWithoutRunRecordDoNotThrow()
     {
         var unknownJobId = Guid.NewGuid();
         var step = StepMock("validation");
 
         await recorder.RecordStepStartedAsync(unknownJobId, step.Object, 0);
+        await recorder.RecordStepInputsAsync(unknownJobId, step.Object, 0, [new StepInput("profile", InputOrigin.Definition, null, InputKind.Value, "DMAV")]);
         await recorder.RecordStepCompletedAsync(unknownJobId, step.Object, 0);
         await recorder.RecordRunFinishedAsync(unknownJobId, new List<IPipelineStep> { step.Object }, ProcessingState.Failed, "boom");
         await recorder.RecordPreflightFailedAsync(unknownJobId, "boom");
+        await recorder.RecordDeclarationFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a run record must be skipped, not fail.");
     }
@@ -541,12 +622,29 @@ public class PipelineRunRecorderTest
         return step;
     }
 
+    // Stands in for a plugin assembly with the assembly version 1.4.0.0; the informational version, if given, names its build.
+    private static object? PluginProcess(string? informationalVersion)
+    {
+        var plugin = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Geopilot.Test.Plugin") { Version = new Version(1, 4, 0, 0) }, AssemblyBuilderAccess.Run);
+        if (informationalVersion is not null)
+            plugin.SetCustomAttribute(new CustomAttributeBuilder(typeof(AssemblyInformationalVersionAttribute).GetConstructor([typeof(string)]), [informationalVersion]));
+
+        var processType = plugin.DefineDynamicModule("Geopilot.Test.Plugin").DefineType("Geopilot.Test.Plugin.ValidationProcess", TypeAttributes.Public).CreateType();
+        return Activator.CreateInstance(processType);
+    }
+
     private async Task<PipelineRunStep> LoadStepRowAsync(Guid jobId, string stepId)
     {
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == jobId);
         return await context.PipelineRunSteps
             .Include(s => s.Conditions)
             .Include(s => s.Artifacts)
+            .Include(s => s.Inputs)
             .SingleAsync(s => s.PipelineRunId == run.Id && s.StepId == stepId);
     }
+
+    private static StepInput[] AsStepInputs(IEnumerable<PipelineRunInput> rows) => rows
+        .OrderBy(row => row.Id)
+        .Select(row => new StepInput(row.Parameter, row.Origin, row.Reference, row.Kind, row.Value, row.FileName, row.Size, row.Sha256, row.FromUpload))
+        .ToArray();
 }

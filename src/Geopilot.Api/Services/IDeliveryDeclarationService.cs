@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using System.Text.Json;
 
 namespace Geopilot.Api.Services;
 
@@ -27,4 +28,5 @@ public interface IDeliveryDeclarationService
 /// <param name="PartialDelivery">Whether the delivery covers only part of the mandate.</param>
 /// <param name="PrecursorDeliveryId">The delivery this one supersedes.</param>
 /// <param name="Comment">The comment accompanying the delivery.</param>
-public record DeliveryFields(bool? PartialDelivery, int? PrecursorDeliveryId, string? Comment);
+/// <param name="Metadata">The values of the mandate's metadata fields, keyed by field id; <see langword="null"/> when none were supplied.</param>
+public record DeliveryFields(bool? PartialDelivery, int? PrecursorDeliveryId, string? Comment, IReadOnlyDictionary<string, JsonElement>? Metadata = null);

@@ -84,6 +84,11 @@ public class ProcessingRunner : BackgroundService
             pipeline.OnStepStarted = (step, stepCancellationToken)
                 => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepStartedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
 
+            // Record what a step's process is given before it runs, so an interrupted run shows what the step in
+            // flight was working on.
+            pipeline.OnStepInputsBound = (step, inputs, stepCancellationToken)
+                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepInputsAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step), inputs));
+
             // Persist each step's downloadable files the moment the step finishes, so the supplier can
             // download them while later steps run (and so they survive a later step failing or timing out).
             // Recorded afterwards, so the protocol sees the persisted artifact names.

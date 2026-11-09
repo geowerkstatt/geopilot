@@ -75,6 +75,11 @@ public class Delivery
     public string Comment { get; set; } = string.Empty;
 
     /// <summary>
+    /// The metadata fields of the mandate as they were at delivery time, each with the delivered value.
+    /// </summary>
+    public List<DeliveredMetadataField> Metadata { get; set; } = [];
+
+    /// <summary>
     /// The deletion status of the delivery.
     /// </summary>
     public bool Deleted { get; set; }

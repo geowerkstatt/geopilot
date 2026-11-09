@@ -4,8 +4,10 @@ using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace Geopilot.Pipeline;
 
@@ -105,6 +107,8 @@ internal sealed class PipelineStep : IPipelineStep
 
     private readonly string? resourcesDirectory;
 
+    private readonly IReadOnlyList<ConfiguredFile> configuredFiles;
+
     private ILogger logger;
 
     /// <summary>
@@ -116,6 +120,7 @@ internal sealed class PipelineStep : IPipelineStep
     /// <param name="outputActions">The output actions for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
+    /// <param name="configuredFiles">The files the process configuration supplied to the constructor of the process.</param>
     /// <param name="pipelineDirectory">The pipeline working directory used to isolate input files copied into this step. When null (only when a step is constructed outside a job, for example in unit tests), input files are passed through without isolation.</param>
     /// <param name="resourcesDirectory">The resources directory that <c>${file(path)}</c> references resolve against. When null, a step that uses a file reference fails at run time.</param>
     /// <param name="logger">The logger to use for logging.</param>
@@ -126,6 +131,7 @@ internal sealed class PipelineStep : IPipelineStep
         List<OutputActionConfig> outputActions,
         PipelineStepConditionsConfig? stepConditions,
         object process,
+        IReadOnlyList<ConfiguredFile> configuredFiles,
         string? pipelineDirectory,
         string? resourcesDirectory,
         ILogger logger)
@@ -136,6 +142,7 @@ internal sealed class PipelineStep : IPipelineStep
         this.OutputActions = outputActions;
         this.StepConditions = stepConditions;
         this.Process = process;
+        this.configuredFiles = configuredFiles;
         this.pipelineDirectory = pipelineDirectory;
         this.resourcesDirectory = resourcesDirectory;
         this.logger = logger;
@@ -210,7 +217,12 @@ internal sealed class PipelineStep : IPipelineStep
     private async Task<StepResult> ExecuteProcess(PipelineContext context, CancellationToken cancellationToken)
     {
         var runMethod = GetProcessRunMethod();
-        var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
+        var parameters = runMethod.GetParameters();
+        var resolved = new Dictionary<InputValue, (ReferenceResolution Resolution, object? Value)>(ReferenceEqualityComparer.Instance);
+        var runParams = parameters.Select(parameter => GenerateParameter(parameter, context, resolved, cancellationToken)).ToArray();
+
+        if (context.OnStepInputsBound is { } onStepInputsBound)
+            await onStepInputsBound(this, await DescribeInputsAsync(parameters, context, resolved, cancellationToken), cancellationToken);
 
         object? invocationResult;
         try
@@ -461,14 +473,11 @@ internal sealed class PipelineStep : IPipelineStep
         }
     }
 
-    private List<object?> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
-    {
-        return parameterInfos
-            .Select(i => GenerateParameter(i, context, cancellationToken))
-            .ToList();
-    }
-
-    private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
+    /// <summary>
+    /// Binds one run method parameter. Every reference the binding resolves is kept in <paramref name="resolved"/>,
+    /// so the step can report what its process is given without resolving anything a second time.
+    /// </summary>
+    private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, Dictionary<InputValue, (ReferenceResolution Resolution, object? Value)> resolved, CancellationToken cancellationToken)
     {
         // The pipeline's cancellation token is injected directly, never bound from step input.
         if (parameterInfo.ParameterType == typeof(CancellationToken))
@@ -480,7 +489,109 @@ internal sealed class PipelineStep : IPipelineStep
         return InputBinder.Bind(
             target,
             input,
-            (InputValue reference, out object? value) => TryResolveReference(context, reference, out value));
+            (InputValue reference, out object? value) =>
+            {
+                var resolution = TryResolveReference(context, reference, out value);
+                resolved[reference] = (resolution, value);
+                return resolution;
+            });
+    }
+
+    /// <summary>
+    /// Describes what the process is given, for <see cref="PipelineContext.OnStepInputsBound"/>: per run method
+    /// parameter the elements its sources yielded, in the order of the parameters and of the sources, followed by the
+    /// files the process configuration supplied to the constructor.
+    /// </summary>
+    private async Task<IReadOnlyList<StepInput>> DescribeInputsAsync(ParameterInfo[] parameters, PipelineContext context, IReadOnlyDictionary<InputValue, (ReferenceResolution Resolution, object? Value)> resolved, CancellationToken cancellationToken)
+    {
+        var inputs = new List<StepInput>();
+        foreach (var parameter in parameters)
+        {
+            if (parameter.Name is null || !Inputs.TryGetValue(parameter.Name, out var input))
+                continue;
+
+            var sources = input is InputValue.Sequence sequence ? sequence.Items : [input];
+            foreach (var source in sources)
+                inputs.AddRange(await DescribeSourceAsync(parameter.Name, source, context, resolved, cancellationToken));
+        }
+
+        foreach (var configuredFile in configuredFiles)
+            inputs.Add(await DescribeFileAsync(configuredFile.Parameter, InputOrigin.Configuration, configuredFile.RelativePath, configuredFile.File, context, cancellationToken));
+
+        return inputs;
+    }
+
+    /// <summary>
+    /// Describes what one source of a parameter yielded: a literal its text, a reference each element of what it
+    /// resolved to, spread one level like the binding spreads it. A reference to a skipped step yields nothing, which is
+    /// recorded as such.
+    /// </summary>
+    private async Task<IReadOnlyList<StepInput>> DescribeSourceAsync(string parameter, InputValue source, PipelineContext context, IReadOnlyDictionary<InputValue, (ReferenceResolution Resolution, object? Value)> resolved, CancellationToken cancellationToken)
+    {
+        if (source is InputValue.Literal literal)
+            return [new StepInput(parameter, InputOrigin.Definition, null, InputKind.Value, RenderValue(literal.Raw))];
+
+        var (origin, reference) = source switch
+        {
+            InputValue.StepOutputReference stepOutput => (InputOrigin.StepOutput, $"{stepOutput.StepId}.{stepOutput.OutputName}"),
+            InputValue.FileReference file => (InputOrigin.Resource, file.RelativePath),
+            InputValue.UploadReference => (InputOrigin.Upload, (string?)null),
+            _ => throw new UnreachableException($"Input value kind <{source.GetType().Name}> is no source."),
+        };
+
+        // The binding resolved every reference of the parameter before it got here.
+        var (resolution, value) = resolved[source];
+        if (resolution == ReferenceResolution.Absent)
+            return [new StepInput(parameter, origin, reference, InputKind.Absent)];
+
+        var elements = InputBinder.TryAsCollection(value, out var items) ? items : [value];
+        var described = new List<StepInput>(elements.Count);
+        foreach (var element in elements)
+        {
+            described.Add(element is IPipelineFile file
+                ? await DescribeFileAsync(parameter, origin, reference, file, context, cancellationToken)
+                : new StepInput(parameter, origin, reference, InputKind.Value, RenderValue(element)));
+        }
+
+        return described;
+    }
+
+    /// <summary>
+    /// Describes a file the process is given. An uploaded file, also one an earlier step passed on unchanged, is left to
+    /// the host, which knows its declared size and hash, so describing it never fetches it. A file on the local disk
+    /// gets its size, and a resource or configured file also its hash, because those are files the deployment ships.
+    /// </summary>
+    private async Task<StepInput> DescribeFileAsync(string parameter, InputOrigin origin, string? reference, IPipelineFile file, PipelineContext context, CancellationToken cancellationToken)
+    {
+        var fileOrigin = file.UnwrapOrigin();
+        if (context.Upload.Contains(fileOrigin, ReferenceEqualityComparer.Instance))
+            return new StepInput(parameter, origin, reference, InputKind.File, FileName: file.OriginalFileName, FromUpload: true);
+
+        var withHash = origin is InputOrigin.Resource or InputOrigin.Configuration;
+        var (size, sha256) = fileOrigin is PipelineFile localFile
+            ? await MeasureAsync(localFile, withHash, cancellationToken)
+            : (null, null);
+
+        return new StepInput(parameter, origin, reference, InputKind.File, FileName: file.OriginalFileName, Size: size, Sha256: sha256, FromUpload: false);
+    }
+
+    /// <summary>
+    /// Reads the size and, when asked, the SHA-256 of a file on the local disk. A file that cannot be read is recorded
+    /// without both: the protocol must not fail the step, and the process reports its own error when it reads the file.
+    /// </summary>
+    private async Task<(long? Size, string? Sha256)> MeasureAsync(PipelineFile file, bool withHash, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = await file.OpenReadAsync(cancellationToken);
+            var sha256 = withHash ? Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, cancellationToken)) : null;
+            return (stream.Length, sha256);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Could not read the input file <{FileName}>; it is recorded without size and hash.", file.OriginalFileName);
+            return (null, null);
+        }
     }
 
     /// <summary>
@@ -594,6 +705,7 @@ internal sealed class PipelineStep : IPipelineStep
         private List<OutputActionConfig>? outputActions;
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
+        private IReadOnlyList<ConfiguredFile> configuredFiles = [];
         private string? pipelineDirectory;
         private string? resourcesDirectory;
         private ILogger? logger;
@@ -656,6 +768,16 @@ internal sealed class PipelineStep : IPipelineStep
         }
 
         /// <summary>
+        /// Sets the files the process configuration supplied to the constructor of the process, which the
+        /// <see cref="PipelineStep"/> that will be created by this builder records with its inputs. None by default.
+        /// </summary>
+        public PipelineStepBuilder ConfiguredFiles(IReadOnlyList<ConfiguredFile> configuredFiles)
+        {
+            this.configuredFiles = configuredFiles;
+            return this;
+        }
+
+        /// <summary>
         /// Sets the pipeline working directory used to isolate input files copied into the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
         public PipelineStepBuilder PipelineDirectory(string pipelineDirectory)
@@ -701,7 +823,7 @@ internal sealed class PipelineStep : IPipelineStep
             if (logger == null)
                 throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputs, outputActions, stepConditions, process, pipelineDirectory, resourcesDirectory, logger);
+            return new PipelineStep(id, displayName, inputs, outputActions, stepConditions, process, configuredFiles, pipelineDirectory, resourcesDirectory, logger);
         }
     }
 }

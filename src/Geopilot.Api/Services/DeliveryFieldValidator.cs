@@ -67,6 +67,14 @@ public static class DeliveryFieldValidator
             AddError(nameof(fields.Comment), "Comment is required for this mandate.");
         }
 
+        foreach (var (key, messages) in MetadataFieldValidator.CheckValues(mandate.MetadataFields, fields.Metadata).Errors)
+        {
+            foreach (var message in messages)
+            {
+                AddError(key, message);
+            }
+        }
+
         return errors.ToDictionary(e => e.Key, e => e.Value.ToArray(), StringComparer.Ordinal);
     }
 }

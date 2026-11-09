@@ -216,7 +216,7 @@ internal sealed class DeliveryChannelFactory
         if (parameter.ParameterType != typeof(string))
             throw new InvalidOperationException($"Channel initialization: Parameter <{parameter.Name}> is marked [ResourceFile] but takes <{parameter.ParameterType.Name}>. A resource file is passed as its text, so the parameter must take a string.");
 
-        if (!ConstructorBinding.TryGetResourcePath(parameter, values, resourcesDirectory, Subject, out var path))
+        if (!ConstructorBinding.TryGetResourcePath(parameter, values, resourcesDirectory, Subject, out var path, out _))
         {
             value = null;
             return false;

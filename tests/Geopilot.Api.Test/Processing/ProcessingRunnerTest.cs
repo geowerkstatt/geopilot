@@ -425,6 +425,27 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task ExecuteRecordsTheInputsOfEachStep()
+    {
+        var jobId = NewJob();
+        var upload = new PipelineFile(WriteTempFile("upload-content"), "uploaded.xtf");
+        var passthrough = BuildUploadPassthroughStep("passthrough");
+        using var pipeline = BuildPipeline(jobId, passthrough);
+
+        var (runner, _) = CreateRunnerWithStore(pipeline, uploads: [upload]);
+
+        await runner.StartAsync(CancellationToken.None);
+        Assert.IsNotNull(runner.ExecuteTask);
+        await runner.ExecuteTask.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        var expected = new StepInput("files", InputOrigin.Upload, null, InputKind.File, FileName: "uploaded.xtf", FromUpload: true);
+        runRecorderMock.Verify(
+            r => r.RecordStepInputsAsync(jobId, passthrough, 0, It.Is<IReadOnlyList<StepInput>>(inputs => inputs.SequenceEqual(new[] { expected }))),
+            Times.Once);
+    }
+
+    [TestMethod]
     public async Task ExecuteContinuesWhenProtocolRecorderFails()
     {
         var jobId = NewJob();

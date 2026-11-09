@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { FieldValues } from "react-hook-form";
+import { FieldValues, get } from "react-hook-form";
 import { LocalizedText } from "../../api/apiInterfaces";
 import { Language, TranslationKey } from "../../appInterfaces";
 import { FormInput } from "./formInput";
@@ -29,7 +29,7 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
   helperText,
 }) => {
   const validateAtLeastOne = (_: string, formValues: FieldValues): string | boolean => {
-    const entries = (formValues[fieldName] ?? {}) as LocalizedText;
+    const entries = (get(formValues, fieldName) ?? {}) as LocalizedText;
     const anyFilled = Object.values(entries).some(entry => typeof entry === "string" && entry.trim() !== "");
     return anyFilled || "atLeastOneLanguageRequired";
   };
