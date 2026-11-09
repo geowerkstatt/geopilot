@@ -205,8 +205,8 @@ public class JobLifecycle
 
     /// <summary>
     /// Declares the delivery of a job whose start carried a <see cref="DeliveryIntent"/>, on the caller's behalf.
-    /// Nothing else answers that caller, who polls the attempt, so a refusal or an error is recorded on the job
-    /// instead of only being logged.
+    /// Nothing else answers that caller, who polls the attempt, so a refusal or an error is recorded on the job and in
+    /// the execution protocol instead of only being logged.
     /// </summary>
     private Task DeclareDeliveryAsync(Guid jobId, DeliveryIntent deliveryIntent, CancellationToken cancellationToken) =>
         CarryOutAsync(jobId, "declare the delivery", LogLevel.Warning, async services =>
@@ -220,7 +220,7 @@ public class JobLifecycle
             catch (Exception ex)
             {
                 // Otherwise the attempt would report a delivery in progress until the job is retired.
-                jobStore.RecordDeclarationFailure(jobId, "The delivery could not be declared because of an unexpected error.");
+                await RecordDeclarationFailureAsync(jobId, "The delivery could not be declared because of an unexpected error.");
                 logger.LogError(ex, "Declaring the delivery for job <{JobId}> failed unexpectedly.", jobId);
                 return;
             }
@@ -242,11 +242,22 @@ public class JobLifecycle
                     break;
 
                 default:
-                    jobStore.RecordDeclarationFailure(jobId, DescribeDeclarationFailure(result));
+                    await RecordDeclarationFailureAsync(jobId, DescribeDeclarationFailure(result));
                     logger.LogWarning("Could not declare the delivery for job <{JobId}>: {Status}.", jobId, result.Status);
                     break;
             }
         });
+
+    /// <summary>
+    /// Records why the delivery could not be declared: on the job, for the caller polling the attempt, and in the
+    /// execution protocol, which keeps it beyond the job's retention. The protocol write takes a scope of its own,
+    /// so it does not save along whatever the failed declaration left in its database context.
+    /// </summary>
+    private async Task RecordDeclarationFailureAsync(Guid jobId, string reason)
+    {
+        jobStore.RecordDeclarationFailure(jobId, reason);
+        await RecordProtocolAsync(jobId, recorder => recorder.RecordDeclarationFailedAsync(jobId, reason));
+    }
 
     /// <summary>
     /// Turns a refused declaration into the one sentence the caller gets to read. Violated field rules carry their

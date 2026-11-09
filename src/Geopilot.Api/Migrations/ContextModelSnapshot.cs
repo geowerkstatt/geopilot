@@ -334,6 +334,12 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Declarability")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeclarationFailure")
+                        .HasColumnType("text");
+
                     b.Property<string>("Definition")
                         .IsRequired()
                         .HasColumnType("jsonb");
