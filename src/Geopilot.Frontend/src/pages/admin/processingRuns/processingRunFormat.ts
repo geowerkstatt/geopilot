@@ -1,5 +1,5 @@
 import { TFunction } from "i18next";
-import { ClientKind } from "../../../api/generated";
+import { ClientKind, InputKind, InputOrigin, PipelineRunInputResponse } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 
 /** The time between start and end as minutes and seconds, or undefined while there is no end. */
@@ -41,4 +41,32 @@ const clientKindLabelKey: Record<ClientKind, TranslationKey | undefined> = {
 export const formatClientKind = (t: TFunction, clientKind: ClientKind): string | undefined => {
   const kindKey = clientKindLabelKey[clientKind];
   return kindKey && t(kindKey);
+};
+
+const inputOriginLabelKey: Record<InputOrigin, TranslationKey> = {
+  [InputOrigin.Definition]: "inputOriginDefinition",
+  [InputOrigin.StepOutput]: "inputOriginStepOutput",
+  [InputOrigin.Resource]: "inputOriginResource",
+  [InputOrigin.Upload]: "inputOriginUpload",
+  [InputOrigin.Configuration]: "inputOriginConfiguration",
+};
+
+/** Where the value of a step input came from, such as "Step", without the reference that names it. */
+export const formatInputOrigin = (t: TFunction, origin: InputOrigin): string => t(inputOriginLabelKey[origin]);
+
+/**
+ * What a step input shows as its value: a value as its text, a file by its name with its size when known, and
+ * undefined for a reference to a skipped step, which contributes nothing.
+ */
+export const formatInputValue = (input: PipelineRunInputResponse): string | undefined => {
+  switch (input.kind) {
+    case InputKind.Value:
+      return input.value ?? "null";
+    case InputKind.File:
+      return typeof input.size === "number"
+        ? `${input.fileName ?? ""} (${formatFileSize(input.size)})`
+        : (input.fileName ?? "");
+    case InputKind.Absent:
+      return undefined;
+  }
 };

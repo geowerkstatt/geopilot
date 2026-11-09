@@ -5,7 +5,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Box,
   Stack,
   TableCell,
@@ -16,6 +15,7 @@ import {
   ArtifactKind,
   ConditionKind,
   ConditionPhase,
+  InputKind,
   PipelineRunStepResponse,
   StepState,
 } from "../../../api/generated";
@@ -24,7 +24,7 @@ import { DetailTable, nameColumnWidth } from "../../../components/detailTable.ts
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { formatDuration } from "./processingRunFormat.ts";
+import { formatDuration, formatInputOrigin, formatInputValue } from "./processingRunFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
 interface ProcessingRunStepsProps {
@@ -62,14 +62,13 @@ const artifactKindKey: Record<ArtifactKind, TranslationKey> = {
   [ArtifactKind.Delivery]: "outputActionDelivery",
 };
 
-/** The steps of a run in pipeline order, each with its state, duration, messages, conditions and results. */
+/** The steps of a run in pipeline order, each with its state, duration, inputs, messages, conditions and results. */
 export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
 
   return (
     <Stack data-cy="processingRunSteps">
-      <Alert severity="info">{t("inputsNotRecorded")}</Alert>
       <Box>
         {steps.map((step, index) => {
           // A skipped step has times too, but they only span the check of its skip conditions.
@@ -102,6 +101,50 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
                       </Typography>
                     )}
                   </SummaryField>
+                  {step.inputs.length > 0 && (
+                    <SummaryField labelVariant="h5" label="input">
+                      <DetailTable
+                        columns={[
+                          { label: t("parameter"), width: nameColumnWidth },
+                          { label: t("inputSource"), width: "24%" },
+                          { label: t("value") },
+                          { label: t("sha256"), width: "30%" },
+                        ]}>
+                        {step.inputs.map((input, inputIndex) => (
+                          <TableRow key={inputIndex}>
+                            <TableCell>{input.parameter}</TableCell>
+                            <TableCell>
+                              {formatInputOrigin(t, input.origin)}
+                              {input.reference && (
+                                <Box>
+                                  <TechnicalText>{input.reference}</TechnicalText>
+                                </Box>
+                              )}
+                            </TableCell>
+                            <TableCell
+                              sx={
+                                input.kind === InputKind.Absent
+                                  ? { color: "text.secondary", fontStyle: "italic" }
+                                  : undefined
+                              }>
+                              {input.kind === InputKind.Absent && t("stepStateSkipped")}
+                              {input.kind === InputKind.Value && (
+                                <TechnicalText>{formatInputValue(input)}</TechnicalText>
+                              )}
+                              {input.kind === InputKind.File && formatInputValue(input)}
+                            </TableCell>
+                            <TableCell sx={{ color: input.sha256 ? undefined : "text.secondary" }}>
+                              {input.sha256 ? (
+                                <TechnicalText>{input.sha256}</TechnicalText>
+                              ) : (
+                                input.kind === InputKind.File && t("hashNotComputed")
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </DetailTable>
+                    </SummaryField>
+                  )}
                   {step.statusMessage && (
                     <SummaryField labelVariant="h5" label="message">
                       {localized(step.statusMessage)}
