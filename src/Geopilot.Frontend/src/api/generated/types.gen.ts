@@ -416,6 +416,24 @@ export type InitiateUploadResponse = {
   expiresAt: string;
 };
 
+export const InputKind = {
+  Value: "value",
+  File: "file",
+  Absent: "absent",
+} as const;
+
+export type InputKind = (typeof InputKind)[keyof typeof InputKind];
+
+export const InputOrigin = {
+  Definition: "definition",
+  StepOutput: "stepOutput",
+  Resource: "resource",
+  Upload: "upload",
+  Configuration: "configuration",
+} as const;
+
+export type InputOrigin = (typeof InputOrigin)[keyof typeof InputOrigin];
+
 /**
  * A machine that delivers data on behalf of an organisation, authenticated with client credentials at the
  * identity provider of the installation. Deliberately not a Geopilot.Api.Models.User: a client has no account in
@@ -701,6 +719,43 @@ export type PipelineRunFileResponse = {
 };
 
 /**
+ * One value a step's process was given when it started: an element bound to a parameter of its run method, or a file
+ * the process configuration supplied to its constructor.
+ */
+export type PipelineRunInputResponse = {
+  /**
+   * The name of the run method parameter, or of the constructor parameter for a configured file.
+   */
+  parameter: string;
+  origin: InputOrigin;
+  /**
+   * The referenced output as `stepId.Property`, or for a resource or a configured file its path below the resources directory.
+   */
+  reference?: string | null;
+  kind: InputKind;
+  /**
+   * For a value its text, formatted with the invariant culture and cut after 500 characters.
+   */
+  value?: string | null;
+  /**
+   * For a file its original name.
+   */
+  fileName?: string | null;
+  /**
+   * For a file its size in bytes, when known.
+   */
+  size?: number | null;
+  /**
+   * The SHA-256 of a file as lowercase hex: for an upload when it was scanned, for a resource or a configured file always. Files of an earlier step carry none.
+   */
+  sha256?: string | null;
+  /**
+   * For a file whether it is an uploaded file passed on unchanged.
+   */
+  fromUpload?: boolean | null;
+};
+
+/**
  * Something that happened to a reaction of the delivery the run produced. An attempt with the state
  * Geopilot.Api.Models.ReactionState.Running and no Geopilot.Api.Contracts.PipelineRunReactionEventResponse.FinishedAt whose instance has stopped never reported back:
  * its outcome is unknown.
@@ -869,6 +924,10 @@ export type PipelineRunStepResponse = {
   conditionMessage?: {
     [key: string]: string;
   } | null;
+  /**
+   * What the step's process was given when it started, in the order of its parameters; empty for a step that ran no process.
+   */
+  inputs: Array<PipelineRunInputResponse>;
   /**
    * The evaluation result of every checked condition, matching or not.
    */

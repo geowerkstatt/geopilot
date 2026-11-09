@@ -440,18 +440,28 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return true;
         }
 
+        /// <summary>
+        /// The files the last <see cref="Build"/> supplied from the process configuration to constructor parameters of
+        /// type <see cref="IPipelineFile"/>, so the step can record them with its inputs.
+        /// </summary>
+        internal IReadOnlyList<ConfiguredFile> ConfiguredFiles { get; private set; } = [];
+
         /// <inheritdoc />
         public object Build()
         {
             ArgumentNullException.ThrowIfNull(pipelineDirectory);
 
             var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
+            var configuredFiles = new List<ConfiguredFile>();
             var parameters = constructor.GetParameters()
-                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
+                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId, configuredFiles))
                 .ToArray();
             var processInstance = Activator.CreateInstance(objectType, parameters);
             if (processInstance != null)
+            {
+                ConfiguredFiles = configuredFiles;
                 return processInstance;
+            }
 
             var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
             throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{objectType.FullName}>.");
@@ -523,7 +533,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 return;
             }
 
-            if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesRoot, "Process", out _))
+            if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesRoot, "Process", out _, out _))
                 return;
 
             if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out _))
@@ -535,7 +545,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
         }
 
-        private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
+        private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId, List<ConfiguredFile> configuredFiles)
         {
             if (parameterInfo.ParameterType == typeof(ILogger))
             {
@@ -563,9 +573,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 return new XtfDiffClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<XtfDiffClient>());
             }
-            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath))
+            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath, out var configuredPath))
             {
-                return new PipelineFile(resourcePath, Path.GetFileName(resourcePath));
+                var file = new PipelineFile(resourcePath, Path.GetFileName(resourcePath));
+                configuredFiles.Add(new ConfiguredFile(parameterInfo.Name ?? string.Empty, configuredPath, file));
+                return file;
             }
             else if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out var convertedValue))
             {

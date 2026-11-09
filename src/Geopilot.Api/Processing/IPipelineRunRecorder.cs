@@ -49,6 +49,17 @@ public interface IPipelineRunRecorder
     Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
 
     /// <summary>
+    /// Writes what the step's process is given, once the step bound its inputs and before the process runs, so an
+    /// interrupted run shows what the step in flight was working on. An uploaded file gets its size, and if the step
+    /// took it from the upload itself also its hash, from the manifest. Soft.
+    /// </summary>
+    /// <param name="jobId">The job the step belongs to.</param>
+    /// <param name="pipelineStep">The step about to run its process.</param>
+    /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <param name="inputs">What the process is given, in the order of its parameters.</param>
+    Task RecordStepInputsAsync(Guid jobId, IPipelineStep pipelineStep, int order, IReadOnlyList<StepInput> inputs);
+
+    /// <summary>
     /// Updates the step row with its terminal state, timing, messages, condition evaluations and the
     /// artifacts persisted so far. Soft.
     /// </summary>

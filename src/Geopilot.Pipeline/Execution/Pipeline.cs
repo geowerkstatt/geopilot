@@ -110,6 +110,9 @@ internal sealed class Pipeline : IPipeline
     public Func<IPipelineStep, CancellationToken, Task>? OnStepStarted { get; set; }
 
     /// <inheritdoc/>
+    public Func<IPipelineStep, IReadOnlyList<StepInput>, CancellationToken, Task>? OnStepInputsBound { get; set; }
+
+    /// <inheritdoc/>
     public Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
 
     private ILogger logger;
@@ -149,6 +152,7 @@ internal sealed class Pipeline : IPipeline
         {
             Upload = files,
             StepResults = new Dictionary<string, StepResult>(),
+            OnStepInputsBound = this.OnStepInputsBound,
         };
 
         try

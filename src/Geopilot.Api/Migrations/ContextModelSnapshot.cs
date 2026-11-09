@@ -492,6 +492,54 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("PipelineRunFiles");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("FromUpload")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Parameter")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PipelineRunStepId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reference")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Sha256")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PipelineRunStepId");
+
+                    b.ToTable("PipelineRunInputs");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -799,6 +847,15 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("PipelineRun");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.PipelineRunStep", null)
+                        .WithMany("Inputs")
+                        .HasForeignKey("PipelineRunStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.PipelineRun", null)
@@ -898,6 +955,8 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Artifacts");
 
                     b.Navigation("Conditions");
+
+                    b.Navigation("Inputs");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>

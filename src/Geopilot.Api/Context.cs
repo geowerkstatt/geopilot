@@ -168,6 +168,11 @@ public class Context : DbContext
     public DbSet<PipelineRunFile> PipelineRunFiles { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="PipelineRunInput"/> records.
+    /// </summary>
+    public DbSet<PipelineRunInput> PipelineRunInputs { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="PipelineRunCondition"/> records.
     /// </summary>
     public DbSet<PipelineRunCondition> PipelineRunConditions { get; set; }
@@ -191,6 +196,8 @@ public class Context : DbContext
         {
             return PipelineRuns
                 .Include(r => r.Files)
+                .Include(r => r.Steps)
+                .ThenInclude(s => s.Inputs)
                 .Include(r => r.Steps)
                 .ThenInclude(s => s.Conditions)
                 .Include(r => r.Steps)
@@ -353,8 +360,15 @@ public class Context : DbContext
             // for the nullable properties, while EF never passes null through a converter anyway.
             step.Property(s => s.StatusMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
             step.Property(s => s.ConditionMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
+            step.HasMany(s => s.Inputs).WithOne().HasForeignKey(i => i.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
             step.HasMany(s => s.Conditions).WithOne(c => c.Step).HasForeignKey(c => c.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
             step.HasMany(s => s.Artifacts).WithOne(a => a.Step).HasForeignKey(a => a.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PipelineRunInput>(input =>
+        {
+            input.Property(i => i.Origin).HasConversion<string>();
+            input.Property(i => i.Kind).HasConversion<string>();
         });
 
         modelBuilder.Entity<PipelineRunCondition>(condition =>

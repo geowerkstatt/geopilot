@@ -92,6 +92,12 @@ public class PipelineRunStep
     public LocalizedText? ConditionMessage { get; set; }
 
     /// <summary>
+    /// What the step's process was given when it started, one record per value or file, in the order of its parameters.
+    /// Empty for a step that ran no process.
+    /// </summary>
+    public List<PipelineRunInput> Inputs { get; set; } = new();
+
+    /// <summary>
     /// The evaluation result of every condition checked for this step, matching or not.
     /// </summary>
     public List<PipelineRunCondition> Conditions { get; set; } = new();
