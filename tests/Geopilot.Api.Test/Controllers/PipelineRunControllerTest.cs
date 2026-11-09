@@ -86,6 +86,31 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetReturnsWhetherTheRunWasDeclarableAndWhyItsDeclarationFailed()
+    {
+        var run = SeedRun();
+        run.TerminalState = ProcessingState.Success;
+        run.Declarability = Declarability.Declarable;
+        run.DeclarationFailure = "No assets found.";
+        context.SaveChanges();
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(Declarability.Declarable, response.Declarability);
+        Assert.AreEqual("No assets found.", response.DeclarationFailure);
+    }
+
+    [TestMethod]
+    public async Task GetLeavesTheDeclarabilityOfAnOlderRunOpen()
+    {
+        var run = SeedRun();
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.IsNull(response.Declarability, "A run recorded before the protocol kept its declarability says nothing about it, which is not the same as not declarable.");
+    }
+
+    [TestMethod]
     public async Task GetReturnsNotFoundForUnknownJob()
     {
         ActionResultAssert.IsNotFound(await controller.Get(Guid.NewGuid()));

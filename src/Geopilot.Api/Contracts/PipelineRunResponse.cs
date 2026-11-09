@@ -16,6 +16,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="UserId">The user that started the run, or <see langword="null"/> when a machine client started it or the job was started anonymously. Who declared the delivery is recorded on the delivery itself.</param>
 /// <param name="MachineClientId">The machine client that started the run, or <see langword="null"/> when a user started it or the job was started anonymously.</param>
 /// <param name="ClientKind">The kind of client that started the run.</param>
+/// <param name="Declarability">Whether the run could become a delivery, decided when it started, or <see langword="null"/> for a run recorded before the protocol kept it.</param>
 /// <param name="UploadId">The id of the upload the run processed.</param>
 /// <param name="UploadStorageLocation">Where the uploaded files were stored, credential-free.</param>
 /// <param name="UploadInitiatedAt">When the upload session was initiated (UTC).</param>
@@ -25,6 +26,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> when the outcome is unknown.</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
 /// <param name="FailureReason">Why the run failed or was cancelled, when known.</param>
+/// <param name="DeclarationFailure">Why geopilot could not declare the delivery of a machine delivery although the run allowed it.</param>
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
 /// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
@@ -36,6 +38,7 @@ public record PipelineRunResponse(
     int? UserId,
     int? MachineClientId,
     ClientKind ClientKind,
+    Declarability? Declarability,
     Guid UploadId,
     string UploadStorageLocation,
     DateTime UploadInitiatedAt,
@@ -45,6 +48,7 @@ public record PipelineRunResponse(
     ProcessingState? TerminalState,
     DateTime? TerminalAt,
     string? FailureReason,
+    string? DeclarationFailure,
     List<PipelineRunFileResponse> Files,
     List<PipelineRunStepResponse> Steps,
     List<PipelineRunReactionEventResponse> ReactionEvents);

@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Geopilot.Api.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20261109073832_AddPipelineRunInputs")]
+    [Migration("20261109095104_AddPipelineRunInputs")]
     partial class AddPipelineRunInputs
     {
         /// <inheritdoc />
@@ -323,6 +323,12 @@ namespace Geopilot.Api.Migrations
 
                     b.Property<string>("ClientKind")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Declarability")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeclarationFailure")
                         .HasColumnType("text");
 
                     b.Property<string>("Definition")

@@ -10,6 +10,7 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 - der gelaufenen Pipeline und einem **Definitions-Snapshot** (siehe unten),
 - Mandat und Urheber, entweder der Benutzer oder der Maschinen-Client (`UserId` oder `MachineClientId`, nie beide zugleich, was die Datenbank erzwingt; beide leer, wenn der Job anonym auf einem öffentlichen Mandat gestartet wurde; anonym darf prozessiert, aber nicht geliefert werden, und wer die Lieferung deklariert hat, steht an der Lieferung selbst) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert. Die Art des Clients sagt, auf welchem Weg der Job gestartet wurde, nicht von wem: eine Person, die die API direkt aufruft, etwa aus Swagger, ist ebenso `ApiClient` wie ein Maschinen-Client, und wer es war, steht in den beiden Id-Spalten,
+- der **Deklarierbarkeit** (`Declarability`), also ob aus dem Lauf je eine Lieferung werden kann: `Declarable`, wenn der Urheber Mitglied einer Organisation des Mandats ist und das Mandat Lieferungen annimmt, sonst `NotDeclarable`, auch bei einem anonymen Start. Entschieden wird einmal beim Start. Läufe, die aufgezeichnet wurden, bevor das Protokoll diese Angabe kannte, haben keine (`NULL`): unbekannt, nicht «nicht deklarierbar»,
 - dem Upload-Manifest (`PipelineRunFiles`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
 - dem Resultat des Virenscans (`Clean`, `ThreatDetected` mit Details, oder `NotScanned` wenn die Prüfung deaktiviert ist),
 - der Applikationsversion und allen Zeitstempeln in UTC.
@@ -27,6 +28,8 @@ Die **Eingaben** jedes Schritts stehen in `PipelineRunInputs`: was sein Prozesso
 Ein Wert steht als Text in `Value` (Invariant Culture, nach 500 Zeichen abgeschnitten), eine Datei mit Name und Grösse (`FileName`, `Size`). Ressourcen und Dateien aus der Konfiguration tragen zusätzlich den SHA-256, berechnet beim Beginn des Schritts; so bleibt nachvollziehbar, welchen Stand einer Ressource ein Schritt bekam. Ein Upload trägt Grösse und SHA-256 aus dem Manifest, den SHA-256 nur, soweit der Virenscan ihn berechnet hat. Reicht ein früherer Schritt einen Upload unverändert weiter, etwa ein Matcher, markiert ihn `FromUpload`; seine Grösse kommt dann ebenfalls aus dem Manifest, einen Hash trägt er dort nicht, den trägt die Upload-Zeile des Schritts, der ihn aus dem Upload bekam. Andere Dateien aus früheren Schritten stehen ohne Hash da. Ein Schritt, dessen Prozessor nicht lief (übersprungen, per Pre-Condition gescheitert oder mit Eingaben, die sich nicht binden liessen), hat keine Eingaben; den Grund nennen seine Conditions oder seine Fehlermeldung.
 
 Das Protokoll setzt dabei an der Grenze des Schritts an. Was ein Prozessor intern tut oder ein entfernter Dienst auflöst, etwa Modelle und Referenzdaten über `modelDirs`, hält es nicht fest; dafür bleibt das Log des Werkzeugs.
+
+Scheitert bei einer [maschinellen Lieferung](MaschinelleAnlieferung.md) die Deklaration, die geopilot selbst vornimmt, obwohl der Lauf sie zuliess, steht der Grund in `DeclarationFailure`: derselbe Text, den der Versuch in `messages` meldet. Er besteht aus festen Meldungen, nie aus dem Inhalt der Lieferangaben, denn ein Kommentar ist Freitext und gehört nicht in einen Datensatz, der jahrelang aufbewahrt wird. Leer heisst: geopilot hat deklariert oder hatte nichts zu deklarieren; bei einem älteren Lauf ohne `Declarability` ist es unbekannt. Ob eine Lieferung entstand, sagt die Lieferung selbst (`Deliveries.JobId`).
 
 Wird die Lieferung eines Laufs weitergegeben (siehe [Reaktionen nach dem Abschluss](pipeline/Pipelines.md#reaktionen-nach-dem-abschluss)), steht jeder Zustellversuch ihrer Reaktionen in `PipelineRunReactionEvents`: die Lieferung, die Id der Reaktion im Satz, ob die Reaktion die Lieferung weitergibt oder begleitet, der Kanal, die Nummer des Versuchs, Beginn und Ende, der Zustand der Reaktion danach und die Meldung des Kanals. Personendaten des Lieferanten und Werte des Mandats stehen nicht darin; die Meldung kann den Zielpfad enthalten. Wird die Lieferung gelöscht, kommt pro Reaktion eine Zeile `Deletion` dazu, mit dem Benutzer, der gelöscht hat, und dem Zustand der Reaktion danach: `Done` hatte die Lieferung schon weitergegeben, `Error` war schon endgültig gescheitert, `Deleted` endete mit der Löschung. Setzt ein Admin Reaktionen zurück, die aufgegeben hatten, kommt pro Reaktion eine Zeile `Reset` dazu, mit dem Admin und dem Zustand `Pending`; die Versuche danach zählen wieder ab 1, die Zeilen davor behalten ihren Ausgang. Die Spalte `UserId` nennt nur, wer ein Ereignis ausgelöst hat: Einen Zustellversuch führt die Applikation aus, dort bleibt sie leer. Wer die Lieferung deklariert hat, steht an der Lieferung (`DeclaringUserId` oder `DeclaringClientId`), wer den Lauf gestartet hat, am Lauf.
 
@@ -63,7 +66,7 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Sch
 
 Administratoren können das Protokoll über die API lesen:
 
-- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen und den Zustellversuchen der Reaktionen (`reactionEvents`).
+- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
 Für Auswertungen über mehrere Läufe ist SQL das Werkzeug. Beispiele:
@@ -102,6 +105,12 @@ WHERE r."Definition" @> '{"processes": [{"implementation": "Geopilot.Pipeline.Pr
 
 -- Wie viele Läufe blieben ohne Terminal-Status (Restart-Opfer)?
 SELECT count(*) FROM "PipelineRuns" WHERE "TerminalState" IS NULL AND "StartedAt" < now() - interval '1 day';
+
+-- Lieferbare Läufe ohne Lieferung: nicht deklarierbar, an der Deklaration gescheitert oder nie abgegeben?
+SELECT r."JobId", r."StartedAt", r."Declarability", r."DeclarationFailure"
+FROM "PipelineRuns" r
+WHERE r."TerminalState" IN ('Success', 'Warning')
+  AND NOT EXISTS (SELECT 1 FROM "Deliveries" d WHERE d."JobId" = r."JobId");
 
 -- Läufe gruppiert nach identischer Definitions-Fassung.
 SELECT "PipelineId", "Definition", count(*), min("StartedAt"), max("StartedAt")
