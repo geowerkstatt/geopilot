@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -13,6 +14,8 @@ public static partial class MetadataFieldValidator
 {
     private const string IdRule = "The id must start with a lowercase letter followed by up to 63 lowercase letters, digits or underscores; constructor and prototype are reserved.";
 
+    private static readonly string[] CheckedLanguages = ["de", "en", "fr", "it"];
+
     /// <summary>
     /// The problems of the definitions, one English message each, naming the field by position (1-based) and id;
     /// empty when they can be saved.
@@ -23,7 +26,7 @@ public static partial class MetadataFieldValidator
 
         var problems = new List<string>();
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
-        var seenTitles = new HashSet<string>(StringComparer.Ordinal);
+        var titleConflicts = FindTitleConflicts([.. fields.Select(field => field.Title)]);
 
         for (var index = 0; index < fields.Count; index++)
         {
@@ -35,11 +38,10 @@ public static partial class MetadataFieldValidator
             else if (!seenIds.Add(id))
                 problems.Add($"{label}: The id is used by another field.");
 
-            var displayTitle = field.Title?.GetDisplayText() ?? string.Empty;
-            if (displayTitle.Length == 0)
+            if ((field.Title?.GetDisplayText() ?? string.Empty).Length == 0)
                 problems.Add($"{label}: The title needs text in at least one language.");
-            else if (!seenTitles.Add(displayTitle))
-                problems.Add($"{label}: The title is used by another field.");
+            else if (titleConflicts.TryGetValue(index, out var language))
+                problems.Add($"{label}: The title in {language} is used by another field.");
 
             if (!Enum.IsDefined(field.Type))
                 problems.Add($"{label}: The type is not known.");
@@ -212,6 +214,7 @@ public static partial class MetadataFieldValidator
             yield return $"{label}: A selection needs at least one option.";
 
         var seenOptionIds = new HashSet<string>(StringComparer.Ordinal);
+        var titleConflicts = FindTitleConflicts([.. options.Select(option => option.Title)]);
         for (var index = 0; index < options.Count; index++)
         {
             var option = options[index];
@@ -224,7 +227,30 @@ public static partial class MetadataFieldValidator
 
             if (option.Title is null || option.Title.GetDisplayText().Length == 0)
                 yield return $"{optionLabel}: The title needs text in at least one language.";
+            else if (titleConflicts.TryGetValue(index, out var language))
+                yield return $"{optionLabel}: The title in {language} is used by another option of this field.";
         }
+    }
+
+    // Two titles must not read alike in any language as geopilot shows them there: the title of that language or, where
+    // it is missing, the first one of the fallback order. English is always checked, because its reading is the key of a
+    // value in the STAC item. Returns the first conflicting language per later entry.
+    private static Dictionary<int, string> FindTitleConflicts(IReadOnlyList<LocalizedText?> titles)
+    {
+        var conflicts = new Dictionary<int, string>();
+        var languages = CheckedLanguages.Concat(titles.SelectMany(title => title?.Languages ?? [])).Distinct(StringComparer.Ordinal);
+        foreach (var language in languages)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            for (var index = 0; index < titles.Count; index++)
+            {
+                var text = titles[index]?.GetDisplayText(language) ?? string.Empty;
+                if (text.Length > 0 && !seen.Add(text))
+                    conflicts.TryAdd(index, language);
+            }
+        }
+
+        return conflicts;
     }
 }
 

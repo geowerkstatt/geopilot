@@ -119,7 +119,7 @@ public class MetadataFieldValidatorTest
     [TestMethod]
     public void RefusesInvalidOrDuplicateOptionIds()
     {
-        var duplicate = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("canton"), Option("canton")])]);
+        var duplicate = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("canton"), new("canton", TestHelpers.Localized("Kanton"))])]);
         var invalid = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("Kanton")])]);
         var reserved = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [Option("prototype")])]);
 
@@ -155,12 +155,36 @@ public class MetadataFieldValidatorTest
     }
 
     [TestMethod]
-    public void AcceptsFieldsWhoseDisplayTitlesDiffer()
+    public void RefusesTwoFieldsWithTheSameTitleInOneLanguage()
     {
-        var both = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projekt", ["en"] = "Project" });
-        var germanOnly = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projekt" });
+        var project = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projekt", ["en"] = "Project" });
+        var projectNumber = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projekt", ["en"] = "Project number" });
 
-        Assert.IsEmpty(MetadataFieldValidator.ValidateDefinitions([Field("a", localizedTitle: both), Field("b", localizedTitle: germanOnly)]));
+        var problems = MetadataFieldValidator.ValidateDefinitions([Field("a", localizedTitle: project), Field("b", localizedTitle: projectNumber)]);
+
+        Assert.HasCount(1, problems);
+        StringAssert.Contains(problems[0], "field 2 <b>: The title in de");
+    }
+
+    [TestMethod]
+    public void AcceptsFieldsWhoseTitlesDifferInEveryLanguage()
+    {
+        var project = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projekt", ["en"] = "Project" });
+        var projectNumber = new LocalizedText(new Dictionary<string, string> { ["de"] = "Projektnummer", ["en"] = "Project number" });
+
+        Assert.IsEmpty(MetadataFieldValidator.ValidateDefinitions([Field("a", localizedTitle: project), Field("b", localizedTitle: projectNumber)]));
+    }
+
+    [TestMethod]
+    public void RefusesTwoOptionsWithTheSameTitleInOneLanguage()
+    {
+        var canton = new MetadataFieldOption("canton", new LocalizedText(new Dictionary<string, string> { ["de"] = "Kanton", ["fr"] = "Canton" }));
+        var cantonal = new MetadataFieldOption("cantonal", new LocalizedText(new Dictionary<string, string> { ["de"] = "Kantonal", ["fr"] = "Canton" }));
+
+        var problems = MetadataFieldValidator.ValidateDefinitions([Field("a", MetadataFieldType.Selection, options: [canton, cantonal])]);
+
+        Assert.HasCount(1, problems);
+        StringAssert.Contains(problems[0], "option 2 <cantonal>: The title in fr");
     }
 
     [TestMethod]
