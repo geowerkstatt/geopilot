@@ -452,7 +452,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             ArgumentNullException.ThrowIfNull(pipelineDirectory);
 
             var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
-            var configuredFiles = ResolveConfiguredFiles(constructor, processParameterization);
+            var configuredFiles = ResolveConfiguredFiles(constructor, processParameterization).ToList();
             var parameters = constructor.GetParameters()
                 .Select(p => configuredFiles.FirstOrDefault(configuredFile => string.Equals(configuredFile.Parameter, p.Name, StringComparison.Ordinal))?.File
                     ?? GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
@@ -551,20 +551,17 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// Resolves the constructor parameters of type <see cref="IPipelineFile"/> for which the configuration names a
         /// file below the resources directory, each with the file the process receives.
         /// </summary>
-        private IReadOnlyList<ConfiguredFile> ResolveConfiguredFiles(ConstructorInfo constructor, Parameterization processConfig)
+        private IEnumerable<ConfiguredFile> ResolveConfiguredFiles(ConstructorInfo constructor, Parameterization processConfig)
         {
-            var configuredFiles = new List<ConfiguredFile>();
             foreach (var parameterInfo in constructor.GetParameters())
             {
                 if (parameterInfo.ParameterType == typeof(IPipelineFile)
                     && parameterInfo.Name is { } name
                     && ConstructorBinding.TryGetResourcePath(parameterInfo, processConfig, resourcesDirectory, "Process", out var resourcePath, out var configuredPath))
                 {
-                    configuredFiles.Add(new ConfiguredFile(name, configuredPath, new PipelineFile(resourcePath, Path.GetFileName(resourcePath))));
+                    yield return new ConfiguredFile(name, configuredPath, new PipelineFile(resourcePath, Path.GetFileName(resourcePath)));
                 }
             }
-
-            return configuredFiles;
         }
 
         private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
