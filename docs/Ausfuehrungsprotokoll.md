@@ -17,6 +17,8 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, die Prozessor-Implementierung samt Assembly und Version, Fehlermeldung bei Abbruch, Statusmeldung, sowie die **Auswertung jeder geprüften Condition** (`PipelineRunConditions`): Ausdruck, optionale stabile Kennung (`id` in der Definition), die referenzierten Werte und ob sie zutraf. Auch nicht zutreffende Auswertungen werden festgehalten, damit "geprüft und nicht zugetroffen" von "nie geprüft" unterscheidbar bleibt. Die Namen der erzeugten Artefakte (Downloads, Visualisierungen, Lieferdateien) stehen in `PipelineRunArtifacts`.
 
+Als Version eines Schritts (`ProcessAssemblyVersion`) hält das Protokoll, wie bei der Applikationsversion, die `InformationalVersion` der Assembly fest, aus der die Prozessor-Implementierung stammt; fehlt sie, die Assembly-Version. Bei einem Plugin nennt sie so den Build, der lief, samt Vorabzusatz: `1.4.0-preview.12`, wo die Assembly-Version nur `1.4.0.0` hergibt. Hält der Build seinen Commit fest, folgt dieser nach einem `+`. Die eingebauten Prozessoren stammen aus `Geopilot.Pipeline`, das eine feste Version hat und mit geopilot gebaut wird. Ihre Version nennt denselben Commit wie die Applikationsversion und sagt nichts, was diese nicht schon sagt.
+
 Die **Eingaben** jedes Schritts stehen in `PipelineRunInputs`: was sein Prozessor beim Start bekam, eine Zeile pro Wert oder Datei, in der Reihenfolge seiner Parameter und auch innerhalb von Listen pro Element. Jede Zeile nennt den Parameter (`Parameter`), die Herkunft (`Origin`) und die Art (`Kind`: `Value`, `File` oder `Absent`):
 
 - `Definition`: ein Wert, der in der Pipeline-Definition steht.
