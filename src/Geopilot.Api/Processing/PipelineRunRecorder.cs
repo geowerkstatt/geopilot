@@ -56,6 +56,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             UserId = declarer?.UserId,
             MachineClientId = declarer?.MachineClientId,
             ClientKind = ClassifyClient(),
+            Declarability = job.IsDeclarable ? Declarability.Declarable : Declarability.NotDeclarable,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,
             UploadInitiatedAt = upload.CreatedAt,
@@ -230,6 +231,27 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             run.TerminalAt = DateTime.UtcNow;
             run.FailureReason = failureReason;
             await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            LogWriteFailed(jobId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task RecordDeclarationFailedAsync(Guid jobId, string reason)
+    {
+        try
+        {
+            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId);
+            if (run is null)
+            {
+                LogRunMissing(jobId);
+                return;
+            }
+
+            run.DeclarationFailure = reason;
+            await context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
