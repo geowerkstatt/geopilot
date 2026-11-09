@@ -33,7 +33,7 @@ public class MetadataStorageTest
                         new MetadataFieldOption("municipality", TestHelpers.Localized("Gemeinde")),
                     ]),
                 new MetadataField("project_number", TestHelpers.Localized("Projektnummer"), MetadataFieldType.Text, FieldEvaluationType.Optional, []),
-                new MetadataField("pieces", TestHelpers.Localized("Anzahl"), MetadataFieldType.WholeNumber, FieldEvaluationType.Optional),
+                new MetadataField("pieces", TestHelpers.Localized("Anzahl"), MetadataFieldType.IntegerNumber, FieldEvaluationType.Optional),
                 new MetadataField("area", TestHelpers.Localized("Fläche"), MetadataFieldType.DecimalNumber, FieldEvaluationType.Optional),
             ],
         }).Entity;

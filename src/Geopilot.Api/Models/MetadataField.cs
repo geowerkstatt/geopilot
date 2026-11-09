@@ -47,7 +47,7 @@ public enum MetadataFieldType
 
     /// <summary>A whole number, serialized as <c>integer</c>.</summary>
     [JsonStringEnumMemberName("integer")]
-    WholeNumber,
+    IntegerNumber,
 
     /// <summary>A number with decimals, serialized as <c>decimal</c>.</summary>
     [JsonStringEnumMemberName("decimal")]

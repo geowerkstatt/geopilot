@@ -177,7 +177,7 @@ public class StacConverter
     private static object ToPropertyValue(DeliveredMetadataField field, System.Text.Json.JsonElement value) => field.Type switch
     {
         MetadataFieldType.TextList => value.EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToArray(),
-        MetadataFieldType.WholeNumber => value.GetInt64(),
+        MetadataFieldType.IntegerNumber => value.GetInt64(),
         MetadataFieldType.DecimalNumber => value.GetDecimal(),
         MetadataFieldType.Selection => OptionTitle(field, value.GetString() ?? string.Empty),
         _ => value.GetString() ?? string.Empty,

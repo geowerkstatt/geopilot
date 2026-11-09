@@ -15,7 +15,7 @@ public class MetadataFieldValidatorTest
             Field("text_field", MetadataFieldType.Text),
             Field("text_list", MetadataFieldType.TextList),
             Field("selection", MetadataFieldType.Selection, options: [Option("canton"), Option("municipality")]),
-            Field("whole_number", MetadataFieldType.WholeNumber),
+            Field("integer_number", MetadataFieldType.IntegerNumber),
             Field("decimal_number", MetadataFieldType.DecimalNumber),
             Field("date", MetadataFieldType.Date, FieldEvaluationType.Required),
         };
@@ -306,7 +306,7 @@ public class MetadataFieldValidatorTest
         Field("project_number", MetadataFieldType.Text, FieldEvaluationType.Required),
         Field("municipalities", MetadataFieldType.TextList),
         Field("responsible", MetadataFieldType.Selection, FieldEvaluationType.Required, options: [Option("canton"), Option("municipality")]),
-        Field("parcel_count", MetadataFieldType.WholeNumber),
+        Field("parcel_count", MetadataFieldType.IntegerNumber),
         Field("area", MetadataFieldType.DecimalNumber),
         Field("due_date", MetadataFieldType.Date),
     ];

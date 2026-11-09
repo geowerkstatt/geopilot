@@ -257,7 +257,7 @@ public class ReactionWorker : BackgroundService
                 MetadataFieldType.Text => new MetadataInfo { Title = field.Title, Texts = [value.GetString() ?? string.Empty] },
                 MetadataFieldType.TextList => new MetadataInfo { Title = field.Title, Texts = value.EnumerateArray().Select(entry => entry.GetString() ?? string.Empty).ToList() },
                 MetadataFieldType.Selection => ToSelectionInfo(field, value.GetString() ?? string.Empty),
-                MetadataFieldType.WholeNumber or MetadataFieldType.DecimalNumber => new MetadataInfo { Title = field.Title, Number = value.GetDecimal() },
+                MetadataFieldType.IntegerNumber or MetadataFieldType.DecimalNumber => new MetadataInfo { Title = field.Title, Number = value.GetDecimal() },
                 MetadataFieldType.Date => new MetadataInfo { Title = field.Title, Date = DateOnly.ParseExact(value.GetString() ?? string.Empty, "yyyy-MM-dd", CultureInfo.InvariantCulture) },
                 _ => throw new InvalidOperationException($"The metadata field {field.Id} has the unknown type {field.Type}."),
             });

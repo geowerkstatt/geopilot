@@ -125,7 +125,7 @@ public static partial class MetadataFieldValidator
                     out problem,
                     wrongType,
                     text => (field.Options ?? []).Any(option => option.Id == text) ? text : null);
-            case MetadataFieldType.WholeNumber:
+            case MetadataFieldType.IntegerNumber:
                 if (raw.ValueKind == JsonValueKind.Number && raw.TryGetInt64(out var whole))
                     return JsonSerializer.SerializeToElement(whole);
                 break;
@@ -151,7 +151,7 @@ public static partial class MetadataFieldValidator
         MetadataFieldType.Text => $"The metadata field <{field.Id}> of type text expects a string.",
         MetadataFieldType.TextList => $"The metadata field <{field.Id}> of type textList expects an array of strings.",
         MetadataFieldType.Selection => $"The metadata field <{field.Id}> of type selection expects the id of one of its options.",
-        MetadataFieldType.WholeNumber => $"The metadata field <{field.Id}> of type integer expects a whole number without a decimal point or exponent.",
+        MetadataFieldType.IntegerNumber => $"The metadata field <{field.Id}> of type integer expects a whole number without a decimal point or exponent.",
         MetadataFieldType.DecimalNumber => $"The metadata field <{field.Id}> of type decimal expects a number.",
         MetadataFieldType.Date => $"The metadata field <{field.Id}> of type date expects a date in the form yyyy-MM-dd.",
         _ => $"The metadata field <{field.Id}> has a type that is not known.",

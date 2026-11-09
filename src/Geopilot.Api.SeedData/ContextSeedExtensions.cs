@@ -200,7 +200,7 @@ public static class ContextSeedExtensions
         new MetadataField(
             "parcel_count",
             Text("Anzahl Parzellen", "Number of parcels", "Nombre de parcelles", "Numero di particelle"),
-            MetadataFieldType.WholeNumber,
+            MetadataFieldType.IntegerNumber,
             FieldEvaluationType.Optional),
         new MetadataField(
             "area",

@@ -194,7 +194,7 @@ public class StacConverterTest
             Delivered("Projektnummer", MetadataFieldType.Text, "\"2026-117\""),
             Delivered("Gemeinden", MetadataFieldType.TextList, "[\"Aarau\",\"Buchs\"]"),
             Delivered("Zuständig", MetadataFieldType.Selection, "\"canton\"", [new MetadataFieldOption("canton", TestHelpers.Localized("Kanton"))]),
-            Delivered("Parzellen", MetadataFieldType.WholeNumber, "12"),
+            Delivered("Parzellen", MetadataFieldType.IntegerNumber, "12"),
             Delivered("Fläche", MetadataFieldType.DecimalNumber, "12.5"),
             Delivered("Stichtag", MetadataFieldType.Date, "\"2026-11-04\""),
             Delivered("Leer", MetadataFieldType.Text, null),
@@ -218,7 +218,7 @@ public class StacConverterTest
         testDelivery.Metadata =
         [
             Delivered("Projektnummer", MetadataFieldType.Text, "\"2026-117\""),
-            Delivered("Parzellen", MetadataFieldType.WholeNumber, "12"),
+            Delivered("Parzellen", MetadataFieldType.IntegerNumber, "12"),
         ];
 
         var item = converter.ToStacItem(testDelivery, includePersonalData: false);
