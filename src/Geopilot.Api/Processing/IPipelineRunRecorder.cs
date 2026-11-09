@@ -69,6 +69,13 @@ public interface IPipelineRunRecorder
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Records why geopilot could not declare the delivery of a machine delivery although the run allowed it. Soft.
+    /// </summary>
+    /// <param name="jobId">The job whose delivery could not be declared.</param>
+    /// <param name="reason">Why the declaration failed, as the caller of the attempt reads it.</param>
+    Task RecordDeclarationFailedAsync(Guid jobId, string reason);
+
+    /// <summary>
     /// Writes the row of an attempt of a reaction the moment an instance claims it, into the run its delivery comes
     /// from, so an attempt whose instance stopped shows as running. Soft.
     /// </summary>
