@@ -28,6 +28,7 @@ export const emptyProcessingRunFilters: ProcessingRunFilterValues = {
 };
 
 const filterFields: (keyof ProcessingRunFilterValues)[] = ["from", "to", "declarer", "mandateId", "state"];
+const timeFields: (keyof ProcessingRunFilterValues)[] = ["from", "to"];
 
 // The names in the address of the list, shorter where the field name says more than the address needs.
 const searchParamNames: Record<keyof ProcessingRunFilterValues, string> = {
@@ -48,13 +49,19 @@ export const toProcessingRunSearchParams = (filters: ProcessingRunFilterValues, 
   return params;
 };
 
-/** The filters and the page from the address of the list; anything unreadable sets no filter or the first page. */
+/** The filters and the page from the address of the list; an unreadable time sets no filter, an unreadable page the first. */
 export const readProcessingRunSearchParams = (
   params: URLSearchParams,
 ): { filters: ProcessingRunFilterValues; page: number } => {
   const filters = { ...emptyProcessingRunFilters };
   filterFields.forEach(field => {
     filters[field] = params.get(searchParamNames[field]) ?? "";
+  });
+  // The address can be typed by hand, and a time that is none would throw once the query turns it into an instant.
+  timeFields.forEach(field => {
+    if (Number.isNaN(new Date(filters[field]).getTime())) {
+      filters[field] = "";
+    }
   });
   const page = Number.parseInt(params.get("page") ?? "", 10);
   return { filters, page: Number.isNaN(page) || page < 0 ? 0 : page };

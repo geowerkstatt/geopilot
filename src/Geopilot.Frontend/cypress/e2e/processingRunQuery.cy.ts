@@ -79,4 +79,13 @@ describe("pipeline run query", () => {
       page: 0,
     });
   });
+
+  it("takes an unreadable time in the address as no filter", () => {
+    const params = new URLSearchParams({ from: "abc", to: "2026-13-45T99:99", state: "failed" });
+
+    const { filters, page } = readProcessingRunSearchParams(params);
+
+    expect(filters).to.deep.equal({ from: "", to: "", declarer: "", mandateId: "", state: "failed" });
+    expect(toProcessingRunQuery(filters, page, 25)).to.equal("page=0&pageSize=25&state=failed");
+  });
 });
