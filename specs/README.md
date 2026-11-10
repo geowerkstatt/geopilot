@@ -31,7 +31,7 @@ Nicht jeder Fall ist eindeutig. Der Autor begründet seine Wahl in der Spec, wer
 
 ## Spec schreiben
 
-Dateiname `specs/<Issue>-<kurzname>.md`, zum Beispiel `specs/1195-verarbeitung.md`.
+Dateiname `specs/<Issue>-<kurzname>.md`, zum Beispiel `specs/1195-protokoll.md`.
 
 Die Spec ergänzt das Issue, sie wiederholt es nicht: Problem, Lösung und Akzeptanzkriterien stehen dort. Hierher gehört, was das Issue offen lässt, und nur so viel, wie das Review braucht. Weicht die Spec vom Issue ab, sagt sie das. Abschnitte ohne Inhalt fallen weg, eine Spec mit `waived` hat oft keine zehn Zeilen. Ausführliche Umsetzungspläne einer KI gehören nicht hierher.
 
