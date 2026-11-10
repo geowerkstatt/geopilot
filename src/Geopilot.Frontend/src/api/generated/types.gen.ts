@@ -923,7 +923,6 @@ export type PipelineRunOutcome = {
    * The delivery declared for the run, deleted or not.
    */
   deliveryId?: number | null;
-  forwardingState?: ReactionState;
   /**
    * For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed before any step did.
    */
@@ -1091,6 +1090,7 @@ export type PipelineRunResponse = {
   declarer?: PipelineRunDeclarer;
   mandate?: MandateReference;
   outcome: PipelineRunOutcome;
+  forwardingState?: ReactionState;
 };
 
 /**

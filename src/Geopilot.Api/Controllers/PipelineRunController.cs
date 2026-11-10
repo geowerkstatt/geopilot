@@ -112,8 +112,10 @@ public class PipelineRunController : ControllerBase
             return Problem($"No execution protocol found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
 
         var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, [run.JobId]);
-        var outcome = PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId));
-        return Ok(run.ToResponse(outcome));
+        var delivery = deliveries.GetValueOrDefault(run.JobId);
+        var outcome = PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), delivery);
+        var forwardingState = await PipelineRunOutcomes.LoadForwardingStateAsync(context, delivery);
+        return Ok(run.ToResponse(outcome, forwardingState));
     }
 
     /// <summary>

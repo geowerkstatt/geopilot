@@ -13,11 +13,10 @@ public class PipelineRunOutcomesTest
     {
         var run = Run(ProcessingState.Success, userId: 1);
 
-        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, new PipelineRunDelivery(7, Deleted: false, ReactionState.Error));
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, new PipelineRunDelivery(7, Deleted: false));
 
         Assert.AreEqual(PipelineRunOutcomeKind.Delivered, outcome.Kind);
         Assert.AreEqual(7, outcome.DeliveryId);
-        Assert.AreEqual(ReactionState.Error, outcome.ForwardingState);
     }
 
     [TestMethod]
@@ -25,7 +24,7 @@ public class PipelineRunOutcomesTest
     {
         var run = Run(ProcessingState.Success, userId: 1);
 
-        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, new PipelineRunDelivery(7, Deleted: true, ForwardingState: null));
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, new PipelineRunDelivery(7, Deleted: true));
 
         Assert.AreEqual(PipelineRunOutcomeKind.DeliveredAndDeleted, outcome.Kind);
         Assert.AreEqual(7, outcome.DeliveryId);

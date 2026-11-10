@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Models;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Contracts;
 
@@ -54,9 +53,8 @@ public enum PipelineRunOutcomeKind
 /// </summary>
 /// <param name="Kind">What became of the run.</param>
 /// <param name="DeliveryId">The delivery declared for the run, deleted or not.</param>
-/// <param name="ForwardingState">The summed up state of the transfers of a delivery that is not deleted, <see langword="null"/> without transfers.</param>
 /// <param name="BlockingSteps">For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed before any step did.</param>
-public record PipelineRunOutcome(PipelineRunOutcomeKind Kind, int? DeliveryId, ReactionState? ForwardingState, List<PipelineRunBlockingStep> BlockingSteps);
+public record PipelineRunOutcome(PipelineRunOutcomeKind Kind, int? DeliveryId, List<PipelineRunBlockingStep> BlockingSteps);
 
 /// <summary>
 /// A step that kept a pipeline run from allowing a delivery.

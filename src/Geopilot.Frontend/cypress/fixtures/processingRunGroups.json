@@ -11,7 +11,7 @@
         "mandate": { "id": 1, "name": { "de": "Validierung mit Weitergabe" } },
         "pipelineId": "ili_validation",
         "terminalState": "success",
-        "outcome": { "kind": "delivered", "deliveryId": 23, "forwardingState": "done", "blockingSteps": [] }
+        "outcome": { "kind": "delivered", "deliveryId": 23, "blockingSteps": [] }
       },
       "earlierAttempts": [
         {

@@ -197,7 +197,7 @@ export const ProcessingRunDetail: FC = () => {
             )}
           </SummaryField>
           <SummaryField label="forwarding">
-            {run.outcome.forwardingState ? <ReactionStateLabel state={run.outcome.forwardingState} /> : "-"}
+            {run.forwardingState ? <ReactionStateLabel state={run.forwardingState} /> : "-"}
           </SummaryField>
           <SummaryField label="mandate">
             {run.mandate ? (

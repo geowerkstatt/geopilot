@@ -25,7 +25,7 @@ internal static class PipelineRunOutcomes
         if (delivery is not null)
         {
             var kind = delivery.Deleted ? PipelineRunOutcomeKind.DeliveredAndDeleted : PipelineRunOutcomeKind.Delivered;
-            return new PipelineRunOutcome(kind, delivery.Id, delivery.ForwardingState, []);
+            return new PipelineRunOutcome(kind, delivery.Id, []);
         }
 
         if (run.TerminalState is null or ProcessingState.Pending or ProcessingState.Running)
@@ -49,7 +49,7 @@ internal static class PipelineRunOutcomes
             .OrderBy(step => step.Order)
             .Select(step => new PipelineRunBlockingStep(step.StepId, step.DisplayName))
             .ToList();
-        return new PipelineRunOutcome(PipelineRunOutcomeKind.NotDeliverable, null, null, blockingSteps);
+        return new PipelineRunOutcome(PipelineRunOutcomeKind.NotDeliverable, null, blockingSteps);
     }
 
     /// <summary>
@@ -66,13 +66,6 @@ internal static class PipelineRunOutcomes
             .Select(d => new { d.Id, d.JobId, d.Deleted })
             .ToListAsync();
 
-        var liveIds = deliveries.Where(d => !d.Deleted).Select(d => d.Id).ToList();
-        var transferStates = await context.DeliveryReactions
-            .AsNoTracking()
-            .Where(r => liveIds.Contains(r.DeliveryId) && r.Kind == ReactionKind.Transfer)
-            .Select(r => new { r.DeliveryId, r.State })
-            .ToListAsync();
-
         return deliveries
             .GroupBy(d => d.JobId)
             .ToDictionary(
@@ -80,14 +73,28 @@ internal static class PipelineRunOutcomes
                 group =>
                 {
                     var delivery = group.OrderBy(d => d.Deleted).ThenByDescending(d => d.Id).First();
-                    var forwardingState = delivery.Deleted
-                        ? null
-                        : transferStates.Where(r => r.DeliveryId == delivery.Id).Select(r => r.State).SummedUp();
-                    return new PipelineRunDelivery(delivery.Id, delivery.Deleted, forwardingState);
+                    return new PipelineRunDelivery(delivery.Id, delivery.Deleted);
                 });
     }
 
-    private static PipelineRunOutcome Outcome(PipelineRunOutcomeKind kind) => new(kind, null, null, []);
+    /// <summary>
+    /// Loads the summed up state of the transfers of the <paramref name="delivery"/>, <see langword="null"/> without
+    /// delivery, without transfers or once it is deleted.
+    /// </summary>
+    internal static async Task<ReactionState?> LoadForwardingStateAsync(Context context, PipelineRunDelivery? delivery)
+    {
+        if (delivery is null || delivery.Deleted)
+            return null;
+
+        var transferStates = await context.DeliveryReactions
+            .AsNoTracking()
+            .Where(r => r.DeliveryId == delivery.Id && r.Kind == ReactionKind.Transfer)
+            .Select(r => r.State)
+            .ToListAsync();
+        return transferStates.SummedUp();
+    }
+
+    private static PipelineRunOutcome Outcome(PipelineRunOutcomeKind kind) => new(kind, null, []);
 }
 
 /// <summary>
@@ -95,5 +102,4 @@ internal static class PipelineRunOutcomes
 /// </summary>
 /// <param name="Id">The id of the delivery.</param>
 /// <param name="Deleted">Whether the delivery was deleted.</param>
-/// <param name="ForwardingState">The summed up state of its transfers, <see langword="null"/> without transfers or once deleted.</param>
-internal sealed record PipelineRunDelivery(int Id, bool Deleted, ReactionState? ForwardingState);
+internal sealed record PipelineRunDelivery(int Id, bool Deleted);

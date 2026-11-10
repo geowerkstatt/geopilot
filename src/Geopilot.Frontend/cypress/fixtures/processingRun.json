@@ -14,11 +14,12 @@
       "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     }
   ],
+  "forwardingState": "done",
   "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
   "machineClientId": 1,
   "mandate": { "id": 1, "name": { "de": "Validierung mit Weitergabe" } },
   "mandateId": 1,
-  "outcome": { "kind": "delivered", "deliveryId": 23, "forwardingState": "done", "blockingSteps": [] },
+  "outcome": { "kind": "delivered", "deliveryId": 23, "blockingSteps": [] },
   "pipelineId": "ili_validation",
   "reactionEvents": [],
   "scanDetails": null,

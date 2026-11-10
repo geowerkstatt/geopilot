@@ -5,7 +5,6 @@ import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
-import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { ProcessingRunAttempts } from "./processingRunAttempts.tsx";
@@ -134,14 +133,6 @@ export const ProcessingRuns: FC = () => {
       renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
         <ProcessingRunDeliveryLabel outcome={row.outcome} />
       ),
-    },
-    {
-      field: "forwardingState",
-      headerName: t("forwarding"),
-      width: 160,
-      display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) =>
-        row.outcome.forwardingState && <ReactionStateLabel state={row.outcome.forwardingState} />,
     },
     {
       field: "duration",

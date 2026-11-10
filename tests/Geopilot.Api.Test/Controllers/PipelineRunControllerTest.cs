@@ -166,6 +166,24 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetSumsUpTheTransfersOfTheLiveDeliveryOnly()
+    {
+        var run = SeedRun();
+        var deleted = SeedDelivery(run.JobId, deleted: true);
+        var live = SeedDelivery(run.JobId, deleted: false);
+        context.DeliveryReactions.AddRange(
+            Reaction(deleted, ReactionKind.Transfer, ReactionState.Error),
+            Reaction(live, ReactionKind.Transfer, ReactionState.Pending),
+            Reaction(live, ReactionKind.Transfer, ReactionState.Done),
+            Reaction(live, ReactionKind.Notification, ReactionState.Error));
+        context.SaveChanges();
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(ReactionState.Pending, response.ForwardingState);
+    }
+
+    [TestMethod]
     public async Task GetPrefersTheLiveDeliveryOverADeletedOne()
     {
         var run = SeedRun();
@@ -553,6 +571,16 @@ public sealed class PipelineRunControllerTest
         context.SaveChanges();
         return delivery;
     }
+
+    private static DeliveryReaction Reaction(Delivery delivery, ReactionKind kind, ReactionState state) => new()
+    {
+        Delivery = delivery,
+        ReactionId = $"{kind}-{state}",
+        Kind = kind,
+        Implementation = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+        State = state,
+        NextAttemptAt = DateTime.UtcNow,
+    };
 
     private PipelineRun SeedRun(Action<PipelineRun>? configure = null)
     {
