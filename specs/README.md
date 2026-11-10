@@ -4,7 +4,7 @@ Für jedes Ticket liegt hier vor der Umsetzung eine Spec: wie das Ticket umgeset
 
 ## Ablauf
 
-1. Der Autor schreibt die Spec, allein oder mit KI, auf einem eigenen Branch und eröffnet dafür einen PR.
+1. Der Autor schreibt die Spec auf einem eigenen Branch und eröffnet dafür einen PR. Ob allein mit KI oder zusammen mit einem Teammitglied, überlassen wir der Einschätzung des Autors; eine aufwändige Spec zu zweit zu schreiben, kann sich lohnen.
 2. Ein Teammitglied reviewt die Spec und beurteilt dabei die Review-Klasse. Mit dem Merge ist das Ticket Ready.
 3. Die Umsetzung zweigt von dem Branch ab, in den die Spec gemergt wurde. Ihr PR verlinkt den Spec-PR und löscht die Spec; braucht ein Ticket mehrere PRs, löscht sie der letzte.
 4. Bei `Review: required` wird der Umsetzungs-PR wie bisher reviewt. Bei `Review: waived` prüfen Autor und KI die Umsetzung gegen die Spec, etwa mit `geow:review-branch`, eine Änderung am GUI auch von Auge, und der PR sagt, was mit den Befunden geschehen ist. Ein anderes Teammitglied approved dann, ohne zu reviewen.
