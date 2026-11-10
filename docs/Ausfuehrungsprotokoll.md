@@ -67,10 +67,23 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Sch
 
 ## Abfrage
 
-Administratoren können das Protokoll über die API lesen:
+Administratoren finden das Protokoll im Admin-Portal unter «Verarbeitungen». Die Liste zeigt die Läufe der Installation, neueste zuerst, mit Urheber, Mandat, Zustand, Lieferung, Weitergabe und Dauer. Sie filtert nach Zeitraum, Urheber, Mandat und Zustand; «Nicht abgeschlossen» findet die Läufe ohne Terminal-Status. Eine Job-ID im Suchfeld öffnet ihren Lauf direkt, auch wenn nie eine Lieferung daraus wurde, und die Seite einer Lieferung verlinkt ihren Lauf. Die Seite eines Laufs fasst ihn zusammen und zeigt in Tabs den Ablauf mit seinen Schritten, die hochgeladenen Dateien, die Ereignisse der Reaktionen und die Pipeline, wie sie beim Start konfiguriert war, lesbar oder als JSON.
+
+Was aus einem Lauf wurde, steht nicht im Protokoll. Die Ansicht leitet es beim Lesen ab: aus dem Protokoll, aus den Lieferungen und daraus, ob der Job in der antwortenden Instanz noch läuft.
+
+- Die Id der Lieferung, die für den Lauf deklariert wurde, mit dem Zustand ihrer Weitergabe; «(gelöscht)», wenn sie wieder gelöscht wurde.
+- «nicht abgegeben»: Der Lauf liess eine Lieferung zu, deklariert wurde keine.
+- «gescheitert»: Die Deklaration einer maschinellen Lieferung scheiterte; die Seite des Laufs nennt den Grund (`DeclarationFailure`).
+- «nicht möglich»: Der Lauf liess keine Lieferung zu. Der Zustand nennt die Schritte, die sie einschränkten, scheiterten oder abgebrochen wurden.
+- «nicht berechtigt»: Wer den Lauf gestartet hat, durfte auf dem Mandat nicht abgeben (`Declarability`).
+- Keine Angabe: Der Lauf läuft noch, oder sein Ausgang ist unbekannt.
+
+Bei einem Lauf ohne `Declarability` gilt nur ein anonymer Start als nicht berechtigt; die Seite des Laufs weist darauf hin.
+
+Dieselben Angaben liefert die API:
 
 - `GET api/v1/pipelinerun`: die Läufe seitenweise, neueste zuerst, gefiltert nach Zeitraum, Mandat, Urheber und Zustand. Die Versuche einer Lieferung bilden eine Gruppe und zählen beim Blättern als eine Zeile; ein Lauf ohne `ClientReference` ist eine Gruppe für sich. Eine Gruppe erscheint, wenn einer ihrer Versuche im Zeitraum liegt, der Zustand gilt ihrem neuesten Versuch, und die früheren Versuche kommen mit, auch die ausserhalb des Zeitraums.
-- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`).
+- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`), dazu Urheber und Mandat mit Namen (`declarer`, `mandate`) und was aus dem Lauf wurde (`outcome`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
 Für Auswertungen über mehrere Läufe ist SQL das Werkzeug. Beispiele:
