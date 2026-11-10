@@ -351,6 +351,11 @@ public class Context : DbContext
         modelBuilder.Entity<PipelineRun>(run =>
         {
             run.HasIndex(r => r.JobId).IsUnique();
+
+            // For the list of runs, which pages by start and groups only the runs with a client reference.
+            run.HasIndex(r => new { r.StartedAt, r.Id });
+            run.HasIndex(r => r.ClientReference).HasFilter("\"ClientReference\" IS NOT NULL");
+
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
             run.Property(r => r.ClientReference).HasMaxLength(PipelineRun.ClientReferenceMaxLength);

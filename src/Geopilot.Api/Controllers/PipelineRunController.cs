@@ -64,7 +64,7 @@ public class PipelineRunController : ControllerBase
             query.State);
         var totalCount = await latestRuns.CountAsync();
 
-        // shortcut: fixed order and no indexes; the outcome is derived per page in C#, so it cannot be filtered on yet.
+        // shortcut: fixed order; the outcome is derived per page in C#, so it cannot be filtered on yet.
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
         // A page beyond any offset the database takes lies past the last run like any other page there.
@@ -153,17 +153,18 @@ public class PipelineRunController : ControllerBase
         };
     }
 
-    // shortcut: every request groups the whole protocol, as each run without a reference is a group of its own, which
-    // no index on the key spares; at scale, group only the runs with a reference and take the others by period.
+    // Only the runs with a client reference are grouped: a run without one is a delivery of its own, taken by its
+    // start. Rows are written when a job starts, so the highest id of a group is its newest attempt.
     private static IQueryable<PipelineRun> LatestAttemptOfEachGroup(IQueryable<PipelineRun> runs, DateTime? from, DateTime? to)
     {
-        // A run without client reference groups by its own job id: grouping by the missing reference alone would lump
-        // all of them together. Rows are written when a job starts, so the highest id is the newest attempt.
-        var latestIds = runs
-            .GroupBy(r => new { r.ClientReference, r.UserId, r.MachineClientId, r.MandateId, OwnGroup = r.ClientReference == null ? r.JobId : (Guid?)null })
+        var latestOfDeliveries = runs
+            .Where(r => r.ClientReference != null)
+            .GroupBy(r => new { r.ClientReference, r.UserId, r.MachineClientId, r.MandateId })
             .Where(group => group.Count(r => (from == null || r.StartedAt >= from) && (to == null || r.StartedAt < to)) > 0)
             .Select(group => group.Max(r => r.Id));
-        return runs.Where(r => latestIds.Contains(r.Id));
+        return runs.Where(r =>
+            (r.ClientReference == null && (from == null || r.StartedAt >= from) && (to == null || r.StartedAt < to))
+            || latestOfDeliveries.Contains(r.Id));
     }
 
     private static IQueryable<PipelineRun> FilterByState(IQueryable<PipelineRun> runs, PipelineRunStateFilter? state) => state switch
