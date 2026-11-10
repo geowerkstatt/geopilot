@@ -63,16 +63,20 @@ const outputActionKeys: Partial<Record<string, TranslationKey>> = {
 export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId }) => {
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
-  const [loaded, setLoaded] = useState<{ jobId: string; snapshot: DefinitionSnapshot }>();
+  const [loaded, setLoaded] = useState<{ jobId: string; snapshot?: DefinitionSnapshot }>();
   const [view, setView] = useState<SnapshotView>("readable");
 
   useEffect(() => {
+    let current = true;
     fetchApi<DefinitionSnapshot>(`/api/v1/pipelinerun/${jobId}/definition`, {
       errorMessageLabel: "pipelineSnapshotLoadingError",
     })
-      .then(snapshot => setLoaded({ jobId, snapshot }))
-      // useFetch has shown why the snapshot could not be loaded.
-      .catch(() => undefined);
+      .then(snapshot => current && setLoaded({ jobId, snapshot }))
+      // useFetch has shown why; the tab then says that the pipeline could not be loaded instead of waiting.
+      .catch(() => current && setLoaded({ jobId }));
+    return () => {
+      current = false;
+    };
   }, [fetchApi, jobId]);
 
   const actionLabel = (action: string) => {
@@ -80,9 +84,13 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
     return key ? t(key) : action;
   };
 
-  const snapshot = loaded?.jobId === jobId ? loaded.snapshot : undefined;
-  if (!snapshot) {
+  const result = loaded?.jobId === jobId ? loaded : undefined;
+  if (!result) {
     return <CircularProgress />;
+  }
+  const { snapshot } = result;
+  if (!snapshot) {
+    return <Typography data-cy="pipelineSnapshotNotLoaded">{t("pipelineSnapshotNotLoaded")}</Typography>;
   }
 
   const json = JSON.stringify(snapshot, null, 2);

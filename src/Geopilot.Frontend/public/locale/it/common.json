@@ -263,6 +263,7 @@
   "pipelineNotKnown": "Pipeline '{{pipelineId}}' sconosciuta",
   "pipelineSnapshotIntro": "La pipeline «{{pipelineId}}» come era configurata per questa elaborazione.",
   "pipelineSnapshotLoadingError": "Si è verificato un errore durante il caricamento della definizione della pipeline: {{error}}",
+  "pipelineSnapshotNotLoaded": "Non è stato possibile caricare la definizione della pipeline di questa elaborazione.",
   "pipelineSnapshotReadable": "Leggibile",
   "pipelineSnapshotTechnical": "JSON",
   "pipelineSnapshotView": "Visualizzazione",

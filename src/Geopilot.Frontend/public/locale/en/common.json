@@ -263,6 +263,7 @@
   "pipelineNotKnown": "Pipeline '{{pipelineId}}' is unknown",
   "pipelineSnapshotIntro": "The pipeline “{{pipelineId}}” as it was configured for this processing run.",
   "pipelineSnapshotLoadingError": "An error occurred while loading the pipeline definition: {{error}}",
+  "pipelineSnapshotNotLoaded": "The pipeline definition of this processing run could not be loaded.",
   "pipelineSnapshotReadable": "Readable",
   "pipelineSnapshotTechnical": "JSON",
   "pipelineSnapshotView": "View",
