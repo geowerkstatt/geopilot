@@ -22,10 +22,6 @@ import {
 import { ProcessingRunRow, toProcessingRunRows } from "./processingRunRows.ts";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 
-// Fixed rather than fitted to the height of the grid: a page in the address then names the same runs on every screen,
-// and the grid has no size of its own to ask a second time with.
-const pageSize = 25;
-
 /** All pipeline runs of the installation, newest first, paged and filtered on the server. */
 export const ProcessingRuns: FC = () => {
   const { t } = useTranslation();
@@ -35,6 +31,9 @@ export const ProcessingRuns: FC = () => {
   // Filters and page live in the address, so going back from a run shows the same runs again.
   const [searchParams, setSearchParams] = useSearchParams();
   const { filters, page } = readProcessingRunSearchParams(searchParams);
+  // The grid fits its page to its height like the other lists and reports the size once it has measured it. Until
+  // then the size is 0, as in the grid itself, and nothing is loaded, so the list does not ask twice.
+  const [pageSize, setPageSize] = useState(0);
   const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
   // The deliveries that show their earlier attempts, by the job id of their newest attempt.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -44,6 +43,9 @@ export const ProcessingRuns: FC = () => {
   const isLoading = loaded?.query !== query;
 
   useEffect(() => {
+    if (pageSize === 0) {
+      return;
+    }
     let current = true;
     fetchApi<PipelineRunPageResponse>(`/api/v1/pipelinerun?${query}`, {
       errorMessageLabel: "processingRunsLoadingError",
@@ -54,13 +56,15 @@ export const ProcessingRuns: FC = () => {
     return () => {
       current = false;
     };
-  }, [fetchApi, query]);
+  }, [fetchApi, query, pageSize]);
 
   const changeFilters = (values: ProcessingRunFilterValues) =>
     setSearchParams(toProcessingRunSearchParams(values, 0), { replace: true });
 
-  const changePagination = (model: GridPaginationModel) =>
+  const changePagination = (model: GridPaginationModel) => {
+    setPageSize(model.pageSize);
     setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
+  };
 
   const toggleExpanded = (jobId: string) =>
     setExpanded(current => {
@@ -164,8 +168,6 @@ export const ProcessingRuns: FC = () => {
           getRowId={row => row.jobId}
           columns={columns}
           paginationMode="server"
-          autoPageSize={false}
-          pageSizeOptions={[pageSize]}
           rowCount={loaded?.page?.totalCount ?? 0}
           paginationModel={{ page, pageSize }}
           onPaginationModelChange={changePagination}
