@@ -90,7 +90,7 @@ describe("Admin delivery detail", () => {
   it("shows that the notifications wait for the forwarding", () => {
     visit(
       delivery(9002, [
-        transfer(ReactionState.Error, { attempts: 7, message: "The base directory <drop> does not exist." }),
+        transfer(ReactionState.Error, { attempts: 7, message: { en: "The base directory <drop> does not exist." } }),
         infoMail(ReactionState.Pending, { nextAttemptAt: "2026-10-23T08:02:00Z" }),
       ]),
     );
@@ -105,7 +105,10 @@ describe("Admin delivery detail", () => {
         transfer(ReactionState.Error, {
           displayName: null,
           attempts: 7,
-          message: "The base directory <drop> does not exist.",
+          message: {
+            de: "Das Basisverzeichnis <drop> existiert nicht.",
+            en: "The base directory <drop> does not exist.",
+          },
         }),
       ]),
     );

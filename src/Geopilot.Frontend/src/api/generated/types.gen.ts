@@ -339,7 +339,9 @@ export type DeliveryReactionResponse = {
   /**
    * What its channel last reported, or why its last attempt failed.
    */
-  message?: string | null;
+  message?: {
+    [key: string]: string;
+  } | null;
 };
 
 /**
@@ -897,7 +899,9 @@ export type PipelineRunReactionEventResponse = {
   /**
    * What the channel reported, or why the attempt failed.
    */
-  message?: string | null;
+  message?: {
+    [key: string]: string;
+  } | null;
   /**
    * The user who caused the event, such as the one who deleted the delivery, or null when the application did.
    */

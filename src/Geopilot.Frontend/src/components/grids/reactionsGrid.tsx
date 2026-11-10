@@ -82,7 +82,14 @@ export const ReactionsGrid: FC<ReactionsGridProps> = ({ reactions, forwarded, on
       display: "flex",
       valueGetter: (_value, reaction) => describeTime(reaction),
     },
-    { field: "message", headerName: t("message"), flex: 1.5, minWidth: 200, display: "flex" },
+    {
+      field: "message",
+      headerName: t("message"),
+      flex: 1.5,
+      minWidth: 200,
+      display: "flex",
+      valueGetter: (message: DeliveryReactionResponse["message"]) => localized(message ?? undefined),
+    },
     {
       field: "actions",
       type: "actions",

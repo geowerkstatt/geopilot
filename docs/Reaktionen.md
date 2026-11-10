@@ -49,13 +49,15 @@ Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangs
 
 ## Neustart und Ausfall
 
-- Stoppt geopilot, etwa für ein Update, bricht ein laufender Versuch ab. Er zählt als misslungen, mit der Meldung `The attempt was interrupted because the application stopped.`, und es geht weiter wie nach jedem misslungenen Versuch.
-- Stirbt die Applikation mitten in einem Versuch, hält dieser seine Reaktion noch, bis seit seinem Start das Zeitlimit plus eine Minute vergangen ist. Danach übernimmt eine Instanz die Reaktion mit dem nächsten Versuch, nach einem Neustart also die neu gestartete. War es der letzte Versuch, steht die Reaktion auf `Error`, mit der Meldung `The last attempt did not report back before its lock ran out.`
+- Stoppt geopilot, etwa für ein Update, bricht ein laufender Versuch ab. Er zählt als misslungen, mit der Meldung "Der Versuch wurde abgebrochen, weil die Anwendung beendet wurde.", und es geht weiter wie nach jedem misslungenen Versuch.
+- Stirbt die Applikation mitten in einem Versuch, hält dieser seine Reaktion noch, bis seit seinem Start das Zeitlimit plus eine Minute vergangen ist. Danach übernimmt eine Instanz die Reaktion mit dem nächsten Versuch, nach einem Neustart also die neu gestartete. War es der letzte Versuch, steht die Reaktion auf `Error`, mit der Meldung "Der letzte Versuch hat sich nicht zurückgemeldet, bevor seine Sperre abgelaufen ist."
 - Was während eines Ausfalls fällig wurde, holt geopilot beim Start nach. Dabei geht kein Versuch verloren, das Ende einer Reaktion verschiebt sich um die Dauer des Ausfalls.
 
 ## Stand ablesen
 
 In der Administration zeigt die Lieferungsübersicht für jede Lieferung den zusammengefassten Zustand ihrer Lieferungs-Schritte (Spalte Weitergabe) und ihrer Benachrichtigungen (Spalte Benachrichtigungen): `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick auf eine Lieferung öffnet ihre Seite. Sie fasst zusammen, was geliefert wurde, verlinkt nach der Weitergabe die Dateien und das Item im STAC-Browser und listet die Reaktionen mit Namen, Art, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"), eine Benachrichtigung auf die Weitergabe der Lieferung ("Wartet auf die Weitergabe"). Dieselben Angaben liefern `GET api/v1/delivery` mit `forwardingState` und `notificationState` und `GET api/v1/delivery/{deliveryId}`.
+
+Die Meldung erscheint in der Sprache der Oberfläche; die API liefert sie als Objekt mit einem Text pro Sprache. Was ein Server oder eine Ausnahme dazu meldet, etwa die Antwort des Mailservers, steht unübersetzt darin. Das Log schreibt die englische Fassung.
 
 Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
 

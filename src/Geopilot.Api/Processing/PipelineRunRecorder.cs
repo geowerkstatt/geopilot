@@ -2,6 +2,7 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text.Json;
@@ -310,7 +311,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message)
+    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, LocalizedText message)
     {
         ArgumentNullException.ThrowIfNull(reaction);
 

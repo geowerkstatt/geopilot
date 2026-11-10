@@ -80,7 +80,7 @@ public sealed class PipelineRunControllerTest
         Assert.AreEqual(ReactionKind.Transfer, first.ReactionKind);
         Assert.AreEqual(ReactionEvent.Attempt, first.Event);
         Assert.AreEqual(ReactionState.Pending, first.State);
-        Assert.AreEqual("The target is not reachable.", first.Message);
+        Assert.AreEqual(TestHelpers.Localized("The target is not reachable."), first.Message);
         Assert.IsNotNull(first.FinishedAt);
         Assert.IsNull(first.UserId);
     }
@@ -220,6 +220,6 @@ public sealed class PipelineRunControllerTest
         OccurredAt = startedAt,
         FinishedAt = startedAt.AddSeconds(5),
         State = state,
-        Message = message,
+        Message = TestHelpers.Localized(message),
     };
 }
