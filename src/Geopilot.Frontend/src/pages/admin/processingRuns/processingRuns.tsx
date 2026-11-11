@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
-import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
+import { PipelineRunOutcomeKind, PipelineRunPageResponse, PipelineRunSummaryResponse } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
@@ -19,8 +19,9 @@ import {
   toProcessingRunQuery,
   toProcessingRunSearchParams,
 } from "./processingRunQuery.ts";
-import { ProcessingRunRow, toProcessingRunRows } from "./processingRunRows.ts";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
+
+type ProcessingRunRow = PipelineRunSummaryResponse & { attemptCount: number };
 
 /** All pipeline runs of the installation, newest first, paged and filtered on the server. */
 export const ProcessingRuns: FC = () => {
@@ -142,7 +143,7 @@ export const ProcessingRuns: FC = () => {
         <GeopilotDataGrid
           name="processingRuns"
           loading={isLoading}
-          rows={toProcessingRunRows(loaded?.page?.items ?? [])}
+          rows={(loaded?.page?.items ?? []).map(group => ({ ...group.latest, attemptCount: group.attemptCount }))}
           getRowId={row => row.jobId}
           columns={columns}
           paginationMode="server"
