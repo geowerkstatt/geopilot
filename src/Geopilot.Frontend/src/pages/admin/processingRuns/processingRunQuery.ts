@@ -7,62 +7,64 @@ export const listQueryOf = (state: unknown): string =>
     ? state.listQuery
     : "";
 
-/** The filters of the list of pipeline runs as the fields hold them; an empty string sets no filter. */
+/** The filters of the list of pipeline runs as the fields hold them; an empty string or list sets no filter. */
 export interface ProcessingRunFilterValues {
   /** The start of the period in local time, as yyyy-mm-ddThh:mm. */
   from: string;
   /** The last minute of the period, included, in local time as yyyy-mm-ddThh:mm. */
   to: string;
-  /** "person:<id>", "machineClient:<id>", or "machineClient" for all machine clients. */
-  declarer: string;
-  mandateId: string;
-  state: string;
+  /** "person:<id>" or "machineClient:<id>" each. */
+  declarers: string[];
+  mandateIds: string[];
+  states: string[];
 }
 
 export const emptyProcessingRunFilters: ProcessingRunFilterValues = {
   from: "",
   to: "",
-  declarer: "",
-  mandateId: "",
-  state: "",
+  declarers: [],
+  mandateIds: [],
+  states: [],
 };
 
-const filterFields: (keyof ProcessingRunFilterValues)[] = ["from", "to", "declarer", "mandateId", "state"];
-const timeFields: (keyof ProcessingRunFilterValues)[] = ["from", "to"];
+const timeFields = ["from", "to"] as const;
+const listFields = ["declarers", "mandateIds", "states"] as const;
 
-// The names in the address of the list, shorter where the field name says more than the address needs.
-const searchParamNames: Record<keyof ProcessingRunFilterValues, string> = {
-  from: "from",
-  to: "to",
-  declarer: "declarer",
-  mandateId: "mandate",
-  state: "state",
+// The names in the address of the list, one parameter per value.
+const listSearchParamNames: Record<(typeof listFields)[number], string> = {
+  declarers: "declarer",
+  mandateIds: "mandate",
+  states: "state",
 };
 
 /** The address of the list for the filters and the page, so going back to it shows the same runs. */
 export const toProcessingRunSearchParams = (filters: ProcessingRunFilterValues, page: number): URLSearchParams => {
   const params = new URLSearchParams();
-  filterFields.filter(field => filters[field]).forEach(field => params.set(searchParamNames[field], filters[field]));
+  timeFields.filter(field => filters[field]).forEach(field => params.set(field, filters[field]));
+  listFields.forEach(field => filters[field].forEach(value => params.append(listSearchParamNames[field], value)));
   if (page > 0) {
     params.set("page", String(page));
   }
   return params;
 };
 
+// The address can be typed by hand, and a time that is none would throw once the query turns it into an instant.
+const readTime = (params: URLSearchParams, field: (typeof timeFields)[number]) => {
+  const time = params.get(field) ?? "";
+  return Number.isNaN(new Date(time).getTime()) ? "" : time;
+};
+
 /** The filters and the page from the address of the list; an unreadable time sets no filter, an unreadable page the first. */
 export const readProcessingRunSearchParams = (
   params: URLSearchParams,
 ): { filters: ProcessingRunFilterValues; page: number } => {
-  const filters = { ...emptyProcessingRunFilters };
-  filterFields.forEach(field => {
-    filters[field] = params.get(searchParamNames[field]) ?? "";
-  });
-  // The address can be typed by hand, and a time that is none would throw once the query turns it into an instant.
-  timeFields.forEach(field => {
-    if (Number.isNaN(new Date(filters[field]).getTime())) {
-      filters[field] = "";
-    }
-  });
+  const filters: ProcessingRunFilterValues = {
+    from: readTime(params, "from"),
+    to: readTime(params, "to"),
+    declarers: params.getAll(listSearchParamNames.declarers),
+    mandateIds: params.getAll(listSearchParamNames.mandateIds),
+    states: params.getAll(listSearchParamNames.states),
+  };
   const page = Number.parseInt(params.get("page") ?? "", 10);
   return { filters, page: Number.isNaN(page) || page < 0 ? 0 : page };
 };
@@ -96,19 +98,12 @@ export const toProcessingRunQuery = (filters: ProcessingRunFilterValues, page: n
     // The API excludes the end, so the last minute ends where the next one starts.
     params.set("to", toInstant(filters.to, 1));
   }
-  if (filters.declarer) {
-    const [kind, id] = filters.declarer.split(":");
-    params.set("declarerKind", kind);
-    if (id) {
-      params.set("declarerId", id);
-    }
-  }
-  if (filters.mandateId) {
-    params.set("mandateId", filters.mandateId);
-  }
-  if (filters.state) {
-    params.set("state", filters.state);
-  }
+  filters.declarers.forEach(declarer => {
+    const [kind, id] = declarer.split(":");
+    params.append(kind === "machineClient" ? "machineClientIds" : "userIds", id);
+  });
+  filters.mandateIds.forEach(mandateId => params.append("mandateIds", mandateId));
+  filters.states.forEach(state => params.append("states", state));
   return params.toString();
 };
 

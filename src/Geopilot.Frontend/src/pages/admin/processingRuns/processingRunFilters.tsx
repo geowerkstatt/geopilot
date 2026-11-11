@@ -4,9 +4,8 @@ import { MachineClient, Mandate, PipelineRunStateFilter, User } from "../../../a
 import { TranslationKey } from "../../../appInterfaces";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { FilterBar } from "../../../components/filterBar.tsx";
-import { FormSelect } from "../../../components/form/form.ts";
+import { FormAutocomplete } from "../../../components/form/form.ts";
 import { FormDateTimePicker } from "../../../components/form/formDateTimePicker.tsx";
-import { FormSelectValue } from "../../../components/form/formSelect.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { emptyProcessingRunFilters, parseJobId, ProcessingRunFilterValues } from "./processingRunQuery.ts";
@@ -18,6 +17,12 @@ interface ProcessingRunFiltersProps {
   onJobIdEntered: (jobId: string) => void;
 }
 
+interface FilterOption {
+  id: number;
+  value: string;
+  name: string;
+}
+
 // The same names as the steps of the delivery wizard; a run without terminal state has none of them.
 const stateLabelKey: Record<PipelineRunStateFilter, TranslationKey> = {
   [PipelineRunStateFilter.Success]: "stepStateFinished",
@@ -27,6 +32,9 @@ const stateLabelKey: Record<PipelineRunStateFilter, TranslationKey> = {
   [PipelineRunStateFilter.Cancelled]: "stepStateCancelled",
   [PipelineRunStateFilter.Open]: "processingRunStateOpen",
 };
+
+const toOptions = (entries: Omit<FilterOption, "id">[]): FilterOption[] =>
+  entries.map((entry, index) => ({ ...entry, id: index }));
 
 /** The filters of the list of pipeline runs: period, who started the run, mandate and state, plus a job id lookup. */
 export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, onChange, onJobIdEntered }) => {
@@ -58,29 +66,18 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
     }
   }, [fetchApi, machineDeliveryEnabled]);
 
-  // shortcut: one select with every person and machine client; a search field once installations have many of them.
-  const declarerValues: FormSelectValue[] = [
-    ...(machineDeliveryEnabled ? [{ key: 0, value: "machineClient", name: t("allMachineClients") }] : []),
-    ...users.map((user, index) => ({ key: index + 1, value: `person:${user.id}`, name: user.fullName })),
-    ...machineClients.map((client, index) => ({
-      key: users.length + index + 1,
-      value: `machineClient:${client.id}`,
-      name: client.name,
-    })),
-  ];
-  const mandateValues: FormSelectValue[] = mandates.map(mandate => ({
-    key: mandate.id,
-    value: String(mandate.id),
-    name: localized(mandate.name),
-  }));
-  const stateValues: FormSelectValue[] = Object.values(PipelineRunStateFilter).map((state, index) => ({
-    key: index,
-    value: state,
-    name: t(stateLabelKey[state]),
-  }));
+  const declarerOptions = toOptions([
+    ...users.map(user => ({ value: `person:${user.id}`, name: user.fullName })),
+    ...machineClients.map(client => ({ value: `machineClient:${client.id}`, name: client.name })),
+  ]);
+  const mandateOptions = toOptions(
+    mandates.map(mandate => ({ value: String(mandate.id), name: localized(mandate.name) })),
+  );
+  const stateOptions = toOptions(
+    Object.values(PipelineRunStateFilter).map(state => ({ value: state, name: t(stateLabelKey[state]) })),
+  );
 
-  const update = (field: keyof ProcessingRunFilterValues) => (value: string | number) =>
-    onChange({ ...values, [field]: String(value) });
+  const changeTime = (field: "from" | "to") => (value: string) => onChange({ ...values, [field]: value });
 
   const changeJobId = (text: string) => {
     setJobIdText(text);
@@ -95,43 +92,47 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
     onChange(emptyProcessingRunFilters);
   };
 
+  const listFilter = (
+    field: "declarers" | "mandateIds" | "states",
+    label: TranslationKey,
+    options: FilterOption[],
+    dataCy: string,
+  ) => (
+    <FormAutocomplete<FilterOption>
+      label={label}
+      values={options}
+      selected={options.filter(option => values[field].includes(option.value))}
+      valueFormatter={option => ({ id: option.id, primaryText: option.name })}
+      onChange={selected => onChange({ ...values, [field]: selected.map(option => option.value) })}
+      dataCy={dataCy}
+      sx={{ minWidth: 0 }}
+    />
+  );
+
   return (
     <FilterBar
       searchPlaceholder="processingRunJobIdSearch"
       searchQuery={jobIdText}
       onSearchQueryChange={changeJobId}
-      activeFilterCount={Object.values(values).filter(Boolean).length}
+      activeFilterCount={Object.values(values).filter(value => value.length > 0).length}
       onClearFilters={clearFilters}
       columns={5}
       dataCy="processingRunFilters">
       <FormDateTimePicker
         label="periodFrom"
         value={values.from}
-        onChange={update("from")}
+        onChange={changeTime("from")}
         dataCy="processingRunFilter-from"
       />
-      <FormDateTimePicker label="periodTo" value={values.to} onChange={update("to")} dataCy="processingRunFilter-to" />
-      <FormSelect
-        label="processedBy"
-        values={declarerValues}
-        selected={values.declarer}
-        onChange={update("declarer")}
-        dataCy="processingRunFilter-declarer"
+      <FormDateTimePicker
+        label="periodTo"
+        value={values.to}
+        onChange={changeTime("to")}
+        dataCy="processingRunFilter-to"
       />
-      <FormSelect
-        label="mandate"
-        values={mandateValues}
-        selected={values.mandateId}
-        onChange={update("mandateId")}
-        dataCy="processingRunFilter-mandate"
-      />
-      <FormSelect
-        label="processingState"
-        values={stateValues}
-        selected={values.state}
-        onChange={update("state")}
-        dataCy="processingRunFilter-state"
-      />
+      {listFilter("declarers", "processedBy", declarerOptions, "processingRunFilter-declarer")}
+      {listFilter("mandateIds", "mandate", mandateOptions, "processingRunFilter-mandate")}
+      {listFilter("states", "processingState", stateOptions, "processingRunFilter-state")}
     </FilterBar>
   );
 };

@@ -234,7 +234,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task ListFiltersByMandateDeclarerAndState()
+    public async Task ListFiltersByMandatesDeclarersAndStates()
     {
         var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
         var user = context.Users.First();
@@ -270,17 +270,26 @@ public sealed class PipelineRunControllerTest
             r.TerminalAt = null;
         });
 
-        var byPerson = InWindow(q =>
+        var byPersonOrClient = InWindow(q =>
         {
-            q.DeclarerKind = DeclarerKind.Person;
-            q.DeclarerId = user.Id;
+            q.UserIds = [user.Id];
+            q.MachineClientIds = [client.Id];
+        });
+        var failedOfFirstMandate = InWindow(q =>
+        {
+            q.MandateIds = [mandates[0].Id];
+            q.States = [PipelineRunStateFilter.Failed, PipelineRunStateFilter.Warning];
         });
 
-        Assert.AreEqual(2, (await List(InWindow(q => q.MandateId = mandates[0].Id))).TotalCount);
-        Assert.AreEqual(1, (await List(InWindow(q => q.DeclarerKind = DeclarerKind.MachineClient))).TotalCount);
-        Assert.AreEqual(1, (await List(byPerson)).TotalCount);
-        Assert.AreEqual(1, (await List(InWindow(q => q.State = PipelineRunStateFilter.Failed))).TotalCount);
-        Assert.AreEqual(open.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().Latest.JobId);
+        Assert.AreEqual(2, (await List(InWindow(q => q.MandateIds = [mandates[0].Id]))).TotalCount);
+        Assert.AreEqual(4, (await List(InWindow(q => q.MandateIds = [mandates[0].Id, mandates[1].Id]))).TotalCount);
+        Assert.AreEqual(1, (await List(InWindow(q => q.UserIds = [user.Id]))).TotalCount);
+        Assert.AreEqual(1, (await List(InWindow(q => q.MachineClientIds = [client.Id]))).TotalCount);
+        Assert.AreEqual(2, (await List(byPersonOrClient)).TotalCount, "Persons and machine clients add up.");
+        Assert.AreEqual(1, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Failed]))).TotalCount);
+        Assert.AreEqual(open.JobId, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Open]))).Items.Single().Latest.JobId);
+        Assert.AreEqual(2, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Success, PipelineRunStateFilter.Open]))).TotalCount);
+        Assert.AreEqual(1, (await List(failedOfFirstMandate)).TotalCount, "Different filters narrow each other.");
     }
 
     [TestMethod]
@@ -375,12 +384,6 @@ public sealed class PipelineRunControllerTest
     public async Task ListRejectsFromAfterTo()
     {
         ActionResultAssert.IsBadRequest(await controller.List(new PipelineRunQuery { From = Window.AddDays(1), To = Window }));
-    }
-
-    [TestMethod]
-    public async Task ListRejectsADeclarerIdWithoutKind()
-    {
-        ActionResultAssert.IsBadRequest(await controller.List(InWindow(q => q.DeclarerId = 1)));
     }
 
     [TestMethod]
@@ -494,9 +497,9 @@ public sealed class PipelineRunControllerTest
             r.TerminalAt = null;
         });
 
-        Assert.AreEqual(0, (await List(InWindow(q => q.State = PipelineRunStateFilter.Failed))).TotalCount, "A delivery that went through in its second attempt no longer fails.");
-        Assert.HasCount(1, (await List(InWindow(q => q.State = PipelineRunStateFilter.Success))).Items.Single().EarlierAttempts, "The newest attempt decides; the failed one still counts.");
-        Assert.AreEqual(openNewest.JobId, (await List(InWindow(q => q.State = PipelineRunStateFilter.Open))).Items.Single().Latest.JobId);
+        Assert.AreEqual(0, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Failed]))).TotalCount, "A delivery that went through in its second attempt no longer fails.");
+        Assert.HasCount(1, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Success]))).Items.Single().EarlierAttempts, "The newest attempt decides; the failed one still counts.");
+        Assert.AreEqual(openNewest.JobId, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Open]))).Items.Single().Latest.JobId);
     }
 
     [TestMethod]
@@ -526,7 +529,7 @@ public sealed class PipelineRunControllerTest
         var newest = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
         SeedAttempt(Window.AddMinutes(3), null, mandate.Id, client.Id);
 
-        var page = await List(new PipelineRunQuery { DeclarerKind = DeclarerKind.MachineClient, DeclarerId = client.Id });
+        var page = await List(new PipelineRunQuery { MachineClientIds = [client.Id] });
 
         Assert.AreEqual(2, page.TotalCount);
         Assert.AreEqual(newest.JobId, page.Items.Single(group => group.EarlierAttempts.Count == 1).Latest.JobId);

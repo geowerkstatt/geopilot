@@ -62,7 +62,11 @@ export const ProcessingRuns: FC = () => {
 
   const changePagination = (model: GridPaginationModel) => {
     setPageSize(model.pageSize);
-    setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
+    // The grid also reports a new page size when its height changes, possibly to the handler of an earlier render,
+    // whose filters would undo the latest change.
+    if (model.page !== page) {
+      setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
+    }
   };
 
   const columns: GridColDef<ProcessingRunRow>[] = [

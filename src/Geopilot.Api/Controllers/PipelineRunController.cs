@@ -45,15 +45,13 @@ public class PipelineRunController : ControllerBase
     /// </summary>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "One page of pipeline runs, grouped by delivery.", typeof(PipelineRunPageResponse), "application/json")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts, or a declarer id lacks its kind.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts.", typeof(ValidationProblemDetails), "application/json")]
     public async Task<IActionResult> List([FromQuery] PipelineRunQuery query)
     {
         ArgumentNullException.ThrowIfNull(query);
 
         if (query.From > query.To)
             ModelState.AddModelError(nameof(query.To), "The period must not end before it starts.");
-        if (query.DeclarerId is not null && query.DeclarerKind is null)
-            ModelState.AddModelError(nameof(query.DeclarerKind), "A declarer id needs the kind of declarer it belongs to.");
         if (!ModelState.IsValid)
             return ValidationProblem(statusCode: StatusCodes.Status400BadRequest, modelStateDictionary: ModelState);
 
@@ -61,7 +59,7 @@ public class PipelineRunController : ControllerBase
         var to = query.To is { } toValue ? AsUtc(toValue) : (DateTime?)null;
         var latestRuns = FilterByState(
             LatestAttemptOfEachGroup(FilterByMandateAndDeclarer(context.PipelineRuns.AsNoTracking(), query), from, to),
-            query.State);
+            query.States);
         var totalCount = await latestRuns.CountAsync();
 
         // shortcut: fixed order; the outcome is derived per page in C#, so it cannot be filtered on yet.
@@ -146,15 +144,21 @@ public class PipelineRunController : ControllerBase
     // Mandate and declarer are part of the group key, so narrowing by them before grouping splits no group.
     private static IQueryable<PipelineRun> FilterByMandateAndDeclarer(IQueryable<PipelineRun> runs, PipelineRunQuery query)
     {
-        if (query.MandateId is not null)
-            runs = runs.Where(r => r.MandateId == query.MandateId);
+        var mandateIds = query.MandateIds;
+        var userIds = query.UserIds;
+        var machineClientIds = query.MachineClientIds;
 
-        return query.DeclarerKind switch
+        if (mandateIds.Count > 0)
+            runs = runs.Where(r => r.MandateId != null && mandateIds.Contains(r.MandateId.Value));
+
+        if (userIds.Count > 0 || machineClientIds.Count > 0)
         {
-            DeclarerKind.Person => runs.Where(r => r.UserId != null && (query.DeclarerId == null || r.UserId == query.DeclarerId)),
-            DeclarerKind.MachineClient => runs.Where(r => r.MachineClientId != null && (query.DeclarerId == null || r.MachineClientId == query.DeclarerId)),
-            _ => runs,
-        };
+            runs = runs.Where(r =>
+                (r.UserId != null && userIds.Contains(r.UserId.Value))
+                || (r.MachineClientId != null && machineClientIds.Contains(r.MachineClientId.Value)));
+        }
+
+        return runs;
     }
 
     // Only the runs with a client reference are grouped: a run without one is a delivery of its own, taken by its
@@ -171,15 +175,26 @@ public class PipelineRunController : ControllerBase
             || latestOfDeliveries.Contains(r.Id));
     }
 
-    private static IQueryable<PipelineRun> FilterByState(IQueryable<PipelineRun> runs, PipelineRunStateFilter? state) => state switch
+    private static IQueryable<PipelineRun> FilterByState(IQueryable<PipelineRun> runs, List<PipelineRunStateFilter> states)
     {
-        PipelineRunStateFilter.Success => runs.Where(r => r.TerminalState == ProcessingState.Success),
-        PipelineRunStateFilter.Warning => runs.Where(r => r.TerminalState == ProcessingState.Warning),
-        PipelineRunStateFilter.DeliveryRestriction => runs.Where(r => r.TerminalState == ProcessingState.DeliveryRestriction),
-        PipelineRunStateFilter.Failed => runs.Where(r => r.TerminalState == ProcessingState.Failed),
-        PipelineRunStateFilter.Cancelled => runs.Where(r => r.TerminalState == ProcessingState.Cancelled),
-        PipelineRunStateFilter.Open => runs.Where(r => r.TerminalState == null || r.TerminalState == ProcessingState.Pending || r.TerminalState == ProcessingState.Running),
-        _ => runs,
+        if (states.Count == 0)
+            return runs;
+
+        var terminalStates = states.SelectMany(TerminalStatesOf).ToList();
+        var open = states.Contains(PipelineRunStateFilter.Open);
+        return runs.Where(r => (r.TerminalState != null && terminalStates.Contains(r.TerminalState.Value)) || (open && r.TerminalState == null));
+    }
+
+    // An open run may also have no terminal state at all, which FilterByState adds.
+    private static ProcessingState[] TerminalStatesOf(PipelineRunStateFilter state) => state switch
+    {
+        PipelineRunStateFilter.Success => [ProcessingState.Success],
+        PipelineRunStateFilter.Warning => [ProcessingState.Warning],
+        PipelineRunStateFilter.DeliveryRestriction => [ProcessingState.DeliveryRestriction],
+        PipelineRunStateFilter.Failed => [ProcessingState.Failed],
+        PipelineRunStateFilter.Cancelled => [ProcessingState.Cancelled],
+        PipelineRunStateFilter.Open => [ProcessingState.Pending, ProcessingState.Running],
+        _ => [],
     };
 
     // The group key of LatestAttemptOfEachGroup, newest first; a run without reference is a delivery of its own.

@@ -15,6 +15,25 @@ describe("Pipeline runs", () => {
     cy.dataCy("processingRuns-grid").find(".MuiDataGrid-row").should("have.length", 1);
     cy.dataCy("processingRuns-grid").find('[data-field="attemptCount"][role="gridcell"]').should("have.text", "2");
   });
+
+  it("filters by several states at once", () => {
+    // The states in the order of PipelineRunStateFilter: failed is the fourth, open the sixth.
+    cy.dataCy("processingRunFilter-state").click();
+    // The latest request, as the grid may ask once more with the previous filters while it fits its page to a new
+    // height. It goes out once the list shows the filters, so the next pick adds to them.
+    const latestRequestHasStates = (states: string[]) =>
+      cy.get<{ request: { url: string } }[]>("@runs.all").should(calls => {
+        const latestQuery = new URL(calls[calls.length - 1].request.url).searchParams;
+        expect(latestQuery.getAll("states")).to.deep.equal(states);
+      });
+
+    cy.get('[role="listbox"] [role="option"]').eq(3).click();
+    latestRequestHasStates(["failed"]);
+    cy.get('[role="listbox"] [role="option"]').eq(5).click();
+    latestRequestHasStates(["failed", "open"]);
+
+    cy.location("search").should("equal", "?state=failed&state=open");
+  });
 });
 
 // The server answers with as many runs as the list asks for, out of more than fit on one page.

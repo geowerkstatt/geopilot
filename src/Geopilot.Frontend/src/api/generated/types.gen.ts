@@ -2505,21 +2505,21 @@ export type GetApiV1PipelineRunData = {
      */
     To?: string;
     /**
-     * Only runs started for this mandate.
+     * Only runs started for one of these mandates.
      */
-    MandateId?: number;
+    MandateIds?: Array<number>;
     /**
-     * Only runs started by persons, or only runs started by machine clients.
+     * Only runs started by one of these persons, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.MachineClientIds.
      */
-    DeclarerKind?: DeclarerKind;
+    UserIds?: Array<number>;
     /**
-     * Only runs started by the person or machine client with this id; needs Geopilot.Api.Contracts.PipelineRunQuery.DeclarerKind.
+     * Only runs started by one of these machine clients, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.UserIds.
      */
-    DeclarerId?: number;
+    MachineClientIds?: Array<number>;
     /**
-     * Only deliveries whose newest attempt is in this state.
+     * Only deliveries whose newest attempt is in one of these states.
      */
-    State?: PipelineRunStateFilter;
+    States?: Array<PipelineRunStateFilter>;
     /**
      * The page to return, starting at 0.
      */
@@ -2534,7 +2534,7 @@ export type GetApiV1PipelineRunData = {
 
 export type GetApiV1PipelineRunErrors = {
   /**
-   * The period ends before it starts, or a declarer id lacks its kind.
+   * The period ends before it starts.
    */
   400: ValidationProblemDetails;
 };

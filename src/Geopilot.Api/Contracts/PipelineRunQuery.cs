@@ -2,8 +2,8 @@
 
 /// <summary>
 /// Filters and pages the list of pipeline runs, whose rows are the attempts of one delivery each (see
-/// <see cref="PipelineRunGroupResponse"/>). Every filter that is set narrows the list. Mandate and declarer are the
-/// same for all attempts of a delivery.
+/// <see cref="PipelineRunGroupResponse"/>). Every filter that is set narrows the list, and a run matches a filter
+/// with several values when it matches one of them. Mandate and declarer are the same for all attempts of a delivery.
 /// </summary>
 public class PipelineRunQuery
 {
@@ -18,24 +18,24 @@ public class PipelineRunQuery
     public DateTime? To { get; set; }
 
     /// <summary>
-    /// Only runs started for this mandate.
+    /// Only runs started for one of these mandates.
     /// </summary>
-    public int? MandateId { get; set; }
+    public List<int> MandateIds { get; set; } = [];
 
     /// <summary>
-    /// Only runs started by persons, or only runs started by machine clients.
+    /// Only runs started by one of these persons, or by one of the <see cref="MachineClientIds"/>.
     /// </summary>
-    public DeclarerKind? DeclarerKind { get; set; }
+    public List<int> UserIds { get; set; } = [];
 
     /// <summary>
-    /// Only runs started by the person or machine client with this id; needs <see cref="DeclarerKind"/>.
+    /// Only runs started by one of these machine clients, or by one of the <see cref="UserIds"/>.
     /// </summary>
-    public int? DeclarerId { get; set; }
+    public List<int> MachineClientIds { get; set; } = [];
 
     /// <summary>
-    /// Only deliveries whose newest attempt is in this state.
+    /// Only deliveries whose newest attempt is in one of these states.
     /// </summary>
-    public PipelineRunStateFilter? State { get; set; }
+    public List<PipelineRunStateFilter> States { get; set; } = [];
 
     /// <summary>
     /// The page to return, starting at 0.

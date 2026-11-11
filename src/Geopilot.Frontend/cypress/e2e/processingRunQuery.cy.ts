@@ -23,18 +23,26 @@ describe("pipeline run query", () => {
     expect(params.get("to")).to.equal(new Date("2026-10-31T00:00:00").toISOString());
   });
 
-  it("splits who processed into kind and id", () => {
-    const person = new URLSearchParams(
-      toProcessingRunQuery({ ...emptyProcessingRunFilters, declarer: "person:12" }, 0, 25),
-    );
-    const allClients = new URLSearchParams(
-      toProcessingRunQuery({ ...emptyProcessingRunFilters, declarer: "machineClient" }, 0, 25),
+  it("sends who processed as the ids of persons and machine clients", () => {
+    const params = new URLSearchParams(
+      toProcessingRunQuery(
+        { ...emptyProcessingRunFilters, declarers: ["person:12", "machineClient:3", "person:14"] },
+        0,
+        25,
+      ),
     );
 
-    expect(person.get("declarerKind")).to.equal("person");
-    expect(person.get("declarerId")).to.equal("12");
-    expect(allClients.get("declarerKind")).to.equal("machineClient");
-    expect(allClients.has("declarerId")).to.equal(false);
+    expect(params.getAll("userIds")).to.deep.equal(["12", "14"]);
+    expect(params.getAll("machineClientIds")).to.deep.equal(["3"]);
+  });
+
+  it("sends every chosen mandate and state", () => {
+    const params = new URLSearchParams(
+      toProcessingRunQuery({ ...emptyProcessingRunFilters, mandateIds: ["5", "7"], states: ["failed", "open"] }, 0, 25),
+    );
+
+    expect(params.getAll("mandateIds")).to.deep.equal(["5", "7"]);
+    expect(params.getAll("states")).to.deep.equal(["failed", "open"]);
   });
 
   it("reads a job id in the forms people paste it", () => {
@@ -65,9 +73,9 @@ describe("pipeline run query", () => {
     const filters = {
       from: "2026-10-28T08:00",
       to: "2026-10-30T17:30",
-      declarer: "person:12",
-      mandateId: "5",
-      state: "failed",
+      declarers: ["person:12", "machineClient:3"],
+      mandateIds: ["5"],
+      states: ["failed", "open"],
     };
 
     const params = toProcessingRunSearchParams(filters, 3);
@@ -85,7 +93,7 @@ describe("pipeline run query", () => {
 
     const { filters, page } = readProcessingRunSearchParams(params);
 
-    expect(filters).to.deep.equal({ from: "", to: "", declarer: "", mandateId: "", state: "failed" });
-    expect(toProcessingRunQuery(filters, page, 25)).to.equal("page=0&pageSize=25&state=failed");
+    expect(filters).to.deep.equal({ ...emptyProcessingRunFilters, states: ["failed"] });
+    expect(toProcessingRunQuery(filters, page, 25)).to.equal("page=0&pageSize=25&states=failed");
   });
 });
