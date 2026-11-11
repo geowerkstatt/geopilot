@@ -57,7 +57,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             UserId = declarer?.UserId,
             MachineClientId = declarer?.MachineClientId,
             ClientKind = ClassifyClient(),
-            ClientReference = job.DeliveryIntent?.ClientReference,
+            ClientReference = job.DeliveryIntent?.Fields.ClientReference,
             Declarability = job.IsDeclarable ? Declarability.Declarable : Declarability.NotDeclarable,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,

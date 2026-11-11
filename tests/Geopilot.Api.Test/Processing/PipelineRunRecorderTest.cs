@@ -121,7 +121,7 @@ public class PipelineRunRecorderTest
         var declarer = Declarer.ForClient(client.Id);
         var job = NewJob(out var upload) with
         {
-            DeliveryIntent = new DeliveryIntent(declarer, "KEY", new DeliveryFields(null, null, null), "AV-2026-0042"),
+            DeliveryIntent = new DeliveryIntent(declarer, "KEY", new DeliveryFields(null, null, null, ClientReference: "AV-2026-0042")),
         };
 
         await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);

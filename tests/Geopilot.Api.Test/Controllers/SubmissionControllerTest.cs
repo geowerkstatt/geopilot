@@ -85,7 +85,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>(), It.IsAny<string?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -101,7 +101,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType(result, expected);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>(), It.IsAny<string?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -147,7 +147,7 @@ public class SubmissionControllerTest
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A violated field rule must be reported per field.");
         Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.Comment)));
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>(), It.IsAny<string?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -161,7 +161,7 @@ public class SubmissionControllerTest
         var jobId = Guid.NewGuid();
         var fields = new DeliveryFields(null, null, null);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, fields, null))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, fields))
             .ReturnsAsync(NewAttemptJob(jobId, uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
@@ -183,7 +183,7 @@ public class SubmissionControllerTest
         // Strict: a reference that reached the job untrimmed would match no setup.
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>(), "AV-2026-0042"))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == "AV-2026-0042")))
             .ReturnsAsync(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
 
         var result = await controller.Create(NewRequest("  AV-2026-0042  "), CancellationToken.None);
@@ -199,7 +199,7 @@ public class SubmissionControllerTest
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>(), null))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == null)))
             .ReturnsAsync(NewAttemptJob(Guid.NewGuid(), uploadId));
 
         var result = await controller.Create(NewRequest("   "), CancellationToken.None);
@@ -224,7 +224,7 @@ public class SubmissionControllerTest
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A reference the protocol cannot keep must be reported like a violated field rule.");
         Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.ClientReference)));
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>(), It.IsAny<string?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -234,7 +234,7 @@ public class SubmissionControllerTest
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>(), It.IsAny<string?>()))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new JobAlreadyActiveException(uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
@@ -280,8 +280,8 @@ public class SubmissionControllerTest
 
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsNotNull<DeliveryFields?>(), null))
-            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields, string? clientReference) => NewAttemptJob(jobId, upload));
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsNotNull<DeliveryFields?>()))
+            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields) => NewAttemptJob(jobId, upload));
 
         SetMultipartBody(controller, MandateKey, [("data.xtf", "transfer content")]);
 
@@ -420,9 +420,9 @@ public class SubmissionControllerTest
         // The longest reference the protocol keeps; strict, so any other value would match no setup.
         var reference = new string('x', 128);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsNotNull<DeliveryFields?>(), reference))
-            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields, string? clientReference)
-                => NewAttemptJob(Guid.NewGuid(), upload, clientReference: clientReference));
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == reference)))
+            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields)
+                => NewAttemptJob(Guid.NewGuid(), upload, clientReference: fields?.ClientReference));
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")], fieldsBeforeTheFiles: [("clientReference", reference)]);
 
         var result = await controller.CreateWithFiles(CancellationToken.None);
@@ -496,7 +496,7 @@ public class SubmissionControllerTest
         Assert.IsInstanceOfType<BadRequestObjectResult>(
             result,
             "The fields are checked before the first file, so a later one would be dropped without the caller noticing.");
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>(), It.IsAny<string?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -527,7 +527,7 @@ public class SubmissionControllerTest
         var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsAny<DeliveryFields?>(), It.IsAny<string?>()))
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new InvalidOperationException("The pipeline could not be built."));
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -673,7 +673,7 @@ public class SubmissionControllerTest
         => new(jobId, attemptUploadId, mandate.Id, DateTime.UtcNow)
         {
             IsDeclarable = true,
-            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null), clientReference),
+            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null, ClientReference: clientReference)),
         };
 
     private Guid SetupAttemptOfAnotherCaller()
