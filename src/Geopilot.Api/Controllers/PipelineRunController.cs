@@ -23,8 +23,6 @@ namespace Geopilot.Api.Controllers;
 [Authorize(Policy = GeopilotPolicies.Admin)]
 public class PipelineRunController : ControllerBase
 {
-    private const int MaxPageSize = 100;
-
     private readonly ILogger<PipelineRunController> logger;
     private readonly Context context;
     private readonly IProcessingService processingService;
@@ -45,7 +43,7 @@ public class PipelineRunController : ControllerBase
     /// </summary>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "One page of pipeline runs, grouped by delivery.", typeof(PipelineRunPageResponse), "application/json")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts, or the page or a filter is out of bounds.", typeof(ValidationProblemDetails), "application/json")]
     public async Task<IActionResult> List([FromQuery] PipelineRunQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -63,18 +61,11 @@ public class PipelineRunController : ControllerBase
         var totalCount = await latestRuns.CountAsync(cancellationToken);
 
         // shortcut: fixed order; the outcome is derived per page in C#, so it cannot be filtered on yet.
-        var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
-
-        // A page beyond any offset the database takes lies past the last run like any other page there.
-        var skip = (long)Math.Max(query.Page, 0) * pageSize;
-        if (skip > int.MaxValue)
-            return Ok(new PipelineRunPageResponse(totalCount, []));
-
         var pageRuns = await WithSummaryIncludes(latestRuns
                 .OrderByDescending(r => r.StartedAt)
                 .ThenByDescending(r => r.Id)
-                .Skip((int)skip)
-                .Take(pageSize))
+                .Skip(query.Page * query.PageSize)
+                .Take(query.PageSize))
             .ToListAsync(cancellationToken);
 
         var attemptCounts = await CountAttemptsAsync(pageRuns, cancellationToken);

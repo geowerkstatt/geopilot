@@ -31,6 +31,43 @@ public class PipelineRunHttpTest
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, "A state the binder does not know must not be dropped silently.");
     }
 
+    [TestMethod]
+    [DataRow("page=-1&pageSize=25")]
+    [DataRow("page=1000001&pageSize=25")]
+    [DataRow("page=0&pageSize=0")]
+    [DataRow("page=0&pageSize=101")]
+    public async Task ListRejectsAPageOutOfBounds(string query)
+    {
+        var response = await GetListAsync(query);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task ListAnswersTheLastPageItTakes()
+    {
+        var response = await GetListAsync("page=1000000&pageSize=100");
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, "The offset of the last page must still fit a whole number.");
+    }
+
+    [TestMethod]
+    [DataRow("mandateIds")]
+    [DataRow("userIds")]
+    [DataRow("machineClientIds")]
+    [DataRow("states")]
+    public async Task ListTakesAHundredValuesOfAFilterAndNoMore(string filter)
+    {
+        var value = filter == "states" ? "open" : "1";
+        string Values(int count) => string.Join("&", Enumerable.Repeat($"{filter}={value}", count));
+
+        var hundred = await GetListAsync($"{Values(100)}&page=0&pageSize=25");
+        var hundredAndOne = await GetListAsync($"{Values(101)}&page=0&pageSize=25");
+
+        Assert.AreEqual(HttpStatusCode.OK, hundred.StatusCode, await hundred.Content.ReadAsStringAsync());
+        Assert.AreEqual(HttpStatusCode.BadRequest, hundredAndOne.StatusCode);
+    }
+
     private static async Task<HttpResponseMessage> GetListAsync(string query)
     {
         using var installation = new JwtTestApp();

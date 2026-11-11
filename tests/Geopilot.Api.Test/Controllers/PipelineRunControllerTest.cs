@@ -315,15 +315,6 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task ListCapsThePageSize()
-    {
-        SeedMinimalRuns(101);
-
-        Assert.HasCount(100, (await List(InWindow(q => q.PageSize = 1000))).Items);
-        Assert.HasCount(1, (await List(InWindow(q => q.PageSize = 0))).Items);
-    }
-
-    [TestMethod]
     public async Task ListFiltersByTimeRangeWithExclusiveEnd()
     {
         var atFrom = SeedRun(r => r.StartedAt = Window);
@@ -347,21 +338,6 @@ public sealed class PipelineRunControllerTest
         });
 
         Assert.AreEqual(run.JobId, page.Items.Single().Latest.JobId);
-    }
-
-    [TestMethod]
-    public async Task ListAnswersAnEmptyPageForAPageNumberBeyondAnyOffset()
-    {
-        SeedRun(r => r.StartedAt = Window);
-
-        var page = await List(InWindow(q =>
-        {
-            q.Page = 21474837;
-            q.PageSize = 100;
-        }));
-
-        Assert.AreEqual(1, page.TotalCount);
-        Assert.HasCount(0, page.Items);
     }
 
     [TestMethod]
@@ -578,24 +554,6 @@ public sealed class PipelineRunControllerTest
             r.UserId = userId;
             configure?.Invoke(r);
         });
-
-    private void SeedMinimalRuns(int count)
-    {
-        context.PipelineRuns.AddRange(Enumerable.Range(0, count).Select(i => new PipelineRun
-        {
-            JobId = Guid.NewGuid(),
-            PipelineId = "pipe_a",
-            Definition = "{}",
-            AppVersion = "3.0-test",
-            ClientKind = ClientKind.ApiClient,
-            UploadId = Guid.NewGuid(),
-            UploadStorageLocation = "https://storage.example.com/uploads",
-            UploadInitiatedAt = Window,
-            StartedAt = Window.AddSeconds(i),
-            ScanState = ScanState.Clean,
-        }));
-        context.SaveChanges();
-    }
 
     private Delivery SeedDelivery(Guid jobId, bool deleted)
     {

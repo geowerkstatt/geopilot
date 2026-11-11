@@ -23,6 +23,9 @@ import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 
 type ProcessingRunRow = PipelineRunSummaryResponse & { attemptCount: number };
 
+// The most runs the API returns per page, fewer than the grid fits on a very tall screen.
+const maxPageSize = 100;
+
 /** All pipeline runs of the installation, newest first, paged and filtered on the server. */
 export const ProcessingRuns: FC = () => {
   const { t } = useTranslation();
@@ -38,7 +41,7 @@ export const ProcessingRuns: FC = () => {
   const [pageSize, setPageSize] = useState(0);
   const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
 
-  const query = toProcessingRunQuery(filters, page, pageSize);
+  const query = toProcessingRunQuery(filters, page, Math.min(pageSize, maxPageSize));
   // Loading lasts until the answer to the current query is there, so no effect has to switch it on.
   const isLoading = loaded?.query !== query;
 
