@@ -1,3 +1,4 @@
+import { ReactionEvent, ReactionKind, ReactionState } from "../../src/api/generated";
 import { loginAsAdmin } from "./helpers/appHelpers";
 
 const jobId = "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a";
@@ -53,6 +54,48 @@ describe("Processing run", () => {
       .should("contain", "Service account geopilot-api")
       .find("svg title")
       .should("have.text", "Machine client");
+  });
+
+  it("offers the reactions while they wait and shows their events once there are", () => {
+    // The first attempt starts once the test says so; the page loads the run twice when it opens in development.
+    let attempted = false;
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept({ method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` }, request =>
+        request.reply(
+          attempted
+            ? {
+                ...run,
+                forwardingState: ReactionState.Done,
+                notificationState: null,
+                reactionEvents: [
+                  {
+                    deliveryId: 23,
+                    reactionId: "ablage",
+                    reactionKind: ReactionKind.Transfer,
+                    implementation: "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+                    event: ReactionEvent.Attempt,
+                    attempt: 1,
+                    occurredAt: "2026-11-06T15:05:00Z",
+                    finishedAt: "2026-11-06T15:05:01Z",
+                    state: ReactionState.Done,
+                    message: "Delivered to the target.",
+                  },
+                ],
+              }
+            : { ...run, forwardingState: ReactionState.Pending, notificationState: null, reactionEvents: [] },
+        ),
+      );
+    });
+
+    cy.visit(`/admin/processing-runs/${jobId}#reactions`);
+    cy.dataCy("processingRunTab-reactions").should("have.attr", "aria-selected", "true");
+    cy.dataCy("reactionEventsNone").should("be.visible");
+
+    // The page loads the run again on its own while a reaction is open.
+    cy.then(() => {
+      attempted = true;
+    });
+    cy.contains("td", "Delivered to the target.", { timeout: 20000 }).should("be.visible");
   });
 
   it("says that the pipeline could not be loaded instead of waiting on", () => {

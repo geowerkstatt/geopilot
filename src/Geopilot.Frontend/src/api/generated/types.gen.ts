@@ -1092,6 +1092,7 @@ export type PipelineRunResponse = {
   mandate?: MandateReference;
   outcome: PipelineRunOutcome;
   forwardingState?: ReactionState;
+  notificationState?: ReactionState;
 };
 
 /**

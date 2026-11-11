@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { TableCell, TableRow } from "@mui/material";
+import { TableCell, TableRow, Typography } from "@mui/material";
 import { PipelineRunReactionEventResponse, ReactionEvent, ReactionKind } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 import { DetailTable } from "../../../components/detailTable.tsx";
@@ -25,6 +25,14 @@ const reactionEventKey: Record<ReactionEvent, TranslationKey> = {
 /** What happened to the reactions of the delivery a run produced, in the order it happened. */
 export const ProcessingRunReactionEvents: FC<ProcessingRunReactionEventsProps> = ({ events }) => {
   const { t } = useTranslation();
+
+  if (events.length === 0) {
+    return (
+      <SummaryField labelVariant="h5" label="reactionEvents">
+        <Typography data-cy="reactionEventsNone">{t("reactionEventsNone")}</Typography>
+      </SummaryField>
+    );
+  }
 
   return (
     <SummaryField labelVariant="h5" label="reactionEvents">

@@ -114,8 +114,8 @@ public class PipelineRunController : ControllerBase
         var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, [run.JobId]);
         var delivery = deliveries.GetValueOrDefault(run.JobId);
         var outcome = PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), delivery);
-        var forwardingState = await PipelineRunOutcomes.LoadForwardingStateAsync(context, delivery);
-        return Ok(run.ToResponse(outcome, forwardingState));
+        var (forwardingState, notificationState) = await PipelineRunOutcomes.LoadReactionStatesAsync(context, delivery);
+        return Ok(run.ToResponse(outcome, forwardingState, notificationState));
     }
 
     /// <summary>

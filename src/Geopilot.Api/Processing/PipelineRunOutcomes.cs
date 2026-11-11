@@ -78,20 +78,22 @@ internal static class PipelineRunOutcomes
     }
 
     /// <summary>
-    /// Loads the summed up state of the transfers of the <paramref name="delivery"/>, <see langword="null"/> without
-    /// delivery, without transfers or once it is deleted.
+    /// Loads the summed up states of the transfers and of the notifications of the <paramref name="delivery"/>, each
+    /// <see langword="null"/> without delivery, without reactions of its kind or once the delivery is deleted.
     /// </summary>
-    internal static async Task<ReactionState?> LoadForwardingStateAsync(Context context, PipelineRunDelivery? delivery)
+    internal static async Task<(ReactionState? Forwarding, ReactionState? Notification)> LoadReactionStatesAsync(Context context, PipelineRunDelivery? delivery)
     {
         if (delivery is null || delivery.Deleted)
-            return null;
+            return (null, null);
 
-        var transferStates = await context.DeliveryReactions
+        var reactions = await context.DeliveryReactions
             .AsNoTracking()
-            .Where(r => r.DeliveryId == delivery.Id && r.Kind == ReactionKind.Transfer)
-            .Select(r => r.State)
+            .Where(r => r.DeliveryId == delivery.Id)
+            .Select(r => new { r.Kind, r.State })
             .ToListAsync();
-        return transferStates.SummedUp();
+        return (
+            reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
+            reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp());
     }
 
     private static PipelineRunOutcome Outcome(PipelineRunOutcomeKind kind) => new(kind, null, []);

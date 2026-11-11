@@ -166,7 +166,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetSumsUpTheTransfersOfTheLiveDeliveryOnly()
+    public async Task GetSumsUpTheReactionsOfTheLiveDeliveryOnly()
     {
         var run = SeedRun();
         var deleted = SeedDelivery(run.JobId, deleted: true);
@@ -181,6 +181,7 @@ public sealed class PipelineRunControllerTest
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
 
         Assert.AreEqual(ReactionState.Pending, response.ForwardingState);
+        Assert.AreEqual(ReactionState.Error, response.NotificationState);
     }
 
     [TestMethod]

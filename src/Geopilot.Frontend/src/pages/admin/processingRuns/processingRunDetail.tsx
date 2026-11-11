@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typography } from "@mui/material";
-import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../../../api/generated";
+import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse, ReactionState } from "../../../api/generated";
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../../../appTheme.ts";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -71,6 +71,8 @@ const folderTabsSx: SxProps<Theme> = theme => ({
 
 const listPath = "/admin/processing-runs";
 const panelId = "processingRunPanel";
+// How often the page loads the run again while a reaction of its delivery is pending or running.
+const reactionRefreshInterval = 15_000;
 
 /** One pipeline run: who started it, what became of it, its steps, files, reactions and pipeline. */
 export const ProcessingRunDetail: FC = () => {
@@ -86,6 +88,8 @@ export const ProcessingRunDetail: FC = () => {
   // The address may spell the id in capitals or without hyphens; the API answers in one form only.
   const jobId = parseJobId(jobIdParam ?? "");
 
+  const [loadCount, setLoadCount] = useState(0);
+
   useEffect(() => {
     if (!jobId) {
       return;
@@ -93,12 +97,26 @@ export const ProcessingRunDetail: FC = () => {
     let current = true;
     fetchApi<PipelineRunResponse>(`/api/v1/pipelinerun/${jobId}`, { errorMessageLabel: "processingRunLoadingError" })
       .then(run => current && setLoaded({ jobId, run }))
-      // useFetch has shown why; the page then says that there is no such run instead of waiting.
-      .catch(() => current && setLoaded({ jobId }));
+      // useFetch has shown why. A run already shown stays when loading it again fails; otherwise the page says that
+      // there is no such run instead of waiting.
+      .catch(() => current && setLoaded(previous => (previous?.jobId === jobId ? previous : { jobId })));
     return () => {
       current = false;
     };
-  }, [fetchApi, jobId]);
+  }, [fetchApi, jobId, loadCount]);
+
+  // shortcut: polls the whole protocol; a call for the states of the reactions alone if the steps make it slow.
+  const shownRun = loaded?.jobId === jobId ? loaded?.run : undefined;
+  const reactionsOpen = [shownRun?.forwardingState, shownRun?.notificationState].some(
+    state => state === ReactionState.Pending || state === ReactionState.Running,
+  );
+  useEffect(() => {
+    if (!reactionsOpen) {
+      return;
+    }
+    const timer = setTimeout(() => setLoadCount(count => count + 1), reactionRefreshInterval);
+    return () => clearTimeout(timer);
+  }, [reactionsOpen, loaded]);
 
   const tab = tabFromHash(location.hash);
   // Switching tabs replaces the entry, so the new entry keeps the query of the list the run was opened from.
@@ -146,8 +164,10 @@ export const ProcessingRunDetail: FC = () => {
       : run.declarer?.kind === DeclarerKind.MachineClient && machineDeliveryEnabled
         ? `/admin/machine-clients/${run.declarer.id}`
         : undefined;
+  // Reactions wait without events until their first attempt, so a delivery with reactions offers the tab from the start.
+  const hasReactions = run.reactionEvents.length > 0 || !!run.forwardingState || !!run.notificationState;
   // A run without reactions offers no tab for them, so the page must not stay on it.
-  const visibleTab = tab === "reactions" && run.reactionEvents.length === 0 ? "steps" : tab;
+  const visibleTab = tab === "reactions" && !hasReactions ? "steps" : tab;
   const tabProps = (value: ProcessingRunTab, label: string) => ({
     value,
     label,
@@ -223,7 +243,7 @@ export const ProcessingRunDetail: FC = () => {
           slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps", t("processingSteps"))} />
           <Tab {...tabProps("files", t("files"))} />
-          {run.reactionEvents.length > 0 && <Tab {...tabProps("reactions", t("reactions"))} />}
+          {hasReactions && <Tab {...tabProps("reactions", t("reactions"))} />}
           <Tab {...tabProps("pipeline", t("pipeline"))} />
         </Tabs>
         <GeopilotBox

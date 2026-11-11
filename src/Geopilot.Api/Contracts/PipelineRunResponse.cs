@@ -35,6 +35,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
 /// <param name="Outcome">What became of the run.</param>
 /// <param name="ForwardingState">The summed up state of the transfers of its delivery, <see langword="null"/> without delivery, without transfers or once the delivery is deleted.</param>
+/// <param name="NotificationState">The summed up state of the notifications of its delivery, <see langword="null"/> without delivery, without notifications or once the delivery is deleted.</param>
 public record PipelineRunResponse(
     Guid JobId,
     string PipelineId,
@@ -61,7 +62,8 @@ public record PipelineRunResponse(
     PipelineRunDeclarer? Declarer,
     MandateReference? Mandate,
     PipelineRunOutcome Outcome,
-    ReactionState? ForwardingState);
+    ReactionState? ForwardingState,
+    ReactionState? NotificationState);
 
 /// <summary>
 /// One uploaded file of the run.

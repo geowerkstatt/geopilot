@@ -190,7 +190,7 @@ internal static class DtoMapperExtensions
     /// Maps a <see cref="PipelineRun"/> including its children to a <see cref="PipelineRunResponse"/>.
     /// The definition snapshot is deliberately not part of the response; it is served by its own endpoint.
     /// </summary>
-    public static PipelineRunResponse ToResponse(this PipelineRun run, PipelineRunOutcome outcome, ReactionState? forwardingState)
+    public static PipelineRunResponse ToResponse(this PipelineRun run, PipelineRunOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState)
     {
         return new PipelineRunResponse(
             run.JobId,
@@ -239,7 +239,8 @@ internal static class DtoMapperExtensions
             run.ToDeclarer(),
             run.ToMandateReference(),
             outcome,
-            forwardingState);
+            forwardingState,
+            notificationState);
     }
 
     /// <summary>

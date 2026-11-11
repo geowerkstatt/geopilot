@@ -297,6 +297,7 @@
   "reactionEventDeletion": "consegna eliminata",
   "reactionEventReset": "nuovo tentativo richiesto",
   "reactionEvents": "Eventi",
+  "reactionEventsNone": "Nessuna reazione ha ancora avviato un tentativo.",
   "reactionFinishedAt": "Terminato {{time}}",
   "reactionKindNotification": "notifica",
   "reactionKindTransfer": "inoltro",

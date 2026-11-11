@@ -83,7 +83,7 @@ Bei einem Lauf ohne `Declarability` gilt nur ein anonymer Start als nicht berech
 Dieselben Angaben liefert die API:
 
 - `GET api/v1/pipelinerun`: die Läufe seitenweise, neueste zuerst, gefiltert nach Zeitraum, Mandat, Urheber und Zustand. Die Versuche einer Lieferung bilden eine Gruppe und zählen beim Blättern als eine Zeile; ein Lauf ohne `ClientReference` ist eine Gruppe für sich. Eine Gruppe erscheint, wenn einer ihrer Versuche im Zeitraum liegt, der Zustand gilt ihrem neuesten Versuch, und die früheren Versuche kommen mit, auch die ausserhalb des Zeitraums.
-- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`), dazu Urheber und Mandat mit Namen (`declarer`, `mandate`), was aus dem Lauf wurde (`outcome`) und der Zustand der Weitergabe seiner Lieferung (`forwardingState`).
+- `GET api/v1/pipelinerun/{jobId}`: der Lauf mit Manifest, Schritten samt ihren Eingaben (`inputs`), Condition-Auswertungen, Artefaktnamen, der Deklarierbarkeit (`declarability`), dem Grund einer gescheiterten Deklaration (`declarationFailure`) und den Zustellversuchen der Reaktionen (`reactionEvents`), dazu Urheber und Mandat mit Namen (`declarer`, `mandate`), was aus dem Lauf wurde (`outcome`) und die Zustände der Weitergabe und der Benachrichtigungen seiner Lieferung (`forwardingState`, `notificationState`).
 - `GET api/v1/pipelinerun/{jobId}/definition`: der Definitions-Snapshot als JSON.
 
 Für Auswertungen über mehrere Läufe ist SQL das Werkzeug. Beispiele:

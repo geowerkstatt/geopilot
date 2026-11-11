@@ -297,6 +297,7 @@
   "reactionEventDeletion": "delivery deleted",
   "reactionEventReset": "retry requested",
   "reactionEvents": "Events",
+  "reactionEventsNone": "No reaction has started an attempt yet.",
   "reactionFinishedAt": "Ended {{time}}",
   "reactionKindNotification": "notification",
   "reactionKindTransfer": "forwarding",
