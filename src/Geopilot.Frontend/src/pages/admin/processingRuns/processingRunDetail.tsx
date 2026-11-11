@@ -6,6 +6,7 @@ import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse } from "../..
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../../../appTheme.ts";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
+import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -174,13 +175,7 @@ export const ProcessingRunDetail: FC = () => {
             />
           </SummaryField>
           <SummaryField label="processedBy">
-            {declarerPath ? (
-              <Link component={RouterLink} to={declarerPath}>
-                {run.declarer?.name}
-              </Link>
-            ) : (
-              (run.declarer?.name ?? t("anonymous"))
-            )}
+            <DeclarerLabel declarer={run.declarer} path={declarerPath} />
           </SummaryField>
           <SummaryField label="delivery">
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />

@@ -2,10 +2,17 @@ import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
-import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
+import {
+  DeclarerKind,
+  DeliveryDetailResponse,
+  DeliveryReactionResponse,
+  ReactionKind,
+  ReactionState,
+} from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
+import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import { ReactionsTable } from "../../../components/reactionsTable.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
@@ -90,13 +97,13 @@ export const DeliveryDetail: FC = () => {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="deliveryDate">{formatTime(delivery.date)}</SummaryField>
           <SummaryField label="deliveredBy">
-            {declarerPath ? (
-              <Link component={RouterLink} to={declarerPath}>
-                {delivery.declarerName}
-              </Link>
-            ) : (
-              delivery.declarerName
-            )}
+            <DeclarerLabel
+              declarer={{
+                kind: delivery.declaringClientId != null ? DeclarerKind.MachineClient : DeclarerKind.Person,
+                name: delivery.declarerName,
+              }}
+              path={declarerPath}
+            />
           </SummaryField>
           <SummaryField label="mandate">
             <Link component={RouterLink} to={`/admin/mandates/${delivery.mandate.id}`}>

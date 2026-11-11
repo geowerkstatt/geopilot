@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
+import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
@@ -103,6 +104,8 @@ export const ProcessingRuns: FC = () => {
       valueGetter: (_value, row) => row.declarer?.name ?? t("anonymous"),
       flex: 0.5,
       minWidth: 200,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => <DeclarerLabel declarer={row.declarer} />,
     },
     {
       field: "mandate",

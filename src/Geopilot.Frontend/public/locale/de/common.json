@@ -62,6 +62,8 @@
   "copied": "Kopiert",
   "copy": "Kopieren",
   "createDelivery": "Lieferung erstellen",
+  "declarerKindMachineClient": "Maschinen-Client",
+  "declarerKindPerson": "Benutzer:in",
   "delete": "Löschen",
   "deleteDeliveryConfirmation": "Möchten Sie die Daten der Lieferung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
   "deleteForwardedDeliveryConfirmation": "Die Lieferung ist bereits weitergegeben an: {{reactions}}. Die Dateien bleiben dort. Möchten Sie die Daten der Lieferung trotzdem löschen? Diese Aktion kann nicht rückgängig gemacht werden.",

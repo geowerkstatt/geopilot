@@ -62,6 +62,8 @@
   "copied": "Copié",
   "copy": "Copier",
   "createDelivery": "Créer une livraison",
+  "declarerKindMachineClient": "Client machine",
+  "declarerKindPerson": "Utilisateur",
   "delete": "Supprimer",
   "deleteDeliveryConfirmation": "Voulez-vous vraiment supprimer les données de la livraison? Cette action est irréversible.",
   "deleteForwardedDeliveryConfirmation": "La livraison a déjà été transmise à: {{reactions}}. Les fichiers y restent. Voulez-vous quand même supprimer les données de la livraison? Cette action est irréversible.",

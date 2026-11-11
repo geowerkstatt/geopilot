@@ -62,6 +62,8 @@
   "copied": "Copied",
   "copy": "Copy",
   "createDelivery": "Create delivery",
+  "declarerKindMachineClient": "Machine client",
+  "declarerKindPerson": "User",
   "delete": "Delete",
   "deleteDeliveryConfirmation": "Do you really want to delete the delivery data? This action cannot be undone.",
   "deleteForwardedDeliveryConfirmation": "The delivery has already been forwarded to: {{reactions}}. The files stay there. Do you still want to delete the delivery data? This action cannot be undone.",

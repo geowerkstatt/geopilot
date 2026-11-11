@@ -398,6 +398,7 @@ export type DeliveryResponse = {
    * Who declared the delivery, a person or a machine client.
    */
   declarerName: string;
+  declarerKind: DeclarerKind;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
 };

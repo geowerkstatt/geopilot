@@ -62,6 +62,8 @@
   "copied": "Copiato",
   "copy": "Copia",
   "createDelivery": "Crea consegna",
+  "declarerKindMachineClient": "Client macchina",
+  "declarerKindPerson": "Utente",
   "delete": "Elimina",
   "deleteDeliveryConfirmation": "Vuoi davvero eliminare i dati della consegna? Questa azione non può essere annullata.",
   "deleteForwardedDeliveryConfirmation": "La consegna è già stata inoltrata a: {{reactions}}. I file restano lì. Vuoi comunque eliminare i dati della consegna? Questa azione non può essere annullata.",

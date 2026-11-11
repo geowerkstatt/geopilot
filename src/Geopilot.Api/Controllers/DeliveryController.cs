@@ -181,6 +181,7 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
                 DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                DeclarerKind = d.DeclaringClient != null ? DeclarerKind.MachineClient : DeclarerKind.Person,
                 Reactions = context.DeliveryReactions
                     .Where(r => r.DeliveryId == d.Id)
                     .Select(r => new { r.Kind, r.State })
@@ -194,6 +195,7 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 d.Mandate,
                 d.DeclarerName,
+                d.DeclarerKind,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
                 d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
             .ToList());

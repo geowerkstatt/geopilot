@@ -67,7 +67,7 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Sch
 
 ## Abfrage
 
-Administratoren finden das Protokoll im Admin-Portal unter «Verarbeitungen». Die Liste zeigt die Läufe der Installation, neueste zuerst, mit Urheber, Mandat, Zustand, Lieferung und Dauer. Sie filtert nach Zeitraum, Urheber, Mandat und Zustand; «Nicht abgeschlossen» findet die Läufe ohne Terminal-Status. Eine Job-ID im Suchfeld öffnet ihren Lauf direkt, auch wenn nie eine Lieferung daraus wurde, und die Seite einer Lieferung verlinkt ihren Lauf. Die Seite eines Laufs fasst ihn zusammen und zeigt in Tabs den Ablauf mit seinen Schritten, die hochgeladenen Dateien, die Ereignisse der Reaktionen und die Pipeline, wie sie beim Start konfiguriert war, lesbar oder als JSON.
+Administratoren finden das Protokoll im Admin-Portal unter «Verarbeitungen». Die Liste zeigt die Läufe der Installation, neueste zuerst, mit Urheber, Mandat, Zustand, Lieferung und Dauer. Ist die maschinelle Anlieferung eingerichtet, unterscheidet ein Symbol beim Urheber Benutzer:innen von Maschinen-Clients. Die Liste filtert nach Zeitraum, Urheber, Mandat und Zustand; «Nicht abgeschlossen» findet die Läufe ohne Terminal-Status. Eine Job-ID im Suchfeld öffnet ihren Lauf direkt, auch wenn nie eine Lieferung daraus wurde, und die Seite einer Lieferung verlinkt ihren Lauf. Die Seite eines Laufs fasst ihn zusammen und zeigt in Tabs den Ablauf mit seinen Schritten, die hochgeladenen Dateien, die Ereignisse der Reaktionen und die Pipeline, wie sie beim Start konfiguriert war, lesbar oder als JSON.
 
 Was aus einem Lauf wurde, steht nicht im Protokoll. Die Ansicht leitet es beim Lesen ab: aus dem Protokoll, aus den Lieferungen und daraus, ob der Job in der antwortenden Instanz noch läuft.
 
