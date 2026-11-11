@@ -163,8 +163,8 @@ public class MandateService : IMandateService
     }
 
     /// <summary>
-    /// The mandates a run of <paramref name="declarer"/> can become a delivery on: a member of their organisations,
-    /// on a mandate that accepts deliveries.
+    /// The mandates <paramref name="declarer"/> may deliver to: a member of their organisations, on a mandate that
+    /// accepts deliveries.
     /// </summary>
     private static IQueryable<Mandate> FilterDeclarableMandates(IQueryable<Mandate> mandates, Declarer? declarer)
         => FilterMandatesByMembership(mandates, declarer).Where(m => m.AllowDelivery);

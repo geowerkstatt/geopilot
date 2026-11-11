@@ -50,9 +50,9 @@ public interface IMandateService
     Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Declarer declarer);
 
     /// <summary>
-    /// Whether a run the specified declarer starts on the mandate can ever become a delivery: the declarer is a
-    /// member of one of its organisations, and the mandate accepts deliveries. The same rule decides
-    /// <see cref="MandateSummary.AllowDelivery"/>.
+    /// Whether the specified declarer may deliver to the mandate, and thereby whether a run they start on it is
+    /// declarable: the declarer is a member of one of its organisations, and the mandate accepts deliveries. The
+    /// same rule decides <see cref="MandateSummary.AllowDelivery"/>.
     /// </summary>
     /// <param name="mandateId">The mandate the run is started on.</param>
     /// <param name="declarer">Who starts the run, or <see langword="null"/> for an anonymous start, which is never

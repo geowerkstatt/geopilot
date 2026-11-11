@@ -91,9 +91,9 @@ public class PipelineRun
     public string? ClientReference { get; set; }
 
     /// <summary>
-    /// Whether the run can ever become a delivery, decided when its job started (see
-    /// <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/> for a run recorded before the
-    /// protocol kept it: unknown, which is not the same as not declarable.
+    /// Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery,
+    /// decided when its job started (see <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/>
+    /// for a run recorded before the protocol kept it: unknown, which is not the same as not declarable.
     /// </summary>
     public Declarability? Declarability { get; set; }
 

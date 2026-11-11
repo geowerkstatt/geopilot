@@ -18,7 +18,7 @@ public enum PipelineRunOutcomeKind
     DeliveredAndDeleted,
 
     /// <summary>
-    /// The run allowed a delivery, but none was declared.
+    /// The run allowed a delivery and whoever started it may deliver, but none was declared.
     /// </summary>
     NotDelivered,
 
