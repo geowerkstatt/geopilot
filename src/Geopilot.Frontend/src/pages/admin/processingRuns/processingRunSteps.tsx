@@ -99,8 +99,8 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ run }) => {
                       <Typography
                         component="span"
                         variant="body1"
-                        sx={{ color: "text.secondary", marginLeft: 1, whiteSpace: "nowrap" }}>
-                        ( v{step.processAssemblyVersion} )
+                        sx={{ color: "text.secondary", marginLeft: 1, display: "inline-block" }}>
+                        (&nbsp;v{step.processAssemblyVersion}&nbsp;)
                       </Typography>
                     )}
                   </SummaryField>

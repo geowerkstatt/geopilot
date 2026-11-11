@@ -241,6 +241,8 @@ export const ProcessingRunDetail: FC = () => {
         <Tabs
           value={visibleTab}
           onChange={(_event, value: ProcessingRunTab) => showTab(value)}
+          variant="scrollable"
+          scrollButtons={false}
           sx={folderTabsSx}
           slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps", t("processingSteps"))} />

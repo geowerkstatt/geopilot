@@ -1,5 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Theme, useMediaQuery } from "@mui/material";
 import { MachineClient, Mandate, PipelineRunStateFilter, User } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -46,6 +47,7 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
   const [machineClients, setMachineClients] = useState<MachineClient[]>([]);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [jobIdText, setJobIdText] = useState("");
+  const narrow = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"), { noSsr: true });
 
   useEffect(() => {
     // useFetch shows why a list could not be loaded; the filter then offers fewer choices.
@@ -116,6 +118,7 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
       onSearchQueryChange={changeJobId}
       activeFilterCount={Object.values(values).filter(value => value.length > 0).length}
       onClearFilters={clearFilters}
+      collapsible={narrow}
       columns={5}
       dataCy="processingRunFilters">
       <FormDateTimePicker

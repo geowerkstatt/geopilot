@@ -45,7 +45,7 @@ export const FilterBar = ({
 
   return (
     <Stack sx={{ width: "100%", gap: 1 }} data-cy={dataCy}>
-      <Stack sx={{ gap: collapsible ? 0 : 2 }}>
+      <Stack sx={{ gap: 2 }}>
         <Stack direction="row" sx={{ alignItems: "stretch" }}>
           <SearchField
             placeholder={searchPlaceholder}
