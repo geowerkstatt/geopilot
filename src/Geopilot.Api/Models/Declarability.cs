@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api.Models;
 
 /// <summary>
-/// Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+/// Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
 /// </summary>
 public enum Declarability
 {

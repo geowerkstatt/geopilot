@@ -167,12 +167,12 @@ export type Coordinate = {
 };
 
 /**
- * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
  */
 export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
 
 /**
- * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
  */
 export type Declarability = (typeof Declarability)[keyof typeof Declarability];
 
