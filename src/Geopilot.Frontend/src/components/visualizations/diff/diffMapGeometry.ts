@@ -29,12 +29,15 @@ export type PartTypeIndex = ReadonlyMap<string, Record<DiffState, ReadonlyMap<st
 
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
-/** How a geometry is drawn: the shape carries the change type, so the map stays readable without color. */
-export type DiffLook = "crisp" | "dotted" | "ghost" | "dashed";
+/**
+ * How a geometry is drawn. Deleted has a shape of its own, so it reads without color; added and changed share the solid
+ * line and tell apart by the band of the old state beneath a changed object.
+ */
+export type DiffLook = "filled" | "crisp" | "ghost" | "crossed";
 
 export const getLook = (changeType: DiffChangeType, state: DiffState): DiffLook => {
-  if (changeType === "added") return "dotted";
-  if (changeType === "deleted") return "dashed";
+  if (changeType === "added") return "filled";
+  if (changeType === "deleted") return "crossed";
   return state === "old" ? "ghost" : "crisp";
 };
 
@@ -85,6 +88,14 @@ export const resolvePartType = (
   part: Geometry,
   objectType: DiffChangeType,
 ): DiffChangeType => index.get(objectId)?.[state].get(getPartKey(part)) ?? objectType;
+
+/** Whether the part has a geometry change of its own, as opposed to lying on an object changed in other values only. */
+export const hasOwnGeometryChange = (
+  index: PartTypeIndex,
+  objectId: string,
+  state: DiffState,
+  part: Geometry,
+): boolean => index.get(objectId)?.[state].has(getPartKey(part)) ?? false;
 
 // The diff tool writes coordinates to the millimeter, so a line on the edge of a surface lies within a millimeter of it.
 const EDGE_TOLERANCE = 0.001;

@@ -79,7 +79,7 @@
   "diffFieldChangeType": "Change type",
   "diffFieldValueType": "Value type",
   "diffLegendArea": "Area",
-  "diffLegendChangedHint": "Changed: the wide band shows before, the thin line after.",
+  "diffLegendChangedHint": "Changed: the wide band shows before, the thin line after. An area is filled only when its geometry changed.",
   "diffLegendLine": "Line",
   "diffLegendPoint": "Point",
   "diffMapLegend": "Legend",
