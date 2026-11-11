@@ -822,6 +822,26 @@ describe("Mandate with a reaction set", () => {
     });
   });
 
+  it("saves a set that asks the mandate for no values", () => {
+    stubCapabilities(true);
+    cy.intercept("GET", "/api/v1/mandate/9995", {
+      statusCode: 200,
+      body: { ...mandateWithReactionSet, reactionSetId: null, reactionSetValues: {} },
+    }).as("getMandate");
+
+    cy.visit("/admin/mandates/9995");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    // The second entry is the set without values. The server keeps the stored set when the values are left out.
+    setSelect("reactionSetId", 1, 3);
+    cy.dataCy("save-button").click();
+    savedMandate().then(body => {
+      expect(body.reactionSetId).to.equal("ablage");
+      expect(body.reactionSetValues).to.deep.equal({});
+    });
+  });
+
   it("removes the set with its values when none is chosen", () => {
     stubCapabilities(true);
 
