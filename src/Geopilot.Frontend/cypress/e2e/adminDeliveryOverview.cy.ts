@@ -1,5 +1,5 @@
 import type { DeliveryDetailResponse, DeliveryResponse } from "@/api/generated";
-import { ReactionState } from "@/api/generated";
+import { DeclarerKind, ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
@@ -67,6 +67,7 @@ describe("Admin delivery overview with reactions", () => {
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
       declarerName: "Kelvin Spencer",
+      declarerKind: DeclarerKind.Person,
       forwardingState,
       notificationState,
     }) satisfies DeliveryResponse;
