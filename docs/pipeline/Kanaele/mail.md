@@ -109,6 +109,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 ## Ablauf
 
 - Die Mail geht an `to`, `cc` und `bcc`, und mit `includeDeclarer` an den Lieferanten, sofern er eine Person mit Mail-Adresse ist. Bei einer maschinellen Lieferung geht sie an die aktiven Personen, die ein Admin für den Client verantwortlich gemacht hat, so wie die Zuordnung beim Versand steht; der Client selbst hat keine Adresse.
+- Jede Adresse bekommt die Mail einmal, auch wenn sie mehrfach vorkommt, etwa der Lieferant, der zugleich in `to` steht. Sie steht im ersten Feld, das sie nennt, `To` vor `Cc` vor `Bcc`, ohne Unterschied zwischen Gross- und Kleinschreibung.
 - Bleibt kein Empfänger, endet die Reaktion ohne Versand und ohne Fehler, mit einer Meldung dazu.
 - Weist der Server einen Empfänger ab, geht die Mail an niemanden hinaus. Der Versuch scheitert mit der abgewiesenen Adresse in der Meldung und wird wiederholt wie jeder andere, zuletzt steht die Reaktion auf `Error`. Ein falscher Empfänger fällt so auf, statt still zu fehlen. Korrigiert wird er am Mandat, für die folgenden Lieferungen.
 - Jeder andere Fehler des Servers zählt gleich: Der Versuch scheitert und wird wiederholt.

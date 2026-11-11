@@ -63,6 +63,23 @@ public class MailChannelTest
     }
 
     [TestMethod]
+    public void BuildMessageNamesEveryAddressOnce()
+    {
+        // The declarer is in To already, and Cc and Bcc repeat addresses in another case.
+        var channel = Channel(
+            to: ["empfang@example.com", "Lieferant@Example.com"],
+            cc: ["EMPFANG@example.com", "kopie@example.com"],
+            bcc: ["kopie@example.com", "archiv@example.com", "Archiv@example.com"],
+            includeDeclarer: true);
+
+        using var message = channel.BuildMessage(Delivery, []);
+
+        CollectionAssert.AreEqual(new[] { "empfang@example.com", "Lieferant@Example.com" }, message.To.Mailboxes.Select(mailbox => mailbox.Address).ToList());
+        Assert.AreEqual("kopie@example.com", message.Cc.Mailboxes.Single().Address);
+        Assert.AreEqual("archiv@example.com", message.Bcc.Mailboxes.Single().Address);
+    }
+
+    [TestMethod]
     [DataRow(false, DisplayName = "Switch off")]
     [DataRow(true, DisplayName = "Machine client without responsible users")]
     public void BuildMessageLeavesOutTheDeclarer(bool includeDeclarer)

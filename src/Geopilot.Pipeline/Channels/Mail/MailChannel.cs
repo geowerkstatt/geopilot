@@ -171,14 +171,17 @@ internal sealed class MailChannel : IDeliveryChannel
             Body = new TextPart(TextFormat.Html) { Text = template.RenderBody(delivery, fileNames, TimeZoneInfo.Local) },
         };
         message.From.Add(sender);
-        message.To.AddRange(to);
-        if (includeDeclarer)
-            message.To.AddRange(DeclarerAddresses(delivery.Declarer));
 
-        message.Cc.AddRange(cc);
-        message.Bcc.AddRange(bcc);
+        // Every address gets the mail once, in the first field that names it: To before Cc before Bcc.
+        var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        message.To.AddRange(NotYetNamed(includeDeclarer ? to.Concat(DeclarerAddresses(delivery.Declarer)) : to, named));
+        message.Cc.AddRange(NotYetNamed(cc, named));
+        message.Bcc.AddRange(NotYetNamed(bcc, named));
         return message;
     }
+
+    private static List<MailboxAddress> NotYetNamed(IEnumerable<MailboxAddress> mailboxes, HashSet<string> named)
+        => mailboxes.Where(mailbox => named.Add(mailbox.Address)).ToList();
 
     // A person gets the mail at the own address; a machine client has none and gets it through the users responsible for it.
     private static IEnumerable<MailboxAddress> DeclarerAddresses(DeclarerInfo declarer)

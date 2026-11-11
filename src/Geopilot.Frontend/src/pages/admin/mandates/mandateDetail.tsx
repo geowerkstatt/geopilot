@@ -118,10 +118,13 @@ const MandateDetail = () => {
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
 
-    // Without a set, the empty values make the server drop the stored ones; values left out would be kept.
+    // The server keeps the stored set when the values are left out. Without a set, the empty values make it drop the
+    // stored ones, and a set that asks for no values has no fields in the form, so it still sends empty ones.
     if (!formData["reactionSetId"]) {
       mandate.reactionSetId = null;
       mandate.reactionSetValues = {};
+    } else {
+      mandate.reactionSetValues ??= {};
     }
 
     // Only a selection has options, so every other field leaves them out, like the server does. A field switched away
