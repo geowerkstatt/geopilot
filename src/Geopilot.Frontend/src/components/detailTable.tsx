@@ -21,7 +21,7 @@ export const DetailTable: FC<DetailTableProps> = ({ columns, dataCy, children })
     sx={{
       tableLayout: "fixed",
       "& td": { overflowWrap: "anywhere" },
-      "& th, & td": { paddingLeft: 0, textAlign: "left", verticalAlign: "top", fontSize: px2rem(16) },
+      "& th, & td": { paddingLeft: 1, textAlign: "left", verticalAlign: "top", fontSize: px2rem(16) },
       "& thead th": { paddingTop: 0 },
       // The same hover as the rows of a data grid.
       "& tbody tr:hover": { backgroundColor: "action.hover" },
