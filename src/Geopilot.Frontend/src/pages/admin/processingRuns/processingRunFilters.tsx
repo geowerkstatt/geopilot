@@ -5,8 +5,7 @@ import { MachineClient, Mandate, PipelineRunStateFilter, User } from "../../../a
 import { TranslationKey } from "../../../appInterfaces";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { FilterBar } from "../../../components/filterBar.tsx";
-import { FormAutocomplete } from "../../../components/form/form.ts";
-import { FormDateTimePicker } from "../../../components/form/formDateTimePicker.tsx";
+import { FormAutocomplete, FormInput, FormValueType } from "../../../components/form/form.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { emptyProcessingRunFilters, parseJobId, ProcessingRunFilterValues } from "./processingRunQuery.ts";
@@ -121,13 +120,15 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
       collapsible={narrow}
       columns={5}
       dataCy="processingRunFilters">
-      <FormDateTimePicker
+      <FormInput
+        type={FormValueType.DateTime}
         label="periodFrom"
         value={values.from}
         onChange={changeTime("from")}
         dataCy="processingRunFilter-from"
       />
-      <FormDateTimePicker
+      <FormInput
+        type={FormValueType.DateTime}
         label="periodTo"
         value={values.to}
         onChange={changeTime("to")}

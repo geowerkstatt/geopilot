@@ -32,7 +32,7 @@ import {
   uploadFile,
   waitForProcessingToFinish,
 } from "./helpers/deliveryHelpers";
-import { hasError, setChipInput, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers";
+import { hasError, setChipInput, setDate, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {
@@ -588,7 +588,7 @@ describe("Delivery metadata fields", () => {
     setChipInput("metadata.municipalities", "Aarau");
     setSelect("metadata.responsible", 0);
     setInput("metadata.parcel_count", "12");
-    setInput("metadata.due_date", "2026-11-04");
+    setDate("metadata.due_date", "2026-11-04");
 
     cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();

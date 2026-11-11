@@ -209,6 +209,11 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         size: "small",
       },
+      styleOverrides: {
+        root: {
+          flex: "1",
+        },
+      },
     },
     MuiPickersOutlinedInput: {
       defaultProps: {
@@ -232,6 +237,25 @@ export const geopilotTheme = createTheme({
         paper: {
           border: `1px solid ${themePalette.primary.light}`,
           borderRadius: themeRadius.default,
+        },
+      },
+    },
+    MuiPickersToolbar: {
+      styleOverrides: {
+        root: {
+          // The heading margins of the app would push the picked date and time out of line.
+          "& .MuiTypography-h3, & .MuiTypography-h4, & .MuiTypography-h5": {
+            marginTop: 0,
+            marginBottom: 0,
+          },
+        },
+      },
+    },
+    MuiDateTimePickerToolbar: {
+      styleOverrides: {
+        // On the line of the date rather than between the year and the date.
+        timeContainer: {
+          alignSelf: "flex-end",
         },
       },
     },
