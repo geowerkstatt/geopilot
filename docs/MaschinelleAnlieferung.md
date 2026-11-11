@@ -41,8 +41,8 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 
 ### Variante mit vorherigem Upload
 
-1. `POST api/v2/upload` meldet die Dateien mit Name und Grösse an und liefert je Datei eine Upload-URL.
-2. Der Client lädt jede Datei an die zurückgegebene URL hoch.
+1. `POST api/v2/upload` meldet die Dateien mit Name und Grösse an und liefert je Datei eine Upload-URL (`uploadUrl`) mit den Headern für den Upload (`uploadHeaders`).
+2. Der Client lädt jede Datei mit `PUT` an die zurückgegebene URL hoch und sendet dabei alle Header aus `uploadHeaders` mit. Welche Header der Object Storage verlangt, hängt vom Provider der Installation ab.
 3. `POST api/v1/submission` startet den Versuch:
 
 ```json

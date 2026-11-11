@@ -83,6 +83,8 @@ public class UploadOrchestrationServiceTest
         uploadStorageMock
             .Setup(s => s.GenerateUploadUrlAsync(It.IsAny<string>(), null, It.IsAny<TimeSpan>()))
             .ReturnsAsync("https://storage.example.com/presigned-url");
+        var uploadHeaders = new Dictionary<string, string> { ["x-test-header"] = "value" };
+        uploadStorageMock.SetupGet(s => s.UploadHeaders).Returns(uploadHeaders);
 
         var response = await service.InitiateUploadAsync(request);
 
@@ -91,6 +93,7 @@ public class UploadOrchestrationServiceTest
         Assert.HasCount(1, response.Files);
         Assert.AreEqual("test.xtf", response.Files[0].FileName);
         Assert.AreEqual("https://storage.example.com/presigned-url", response.Files[0].UploadUrl);
+        Assert.AreSame(uploadHeaders, response.Files[0].UploadHeaders);
 
         var upload = uploadStore.GetUpload(response.UploadId);
         Assert.IsNotNull(upload);

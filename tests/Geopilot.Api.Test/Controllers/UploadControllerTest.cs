@@ -56,7 +56,7 @@ public sealed class UploadControllerTest
         var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
         var expectedResponse = new InitiateUploadResponse(
             Guid.NewGuid(),
-            [new FileUploadInfo("test.xtf", "https://storage.example.com/presigned-url")],
+            [new FileUploadInfo("test.xtf", "https://storage.example.com/presigned-url", new Dictionary<string, string>())],
             DateTime.UtcNow.AddHours(1));
 
         orchestrationServiceMock

@@ -12,8 +12,9 @@ public static class UploadServiceExtensions
     /// <summary>
     /// Registers the upload services on <paramref name="builder"/>.
     /// Only the storage backend differs between the modes; everything downstream (orchestration,
-    /// preflight, scan, cleanup) works against <see cref="IUploadStorage"/>. Each backend's options are
-    /// bound and validated only in its own branch, so a deployment configures exactly one of the two sections.
+    /// preflight, scan, cleanup) works against <see cref="IUploadStorage"/>. Each backend's options, and in
+    /// the cloud mode each provider's options, are bound and validated only in their own branch, so a
+    /// deployment configures only the sections of its backend and provider.
     /// </summary>
     /// <returns>The configured <see cref="UploadBackend"/>, which also decides the endpoint mapping.</returns>
     public static UploadBackend AddUploadServices(this WebApplicationBuilder builder)
@@ -38,11 +39,7 @@ public static class UploadServiceExtensions
         }
         else
         {
-            builder.Services.AddOptions<UploadCloudOptions>()
-                .BindConfiguration(UploadCloudOptions.SectionName)
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-            builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
+            AddCloudUploadStorage(builder);
         }
 
         builder.Services.AddTransient<IUploadOrchestrationService, UploadOrchestrationService>();
@@ -60,5 +57,32 @@ public static class UploadServiceExtensions
         }
 
         return uploadBackend;
+    }
+
+    private static void AddCloudUploadStorage(WebApplicationBuilder builder)
+    {
+        var cloudOptions = builder.Services.AddOptions<UploadCloudOptions>()
+            .BindConfiguration(UploadCloudOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        var provider = builder.Configuration.GetValue($"{UploadCloudOptions.SectionName}:{nameof(UploadCloudOptions.Provider)}", CloudStorageProvider.AzureBlob);
+        if (provider == CloudStorageProvider.S3)
+        {
+            builder.Services.AddOptions<UploadS3Options>()
+                .BindConfiguration(UploadS3Options.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+            builder.Services.AddSingleton<S3UploadStorage>();
+            builder.Services.AddSingleton<IUploadStorage>(sp => sp.GetRequiredService<S3UploadStorage>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<S3UploadStorage>());
+        }
+        else
+        {
+            cloudOptions.Validate(
+                options => !string.IsNullOrWhiteSpace(options.ConnectionString),
+                "Upload:Cloud:ConnectionString is required for the AzureBlob provider.");
+            builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
+        }
     }
 }

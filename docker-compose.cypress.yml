@@ -1,6 +1,6 @@
 services:
   geopilot:
     environment:
-      # Cypress exercises the cloud-upload (Azurite) flow from docker-compose.yml;
-      # auto-create the blob container so it exists on each run.
+      # Cypress exercises the cloud-upload (SeaweedFS) flow from docker-compose.yml;
+      # auto-create the bucket so it exists on each run.
       Upload__Cloud__AutoCreateContainer: "true"

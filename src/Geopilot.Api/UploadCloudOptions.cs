@@ -1,9 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Api.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Api;
 
 /// <summary>
-/// Settings of the cloud upload backend: the Azure Blob Storage connection and the
+/// Settings of the cloud upload backend: the object storage provider, the bucket and the
 /// deployment surface only a browser-to-storage upload needs (CORS, CSP endpoint).
 /// </summary>
 public class UploadCloudOptions
@@ -14,10 +15,14 @@ public class UploadCloudOptions
     public static string SectionName => "Upload:Cloud";
 
     /// <summary>
-    /// The Azure Blob Storage connection string.
+    /// The object storage service. The S3 provider reads its connection from <see cref="UploadS3Options"/>.
     /// </summary>
-    [Required(AllowEmptyStrings = false)]
-    public required string ConnectionString { get; set; }
+    public CloudStorageProvider Provider { get; set; } = CloudStorageProvider.AzureBlob;
+
+    /// <summary>
+    /// The Azure Blob Storage connection string. Required for <see cref="CloudStorageProvider.AzureBlob"/>.
+    /// </summary>
+    public string? ConnectionString { get; set; }
 
     /// <summary>
     /// The name of the storage bucket.
