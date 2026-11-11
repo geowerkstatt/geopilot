@@ -73,4 +73,15 @@ public class LocalizedTextExtensionsTest
         var text = new LocalizedText(new Dictionary<string, string> { ["de"] = "Hallo", ["en"] = "Hello" });
         Assert.AreEqual("Hello", text.GetDisplayText("it"));
     }
+
+    [TestMethod]
+    public void FormatFillsEveryLanguageAndLeavesPlaceholdersInTheValuesAlone()
+    {
+        var format = new LocalizedText(new Dictionary<string, string> { ["de"] = "{0} Dateien in <{1}>", ["en"] = "{0} files in <{1}>" });
+
+        var text = format.Format(2.5, "a{0}b");
+
+        Assert.AreEqual("2.5 Dateien in <a{0}b>", text["de"]);
+        Assert.AreEqual("2.5 files in <a{0}b>", text["en"]);
+    }
 }

@@ -27,7 +27,8 @@ public class MailChannelIntegrationTest
 
         var result = await channel.DeliverAsync(delivery, [new NamedFile("daten.xtf")], CancellationToken.None);
 
-        Assert.AreEqual(ChannelResult.Success("The mail went to 3 recipients."), result);
+        Assert.IsTrue(result.Delivered);
+        Assert.AreEqual("The mail went to 3 recipients.", result.Message["en"]);
         var mail = await FindAsync(Mailpit, delivery);
         Assert.IsNotNull(mail, "The mail did not arrive.");
         Assert.AreEqual("Lieferung 42 für Mandat A", mail.Subject);
@@ -44,7 +45,8 @@ public class MailChannelIntegrationTest
 
         var result = await channel.DeliverAsync(delivery, [], CancellationToken.None);
 
-        Assert.AreEqual(ChannelResult.Success("The mail went to 1 recipient."), result);
+        Assert.IsTrue(result.Delivered);
+        Assert.AreEqual("The mail went to 1 recipient.", result.Message["en"]);
         Assert.IsNotNull(await FindAsync(MailpitTls, delivery), "The mail did not arrive.");
     }
 
@@ -57,8 +59,8 @@ public class MailChannelIntegrationTest
         var result = await channel.DeliverAsync(delivery, [], CancellationToken.None);
 
         Assert.IsFalse(result.Delivered);
-        Assert.StartsWith("The mail could not be sent through <localhost:1026>:", result.Message);
-        Assert.DoesNotContain("falsch", result.Message);
+        Assert.StartsWith("The mail could not be sent through <localhost:1026>:", result.Message["en"]);
+        Assert.DoesNotContain("falsch", result.Message["en"]);
     }
 
     [TestMethod]
@@ -81,7 +83,7 @@ public class MailChannelIntegrationTest
         }
 
         Assert.IsFalse(result.Delivered);
-        Assert.StartsWith("The mail server refused the recipient <empfang@example.com>, so the mail went to nobody:", result.Message);
+        Assert.StartsWith("The mail server refused the recipient <empfang@example.com>, so the mail went to nobody:", result.Message["en"]);
         Assert.IsNull(await FindAsync(Mailpit, delivery), "The mail went out although a recipient was refused.");
     }
 

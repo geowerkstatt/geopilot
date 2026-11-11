@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Models;
 
@@ -82,5 +83,5 @@ public class DeliveryReaction
     /// <summary>
     /// What the last attempt reported, for the operators: why it failed, or what it did.
     /// </summary>
-    public string? Message { get; set; }
+    public LocalizedText? Message { get; set; }
 }

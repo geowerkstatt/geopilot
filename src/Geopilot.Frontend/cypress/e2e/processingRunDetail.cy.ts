@@ -86,7 +86,7 @@ describe("Processing run", () => {
                     occurredAt: "2026-11-06T15:05:00Z",
                     finishedAt: "2026-11-06T15:05:01Z",
                     state: ReactionState.Done,
-                    message: "Delivered to the target.",
+                    message: { en: "Delivered to the target." },
                   },
                 ],
               }

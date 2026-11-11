@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -20,9 +21,21 @@ public class ReactionStore
     // Each lost claim means another instance took that reaction, so a few rounds suffice; the next poll tries again.
     private const int ClaimRounds = 5;
 
-    private const string LastAttemptLostMessage = "The last attempt did not report back before its lock ran out.";
+    private static readonly LocalizedText LastAttemptLostMessage = new Dictionary<string, string>
+    {
+        { "de", "Der letzte Versuch hat sich nicht zurückgemeldet, bevor seine Sperre abgelaufen ist." },
+        { "fr", "La dernière tentative n'a pas donné de nouvelles avant l'expiration de son verrou." },
+        { "it", "L'ultimo tentativo non ha dato riscontro prima della scadenza del suo blocco." },
+        { "en", "The last attempt did not report back before its lock ran out." },
+    };
 
-    private const string DeliveryDeletedMessage = "The delivery was deleted.";
+    private static readonly LocalizedText DeliveryDeletedMessage = new Dictionary<string, string>
+    {
+        { "de", "Die Lieferung wurde gelöscht." },
+        { "fr", "La livraison a été supprimée." },
+        { "it", "La consegna è stata eliminata." },
+        { "en", "The delivery was deleted." },
+    };
 
     private readonly DeliveryReactionOptions options;
     private readonly ILogger<ReactionStore> logger;
@@ -82,7 +95,7 @@ public class ReactionStore
     /// </summary>
     /// <returns><see cref="ReactionState.Done"/>, or <see langword="null"/> when the attempt no longer holds the
     /// reaction.</returns>
-    public async Task<ReactionState?> CompleteAsync(Context context, DeliveryReaction reaction, string? message, CancellationToken cancellationToken)
+    public async Task<ReactionState?> CompleteAsync(Context context, DeliveryReaction reaction, LocalizedText? message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(reaction);
@@ -104,7 +117,7 @@ public class ReactionStore
     /// </summary>
     /// <returns><see cref="ReactionState.Pending"/> when another attempt follows, <see cref="ReactionState.Error"/>
     /// when the reaction gave up, or <see langword="null"/> when the attempt no longer holds the reaction.</returns>
-    public async Task<ReactionState?> FailAsync(Context context, DeliveryReaction reaction, string message, CancellationToken cancellationToken)
+    public async Task<ReactionState?> FailAsync(Context context, DeliveryReaction reaction, LocalizedText message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(reaction);
@@ -184,7 +197,7 @@ public class ReactionStore
                     .SetProperty(r => r.NextAttemptAt, r => DateTime.UtcNow)
                     .SetProperty(r => r.LastAttemptAt, (DateTime?)null)
                     .SetProperty(r => r.FinishedAt, (DateTime?)null)
-                    .SetProperty(r => r.Message, (string?)null),
+                    .SetProperty(r => r.Message, (LocalizedText?)null),
                 cancellationToken);
         if (updated == 0)
             return null;

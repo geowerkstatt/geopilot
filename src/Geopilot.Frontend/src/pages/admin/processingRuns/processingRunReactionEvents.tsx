@@ -5,6 +5,7 @@ import { PipelineRunReactionEventResponse, ReactionEvent, ReactionKind } from ".
 import { TranslationKey } from "../../../appInterfaces";
 import { DetailTable } from "../../../components/detailTable.tsx";
 import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 
 interface ProcessingRunReactionEventsProps {
@@ -25,6 +26,7 @@ const reactionEventKey: Record<ReactionEvent, TranslationKey> = {
 /** What happened to the reactions of the delivery a run produced, in the order it happened. */
 export const ProcessingRunReactionEvents: FC<ProcessingRunReactionEventsProps> = ({ events }) => {
   const { t } = useTranslation();
+  const { localized } = useLocalized();
 
   if (events.length === 0) {
     return (
@@ -52,7 +54,7 @@ export const ProcessingRunReactionEvents: FC<ProcessingRunReactionEventsProps> =
             <TableCell>{t(reactionKindKey[reactionEvent.reactionKind])}</TableCell>
             <TableCell>{t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}</TableCell>
             <TableCell>{reactionEvent.state && <ReactionStateLabel state={reactionEvent.state} />}</TableCell>
-            <TableCell>{reactionEvent.message}</TableCell>
+            <TableCell>{localized(reactionEvent.message ?? undefined)}</TableCell>
           </TableRow>
         ))}
       </DetailTable>

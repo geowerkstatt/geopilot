@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Models;
+﻿using Geopilot.PipelineCore.Pipeline;
+
+namespace Geopilot.Api.Models;
 
 /// <summary>
 /// Something that happened to a reaction of the delivery a run produced: an attempt through its channel, a reset or
@@ -70,7 +72,7 @@ public class PipelineRunReactionEvent
     /// <summary>
     /// What the channel reported, or why the attempt failed.
     /// </summary>
-    public string? Message { get; set; }
+    public LocalizedText? Message { get; set; }
 
     /// <summary>
     /// The user who caused the event, such as the one who deleted the delivery, or <see langword="null"/> when the

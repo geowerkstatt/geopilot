@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test.Channels;
@@ -400,7 +401,7 @@ internal sealed class TargetChannel : IDeliveryChannel
     public int? TimeoutSeconds { get; }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class TwoConstructorsChannel : IDeliveryChannel
@@ -415,7 +416,7 @@ internal sealed class TwoConstructorsChannel : IDeliveryChannel
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class NoChannel
@@ -430,7 +431,7 @@ internal sealed class SecretChannel : IDeliveryChannel
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class SwitchChannel : IDeliveryChannel
@@ -446,7 +447,7 @@ internal sealed class SwitchChannel : IDeliveryChannel
     public bool Confirmed { get; }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class TemplateChannel : IDeliveryChannel
@@ -459,7 +460,7 @@ internal sealed class TemplateChannel : IDeliveryChannel
     public string Template { get; }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class NumericTemplateChannel : IDeliveryChannel
@@ -470,7 +471,7 @@ internal sealed class NumericTemplateChannel : IDeliveryChannel
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class RefusingChannel : IDeliveryChannel
@@ -484,7 +485,7 @@ internal sealed class RefusingChannel : IDeliveryChannel
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }
 
 internal sealed class CountChannel : IDeliveryChannel
@@ -495,5 +496,5 @@ internal sealed class CountChannel : IDeliveryChannel
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
-        => Task.FromResult(ChannelResult.Success("Delivered."));
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
 }

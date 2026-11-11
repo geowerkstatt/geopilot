@@ -1,4 +1,5 @@
-﻿using MailKit;
+﻿using Geopilot.PipelineCore.Pipeline;
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -17,6 +18,47 @@ namespace Geopilot.Pipeline.Channels.Mail;
 /// </summary>
 internal sealed class MailChannel : IDeliveryChannel
 {
+    private static readonly LocalizedText NoRecipientMessage = new Dictionary<string, string>
+    {
+        { "de", "Die Mail hat keine Empfänger, deshalb wurde keine verschickt." },
+        { "fr", "L'e-mail n'a aucun destinataire, aucun n'a donc été envoyé." },
+        { "it", "L'e-mail non ha destinatari, quindi non ne è stata inviata nessuna." },
+        { "en", "The mail has no recipient, so none was sent." },
+    };
+
+    // The last value of a failure is what the mail server or the connection reported, untranslated.
+    private static readonly LocalizedText RecipientRefusedMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Mailserver hat den Empfänger <{0}> abgelehnt, deshalb ging die Mail an niemanden: {1}" },
+        { "fr", "Le serveur de messagerie a refusé le destinataire <{0}>, l'e-mail n'a donc été envoyé à personne: {1}" },
+        { "it", "Il server di posta ha rifiutato il destinatario <{0}>, quindi l'e-mail non è stata inviata a nessuno: {1}" },
+        { "en", "The mail server refused the recipient <{0}>, so the mail went to nobody: {1}" },
+    };
+
+    private static readonly LocalizedText SendFailedMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Die Mail konnte nicht über <{0}:{1}> verschickt werden: {2}" },
+        { "fr", "L'e-mail n'a pas pu être envoyé via <{0}:{1}>: {2}" },
+        { "it", "Non è stato possibile inviare l'e-mail tramite <{0}:{1}>: {2}" },
+        { "en", "The mail could not be sent through <{0}:{1}>: {2}" },
+    };
+
+    private static readonly LocalizedText OneRecipientMessage = new Dictionary<string, string>
+    {
+        { "de", "Die Mail ging an 1 Empfänger." },
+        { "fr", "L'e-mail a été envoyé à 1 destinataire." },
+        { "it", "L'e-mail è stata inviata a 1 destinatario." },
+        { "en", "The mail went to 1 recipient." },
+    };
+
+    private static readonly LocalizedText RecipientsMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Die Mail ging an {0} Empfänger." },
+        { "fr", "L'e-mail a été envoyé à {0} destinataires." },
+        { "it", "L'e-mail è stata inviata a {0} destinatari." },
+        { "en", "The mail went to {0} recipients." },
+    };
+
     private readonly string host;
     private readonly int port;
     private readonly MailboxAddress sender;
@@ -91,7 +133,7 @@ internal sealed class MailChannel : IDeliveryChannel
         using var message = BuildMessage(delivery, files.Select(file => file.Name).ToList());
         var recipients = message.To.Count + message.Cc.Count + message.Bcc.Count;
         if (recipients == 0)
-            return ChannelResult.Success("The mail has no recipient, so none was sent.");
+            return ChannelResult.Success(NoRecipientMessage);
 
         try
         {
@@ -106,14 +148,14 @@ internal sealed class MailChannel : IDeliveryChannel
         }
         catch (SmtpCommandException ex) when (ex.ErrorCode == SmtpErrorCode.RecipientNotAccepted)
         {
-            return ChannelResult.Failure($"The mail server refused the recipient <{ex.Mailbox?.Address}>, so the mail went to nobody: {ex.Message}");
+            return ChannelResult.Failure(RecipientRefusedMessageFormat.Format(ex.Mailbox?.Address, ex.Message));
         }
         catch (Exception ex) when (ex is CommandException or ProtocolException or AuthenticationException or SslHandshakeException or NotSupportedException or IOException or SocketException)
         {
-            return ChannelResult.Failure($"The mail could not be sent through <{host}:{port}>: {ex.Message}");
+            return ChannelResult.Failure(SendFailedMessageFormat.Format(host, port, ex.Message));
         }
 
-        return ChannelResult.Success(recipients == 1 ? "The mail went to 1 recipient." : $"The mail went to {recipients} recipients.");
+        return ChannelResult.Success(recipients == 1 ? OneRecipientMessage : RecipientsMessageFormat.Format(recipients));
     }
 
     /// <summary>
@@ -129,14 +171,17 @@ internal sealed class MailChannel : IDeliveryChannel
             Body = new TextPart(TextFormat.Html) { Text = template.RenderBody(delivery, fileNames, TimeZoneInfo.Local) },
         };
         message.From.Add(sender);
-        message.To.AddRange(to);
-        if (includeDeclarer)
-            message.To.AddRange(DeclarerAddresses(delivery.Declarer));
 
-        message.Cc.AddRange(cc);
-        message.Bcc.AddRange(bcc);
+        // Every address gets the mail once, in the first field that names it: To before Cc before Bcc.
+        var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        message.To.AddRange(NotYetNamed(includeDeclarer ? to.Concat(DeclarerAddresses(delivery.Declarer)) : to, named));
+        message.Cc.AddRange(NotYetNamed(cc, named));
+        message.Bcc.AddRange(NotYetNamed(bcc, named));
         return message;
     }
+
+    private static List<MailboxAddress> NotYetNamed(IEnumerable<MailboxAddress> mailboxes, HashSet<string> named)
+        => mailboxes.Where(mailbox => named.Add(mailbox.Address)).ToList();
 
     // A person gets the mail at the own address; a machine client has none and gets it through the users responsible for it.
     private static IEnumerable<MailboxAddress> DeclarerAddresses(DeclarerInfo declarer)

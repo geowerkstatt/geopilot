@@ -70,7 +70,7 @@ export const ReactionsTable: FC<ReactionsTableProps> = ({ reactions, forwarded, 
           </TableCell>
           <TableCell>{reaction.attempts}</TableCell>
           <TableCell>{describeTime(reaction)}</TableCell>
-          <TableCell>{reaction.message}</TableCell>
+          <TableCell>{localized(reaction.message ?? undefined)}</TableCell>
           <TableCell sx={{ paddingY: 0 }}>
             {reaction.state === ReactionState.Error && (
               <IconButton
