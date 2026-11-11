@@ -1,3 +1,5 @@
+import { PipelineRunStateFilter } from "../../../api/generated";
+
 /** The state a run is opened with from the list: the query of the list, so going back shows the same runs. */
 export const listQueryState = (listQuery: string) => ({ listQuery });
 
@@ -54,16 +56,28 @@ const readTime = (params: URLSearchParams, field: (typeof timeFields)[number]) =
   return Number.isNaN(new Date(time).getTime()) ? "" : time;
 };
 
-/** The filters and the page from the address of the list; an unreadable time sets no filter, an unreadable page the first. */
+// Ids as the API binds them, at most nine digits so that they fit its whole numbers.
+const declarerPattern = /^(person|machineClient):\d{1,9}$/;
+const idPattern = /^\d{1,9}$/;
+const stateFilters: readonly string[] = Object.values(PipelineRunStateFilter);
+
+// A value the API cannot take would fail the whole list.
+const readList = (
+  params: URLSearchParams,
+  field: (typeof listFields)[number],
+  isReadable: (value: string) => boolean,
+) => params.getAll(listSearchParamNames[field]).filter(isReadable);
+
+/** The filters and the page from the address of the list; an unreadable value sets no filter, an unreadable page the first. */
 export const readProcessingRunSearchParams = (
   params: URLSearchParams,
 ): { filters: ProcessingRunFilterValues; page: number } => {
   const filters: ProcessingRunFilterValues = {
     from: readTime(params, "from"),
     to: readTime(params, "to"),
-    declarers: params.getAll(listSearchParamNames.declarers),
-    mandateIds: params.getAll(listSearchParamNames.mandateIds),
-    states: params.getAll(listSearchParamNames.states),
+    declarers: readList(params, "declarers", value => declarerPattern.test(value)),
+    mandateIds: readList(params, "mandateIds", value => idPattern.test(value)),
+    states: readList(params, "states", value => stateFilters.includes(value)),
   };
   const page = Number.parseInt(params.get("page") ?? "", 10);
   return { filters, page: Number.isNaN(page) || page < 0 ? 0 : page };

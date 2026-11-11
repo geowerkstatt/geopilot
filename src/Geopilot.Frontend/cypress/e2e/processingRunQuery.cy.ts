@@ -94,4 +94,17 @@ describe("pipeline run query", () => {
     expect(filters).to.deep.equal({ ...emptyProcessingRunFilters, states: ["failed"] });
     expect(toProcessingRunQuery(filters, page, 25)).to.equal("page=0&pageSize=25&states=failed");
   });
+
+  it("drops the declarers, mandates and states in the address that the API cannot take", () => {
+    const params = new URLSearchParams(
+      "declarer=person:12&declarer=foo&declarer=machineClient:&declarer=person:1234567890" +
+        "&mandate=5&mandate=abc&mandate=-1&state=open&state=bogus",
+    );
+
+    const { filters } = readProcessingRunSearchParams(params);
+
+    expect(filters.declarers).to.deep.equal(["person:12"]);
+    expect(filters.mandateIds).to.deep.equal(["5"]);
+    expect(filters.states).to.deep.equal(["open"]);
+  });
 });
