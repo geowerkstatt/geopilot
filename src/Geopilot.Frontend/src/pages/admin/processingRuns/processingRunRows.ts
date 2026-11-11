@@ -5,4 +5,4 @@ export type ProcessingRunRow = PipelineRunSummaryResponse & { attemptCount: numb
 
 /** The rows of a page: each delivery by its newest attempt, with how many attempts it had. */
 export const toProcessingRunRows = (groups: PipelineRunGroupResponse[]): ProcessingRunRow[] =>
-  groups.map(group => ({ ...group.latest, attemptCount: group.earlierAttempts.length + 1 }));
+  groups.map(group => ({ ...group.latest, attemptCount: group.attemptCount }));

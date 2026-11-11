@@ -77,13 +77,10 @@ public class PipelineRunController : ControllerBase
                 .Take(pageSize))
             .ToListAsync();
 
-        var earlierAttempts = await LoadEarlierAttemptsAsync(pageRuns);
-        var allRuns = pageRuns.Concat(earlierAttempts.Values.SelectMany(attempts => attempts));
-        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, allRuns.Select(r => r.JobId).ToList());
+        var attemptCounts = await CountAttemptsAsync(pageRuns);
+        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, pageRuns.Select(r => r.JobId).ToList());
         var items = pageRuns
-            .Select(run => new PipelineRunGroupResponse(
-                ToSummary(run, deliveries),
-                earlierAttempts[run.Id].Select(attempt => ToSummary(attempt, deliveries)).ToList()))
+            .Select(run => new PipelineRunGroupResponse(ToSummary(run, deliveries), attemptCounts.GetValueOrDefault(GroupKeyOf(run), 1)))
             .ToList();
 
         return Ok(new PipelineRunPageResponse(totalCount, items));
@@ -212,40 +209,24 @@ public class PipelineRunController : ControllerBase
             .ToListAsync();
     }
 
-    // shortcut: the earlier attempts come with the page; load them when a group is expanded if groups grow large, as
-    // they do for a client that keeps sending one reference.
-    private async Task<Dictionary<int, List<PipelineRun>>> LoadEarlierAttemptsAsync(IReadOnlyList<PipelineRun> latestRuns)
+    // Counts the groups of LatestAttemptOfEachGroup that the given runs stand for. A run without reference is a group
+    // of its own and has no entry.
+    private async Task<Dictionary<(string? ClientReference, int? UserId, int? MachineClientId, int? MandateId), int>> CountAttemptsAsync(IReadOnlyList<PipelineRun> latestRuns)
     {
-        // Each part of the key narrows the query, so two senders with the same numbering do not load each other's
-        // runs; IsSameGroup then matches the parts together.
-        var grouped = latestRuns.Where(r => r.ClientReference is not null).ToList();
-        var references = grouped.Select(r => r.ClientReference).Distinct().ToList();
-        var mandateIds = grouped.Select(r => r.MandateId).Distinct().ToList();
-        var userIds = grouped.Where(r => r.UserId is not null).Select(r => r.UserId).Distinct().ToList();
-        var machineClientIds = grouped.Where(r => r.MachineClientId is not null).Select(r => r.MachineClientId).Distinct().ToList();
-        var candidates = await WithSummaryIncludes(context.PipelineRuns.AsNoTracking().Where(r =>
-                references.Contains(r.ClientReference)
-                && mandateIds.Contains(r.MandateId)
-                && (userIds.Contains(r.UserId) || machineClientIds.Contains(r.MachineClientId))))
-            .ToListAsync();
+        var references = latestRuns.Where(r => r.ClientReference is not null).Select(r => r.ClientReference).Distinct().ToList();
+        if (references.Count == 0)
+            return [];
 
-        // Earlier means a lower id, as in LatestAttemptOfEachGroup: an attempt started after the page was read is newer.
-        return latestRuns.ToDictionary(
-            latest => latest.Id,
-            latest => candidates
-                .Where(run => run.Id < latest.Id && IsSameGroup(run, latest))
-                .OrderByDescending(run => run.Id)
-                .ToList());
+        var groups = await context.PipelineRuns
+            .Where(r => references.Contains(r.ClientReference))
+            .GroupBy(r => new { r.ClientReference, r.UserId, r.MachineClientId, r.MandateId })
+            .Select(group => new { group.Key, Count = group.Count() })
+            .ToListAsync();
+        return groups.ToDictionary(group => (group.Key.ClientReference, group.Key.UserId, group.Key.MachineClientId, group.Key.MandateId), group => group.Count);
     }
 
-    // The group key of LatestAttemptOfEachGroup, for runs already loaded: the reference compared exactly, a missing
-    // one never matching.
-    private static bool IsSameGroup(PipelineRun run, PipelineRun other)
-        => run.ClientReference is not null
-            && string.Equals(run.ClientReference, other.ClientReference, StringComparison.Ordinal)
-            && run.UserId == other.UserId
-            && run.MachineClientId == other.MachineClientId
-            && run.MandateId == other.MandateId;
+    private static (string? ClientReference, int? UserId, int? MachineClientId, int? MandateId) GroupKeyOf(PipelineRun run)
+        => (run.ClientReference, run.UserId, run.MachineClientId, run.MandateId);
 
     private static IQueryable<PipelineRun> WithSummaryIncludes(IQueryable<PipelineRun> runs)
         => runs.Include(r => r.Steps).Include(r => r.User).Include(r => r.MachineClient).Include(r => r.Mandate);

@@ -50,7 +50,7 @@ describe("Pipeline runs on a full page", () => {
           totalCount: 200,
           items: Array.from({ length: pageSize }, (_, index) => ({
             latest: { ...groups.items[0].latest, jobId: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}` },
-            earlierAttempts: [],
+            attemptCount: 1,
           })),
         });
       }).as("runs");

@@ -391,8 +391,8 @@ public sealed class PipelineRunControllerTest
     {
         var client = AddMachineClient();
         var mandate = context.Mandates.First();
-        var first = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
-        var second = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
         var third = SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
 
         var page = await List(InWindow());
@@ -401,7 +401,7 @@ public sealed class PipelineRunControllerTest
         var group = page.Items.Single();
         Assert.AreEqual(third.JobId, group.Latest.JobId);
         Assert.AreEqual("AV-1", group.Latest.ClientReference);
-        CollectionAssert.AreEqual(new[] { second.JobId, first.JobId }, group.EarlierAttempts.Select(a => a.JobId).ToArray(), "The earlier attempts follow, newest first.");
+        Assert.AreEqual(3, group.AttemptCount);
     }
 
     [TestMethod]
@@ -452,7 +452,7 @@ public sealed class PipelineRunControllerTest
         var page = await List(InWindow());
 
         Assert.AreEqual(5, page.TotalCount, "Another client, a person, another mandate or another spelling is another delivery.");
-        Assert.IsTrue(page.Items.All(group => group.EarlierAttempts.Count == 0));
+        Assert.IsTrue(page.Items.All(group => group.AttemptCount == 1));
     }
 
     [TestMethod]
@@ -471,7 +471,7 @@ public sealed class PipelineRunControllerTest
     {
         var client = AddMachineClient();
         var mandate = context.Mandates.First();
-        var inWindow = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
         var newestOutside = SeedAttempt(Window.AddDays(2), "AV-1", mandate.Id, client.Id);
         SeedAttempt(Window.AddDays(3), "AV-2", mandate.Id, client.Id);
 
@@ -480,7 +480,7 @@ public sealed class PipelineRunControllerTest
         Assert.AreEqual(1, page.TotalCount, "A delivery shows when one of its attempts lies in the period; the other one lies wholly outside.");
         var group = page.Items.Single();
         Assert.AreEqual(newestOutside.JobId, group.Latest.JobId, "The row shows the newest attempt, even one after the period.");
-        Assert.AreEqual(inWindow.JobId, group.EarlierAttempts.Single().JobId);
+        Assert.AreEqual(2, group.AttemptCount, "The attempt in the period counts as well.");
     }
 
     [TestMethod]
@@ -498,25 +498,23 @@ public sealed class PipelineRunControllerTest
         });
 
         Assert.AreEqual(0, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Failed]))).TotalCount, "A delivery that went through in its second attempt no longer fails.");
-        Assert.HasCount(1, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Success]))).Items.Single().EarlierAttempts, "The newest attempt decides; the failed one still counts.");
+        Assert.AreEqual(2, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Success]))).Items.Single().AttemptCount, "The newest attempt decides; the failed one still counts.");
         Assert.AreEqual(openNewest.JobId, (await List(InWindow(q => q.States = [PipelineRunStateFilter.Open]))).Items.Single().Latest.JobId);
     }
 
     [TestMethod]
-    public async Task ListOrdersTheEarlierAttemptsLikeTheGrouping()
+    public async Task ListTakesTheHighestIdAsTheNewestAttempt()
     {
         // The protocol writes a row when a job starts, so the higher id is the later attempt, also where two hosts
         // disagree on the time.
         var client = AddMachineClient();
         var mandate = context.Mandates.First();
-        var first = SeedAttempt(Window.AddMinutes(2), "AV-1", mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
         var second = SeedAttempt(Window.AddMinutes(1), "AV-1", mandate.Id, client.Id);
-        var third = SeedAttempt(Window.AddMinutes(3), "AV-1", mandate.Id, client.Id);
 
         var group = (await List(InWindow())).Items.Single();
 
-        Assert.AreEqual(third.JobId, group.Latest.JobId);
-        CollectionAssert.AreEqual(new[] { second.JobId, first.JobId }, group.EarlierAttempts.Select(a => a.JobId).ToArray());
+        Assert.AreEqual(second.JobId, group.Latest.JobId);
     }
 
     [TestMethod]
@@ -532,7 +530,7 @@ public sealed class PipelineRunControllerTest
         var page = await List(new PipelineRunQuery { MachineClientIds = [client.Id] });
 
         Assert.AreEqual(2, page.TotalCount);
-        Assert.AreEqual(newest.JobId, page.Items.Single(group => group.EarlierAttempts.Count == 1).Latest.JobId);
+        Assert.AreEqual(newest.JobId, page.Items.Single(group => group.AttemptCount == 2).Latest.JobId);
     }
 
     [TestMethod]

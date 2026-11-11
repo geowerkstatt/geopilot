@@ -875,9 +875,9 @@ export type PipelineRunFileResponse = {
 export type PipelineRunGroupResponse = {
   latest: PipelineRunSummaryResponse;
   /**
-   * The other attempts of the delivery, newest first, whether or not they lie in the period.
+   * How many attempts the delivery had, the newest included, whether or not they lie in the period.
    */
-  earlierAttempts: Array<PipelineRunSummaryResponse>;
+  attemptCount: number;
 };
 
 /**

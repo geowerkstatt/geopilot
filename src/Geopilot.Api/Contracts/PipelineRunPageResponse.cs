@@ -15,8 +15,8 @@ public record PipelineRunPageResponse(int TotalCount, List<PipelineRunGroupRespo
 /// without client reference is a group of its own. A group counts as one row of the list.
 /// </summary>
 /// <param name="Latest">The newest attempt, which the row shows and the state filter judges.</param>
-/// <param name="EarlierAttempts">The other attempts of the delivery, newest first, whether or not they lie in the period.</param>
-public record PipelineRunGroupResponse(PipelineRunSummaryResponse Latest, List<PipelineRunSummaryResponse> EarlierAttempts);
+/// <param name="AttemptCount">How many attempts the delivery had, the newest included, whether or not they lie in the period.</param>
+public record PipelineRunGroupResponse(PipelineRunSummaryResponse Latest, int AttemptCount);
 
 /// <summary>
 /// A pipeline run as the list shows it.

@@ -18,14 +18,14 @@ const run = (jobId: string): PipelineRunSummaryResponse => ({
   outcome: { kind: PipelineRunOutcomeKind.Delivered, blockingSteps: [], preflightFailed: false },
 });
 
-const group = (latest: string, ...earlierAttempts: string[]): PipelineRunGroupResponse => ({
+const group = (latest: string, attemptCount: number): PipelineRunGroupResponse => ({
   latest: run(latest),
-  earlierAttempts: earlierAttempts.map(jobId => run(jobId)),
+  attemptCount,
 });
 
 describe("pipeline run rows", () => {
   it("shows each delivery by its newest attempt, counting all", () => {
-    const rows = toProcessingRunRows([group("c", "b", "a"), group("d")]);
+    const rows = toProcessingRunRows([group("c", 3), group("d", 1)]);
 
     expect(rows.map(row => `${row.jobId} of ${row.attemptCount}`)).to.deep.equal(["c of 3", "d of 1"]);
   });
