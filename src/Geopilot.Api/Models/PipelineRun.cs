@@ -142,8 +142,8 @@ public class PipelineRun
     public DateTime? TerminalAt { get; set; }
 
     /// <summary>
-    /// Why the run failed or was cancelled, when known (e.g. the preflight failure reason, a job
-    /// timeout, or a host shutdown).
+    /// Why the run failed or was cancelled, when no step says why: the preflight failure reason, a job
+    /// timeout, a host shutdown, or an error while persisting the downloads or staging the delivery files.
     /// </summary>
     public string? FailureReason { get; set; }
 

@@ -26,7 +26,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="ScanDetails">Details of a detected threat, when the scan found one.</param>
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> when the outcome is unknown.</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
-/// <param name="FailureReason">Why the run failed or was cancelled, when known.</param>
+/// <param name="FailureReason">Why the run failed or was cancelled, when no step says why: the preflight failed, the job timed out, the host shut down, or persisting the downloads or staging the delivery files failed.</param>
 /// <param name="DeclarationFailure">Why geopilot could not declare the delivery of a machine delivery although the run allowed it.</param>
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>

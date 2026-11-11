@@ -1,11 +1,20 @@
 import { TFunction } from "i18next";
-import { InputKind, InputOrigin, PipelineRunInputResponse, ProcessingState } from "../../src/api/generated";
+import {
+  InputKind,
+  InputOrigin,
+  PipelineRunInputResponse,
+  PipelineRunOutcomeKind,
+  PipelineRunStepResponse,
+  ProcessingState,
+  StepState,
+} from "../../src/api/generated";
 import {
   formatBlockingSteps,
   formatDuration,
   formatInputOrigin,
   formatInputValue,
   formatProcessingState,
+  preflightStepState,
   shownProcessingState,
 } from "../../src/pages/admin/processingRuns/processingRunFormat";
 
@@ -49,6 +58,27 @@ describe("pipeline run format", () => {
     expect(shownProcessingState(null, false)).to.equal(undefined);
     expect(formatProcessingState(t, ProcessingState.Success)).to.equal("stepStateFinished");
     expect(formatProcessingState(t, undefined)).to.equal("processingStateUnknown");
+  });
+
+  it("shows the preflight as failed, finished once a step started or the run ended, and running until then", () => {
+    // The preflight reads nothing of a step but its state.
+    const step = (state: StepState) => ({ state }) as PipelineRunStepResponse;
+    const run = (fields: { preflightFailed?: boolean; terminalState?: ProcessingState; steps?: StepState[] }) => ({
+      outcome: {
+        kind: PipelineRunOutcomeKind.NotDeliverable,
+        blockingSteps: [],
+        preflightFailed: fields.preflightFailed ?? false,
+      },
+      terminalState: fields.terminalState,
+      steps: (fields.steps ?? [StepState.Pending]).map(step),
+    });
+
+    expect(preflightStepState(run({ preflightFailed: true, terminalState: ProcessingState.Failed }))).to.equal(
+      StepState.Error,
+    );
+    expect(preflightStepState(run({ steps: [StepState.Running, StepState.Pending] }))).to.equal(StepState.Success);
+    expect(preflightStepState(run({ terminalState: ProcessingState.Cancelled }))).to.equal(StepState.Success);
+    expect(preflightStepState(run({}))).to.equal(StepState.Running);
   });
 
   it("names the first blocking step and counts the others", () => {

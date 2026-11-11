@@ -15,7 +15,7 @@ const run = (jobId: string): PipelineRunSummaryResponse => ({
   clientReference: "AV-1",
   pipelineId: "pipe_a",
   terminalState: ProcessingState.Success,
-  outcome: { kind: PipelineRunOutcomeKind.Delivered, blockingSteps: [] },
+  outcome: { kind: PipelineRunOutcomeKind.Delivered, blockingSteps: [], preflightFailed: false },
 });
 
 const group = (latest: string, ...earlierAttempts: string[]): PipelineRunGroupResponse => ({

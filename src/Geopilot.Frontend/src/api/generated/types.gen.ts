@@ -925,9 +925,13 @@ export type PipelineRunOutcome = {
    */
   deliveryId?: number | null;
   /**
-   * For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed before any step did.
+   * For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed outside the steps.
    */
   blockingSteps: Array<PipelineRunBlockingStep>;
+  /**
+   * Whether the run failed in the preflight, before any step started.
+   */
+  preflightFailed: boolean;
 };
 
 /**
@@ -1069,7 +1073,7 @@ export type PipelineRunResponse = {
    */
   terminalAt?: string | null;
   /**
-   * Why the run failed or was cancelled, when known.
+   * Why the run failed or was cancelled, when no step says why: the preflight failed, the job timed out, the host shut down, or persisting the downloads or staging the delivery files failed.
    */
   failureReason?: string | null;
   /**

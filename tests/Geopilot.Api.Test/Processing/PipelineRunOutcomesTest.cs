@@ -131,14 +131,29 @@ public class PipelineRunOutcomesTest
     }
 
     [TestMethod]
-    public void NotDeliverableWithoutStepWhenNoStepBlocked()
+    public void NotDeliverableWithoutStepWhenItFailedOutsideTheSteps()
     {
+        // As when persisting the downloads of step a failed.
         var run = Run(ProcessingState.Failed, userId: 1, Step("a", StepState.Success, order: 0), Step("b", StepState.Pending, order: 1));
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
         Assert.AreEqual(PipelineRunOutcomeKind.NotDeliverable, outcome.Kind);
-        Assert.HasCount(0, outcome.BlockingSteps, "a run that failed in the preflight has no step to blame.");
+        Assert.HasCount(0, outcome.BlockingSteps);
+        Assert.IsFalse(outcome.PreflightFailed, "a step started, so the preflight passed.");
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Failed, true, DisplayName = "failed")]
+    [DataRow(ProcessingState.Cancelled, false, DisplayName = "cancelled before its first step")]
+    public void PreflightFailedOnlyWhenTheRunFailedBeforeAnyStepStarted(ProcessingState terminalState, bool expected)
+    {
+        var run = Run(terminalState, userId: 1, Step("a", StepState.Pending, order: 0), Step("b", StepState.Pending, order: 1));
+
+        var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
+
+        Assert.AreEqual(expected, outcome.PreflightFailed);
+        Assert.HasCount(0, outcome.BlockingSteps);
     }
 
     [TestMethod]

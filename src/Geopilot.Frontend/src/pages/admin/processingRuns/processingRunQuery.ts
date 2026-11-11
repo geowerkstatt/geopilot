@@ -107,11 +107,11 @@ export const toProcessingRunQuery = (filters: ProcessingRunFilterValues, page: n
   return params.toString();
 };
 
-const processingRunTabs = ["steps", "files", "reactions", "pipeline"] as const;
+const processingRunTabs = ["steps", "reactions", "pipeline"] as const;
 
 /** A tab of the page of one pipeline run. */
 export type ProcessingRunTab = (typeof processingRunTabs)[number];
 
-/** The tab the address names, such as #files, or the steps for any other address. */
+/** The tab the address names, such as #pipeline, or the steps for any other address. */
 export const tabFromHash = (hash: string): ProcessingRunTab =>
   processingRunTabs.find(tab => `#${tab}` === hash) ?? "steps";

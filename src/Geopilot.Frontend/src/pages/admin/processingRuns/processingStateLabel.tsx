@@ -19,6 +19,8 @@ interface ProcessingStateLabelProps {
   running?: boolean;
   /** The steps that kept the run from allowing a delivery, named after the state as its reason. */
   blockingSteps?: PipelineRunBlockingStep[];
+  /** Whether the run failed in the preflight, which is then named like a step as its reason. */
+  preflightFailed?: boolean;
   /** Name every blocking step, rather than the first and how many more. */
   allSteps?: boolean;
   /** How long the run took, named after the state. */
@@ -66,6 +68,7 @@ export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
   state,
   running,
   blockingSteps,
+  preflightFailed,
   allSteps,
   duration,
 }) => {
@@ -76,7 +79,9 @@ export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
   const label = duration ? t("stepStateAfterDuration", { state: stateName, duration }) : stateName;
 
   // A restriction does not stop the pipeline, so several steps can keep the run from allowing a delivery.
-  const steps = (blockingSteps ?? []).map(step => localized(step.displayName, step.stepId));
+  const steps = preflightFailed
+    ? [t("preparation")]
+    : (blockingSteps ?? []).map(step => localized(step.displayName, step.stepId));
   const text =
     steps.length === 0
       ? label

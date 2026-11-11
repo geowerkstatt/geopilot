@@ -104,6 +104,7 @@ export const ProcessingRuns: FC = () => {
           state={row.terminalState}
           running={row.outcome.kind === PipelineRunOutcomeKind.Running}
           blockingSteps={row.outcome.blockingSteps}
+          preflightFailed={row.outcome.preflightFailed}
         />
       ),
     },

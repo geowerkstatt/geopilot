@@ -53,8 +53,9 @@ public enum PipelineRunOutcomeKind
 /// </summary>
 /// <param name="Kind">What became of the run.</param>
 /// <param name="DeliveryId">The delivery declared for the run, deleted or not.</param>
-/// <param name="BlockingSteps">For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed before any step did.</param>
-public record PipelineRunOutcome(PipelineRunOutcomeKind Kind, int? DeliveryId, List<PipelineRunBlockingStep> BlockingSteps);
+/// <param name="BlockingSteps">For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed outside the steps.</param>
+/// <param name="PreflightFailed">Whether the run failed in the preflight, before any step started.</param>
+public record PipelineRunOutcome(PipelineRunOutcomeKind Kind, int? DeliveryId, List<PipelineRunBlockingStep> BlockingSteps, bool PreflightFailed);
 
 /// <summary>
 /// A step that kept a pipeline run from allowing a delivery.

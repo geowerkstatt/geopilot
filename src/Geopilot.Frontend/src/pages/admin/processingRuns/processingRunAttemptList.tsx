@@ -68,6 +68,7 @@ export const ProcessingRunAttemptList: FC<ProcessingRunAttemptListProps> = ({ at
                 state={attempt.terminalState}
                 running={attempt.outcome.kind === PipelineRunOutcomeKind.Running}
                 blockingSteps={attempt.outcome.blockingSteps}
+                preflightFailed={attempt.outcome.preflightFailed}
                 allSteps
                 duration={formatDuration(attempt.startedAt, attempt.terminalAt)}
               />

@@ -63,7 +63,7 @@ describe("pipeline run query", () => {
   });
 
   it("opens the tab the address names, and the steps for any other address", () => {
-    expect(tabFromHash("#files")).to.equal("files");
+    expect(tabFromHash("#reactions")).to.equal("reactions");
     expect(tabFromHash("#pipeline")).to.equal("pipeline");
     expect(tabFromHash("")).to.equal("steps");
     expect(tabFromHash("#unknown")).to.equal("steps");

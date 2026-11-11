@@ -1,4 +1,12 @@
-import { ReactionEvent, ReactionKind, ReactionState } from "../../src/api/generated";
+import {
+  PipelineRunOutcomeKind,
+  PipelineRunStepResponse,
+  ProcessingState,
+  ReactionEvent,
+  ReactionKind,
+  ReactionState,
+  StepState,
+} from "../../src/api/generated";
 import { loginAsAdmin } from "./helpers/appHelpers";
 
 const jobId = "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a";
@@ -103,7 +111,7 @@ describe("Processing run", () => {
     cy.fixture("processingRun.json").then(run => {
       cy.intercept({ method: "GET", pathname: `/api/v1/pipelinerun/${earlierJobId}` }, { ...run, ...run.attempts[1] });
     });
-    cy.visit(`/admin/processing-runs/${jobId}#files`);
+    cy.visit(`/admin/processing-runs/${jobId}#reactions`);
     cy.contains("h3", "Attempts for SMOKE-TEST-01").should("be.visible");
     cy.dataCy(`processingRunAttempt-${jobId}`).should("have.attr", "aria-current", "page");
 
@@ -111,13 +119,67 @@ describe("Processing run", () => {
     cy.dataCy(`processingRunAttempt-${earlierJobId}`).click();
 
     cy.location("pathname").should("eq", `/admin/processing-runs/${earlierJobId}`);
-    cy.location("hash").should("eq", "#files");
+    cy.location("hash").should("eq", "#reactions");
     cy.dataCy(`processingRunAttempt-${earlierJobId}`).should("have.attr", "aria-current", "page");
     cy.contains(`Job ID: ${earlierJobId}`).should("be.visible");
     cy.dataCy("summary-processingState")
       .find('[data-cy="processingState-failed"]')
       .should("contain", "XTF Validierung");
-    cy.dataCy("processingRunTab-files").should("have.attr", "aria-selected", "true");
+    cy.dataCy("processingRunTab-reactions").should("have.attr", "aria-selected", "true");
+  });
+
+  it("names the preparation where the preflight failed and says why within it", () => {
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept(
+        { method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` },
+        {
+          ...run,
+          terminalState: ProcessingState.Failed,
+          failureReason: "IncompleteUpload: File 'roads.xtf' is incomplete.",
+          outcome: { kind: PipelineRunOutcomeKind.NotDeliverable, blockingSteps: [], preflightFailed: true },
+          forwardingState: null,
+          notificationState: null,
+          steps: run.steps.map((step: PipelineRunStepResponse) => ({ ...step, state: StepState.Pending })),
+        },
+      );
+    });
+    cy.visit(`/admin/processing-runs/${jobId}`);
+
+    cy.dataCy("summary-processingState").find('[data-cy="processingState-failed"]').should("contain", "Preparation");
+    cy.dataCy("processingRunStep-preflight")
+      .should("contain", "roads.xtf")
+      .and("contain", "IncompleteUpload: File 'roads.xtf' is incomplete.");
+    cy.dataCy("processingRunFailureReason").should("not.exist");
+  });
+
+  it("says above the steps why the run ended outside them", () => {
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept(
+        { method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` },
+        {
+          ...run,
+          terminalState: ProcessingState.Cancelled,
+          failureReason: "Job timed out after 00:30:00.",
+          outcome: {
+            kind: PipelineRunOutcomeKind.NotDeliverable,
+            blockingSteps: [{ stepId: "validation", displayName: { de: "XTF Validierung" } }],
+            preflightFailed: false,
+          },
+          forwardingState: null,
+          notificationState: null,
+          steps: run.steps.map((step: PipelineRunStepResponse) => ({
+            ...step,
+            state: StepState.Cancelled,
+            errorMessage: "A task was canceled.",
+          })),
+        },
+      );
+    });
+    cy.visit(`/admin/processing-runs/${jobId}`);
+
+    cy.dataCy("processingRunFailureReason").should("contain", "Job timed out after 00:30:00.");
+    cy.dataCy("processingRunStep-preflight").should("not.contain", "Job timed out");
+    cy.dataCy("processingRunStep-validation").should("not.contain", "A task was canceled.");
   });
 
   it("lists no attempts for a run with a reference that is the only attempt of its delivery", () => {

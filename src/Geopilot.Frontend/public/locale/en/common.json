@@ -267,6 +267,7 @@
   "pipelineSnapshotView": "View",
   "pipelinesLoadingError": "An error occurred while loading the pipelines: {{error}}",
   "precursor": "Precursor",
+  "preparation": "Preparation",
   "privacyPolicy": "Privacy policy",
   "process": "Process",
   "processedBy": "Processed by",

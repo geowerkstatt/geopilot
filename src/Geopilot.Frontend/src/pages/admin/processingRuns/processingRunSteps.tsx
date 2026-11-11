@@ -5,6 +5,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Stack,
   TableCell,
@@ -16,7 +17,7 @@ import {
   ConditionKind,
   ConditionPhase,
   InputKind,
-  PipelineRunStepResponse,
+  PipelineRunResponse,
   StepState,
 } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
@@ -24,25 +25,14 @@ import { DetailTable, nameColumnWidth } from "../../../components/detailTable.ts
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { formatDuration, formatInputOrigin, formatInputValue } from "./processingRunFormat.ts";
+import { formatDuration, formatInputOrigin, formatInputValue, formatStepState } from "./processingRunFormat.ts";
+import { ProcessingRunPreflightStep } from "./processingRunPreflightStep.tsx";
 import { StepTitle } from "./stepTitle.tsx";
 import { TechnicalText } from "./technicalText.tsx";
 
 interface ProcessingRunStepsProps {
-  steps: PipelineRunStepResponse[];
+  run: PipelineRunResponse;
 }
-
-// The same names as the steps of the delivery wizard.
-const stepStateKey: Record<StepState, TranslationKey> = {
-  [StepState.Pending]: "stepStatePending",
-  [StepState.Running]: "stepStateRunning",
-  [StepState.Skipped]: "stepStateSkipped",
-  [StepState.Success]: "stepStateFinished",
-  [StepState.Error]: "stepStateFailed",
-  [StepState.Cancelled]: "stepStateCancelled",
-  [StepState.Warning]: "stepStateWarning",
-  [StepState.DeliveryRestriction]: "stepStateDeliveryRestriction",
-};
 
 const conditionKindKey: Record<ConditionKind, TranslationKey> = {
   [ConditionKind.Skip]: "conditionKindSkip",
@@ -63,15 +53,25 @@ const artifactKindKey: Record<ArtifactKind, TranslationKey> = {
   [ArtifactKind.Delivery]: "outputActionDelivery",
 };
 
-/** The steps of a run in pipeline order, each with its state, duration, inputs, messages, conditions and results. */
-export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
+/**
+ * The steps of a run as the delivery shows them: the preflight first, then the steps in pipeline order, each with its
+ * state, duration, inputs, messages, conditions and results. Why the run failed outside them stands above.
+ */
+export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ run }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
+  const runFailure = run.outcome.preflightFailed ? undefined : run.failureReason;
 
   return (
     <Stack data-cy="processingRunSteps">
+      {runFailure && (
+        <Alert severity="error" data-cy="processingRunFailureReason">
+          {runFailure}
+        </Alert>
+      )}
       <Box>
-        {steps.map((step, index) => {
+        <ProcessingRunPreflightStep run={run} />
+        {run.steps.map((step, index) => {
           // A skipped step has times too, but they only span the check of its skip conditions.
           const duration = step.state !== StepState.Skipped && formatDuration(step.startedAt, step.finishedAt);
           return (
@@ -80,14 +80,14 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
                 <Stack
                   direction="row"
                   sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
-                  <StepIcon step={index + 1} state={step.state} variant="outlined" />
+                  <StepIcon step={index + 2} state={step.state} variant="outlined" />
                   <Typography sx={{ flex: "1 1 0" }}>
                     <StepTitle id={step.stepId} displayName={step.displayName} />
                   </Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     {duration
-                      ? t("stepStateAfterDuration", { state: t(stepStateKey[step.state]), duration })
-                      : t(stepStateKey[step.state])}
+                      ? t("stepStateAfterDuration", { state: formatStepState(t, step.state), duration })
+                      : formatStepState(t, step.state)}
                   </Typography>
                 </Stack>
               </AccordionSummary>
@@ -158,7 +158,8 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ steps }) => {
                       {localized(step.conditionMessage)}
                     </SummaryField>
                   )}
-                  {step.errorMessage && (
+                  {/* A cancelled step only holds the message of the cancellation; the run says why it was cancelled. */}
+                  {step.errorMessage && step.state !== StepState.Cancelled && (
                     <SummaryField labelVariant="h5" label="errorMessage">
                       {step.errorMessage}
                     </SummaryField>

@@ -14,7 +14,6 @@ import { SummaryField } from "../deliveries/summaryField.tsx";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
 import { ProcessingRunAttemptList } from "./processingRunAttemptList.tsx";
 import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
-import { ProcessingRunFiles } from "./processingRunFiles.tsx";
 import { formatDuration } from "./processingRunFormat.ts";
 import { listQueryOf, listQueryState, parseJobId, ProcessingRunTab, tabFromHash } from "./processingRunQuery.ts";
 import { ProcessingRunReactionEvents } from "./processingRunReactionEvents.tsx";
@@ -75,8 +74,8 @@ const panelId = "processingRunPanel";
 const reactionRefreshInterval = 15_000;
 
 /**
- * One pipeline run: who started it, the other attempts of its delivery, what became of it, its steps, files, reactions
- * and pipeline.
+ * One pipeline run: who started it, the other attempts of its delivery, what became of it, its preparation with the
+ * uploaded files, its steps, reactions and pipeline.
  */
 export const ProcessingRunDetail: FC = () => {
   const { t } = useTranslation();
@@ -201,6 +200,7 @@ export const ProcessingRunDetail: FC = () => {
               state={run.terminalState}
               running={run.outcome.kind === PipelineRunOutcomeKind.Running}
               blockingSteps={run.outcome.blockingSteps}
+              preflightFailed={run.outcome.preflightFailed}
               allSteps
               duration={duration}
             />
@@ -244,7 +244,6 @@ export const ProcessingRunDetail: FC = () => {
           sx={folderTabsSx}
           slotProps={{ indicator: { sx: { display: "none" } } }}>
           <Tab {...tabProps("steps", t("processingSteps"))} />
-          <Tab {...tabProps("files", t("files"))} />
           {hasReactions && <Tab {...tabProps("reactions", t("reactions"))} />}
           <Tab {...tabProps("pipeline", t("pipeline"))} />
         </Tabs>
@@ -253,10 +252,7 @@ export const ProcessingRunDetail: FC = () => {
           id={panelId}
           aria-labelledby={`processingRunTab-${visibleTab}`}
           sx={{ borderTopLeftRadius: theme => theme.radius.none }}>
-          {visibleTab === "steps" && <ProcessingRunSteps steps={run.steps} />}
-          {visibleTab === "files" && (
-            <ProcessingRunFiles files={run.files} scanState={run.scanState} scanDetails={run.scanDetails} />
-          )}
+          {visibleTab === "steps" && <ProcessingRunSteps run={run} />}
           {visibleTab === "reactions" && <ProcessingRunReactionEvents events={run.reactionEvents} />}
           {visibleTab === "pipeline" && <PipelineSnapshot jobId={run.jobId} pipelineId={run.pipelineId} />}
         </GeopilotBox>

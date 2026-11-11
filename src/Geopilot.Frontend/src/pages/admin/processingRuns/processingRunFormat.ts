@@ -1,5 +1,12 @@
 import { TFunction } from "i18next";
-import { InputKind, InputOrigin, PipelineRunInputResponse, ProcessingState } from "../../../api/generated";
+import {
+  InputKind,
+  InputOrigin,
+  PipelineRunInputResponse,
+  PipelineRunResponse,
+  ProcessingState,
+  StepState,
+} from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 
 /** The time between start and end as minutes and seconds, or undefined while there is no end. */
@@ -14,6 +21,21 @@ export const formatDuration = (startedAt?: string | null, endedAt?: string | nul
   const seconds = Math.round(milliseconds / 1000);
   const minutes = Math.floor(seconds / 60);
   return minutes > 0 ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
+};
+
+/**
+ * The state of the preflight of a run, which the protocol keeps on the run rather than as a step: failed when the
+ * preflight failed, finished once a step started or the run ended, and running until then.
+ */
+export const preflightStepState = (
+  run: Pick<PipelineRunResponse, "outcome" | "steps" | "terminalState">,
+): StepState => {
+  if (run.outcome.preflightFailed) {
+    return StepState.Error;
+  }
+  return run.terminalState || run.steps.some(step => step.state !== StepState.Pending)
+    ? StepState.Success
+    : StepState.Running;
 };
 
 /** The steps that kept a run from allowing a delivery, as the list has room for them: the first and how many more. */
@@ -58,6 +80,21 @@ export const formatInputValue = (input: PipelineRunInputResponse): string | unde
       return undefined;
   }
 };
+
+// The same names as the steps of the delivery wizard.
+const stepStateKey: Record<StepState, TranslationKey> = {
+  [StepState.Pending]: "stepStatePending",
+  [StepState.Running]: "stepStateRunning",
+  [StepState.Skipped]: "stepStateSkipped",
+  [StepState.Success]: "stepStateFinished",
+  [StepState.Error]: "stepStateFailed",
+  [StepState.Cancelled]: "stepStateCancelled",
+  [StepState.Warning]: "stepStateWarning",
+  [StepState.DeliveryRestriction]: "stepStateDeliveryRestriction",
+};
+
+/** The name of the state of a step, such as "Finished". */
+export const formatStepState = (t: TFunction, state: StepState): string => t(stepStateKey[state]);
 
 // The same names as the steps of the delivery wizard.
 const stateLabelKey: Record<ProcessingState, TranslationKey> = {

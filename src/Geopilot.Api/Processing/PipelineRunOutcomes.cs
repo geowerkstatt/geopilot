@@ -25,7 +25,7 @@ internal static class PipelineRunOutcomes
         if (delivery is not null)
         {
             var kind = delivery.Deleted ? PipelineRunOutcomeKind.DeliveredAndDeleted : PipelineRunOutcomeKind.Delivered;
-            return new PipelineRunOutcome(kind, delivery.Id, []);
+            return new PipelineRunOutcome(kind, delivery.Id, [], PreflightFailed: false);
         }
 
         if (run.TerminalState is null or ProcessingState.Pending or ProcessingState.Running)
@@ -49,7 +49,10 @@ internal static class PipelineRunOutcomes
             .OrderBy(step => step.Order)
             .Select(step => new PipelineRunBlockingStep(step.StepId, step.DisplayName))
             .ToList();
-        return new PipelineRunOutcome(PipelineRunOutcomeKind.NotDeliverable, null, blockingSteps);
+
+        // Only a rejected preflight fails a run before its first step; every step is pending from the job's start.
+        var preflightFailed = run.TerminalState == ProcessingState.Failed && run.Steps.All(step => step.State == StepState.Pending);
+        return new PipelineRunOutcome(PipelineRunOutcomeKind.NotDeliverable, null, blockingSteps, preflightFailed);
     }
 
     /// <summary>
@@ -96,7 +99,7 @@ internal static class PipelineRunOutcomes
             reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp());
     }
 
-    private static PipelineRunOutcome Outcome(PipelineRunOutcomeKind kind) => new(kind, null, []);
+    private static PipelineRunOutcome Outcome(PipelineRunOutcomeKind kind) => new(kind, null, [], PreflightFailed: false);
 }
 
 /// <summary>
