@@ -76,7 +76,7 @@ Was aus einem Lauf wurde, steht nicht im Protokoll. Die Ansicht leitet es beim L
 - Die Id der Lieferung, die für den Lauf deklariert wurde, mit dem Zustand ihrer Weitergabe; «(gelöscht)», wenn sie wieder gelöscht wurde.
 - «nicht möglich»: Die Daten liessen keine Lieferung zu, gleich wer den Lauf startete. Der Zustand nennt die Schritte, die die Lieferung einschränkten, scheiterten oder abgebrochen wurden, oder die Vorbereitung, wenn der Preflight scheiterte. Endete der Lauf ausserhalb der Schritte, nennt er keinen.
 - «nicht berechtigt»: Die Daten liessen eine Lieferung zu, aber wer den Lauf startete, durfte nicht abgeben, etwa nach einem anonymen Start auf einem öffentlichen Mandat.
-- «nicht abgegeben»: Die Daten liessen eine Lieferung zu, und wer den Lauf startete, durfte abgeben, deklariert wurde aber keine. Das umfasst auch eine Abgabe im Web, die abgewiesen und nicht wiederholt wurde; den Grund sah die Person im Dialog, das Protokoll hält ihn nicht fest.
+- «nicht abgegeben»: Die Daten liessen eine Lieferung zu, und wer den Lauf startete, durfte abgeben, deklariert wurde aber keine. Das umfasst auch eine Abgabe im Web, die abgewiesen und nicht wiederholt wurde; die Person sah eine Fehlermeldung beim Schritt «Lieferung», das Protokoll hält nichts davon fest.
 - «gescheitert»: Die Daten liessen eine Lieferung zu, und wer den Lauf startete, durfte abgeben, aber die Deklaration, die geopilot bei einer maschinellen Lieferung selbst vornimmt, wurde abgewiesen. Weil dabei niemand zuschaut, hält das Protokoll den Grund fest, die Seite des Laufs nennt ihn (`DeclarationFailure`).
 - Keine Angabe: Der Lauf läuft noch, oder sein Ausgang ist unbekannt.
 
