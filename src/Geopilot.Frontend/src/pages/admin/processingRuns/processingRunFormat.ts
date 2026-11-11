@@ -1,7 +1,6 @@
 import { TFunction } from "i18next";
 import {
   InputKind,
-  InputOrigin,
   PipelineRunInputResponse,
   PipelineRunResponse,
   ProcessingState,
@@ -52,17 +51,6 @@ export const formatFileSize = (bytes: number): string => {
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
-
-const inputOriginLabelKey: Record<InputOrigin, TranslationKey> = {
-  [InputOrigin.Definition]: "inputOriginDefinition",
-  [InputOrigin.StepOutput]: "inputOriginStepOutput",
-  [InputOrigin.Resource]: "inputOriginResource",
-  [InputOrigin.Upload]: "inputOriginUpload",
-  [InputOrigin.Configuration]: "inputOriginConfiguration",
-};
-
-/** Where the value of a step input came from, such as "Step", without the reference that names it. */
-export const formatInputOrigin = (t: TFunction, origin: InputOrigin): string => t(inputOriginLabelKey[origin]);
 
 /**
  * What a step input shows as its value: a value as its text, a file by its name with its size when known, and

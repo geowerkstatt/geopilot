@@ -11,7 +11,6 @@ import {
 import {
   formatBlockingSteps,
   formatDuration,
-  formatInputOrigin,
   formatInputValue,
   formatProcessingState,
   preflightStepState,
@@ -42,14 +41,6 @@ describe("pipeline run format", () => {
       "validation.log",
     );
     expect(formatInputValue(input({ kind: InputKind.Absent, origin: InputOrigin.StepOutput }))).to.equal(undefined);
-  });
-
-  it("names where an input came from", () => {
-    expect(formatInputOrigin(t, InputOrigin.Definition)).to.equal("inputOriginDefinition");
-    expect(formatInputOrigin(t, InputOrigin.StepOutput)).to.equal("inputOriginStepOutput");
-    expect(formatInputOrigin(t, InputOrigin.Resource)).to.equal("inputOriginResource");
-    expect(formatInputOrigin(t, InputOrigin.Upload)).to.equal("inputOriginUpload");
-    expect(formatInputOrigin(t, InputOrigin.Configuration)).to.equal("inputOriginConfiguration");
   });
 
   it("shows a run without terminal state as running only while it runs", () => {

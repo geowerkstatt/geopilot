@@ -17,6 +17,7 @@ import {
   ConditionKind,
   ConditionPhase,
   InputKind,
+  InputOrigin,
   PipelineRunResponse,
   StepState,
 } from "../../../api/generated";
@@ -25,10 +26,18 @@ import { DetailTable, nameColumnWidth } from "../../../components/detailTable.ts
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
-import { formatDuration, formatInputOrigin, formatInputValue, formatStepState } from "./processingRunFormat.ts";
+import { formatDuration, formatInputValue, formatStepState } from "./processingRunFormat.ts";
 import { ProcessingRunPreflightStep } from "./processingRunPreflightStep.tsx";
 import { StepTitle } from "./stepTitle.tsx";
 import { TechnicalText } from "./technicalText.tsx";
+
+const inputOriginLabelKey: Record<InputOrigin, TranslationKey> = {
+  [InputOrigin.Definition]: "inputOriginDefinition",
+  [InputOrigin.StepOutput]: "inputOriginStepOutput",
+  [InputOrigin.Resource]: "inputOriginResource",
+  [InputOrigin.Upload]: "inputOriginUpload",
+  [InputOrigin.Configuration]: "inputOriginConfiguration",
+};
 
 interface ProcessingRunStepsProps {
   run: PipelineRunResponse;
@@ -117,7 +126,7 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ run }) => {
                           <TableRow key={inputIndex}>
                             <TableCell>{input.parameter}</TableCell>
                             <TableCell>
-                              {formatInputOrigin(t, input.origin)}
+                              {t(inputOriginLabelKey[input.origin])}
                               {input.reference && (
                                 <Box>
                                   <TechnicalText>{input.reference}</TechnicalText>
