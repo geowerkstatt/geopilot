@@ -1,11 +1,12 @@
 import { TFunction } from "i18next";
-import { ClientKind, InputKind, InputOrigin, PipelineRunInputResponse } from "../../src/api/generated";
+import { InputKind, InputOrigin, PipelineRunInputResponse, ProcessingState } from "../../src/api/generated";
 import {
   formatBlockingSteps,
-  formatClientKind,
   formatDuration,
   formatInputOrigin,
   formatInputValue,
+  formatProcessingState,
+  shownProcessingState,
 } from "../../src/pages/admin/processingRuns/processingRunFormat";
 
 // Echoes the key, so the assertions read the keys instead of a language. TFunction has overloads a lambda cannot match.
@@ -42,10 +43,12 @@ describe("pipeline run format", () => {
     expect(formatInputOrigin(t, InputOrigin.Configuration)).to.equal("inputOriginConfiguration");
   });
 
-  it("names the kind of client a run was started over, and nothing for an unknown kind", () => {
-    expect(formatClientKind(t, ClientKind.WebClient)).to.equal("clientKindWeb");
-    expect(formatClientKind(t, ClientKind.ApiClient)).to.equal("clientKindApi");
-    expect(formatClientKind(t, ClientKind.Unknown)).to.equal(undefined);
+  it("shows a run without terminal state as running only while it runs", () => {
+    expect(shownProcessingState(ProcessingState.Failed, true)).to.equal(ProcessingState.Failed);
+    expect(shownProcessingState(null, true)).to.equal(ProcessingState.Running);
+    expect(shownProcessingState(null, false)).to.equal(undefined);
+    expect(formatProcessingState(t, ProcessingState.Success)).to.equal("stepStateFinished");
+    expect(formatProcessingState(t, undefined)).to.equal("processingStateUnknown");
   });
 
   it("names the first blocking step and counts the others", () => {

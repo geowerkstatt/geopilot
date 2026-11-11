@@ -402,6 +402,38 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
+    public async Task GetListsAllAttemptsOfTheDeliveryNewestFirst()
+    {
+        var client = AddMachineClient();
+        var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
+        var first = SeedAttempt(Window.AddMinutes(1), "AV-1", mandates[0].Id, client.Id);
+        var second = SeedAttempt(Window.AddMinutes(2), "AV-1", mandates[0].Id, client.Id);
+        var third = SeedAttempt(Window.AddMinutes(3), "AV-1", mandates[0].Id, client.Id);
+        SeedAttempt(Window.AddMinutes(4), "AV-1", mandates[1].Id, client.Id);
+        SeedAttempt(Window.AddMinutes(5), "av-1", mandates[0].Id, client.Id);
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(second.JobId));
+
+        CollectionAssert.AreEqual(
+            new[] { third.JobId, second.JobId, first.JobId },
+            response.Attempts.Select(a => a.JobId).ToArray(),
+            "An earlier attempt lists the later ones too; another mandate or another spelling is another delivery.");
+    }
+
+    [TestMethod]
+    public async Task GetListsARunWithoutReferenceAsItsOnlyAttempt()
+    {
+        var client = AddMachineClient();
+        var mandate = context.Mandates.First();
+        var run = SeedAttempt(Window.AddMinutes(1), null, mandate.Id, client.Id);
+        SeedAttempt(Window.AddMinutes(2), null, mandate.Id, client.Id);
+
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+
+        Assert.AreEqual(run.JobId, response.Attempts.Single().JobId);
+    }
+
+    [TestMethod]
     public async Task ListKeepsTheAttemptsOfOtherSendersMandatesAndReferencesApart()
     {
         var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();

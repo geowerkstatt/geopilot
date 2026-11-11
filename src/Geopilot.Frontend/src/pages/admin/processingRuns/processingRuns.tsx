@@ -4,11 +4,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { PipelineRunOutcomeKind, PipelineRunPageResponse } from "../../../api/generated";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { ProcessingRunAttempts } from "./processingRunAttempts.tsx";
 import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
 import { ProcessingRunFilters } from "./processingRunFilters.tsx";
 import { formatDuration } from "./processingRunFormat.ts";
@@ -28,6 +28,7 @@ export const ProcessingRuns: FC = () => {
   const navigate = useNavigate();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
+  const { machineDeliveryEnabled } = useCapabilities();
   // Filters and page live in the address, so going back from a run shows the same runs again.
   const [searchParams, setSearchParams] = useSearchParams();
   const { filters, page } = readProcessingRunSearchParams(searchParams);
@@ -35,8 +36,6 @@ export const ProcessingRuns: FC = () => {
   // then the size is 0, as in the grid itself, and nothing is loaded, so the list does not ask twice.
   const [pageSize, setPageSize] = useState(0);
   const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
-  // The deliveries that show their earlier attempts, by the job id of their newest attempt.
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
   const query = toProcessingRunQuery(filters, page, pageSize);
   // Loading lasts until the answer to the current query is there, so no effect has to switch it on.
@@ -66,31 +65,7 @@ export const ProcessingRuns: FC = () => {
     setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
   };
 
-  const toggleExpanded = (jobId: string) =>
-    setExpanded(current => {
-      const next = new Set(current);
-      if (next.has(jobId)) {
-        next.delete(jobId);
-      } else {
-        next.add(jobId);
-      }
-      return next;
-    });
-
   const columns: GridColDef<ProcessingRunRow>[] = [
-    {
-      field: "attempts",
-      headerName: t("attempts"),
-      width: 100,
-      display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
-        <ProcessingRunAttempts
-          row={row}
-          expanded={expanded.has(row.jobId)}
-          onToggle={() => toggleExpanded(row.jobId)}
-        />
-      ),
-    },
     {
       field: "startedAt",
       headerName: t("processingStarted"),
@@ -128,6 +103,10 @@ export const ProcessingRuns: FC = () => {
         />
       ),
     },
+    // Only a machine client sends the attempts of one delivery under one reference, so without them every run is one.
+    ...(machineDeliveryEnabled
+      ? [{ field: "attemptCount", headerName: t("attempts"), width: 100 } satisfies GridColDef<ProcessingRunRow>]
+      : []),
     {
       field: "outcome",
       headerName: t("delivery"),
@@ -158,7 +137,7 @@ export const ProcessingRuns: FC = () => {
         <GeopilotDataGrid
           name="processingRuns"
           loading={isLoading}
-          rows={toProcessingRunRows(loaded?.page?.items ?? [], expanded)}
+          rows={toProcessingRunRows(loaded?.page?.items ?? [])}
           getRowId={row => row.jobId}
           columns={columns}
           paginationMode="server"

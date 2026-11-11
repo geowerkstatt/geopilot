@@ -36,6 +36,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Outcome">What became of the run.</param>
 /// <param name="ForwardingState">The summed up state of the transfers of its delivery, <see langword="null"/> without delivery, without transfers or once the delivery is deleted.</param>
 /// <param name="NotificationState">The summed up state of the notifications of its delivery, <see langword="null"/> without delivery, without notifications or once the delivery is deleted.</param>
+/// <param name="Attempts">The attempts of the delivery the run belongs to, newest first and this run among them. A run without <see cref="ClientReference"/> is the only attempt of its delivery.</param>
 public record PipelineRunResponse(
     Guid JobId,
     string PipelineId,
@@ -63,7 +64,8 @@ public record PipelineRunResponse(
     MandateReference? Mandate,
     PipelineRunOutcome Outcome,
     ReactionState? ForwardingState,
-    ReactionState? NotificationState);
+    ReactionState? NotificationState,
+    List<PipelineRunSummaryResponse> Attempts);
 
 /// <summary>
 /// One uploaded file of the run.

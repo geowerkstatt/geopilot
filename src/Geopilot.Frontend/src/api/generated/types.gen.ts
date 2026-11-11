@@ -1093,6 +1093,10 @@ export type PipelineRunResponse = {
   outcome: PipelineRunOutcome;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
+  /**
+   * The attempts of the delivery the run belongs to, newest first and this run among them. A run without Geopilot.Api.Contracts.PipelineRunResponse.ClientReference is the only attempt of its delivery.
+   */
+  attempts: Array<PipelineRunSummaryResponse>;
 };
 
 /**

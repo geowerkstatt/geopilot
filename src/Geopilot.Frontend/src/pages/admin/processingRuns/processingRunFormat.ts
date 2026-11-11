@@ -1,5 +1,5 @@
 import { TFunction } from "i18next";
-import { ClientKind, InputKind, InputOrigin, PipelineRunInputResponse } from "../../../api/generated";
+import { InputKind, InputOrigin, PipelineRunInputResponse, ProcessingState } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
 
 /** The time between start and end as minutes and seconds, or undefined while there is no end. */
@@ -31,18 +31,6 @@ export const formatFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const clientKindLabelKey: Record<ClientKind, TranslationKey | undefined> = {
-  [ClientKind.WebClient]: "clientKindWeb",
-  [ClientKind.ApiClient]: "clientKindApi",
-  [ClientKind.Unknown]: undefined,
-};
-
-/** The kind of client a run was started over, such as "Web", or undefined when it is unknown. */
-export const formatClientKind = (t: TFunction, clientKind: ClientKind): string | undefined => {
-  const kindKey = clientKindLabelKey[clientKind];
-  return kindKey && t(kindKey);
-};
-
 const inputOriginLabelKey: Record<InputOrigin, TranslationKey> = {
   [InputOrigin.Definition]: "inputOriginDefinition",
   [InputOrigin.StepOutput]: "inputOriginStepOutput",
@@ -70,3 +58,22 @@ export const formatInputValue = (input: PipelineRunInputResponse): string | unde
       return undefined;
   }
 };
+
+// The same names as the steps of the delivery wizard.
+const stateLabelKey: Record<ProcessingState, TranslationKey> = {
+  [ProcessingState.Pending]: "stepStatePending",
+  [ProcessingState.Running]: "stepStateRunning",
+  [ProcessingState.Success]: "stepStateFinished",
+  [ProcessingState.Failed]: "stepStateFailed",
+  [ProcessingState.Cancelled]: "stepStateCancelled",
+  [ProcessingState.Warning]: "stepStateWarning",
+  [ProcessingState.DeliveryRestriction]: "stepStateDeliveryRestriction",
+};
+
+/** The state a run is shown in: the one it ended in, running while it still runs, or none when it is unknown. */
+export const shownProcessingState = (state?: ProcessingState | null, running?: boolean) =>
+  state ?? (running ? ProcessingState.Running : undefined);
+
+/** The name of the state a run is shown in, such as "Finished", or that it is unknown. */
+export const formatProcessingState = (t: TFunction, state?: ProcessingState): string =>
+  t(state ? stateLabelKey[state] : "processingStateUnknown");

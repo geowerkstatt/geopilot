@@ -111,11 +111,13 @@ public class PipelineRunController : ControllerBase
         if (run is null)
             return Problem($"No execution protocol found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
 
-        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, [run.JobId]);
+        var attempts = await LoadAttemptsOfDeliveryAsync(run);
+        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, attempts.Select(r => r.JobId).ToList());
         var delivery = deliveries.GetValueOrDefault(run.JobId);
         var outcome = PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), delivery);
         var (forwardingState, notificationState) = await PipelineRunOutcomes.LoadReactionStatesAsync(context, delivery);
-        return Ok(run.ToResponse(outcome, forwardingState, notificationState));
+        var attemptSummaries = attempts.Select(attempt => ToSummary(attempt, deliveries)).ToList();
+        return Ok(run.ToResponse(outcome, forwardingState, notificationState, attemptSummaries));
     }
 
     /// <summary>
@@ -179,6 +181,21 @@ public class PipelineRunController : ControllerBase
         PipelineRunStateFilter.Open => runs.Where(r => r.TerminalState == null || r.TerminalState == ProcessingState.Pending || r.TerminalState == ProcessingState.Running),
         _ => runs,
     };
+
+    // The group key of LatestAttemptOfEachGroup, newest first; a run without reference is a delivery of its own.
+    private async Task<List<PipelineRun>> LoadAttemptsOfDeliveryAsync(PipelineRun run)
+    {
+        if (run.ClientReference is null)
+            return [run];
+
+        return await WithSummaryIncludes(context.PipelineRuns.AsNoTracking().Where(r =>
+                r.ClientReference == run.ClientReference
+                && r.UserId == run.UserId
+                && r.MachineClientId == run.MachineClientId
+                && r.MandateId == run.MandateId))
+            .OrderByDescending(r => r.Id)
+            .ToListAsync();
+    }
 
     // shortcut: the earlier attempts come with the page; load them when a group is expanded if groups grow large, as
     // they do for a client that keeps sending one reference.

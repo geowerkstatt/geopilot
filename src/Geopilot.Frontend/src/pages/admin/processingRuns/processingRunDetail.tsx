@@ -7,15 +7,15 @@ import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../..
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
-import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
+import { ProcessingRunAttemptList } from "./processingRunAttemptList.tsx";
 import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
 import { ProcessingRunFiles } from "./processingRunFiles.tsx";
-import { formatClientKind, formatDuration } from "./processingRunFormat.ts";
+import { formatDuration } from "./processingRunFormat.ts";
 import { listQueryOf, listQueryState, parseJobId, ProcessingRunTab, tabFromHash } from "./processingRunQuery.ts";
 import { ProcessingRunReactionEvents } from "./processingRunReactionEvents.tsx";
 import { ProcessingRunSteps } from "./processingRunSteps.tsx";
@@ -74,7 +74,10 @@ const panelId = "processingRunPanel";
 // How often the page loads the run again while a reaction of its delivery is pending or running.
 const reactionRefreshInterval = 15_000;
 
-/** One pipeline run: who started it, what became of it, its steps, files, reactions and pipeline. */
+/**
+ * One pipeline run: who started it, the other attempts of its delivery, what became of it, its steps, files, reactions
+ * and pipeline.
+ */
 export const ProcessingRunDetail: FC = () => {
   const { t } = useTranslation();
   const { jobId: jobIdParam } = useParams<{ jobId: string }>();
@@ -180,6 +183,14 @@ export const ProcessingRunDetail: FC = () => {
   return (
     <Stack>
       {renderHeader(run.jobId)}
+      {run.attempts.length > 1 && (
+        <GeopilotBox>
+          <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
+            {t("attemptsOfClientReference", { clientReference: run.clientReference })}
+          </Typography>
+          <ProcessingRunAttemptList attempts={run.attempts} shownJobId={run.jobId} />
+        </GeopilotBox>
+      )}
       <GeopilotBox>
         <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}
@@ -197,6 +208,7 @@ export const ProcessingRunDetail: FC = () => {
           <SummaryField label="processedBy">
             <DeclarerLabel declarer={run.declarer} path={declarerPath} />
           </SummaryField>
+          {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
           <SummaryField label="delivery">
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
             {run.outcome.kind === PipelineRunOutcomeKind.DeclarationFailed && (
@@ -211,9 +223,6 @@ export const ProcessingRunDetail: FC = () => {
               </Typography>
             )}
           </SummaryField>
-          <SummaryField label="forwarding">
-            {run.forwardingState ? <ReactionStateLabel state={run.forwardingState} /> : "-"}
-          </SummaryField>
           <SummaryField label="mandate">
             {run.mandate ? (
               <Link component={RouterLink} to={`/admin/mandates/${run.mandate.id}`}>
@@ -225,14 +234,7 @@ export const ProcessingRunDetail: FC = () => {
           </SummaryField>
           <SummaryField label="pipeline">{run.pipelineId}</SummaryField>
           <SummaryField label="processingStarted">{new Date(run.startedAt).toLocaleString()}</SummaryField>
-          <SummaryField label="startedVia">{formatClientKind(t, run.clientKind) ?? "-"}</SummaryField>
-          {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
           <SummaryField label="appVersion">{run.appVersion}</SummaryField>
-          {run.failureReason && (
-            <SummaryField label="failureReason" wide>
-              {run.failureReason}
-            </SummaryField>
-          )}
         </Box>
       </GeopilotBox>
       <Stack spacing={0}>

@@ -98,6 +98,41 @@ describe("Processing run", () => {
     cy.contains("td", "Delivered to the target.", { timeout: 20000 }).should("be.visible");
   });
 
+  it("opens another attempt of the delivery on its own page and the same tab", () => {
+    const earlierJobId = "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80";
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept({ method: "GET", pathname: `/api/v1/pipelinerun/${earlierJobId}` }, { ...run, ...run.attempts[1] });
+    });
+    cy.visit(`/admin/processing-runs/${jobId}#files`);
+    cy.contains("h3", "Attempts for SMOKE-TEST-01").should("be.visible");
+    cy.dataCy(`processingRunAttempt-${jobId}`).should("have.attr", "aria-current", "page");
+
+    // The middle of the row is off the date, so the click shows that the whole row opens the attempt.
+    cy.dataCy(`processingRunAttempt-${earlierJobId}`).click();
+
+    cy.location("pathname").should("eq", `/admin/processing-runs/${earlierJobId}`);
+    cy.location("hash").should("eq", "#files");
+    cy.dataCy(`processingRunAttempt-${earlierJobId}`).should("have.attr", "aria-current", "page");
+    cy.contains(`Job ID: ${earlierJobId}`).should("be.visible");
+    cy.dataCy("summary-processingState")
+      .find('[data-cy="processingState-failed"]')
+      .should("contain", "XTF Validierung");
+    cy.dataCy("processingRunTab-files").should("have.attr", "aria-selected", "true");
+  });
+
+  it("lists no attempts for a run with a reference that is the only attempt of its delivery", () => {
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept(
+        { method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` },
+        { ...run, attempts: [run.attempts[0]] },
+      );
+    });
+    cy.visit(`/admin/processing-runs/${jobId}`);
+
+    cy.dataCy("summary-clientReference").should("contain", "SMOKE-TEST-01");
+    cy.dataCy("processingRunAttempts").should("not.exist");
+  });
+
   it("says that the pipeline could not be loaded instead of waiting on", () => {
     cy.intercept(
       { method: "GET", pathname: `/api/v1/pipelinerun/${jobId}/definition` },

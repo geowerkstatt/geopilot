@@ -5,7 +5,7 @@ import {
   PipelineRunSummaryResponse,
   ProcessingState,
 } from "../../src/api/generated";
-import { ProcessingRunRow, toProcessingRunRows } from "../../src/pages/admin/processingRuns/processingRunRows";
+import { toProcessingRunRows } from "../../src/pages/admin/processingRuns/processingRunRows";
 
 const run = (jobId: string): PipelineRunSummaryResponse => ({
   jobId,
@@ -23,33 +23,10 @@ const group = (latest: string, ...earlierAttempts: string[]): PipelineRunGroupRe
   earlierAttempts: earlierAttempts.map(jobId => run(jobId)),
 });
 
-// What a row says about the grouping: its run, and how many attempts it stands for or that it is an earlier one.
-const describeRows = (rows: ProcessingRunRow[]) =>
-  rows.map(row => (row.kind === "latest" ? `${row.jobId} of ${row.attemptCount}` : `${row.jobId} earlier`));
-
 describe("pipeline run rows", () => {
-  it("shows a run without earlier attempts as one row", () => {
-    expect(describeRows(toProcessingRunRows([group("a")], new Set()))).to.deep.equal(["a of 1"]);
-  });
+  it("shows each delivery by its newest attempt, counting all", () => {
+    const rows = toProcessingRunRows([group("c", "b", "a"), group("d")]);
 
-  it("shows only the newest attempt of a collapsed group, counting all", () => {
-    expect(describeRows(toProcessingRunRows([group("c", "b", "a")], new Set()))).to.deep.equal(["c of 3"]);
-  });
-
-  it("lists the earlier attempts of an expanded group right below its newest", () => {
-    expect(describeRows(toProcessingRunRows([group("c", "b", "a"), group("d")], new Set(["c"])))).to.deep.equal([
-      "c of 3",
-      "b earlier",
-      "a earlier",
-      "d of 1",
-    ]);
-  });
-
-  it("expands only the groups asked for", () => {
-    expect(describeRows(toProcessingRunRows([group("c", "b"), group("e", "d")], new Set(["e"])))).to.deep.equal([
-      "c of 2",
-      "e of 2",
-      "d earlier",
-    ]);
+    expect(rows.map(row => `${row.jobId} of ${row.attemptCount}`)).to.deep.equal(["c of 3", "d of 1"]);
   });
 });

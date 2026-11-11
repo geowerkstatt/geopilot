@@ -8,10 +8,9 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CircularProgress, Stack, Tooltip } from "@mui/material";
 import { PipelineRunBlockingStep, ProcessingState } from "../../../api/generated";
-import { TranslationKey } from "../../../appInterfaces";
 import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
-import { formatBlockingSteps } from "./processingRunFormat.ts";
+import { formatBlockingSteps, formatProcessingState, shownProcessingState } from "./processingRunFormat.ts";
 
 interface ProcessingStateLabelProps {
   /** The state the run ended in; without one, its outcome is unknown or it still runs. */
@@ -25,17 +24,6 @@ interface ProcessingStateLabelProps {
   /** How long the run took, named after the state. */
   duration?: string;
 }
-
-// The same names as the steps of the delivery wizard.
-const stateLabelKey: Record<ProcessingState, TranslationKey> = {
-  [ProcessingState.Pending]: "stepStatePending",
-  [ProcessingState.Running]: "stepStateRunning",
-  [ProcessingState.Success]: "stepStateFinished",
-  [ProcessingState.Failed]: "stepStateFailed",
-  [ProcessingState.Cancelled]: "stepStateCancelled",
-  [ProcessingState.Warning]: "stepStateWarning",
-  [ProcessingState.DeliveryRestriction]: "stepStateDeliveryRestriction",
-};
 
 const stateColor: Record<ProcessingState, string> = {
   [ProcessingState.Pending]: "primary.main",
@@ -66,6 +54,13 @@ const renderIcon = (state: ProcessingState) => {
   }
 };
 
+/** The state of a run as its icon in the color of the state; a question mark when the state is unknown. */
+const ProcessingStateIcon: FC<{ state?: ProcessingState }> = ({ state }) => (
+  <Stack component="span" sx={{ color: state ? stateColor[state] : "primary.states.disabledBackground" }}>
+    {state ? renderIcon(state) : <HelpOutlineIcon fontSize="small" />}
+  </Stack>
+);
+
 /** The state of a pipeline run as a colored icon with its name. */
 export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
   state,
@@ -76,13 +71,16 @@ export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
 }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const shownState = state ?? (running ? ProcessingState.Running : undefined);
-  const stateName = t(shownState ? stateLabelKey[shownState] : "processingStateUnknown");
+  const shownState = shownProcessingState(state, running);
+  const stateName = formatProcessingState(t, shownState);
   const label = duration ? t("stepStateAfterDuration", { state: stateName, duration }) : stateName;
 
   // A restriction does not stop the pipeline, so several steps can keep the run from allowing a delivery.
   const steps = (blockingSteps ?? []).map(step => localized(step.displayName, step.stepId));
-  const text = steps.length === 0 ? label : `${label}: ${allSteps ? steps.join(", ") : formatBlockingSteps(steps)}`;
+  const text =
+    steps.length === 0
+      ? label
+      : t("processingStateInSteps", { state: label, steps: allSteps ? steps.join(", ") : formatBlockingSteps(steps) });
 
   // Only the icon takes the color: as text, the warning and error colors are too pale to read.
   const content = (
@@ -91,9 +89,7 @@ export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
       direction="row"
       sx={{ alignItems: "center", gap: 1 }}
       data-cy={`processingState-${shownState ?? "unknown"}`}>
-      <Stack component="span" sx={{ color: shownState ? stateColor[shownState] : "primary.states.disabledBackground" }}>
-        {shownState ? renderIcon(shownState) : <HelpOutlineIcon fontSize="small" />}
-      </Stack>
+      <ProcessingStateIcon state={shownState} />
       {text}
     </Stack>
   );

@@ -1,10 +1,72 @@
 {
   "appVersion": "3.2.118",
+  "attempts": [
+    {
+      "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
+      "startedAt": "2026-11-06T14:59:42Z",
+      "terminalAt": "2026-11-06T14:59:44Z",
+      "declarer": {
+        "kind": "machineClient",
+        "id": 1,
+        "name": "Service account geopilot-api"
+      },
+      "clientKind": "apiClient",
+      "clientReference": "SMOKE-TEST-01",
+      "mandate": {
+        "id": 1,
+        "name": {
+          "de": "Validierung mit Weitergabe"
+        }
+      },
+      "pipelineId": "ili_validation",
+      "terminalState": "success",
+      "outcome": {
+        "kind": "delivered",
+        "deliveryId": 23,
+        "blockingSteps": []
+      }
+    },
+    {
+      "jobId": "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80",
+      "startedAt": "2026-11-06T14:58:46Z",
+      "terminalAt": "2026-11-06T14:58:52Z",
+      "declarer": {
+        "kind": "machineClient",
+        "id": 1,
+        "name": "Service account geopilot-api"
+      },
+      "clientKind": "apiClient",
+      "clientReference": "SMOKE-TEST-01",
+      "mandate": {
+        "id": 1,
+        "name": {
+          "de": "Validierung mit Weitergabe"
+        }
+      },
+      "pipelineId": "ili_validation",
+      "terminalState": "failed",
+      "outcome": {
+        "kind": "notDeliverable",
+        "blockingSteps": [
+          {
+            "stepId": "validation",
+            "displayName": {
+              "de": "XTF Validierung"
+            }
+          }
+        ]
+      }
+    }
+  ],
   "clientKind": "apiClient",
   "clientReference": "SMOKE-TEST-01",
   "declarability": "declarable",
   "declarationFailure": null,
-  "declarer": { "kind": "machineClient", "id": 1, "name": "Service account geopilot-api" },
+  "declarer": {
+    "kind": "machineClient",
+    "id": 1,
+    "name": "Service account geopilot-api"
+  },
   "failureReason": null,
   "files": [
     {
@@ -17,9 +79,19 @@
   "forwardingState": "done",
   "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
   "machineClientId": 1,
-  "mandate": { "id": 1, "name": { "de": "Validierung mit Weitergabe" } },
+  "mandate": {
+    "id": 1,
+    "name": {
+      "de": "Validierung mit Weitergabe"
+    }
+  },
   "mandateId": 1,
-  "outcome": { "kind": "delivered", "deliveryId": 23, "blockingSteps": [] },
+  "notificationState": "pending",
+  "outcome": {
+    "kind": "delivered",
+    "deliveryId": 23,
+    "blockingSteps": []
+  },
   "pipelineId": "ili_validation",
   "reactionEvents": [],
   "scanDetails": null,
@@ -28,7 +100,9 @@
   "steps": [
     {
       "stepId": "validation",
-      "displayName": { "de": "XTF Validierung" },
+      "displayName": {
+        "de": "XTF Validierung"
+      },
       "processImplementation": "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess",
       "processAssemblyName": "Geopilot.Pipeline",
       "processAssemblyVersion": "2.0.0+0b2fe6c0",
@@ -36,7 +110,9 @@
       "startedAt": "2026-11-06T14:59:42Z",
       "finishedAt": "2026-11-06T14:59:44Z",
       "errorMessage": null,
-      "statusMessage": { "de": "Keine Fehler gefunden." },
+      "statusMessage": {
+        "de": "Keine Fehler gefunden."
+      },
       "conditionMessage": null,
       "inputs": [
         {
@@ -58,7 +134,9 @@
           "kind": "fail",
           "expression": "[validation.ValidationSuccessful] == false",
           "matched": false,
-          "evaluatedValues": { "validation.ValidationSuccessful": "True" }
+          "evaluatedValues": {
+            "validation.ValidationSuccessful": "True"
+          }
         }
       ],
       "artifacts": [
