@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Processing;
 
@@ -100,7 +101,7 @@ public interface IPipelineRunRecorder
     /// <param name="reaction">The reaction as it was claimed for the attempt.</param>
     /// <param name="state">The state the reaction is in now, or <see langword="null"/> when the attempt no longer held it.</param>
     /// <param name="message">What the channel reported, or why the attempt failed.</param>
-    Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, string message);
+    Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, LocalizedText message);
 
     /// <summary>
     /// Writes one row per reaction of a deleted delivery with the state the deletion left it in, so the protocol

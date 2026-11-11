@@ -179,5 +179,5 @@ public record PipelineRunReactionEventResponse(
     DateTime OccurredAt,
     DateTime? FinishedAt,
     ReactionState? State,
-    string? Message,
+    LocalizedText? Message,
     int? UserId);

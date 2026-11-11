@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using Geopilot.PipelineCore.Pipeline;
+using System.Globalization;
 
 namespace Geopilot.Pipeline.Channels.FileDrop;
 
@@ -15,6 +16,63 @@ internal sealed class FileDropChannel : IDeliveryChannel
     /// The name of the base configuration value with the base directory, below <c>Pipeline:ChannelConfigs</c>.
     /// </summary>
     internal const string BaseDirectoryKey = "baseDirectory";
+
+    private static readonly LocalizedText BaseDirectoryMissingMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Das Basisverzeichnis <{0}> existiert nicht." },
+        { "fr", "Le répertoire de base <{0}> n'existe pas." },
+        { "it", "La directory di base <{0}> non esiste." },
+        { "en", "The base directory <{0}> does not exist." },
+    };
+
+    private static readonly LocalizedText LinkMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Ordner <{0}> ist ein Link, dem die Ablage nicht folgt." },
+        { "fr", "Le dossier <{0}> est un lien, que le dépôt ne suit pas." },
+        { "it", "La cartella <{0}> è un collegamento, che il deposito non segue." },
+        { "en", "The folder <{0}> is a link, which the file drop does not follow." },
+    };
+
+    private static readonly LocalizedText AlreadyDeliveredMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Die Lieferung liegt bereits in <{0}>." },
+        { "fr", "La livraison se trouve déjà dans <{0}>." },
+        { "it", "La consegna si trova già in <{0}>." },
+        { "en", "The delivery already is in <{0}>." },
+    };
+
+    private static readonly LocalizedText ForeignFolderMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Ordner <{0}> existiert bereits, enthält aber nicht die Dateien dieser Lieferung." },
+        { "fr", "Le dossier <{0}> existe déjà, mais ne contient pas les fichiers de cette livraison." },
+        { "it", "La cartella <{0}> esiste già, ma non contiene i file di questa consegna." },
+        { "en", "The folder <{0}> already exists but does not hold the files of this delivery." },
+    };
+
+    private static readonly LocalizedText NotPlainFileNameMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Dateiname <{0}> ist kein einfacher Dateiname." },
+        { "fr", "Le nom de fichier <{0}> n'est pas un simple nom de fichier." },
+        { "it", "Il nome file <{0}> non è un semplice nome di file." },
+        { "en", "The file name <{0}> is not a plain file name." },
+    };
+
+    private static readonly LocalizedText DeliveredMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "In <{0}> abgelegt." },
+        { "fr", "Déposée dans <{0}>." },
+        { "it", "Depositata in <{0}>." },
+        { "en", "Delivered to <{0}>." },
+    };
+
+    // The second value is the text of the exception, as the runtime reports it.
+    private static readonly LocalizedText PlacementFailedMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Die Lieferung konnte nicht in <{0}> abgelegt werden: {1}" },
+        { "fr", "La livraison n'a pas pu être déposée dans <{0}>: {1}" },
+        { "it", "Non è stato possibile depositare la consegna in <{0}>: {1}" },
+        { "en", "The delivery could not be placed in <{0}>: {1}" },
+    };
 
     private readonly string baseDirectory;
     private readonly string mandateDirectory;
@@ -40,10 +98,10 @@ internal sealed class FileDropChannel : IDeliveryChannel
 
         // Never created here: a missing base directory is a missing mount, and nobody would read what lands next to it.
         if (!Directory.Exists(baseDirectory))
-            return ChannelResult.Failure($"The base directory <{baseDirectory}> does not exist.");
+            return ChannelResult.Failure(BaseDirectoryMissingMessageFormat.Format(baseDirectory));
 
         if (FindLinkBelowTheBaseDirectory() is string link)
-            return ChannelResult.Failure($"The folder <{link}> is a link, which the file drop does not follow.");
+            return ChannelResult.Failure(LinkMessageFormat.Format(link));
 
         var deliveryFolder = delivery.Id.ToString(CultureInfo.InvariantCulture);
         var target = Path.Combine(mandateDirectory, deliveryFolder);
@@ -59,8 +117,8 @@ internal sealed class FileDropChannel : IDeliveryChannel
             if (Directory.Exists(target))
             {
                 return await HoldsTheFilesAsync(target, files, cancellationToken).ConfigureAwait(false)
-                    ? ChannelResult.Success($"The delivery already is in <{target}>.")
-                    : ChannelResult.Failure($"The folder <{target}> already exists but does not hold the files of this delivery.");
+                    ? ChannelResult.Success(AlreadyDeliveredMessageFormat.Format(target))
+                    : ChannelResult.Failure(ForeignFolderMessageFormat.Format(target));
             }
 
             // An attempt whose instance stopped leaves its temporary folder behind.
@@ -72,7 +130,7 @@ internal sealed class FileDropChannel : IDeliveryChannel
             foreach (var file in files)
             {
                 if (!IsPlainFileName(file.Name))
-                    return ChannelResult.Failure($"The file name <{file.Name}> is not a plain file name.");
+                    return ChannelResult.Failure(NotPlainFileNameMessageFormat.Format(file.Name));
 
                 await using var source = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
                 await using var destination = new FileStream(Path.Combine(partial, file.Name), FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
@@ -81,11 +139,11 @@ internal sealed class FileDropChannel : IDeliveryChannel
 
             Directory.Move(partial, target);
             delivered = true;
-            return ChannelResult.Success($"Delivered to <{target}>.");
+            return ChannelResult.Success(DeliveredMessageFormat.Format(target));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return ChannelResult.Failure($"The delivery could not be placed in <{mandateDirectory}>: {ex.Message}");
+            return ChannelResult.Failure(PlacementFailedMessageFormat.Format(mandateDirectory, ex.Message));
         }
         finally
         {

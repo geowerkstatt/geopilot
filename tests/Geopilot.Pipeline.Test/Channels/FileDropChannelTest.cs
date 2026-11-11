@@ -45,7 +45,7 @@ public class FileDropChannelTest
     {
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>"), Content("log.txt", "ok")], CancellationToken.None);
 
-        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.IsTrue(result.Delivered, result.Message["en"]);
         Assert.AreEqual("<xtf/>", await File.ReadAllTextAsync(Path.Combine(target, "data.xtf")));
         Assert.AreEqual("ok", await File.ReadAllTextAsync(Path.Combine(target, "log.txt")));
         CollectionAssert.AreEqual(new[] { target }, Directory.GetFileSystemEntries(mandateDirectory));
@@ -60,7 +60,7 @@ public class FileDropChannelTest
 
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>"), Content("log.txt", "ok")], CancellationToken.None);
 
-        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.IsTrue(result.Delivered, result.Message["en"]);
         Assert.AreEqual("<xtf/>", await File.ReadAllTextAsync(Path.Combine(target, "data.xtf")));
     }
 
@@ -73,7 +73,7 @@ public class FileDropChannelTest
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "<xtf/>")], CancellationToken.None);
 
         Assert.IsFalse(result.Delivered);
-        Assert.Contains("does not hold the files of this delivery", result.Message);
+        Assert.Contains("does not hold the files of this delivery", result.Message["en"]);
         CollectionAssert.AreEqual(new[] { Path.Combine(target, "other.xtf") }, Directory.GetFileSystemEntries(target));
     }
 
@@ -109,7 +109,7 @@ public class FileDropChannelTest
 
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "whole")], CancellationToken.None);
 
-        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.IsTrue(result.Delivered, result.Message["en"]);
         Assert.AreEqual("whole", await File.ReadAllTextAsync(Path.Combine(target, "data.xtf")));
         CollectionAssert.AreEqual(new[] { target }, Directory.GetFileSystemEntries(mandateDirectory));
     }
@@ -122,7 +122,7 @@ public class FileDropChannelTest
 
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "x")], CancellationToken.None);
 
-        Assert.IsTrue(result.Delivered, result.Message);
+        Assert.IsTrue(result.Delivered, result.Message["en"]);
         Assert.IsTrue(Directory.Exists(other));
     }
 
@@ -152,7 +152,7 @@ public class FileDropChannelTest
             var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "x")], CancellationToken.None);
 
             Assert.IsFalse(result.Delivered);
-            Assert.Contains("is a link", result.Message);
+            Assert.Contains("is a link", result.Message["en"]);
             Assert.IsEmpty(Directory.GetFileSystemEntries(elsewhere));
         }
         finally
@@ -170,7 +170,7 @@ public class FileDropChannelTest
         {
             var result = await new FileDropChannel(linkedBase, "mandate-a").DeliverAsync(Delivery, [Content("data.xtf", "x")], CancellationToken.None);
 
-            Assert.IsTrue(result.Delivered, result.Message);
+            Assert.IsTrue(result.Delivered, result.Message["en"]);
             Assert.IsTrue(File.Exists(Path.Combine(target, "data.xtf")));
         }
         finally
@@ -196,7 +196,7 @@ public class FileDropChannelTest
         var result = await Channel().DeliverAsync(Delivery, [Content("data.xtf", "x"), new FailingFile("log.txt")], CancellationToken.None);
 
         Assert.IsFalse(result.Delivered);
-        Assert.Contains("log.txt is gone", result.Message);
+        Assert.Contains("log.txt is gone", result.Message["en"]);
         Assert.IsEmpty(Directory.GetFileSystemEntries(mandateDirectory));
     }
 

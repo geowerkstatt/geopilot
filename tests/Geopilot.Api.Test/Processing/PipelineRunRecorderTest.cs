@@ -429,11 +429,11 @@ public class PipelineRunRecorderTest
         var reaction = ClaimedReaction(delivery);
         await recorder.RecordReactionAttemptStartedAsync(reaction);
 
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, "What the channel reported.");
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, TestHelpers.Localized("What the channel reported."));
 
         var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
         Assert.AreEqual(state, row.State);
-        Assert.AreEqual("What the channel reported.", row.Message);
+        Assert.AreEqual(TestHelpers.Localized("What the channel reported."), row.Message);
         Assert.IsNotNull(row.FinishedAt);
     }
 
@@ -443,7 +443,7 @@ public class PipelineRunRecorderTest
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var reaction = ClaimedReaction(delivery);
 
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, "Delivered to the target.");
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
 
         var row = await context.PipelineRunReactionEvents.SingleAsync(e => e.PipelineRunId == run.Id);
         Assert.AreEqual(reaction.LastAttemptAt, row.OccurredAt);
@@ -486,7 +486,7 @@ public class PipelineRunRecorderTest
         var reaction = ClaimedReaction(withoutRun);
 
         await recorder.RecordReactionAttemptStartedAsync(reaction);
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, "Delivered to the target.");
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
         await recorder.RecordDeliveryDeletedAsync(withoutRun.Id, [reaction], user.Id);
 
         Assert.IsFalse(await context.PipelineRunReactionEvents.AnyAsync(e => e.DeliveryId == withoutRun.Id), "soft writes without a run record must be skipped, not fail.");
@@ -506,7 +506,7 @@ public class PipelineRunRecorderTest
         Assert.IsTrue(rows.All(row => row.Event == ReactionEvent.Deletion && row.UserId == user.Id && row.Attempt is null && row.FinishedAt is null));
         Assert.AreEqual("ablage", rows[0].ReactionId);
         Assert.AreEqual(ReactionState.Done, rows[0].State, "a reaction done before the deletion shows the delivery was forwarded.");
-        Assert.AreEqual("Delivered to the target.", rows[0].Message);
+        Assert.AreEqual(TestHelpers.Localized("Delivered to the target."), rows[0].Message);
         Assert.AreEqual(ReactionState.Deleted, rows[1].State);
     }
 
@@ -533,12 +533,12 @@ public class PipelineRunRecorderTest
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var beforeReset = ClaimedReaction(delivery);
         await recorder.RecordReactionAttemptStartedAsync(beforeReset);
-        await recorder.RecordReactionAttemptFinishedAsync(beforeReset, ReactionState.Error, "The base directory does not exist.");
+        await recorder.RecordReactionAttemptFinishedAsync(beforeReset, ReactionState.Error, TestHelpers.Localized("The base directory does not exist."));
         await recorder.RecordReactionsResetAsync(delivery.Id, [ReactionInState(delivery, "weitergabe", ReactionState.Pending)], user.Id);
         var afterReset = ClaimedReaction(delivery);
         await recorder.RecordReactionAttemptStartedAsync(afterReset);
 
-        await recorder.RecordReactionAttemptFinishedAsync(afterReset, ReactionState.Done, "Delivered to the target.");
+        await recorder.RecordReactionAttemptFinishedAsync(afterReset, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
 
         var attempts = await context.PipelineRunReactionEvents
             .Where(e => e.PipelineRunId == run.Id && e.Event == ReactionEvent.Attempt)
@@ -557,7 +557,7 @@ public class PipelineRunRecorderTest
         Kind = ReactionKind.Transfer,
         Implementation = FileDrop,
         State = state,
-        Message = message,
+        Message = message is null ? null : TestHelpers.Localized(message),
     };
 
     private static DeliveryReaction ClaimedReaction(Delivery delivery, int attempt = 1) => new()

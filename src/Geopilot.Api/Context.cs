@@ -265,6 +265,15 @@ public class Context : DbContext
             snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null).GetHashCode(StringComparison.Ordinal),
             snapshot => ReactionSnapshot.FromJson(JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null)));
 
+        var localizedTextConverter = new ValueConverter<LocalizedText, string>(
+            localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
+            json => JsonSerializer.Deserialize<LocalizedText>(json, (JsonSerializerOptions?)null) ?? LocalizedText.Empty);
+
+        var localizedTextComparer = new ValueComparer<LocalizedText>(
+            (left, right) => object.Equals(left, right),
+            localizedText => localizedText.GetHashCode(),
+            localizedText => localizedText);
+
         modelBuilder.Entity<DeliveryReaction>(reaction =>
         {
             // The reactions of a deleted delivery are never claimed, listed or reset again.
@@ -279,16 +288,8 @@ public class Context : DbContext
             reaction.Property(r => r.Kind).HasConversion<string>().HasMaxLength(12);
             reaction.Property(r => r.State).HasConversion<string>().HasMaxLength(12);
             reaction.Property(r => r.Config).HasColumnType("jsonb").HasConversion(reactionSnapshotConverter, reactionSnapshotComparer);
+            reaction.Property(r => r.Message).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
         });
-
-        var localizedTextConverter = new ValueConverter<LocalizedText, string>(
-            localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
-            json => JsonSerializer.Deserialize<LocalizedText>(json, (JsonSerializerOptions?)null) ?? LocalizedText.Empty);
-
-        var localizedTextComparer = new ValueComparer<LocalizedText>(
-            (left, right) => object.Equals(left, right),
-            localizedText => localizedText.GetHashCode(),
-            localizedText => localizedText);
 
         modelBuilder.Entity<Mandate>()
             .HasIndex(mandate => mandate.Key)
@@ -379,6 +380,7 @@ public class Context : DbContext
             reactionEvent.Property(e => e.ReactionKind).HasConversion<string>();
             reactionEvent.Property(e => e.Event).HasConversion<string>();
             reactionEvent.Property(e => e.State).HasConversion<string>();
+            reactionEvent.Property(e => e.Message).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
 
             // Restrict like the user of the run: users are only ever soft-deleted.
             reactionEvent.HasOne<User>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);

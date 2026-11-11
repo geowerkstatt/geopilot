@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
@@ -18,8 +19,46 @@ namespace Geopilot.Api.Reactions;
 /// </summary>
 public class ReactionWorker : BackgroundService
 {
-    private const string StoppedMessage = "The attempt was interrupted because the application stopped.";
-    private const string DeliveryGoneMessage = "The delivery no longer exists.";
+    private static readonly LocalizedText StoppedMessage = new Dictionary<string, string>
+    {
+        { "de", "Der Versuch wurde abgebrochen, weil die Anwendung beendet wurde." },
+        { "fr", "La tentative a été interrompue, car l'application s'est arrêtée." },
+        { "it", "Il tentativo è stato interrotto perché l'applicazione si è arrestata." },
+        { "en", "The attempt was interrupted because the application stopped." },
+    };
+
+    private static readonly LocalizedText DeliveryGoneMessage = new Dictionary<string, string>
+    {
+        { "de", "Die Lieferung existiert nicht mehr." },
+        { "fr", "La livraison n'existe plus." },
+        { "it", "La consegna non esiste più." },
+        { "en", "The delivery no longer exists." },
+    };
+
+    private static readonly LocalizedText TimeLimitMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Versuch hat sein Zeitlimit von {0} überschritten." },
+        { "fr", "La tentative a dépassé sa limite de temps de {0}." },
+        { "it", "Il tentativo ha superato il suo limite di tempo di {0}." },
+        { "en", "The attempt exceeded its time limit of {0}." },
+    };
+
+    private static readonly LocalizedText UnexpectedFailureMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Versuch ist unerwartet gescheitert ({0}), Details stehen im Log." },
+        { "fr", "La tentative a échoué de manière inattendue ({0}), les détails se trouvent dans le journal." },
+        { "it", "Il tentativo è fallito in modo imprevisto ({0}), i dettagli si trovano nel log." },
+        { "en", "The attempt failed unexpectedly ({0}); the log has the details." },
+    };
+
+    // The value is the refusal of the channel, untranslated, as the checks at the start and of a mandate report it.
+    private static readonly LocalizedText ChannelRefusedMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "Der Kanal konnte nicht erstellt werden: {0}" },
+        { "fr", "Le canal n'a pas pu être créé: {0}" },
+        { "it", "Non è stato possibile creare il canale: {0}" },
+        { "en", "The channel could not be created: {0}" },
+    };
 
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ReactionStore store;
@@ -118,12 +157,12 @@ public class ReactionWorker : BackgroundService
         {
             // The reaction stays running until its lock runs out and then runs again or gives up, and its protocol entry
             // keeps the outcome unknown: only this entry tells what the attempt did.
-            logger.LogError(ex, "The outcome of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be saved. Delivered: {Delivered}. {Message}", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId, result.Delivered, result.Message);
+            logger.LogError(ex, "The outcome of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be saved. Delivered: {Delivered}. {Message}", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId, result.Delivered, result.Message.GetDisplayText());
             return true;
         }
 
         await recorder.RecordReactionAttemptFinishedAsync(reaction, state, result.Message);
-        LogOutcome(reaction, result.Message, state);
+        LogOutcome(reaction, result.Message.GetDisplayText(), state);
         return true;
     }
 
@@ -156,7 +195,7 @@ public class ReactionWorker : BackgroundService
         }
         catch (Exception ex) when (ex is OperationCanceledException or TimeoutException)
         {
-            return ChannelResult.Failure($"The attempt exceeded its time limit of {options.TimeLimit}.");
+            return ChannelResult.Failure(TimeLimitMessageFormat.Format(options.TimeLimit));
         }
         catch (Exception ex)
         {
@@ -164,7 +203,7 @@ public class ReactionWorker : BackgroundService
 
             // Only the type: the text of an exception can name internal paths or hosts, and the message is kept for the
             // retention of the protocol and shown to administrators.
-            return ChannelResult.Failure($"The attempt failed unexpectedly ({ex.GetType().Name}); the log has the details.");
+            return ChannelResult.Failure(UnexpectedFailureMessageFormat.Format(ex.GetType().Name));
         }
     }
 
@@ -172,7 +211,7 @@ public class ReactionWorker : BackgroundService
     /// Creates the channel of a reaction from its snapshot and the base configuration as it is now, so a changed base
     /// directory or password applies to reactions that are already waiting.
     /// </summary>
-    private bool TryCreateChannel(DeliveryReaction reaction, [NotNullWhen(true)] out IDeliveryChannel? channel, [NotNullWhen(false)] out string? refusal)
+    private bool TryCreateChannel(DeliveryReaction reaction, [NotNullWhen(true)] out IDeliveryChannel? channel, [NotNullWhen(false)] out LocalizedText? refusal)
     {
         try
         {
@@ -183,12 +222,12 @@ public class ReactionWorker : BackgroundService
         }
         catch (InvalidOperationException ex)
         {
-            refusal = ex.Message;
+            refusal = ChannelRefusedMessageFormat.Format(ex.Message);
         }
         catch (TargetInvocationException ex)
         {
             // The constructor of the channel refused a value, such as a subfolder outside the base directory.
-            refusal = (ex.InnerException ?? ex).Message;
+            refusal = ChannelRefusedMessageFormat.Format((ex.InnerException ?? ex).Message);
         }
 
         channel = null;

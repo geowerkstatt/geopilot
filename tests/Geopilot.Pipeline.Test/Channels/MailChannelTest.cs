@@ -99,7 +99,8 @@ public class MailChannelTest
 
         var result = await channel.DeliverAsync(Delivery with { Declarer = MachineClient }, [], CancellationToken.None);
 
-        Assert.AreEqual(ChannelResult.Success("The mail has no recipient, so none was sent."), result);
+        Assert.IsTrue(result.Delivered);
+        Assert.AreEqual("The mail has no recipient, so none was sent.", result.Message["en"]);
     }
 
     [TestMethod]

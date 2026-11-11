@@ -164,7 +164,7 @@ namespace Geopilot.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Message")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("NextAttemptAt")
                         .HasColumnType("timestamp with time zone");
@@ -584,7 +584,7 @@ namespace Geopilot.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Message")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");

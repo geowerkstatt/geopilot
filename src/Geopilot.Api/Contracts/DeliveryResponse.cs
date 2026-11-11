@@ -33,4 +33,4 @@ public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, 
 /// <param name="FinishedAt">When it ended as <see cref="ReactionState.Done"/>, <see cref="ReactionState.Error"/> or
 /// <see cref="ReactionState.Deleted"/>.</param>
 /// <param name="Message">What its channel last reported, or why its last attempt failed.</param>
-public record DeliveryReactionResponse(string ReactionId, LocalizedText? DisplayName, ReactionKind Kind, ReactionState State, int Attempts, DateTime? NextAttemptAt, DateTime? LastAttemptAt, DateTime? FinishedAt, string? Message);
+public record DeliveryReactionResponse(string ReactionId, LocalizedText? DisplayName, ReactionKind Kind, ReactionState State, int Attempts, DateTime? NextAttemptAt, DateTime? LastAttemptAt, DateTime? FinishedAt, LocalizedText? Message);

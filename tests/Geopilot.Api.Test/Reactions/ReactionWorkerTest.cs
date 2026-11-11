@@ -4,6 +4,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,7 @@ public class ReactionWorkerTest
     private const string FileContent = "<TRANSFER/>";
 
     private static readonly string Probe = typeof(ProbeChannel).FullName ?? string.Empty;
-    private static readonly ChannelResult Delivered = ChannelResult.Success("Delivered to the target.");
+    private static readonly ChannelResult Delivered = ChannelResult.Success(TestHelpers.Localized("Delivered to the target."));
 
     private readonly List<Guid> jobIds = [];
 
@@ -84,7 +85,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Done, stored.State);
-        Assert.AreEqual("Delivered to the target.", stored.Message);
+        Assert.AreEqual(TestHelpers.Localized("Delivered to the target."), stored.Message);
     }
 
     [TestMethod]
@@ -96,7 +97,7 @@ public class ReactionWorkerTest
         await worker.RunNextAsync(CancellationToken.None);
 
         recorderMock.Verify(recorder => recorder.RecordReactionAttemptStartedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id && claimed.Attempts == 1)), Times.Once);
-        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id), ReactionState.Done, "Delivered to the target."), Times.Once);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id), ReactionState.Done, Delivered.Message), Times.Once);
     }
 
     [TestMethod]
@@ -226,7 +227,7 @@ public class ReactionWorkerTest
     [TestMethod]
     public async Task RunNextSchedulesTheNextAttemptWhenTheChannelFails()
     {
-        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(ChannelResult.Failure("The target is not reachable.")))));
+        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(ChannelResult.Failure(TestHelpers.Localized("The target is not reachable."))))));
 
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
@@ -234,7 +235,7 @@ public class ReactionWorkerTest
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
         Assert.AreEqual(dbNow.AddMinutes(1), stored.NextAttemptAt);
-        Assert.AreEqual("The target is not reachable.", stored.Message);
+        Assert.AreEqual(TestHelpers.Localized("The target is not reachable."), stored.Message);
         VerifyLogged(LogLevel.Warning, Times.Once());
     }
 
@@ -248,7 +249,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual("The attempt failed unexpectedly (InvalidOperationException); the log has the details.", stored.Message, "the text of an exception can name internal paths or hosts.");
+        Assert.AreEqual("The attempt failed unexpectedly (InvalidOperationException); the log has the details.", stored.Message?["en"], "the text of an exception can name internal paths or hosts.");
     }
 
     [TestMethod]
@@ -261,7 +262,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual("Channel <Geopilot.Pipeline.Channels.Missing> is unknown.", stored.Message);
+        Assert.AreEqual("The channel could not be created: Channel <Geopilot.Pipeline.Channels.Missing> is unknown.", stored.Message?["en"]);
     }
 
     [TestMethod]
@@ -275,7 +276,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual("The subfolder <../anderswo> is not a relative path without '..'. (Parameter 'subfolder')", stored.Message);
+        Assert.AreEqual("The channel could not be created: The subfolder <../anderswo> is not a relative path without '..'. (Parameter 'subfolder')", stored.Message?["en"]);
     }
 
     [TestMethod]
@@ -296,7 +297,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual($"The attempt exceeded its time limit of {reactionOptions.TimeLimit}.", stored.Message);
+        Assert.AreEqual($"The attempt exceeded its time limit of {reactionOptions.TimeLimit}.", stored.Message?["en"]);
     }
 
     [TestMethod]
@@ -314,7 +315,7 @@ public class ReactionWorkerTest
 
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual($"The attempt exceeded its time limit of {reactionOptions.TimeLimit}.", stored.Message);
+        Assert.AreEqual($"The attempt exceeded its time limit of {reactionOptions.TimeLimit}.", stored.Message?["en"]);
     }
 
     [TestMethod]
@@ -338,7 +339,7 @@ public class ReactionWorkerTest
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<ReactionState?>(), It.IsAny<string>()), Times.Never);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<ReactionState?>(), It.IsAny<LocalizedText>()), Times.Never);
     }
 
     [TestMethod]
@@ -362,13 +363,13 @@ public class ReactionWorkerTest
         Assert.IsTrue(await run);
         var stored = await ReloadAsync(reaction);
         Assert.AreEqual(ReactionState.Pending, stored.State);
-        Assert.AreEqual("The attempt was interrupted because the application stopped.", stored.Message);
+        Assert.AreEqual("The attempt was interrupted because the application stopped.", stored.Message?["en"]);
     }
 
     [TestMethod]
     public async Task RunNextGivesUpATransferAfterItsLastAttemptAndLogsAnError()
     {
-        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(ChannelResult.Failure("The target is not reachable.")))), attempts: 2);
+        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(ChannelResult.Failure(TestHelpers.Localized("The target is not reachable."))))), attempts: 2);
 
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
