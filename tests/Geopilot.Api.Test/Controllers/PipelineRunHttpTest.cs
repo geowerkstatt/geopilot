@@ -18,26 +18,25 @@ public class PipelineRunHttpTest
     [DataRow("open")]
     public async Task ListTakesTheStateTheAdministrationSends(string state)
     {
-        using var installation = new JwtTestApp();
-        using var client = installation.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtTestTokenBuilder.CreateValidAdminToken());
-
-        var response = await client.GetAsync($"/api/v1/pipelinerun?state={state}&page=0&pageSize=25");
+        var response = await GetListAsync($"states={state}&page=0&pageSize=25");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
     [TestMethod]
-    [DataRow("person")]
-    [DataRow("machineClient")]
-    public async Task ListTakesTheKindOfDeclarerTheAdministrationSends(string declarerKind)
+    public async Task ListRejectsAnUnknownState()
+    {
+        var response = await GetListAsync("states=notAState&page=0&pageSize=25");
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode, "A state the binder does not know must not be dropped silently.");
+    }
+
+    private static async Task<HttpResponseMessage> GetListAsync(string query)
     {
         using var installation = new JwtTestApp();
         using var client = installation.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtTestTokenBuilder.CreateValidAdminToken());
 
-        var response = await client.GetAsync($"/api/v1/pipelinerun?declarerKind={declarerKind}&page=0&pageSize=25");
-
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, await response.Content.ReadAsStringAsync());
+        return await client.GetAsync($"/api/v1/pipelinerun?{query}");
     }
 }
