@@ -55,7 +55,7 @@ public class JobLifecycle
     /// <param name="mandate">The mandate the upload is processed against.</param>
     /// <param name="pipelineId">The pipeline of the mandate, which the caller has checked to be set.</param>
     /// <param name="declarer">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
-    /// <param name="isDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
+    /// <param name="isDeclarable">Whether whoever started the run may deliver to its mandate, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
     /// <param name="deliveryFields">The delivery fields of a machine delivery, which geopilot then declares itself
     /// once the run allows it (see <see cref="ProcessingJob.DeliveryIntent"/>); <see langword="null"/> for a start
     /// whose delivery is declared by hand, if at all.</param>
