@@ -22,6 +22,10 @@ const themeRadius: ThemeOptions["radius"] = {
   full: "50%",
 };
 
+// The gap in the border of an outlined field is sized by a hidden copy of the label in a smaller font. Without its own
+// letter spacing in em, it keeps the spacing of the input in px (or the pickers' own) and misses the shrunk label.
+const notchLegendSpacing = { "& legend": { letterSpacing: NEOGEO_LETTERSPACING } };
+
 export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
@@ -178,6 +182,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
+          ...notchLegendSpacing,
         },
         input: {
           fontSize: px2rem(16),
@@ -212,6 +217,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
+          ...notchLegendSpacing,
         },
         root: {
           backgroundColor: themePalette.background.content,
