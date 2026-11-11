@@ -37,7 +37,7 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun();
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(run.JobId, response.JobId);
         Assert.AreEqual("pipe_a", response.PipelineId);
@@ -77,7 +77,7 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun();
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         CollectionAssert.AreEqual(new int?[] { 1, 2 }, response.ReactionEvents.Select(reactionEvent => reactionEvent.Attempt).ToArray());
         var first = response.ReactionEvents[0];
@@ -100,7 +100,7 @@ public sealed class PipelineRunControllerTest
         run.DeclarationFailure = "No assets found.";
         context.SaveChanges();
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(Declarability.Declarable, response.Declarability);
         Assert.AreEqual("No assets found.", response.DeclarationFailure);
@@ -111,7 +111,7 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun();
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.IsNull(response.Declarability, "A run recorded before the protocol kept its declarability says nothing about it, which is not the same as not declarable.");
     }
@@ -119,7 +119,7 @@ public sealed class PipelineRunControllerTest
     [TestMethod]
     public async Task GetReturnsNotFoundForUnknownJob()
     {
-        ActionResultAssert.IsNotFound(await controller.Get(Guid.NewGuid()));
+        ActionResultAssert.IsNotFound(await controller.Get(Guid.NewGuid(), CancellationToken.None));
     }
 
     [TestMethod]
@@ -133,7 +133,7 @@ public sealed class PipelineRunControllerTest
             r.MandateId = mandate.Id;
         });
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.IsNotNull(response.Declarer);
         Assert.AreEqual(DeclarerKind.Person, response.Declarer.Kind);
@@ -148,7 +148,7 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun(r => r.ClientReference = "AV-2026-0042");
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual("AV-2026-0042", response.ClientReference);
     }
@@ -159,7 +159,7 @@ public sealed class PipelineRunControllerTest
         var run = SeedRun();
         var delivery = SeedDelivery(run.JobId, deleted: false);
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(PipelineRunOutcomeKind.Delivered, response.Outcome.Kind);
         Assert.AreEqual(delivery.Id, response.Outcome.DeliveryId);
@@ -178,7 +178,7 @@ public sealed class PipelineRunControllerTest
             Reaction(live, ReactionKind.Notification, ReactionState.Error));
         context.SaveChanges();
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(ReactionState.Pending, response.ForwardingState);
         Assert.AreEqual(ReactionState.Error, response.NotificationState);
@@ -191,7 +191,7 @@ public sealed class PipelineRunControllerTest
         SeedDelivery(run.JobId, deleted: true);
         var live = SeedDelivery(run.JobId, deleted: false);
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(PipelineRunOutcomeKind.Delivered, response.Outcome.Kind);
         Assert.AreEqual(live.Id, response.Outcome.DeliveryId);
@@ -209,7 +209,7 @@ public sealed class PipelineRunControllerTest
             .Setup(service => service.GetJob(run.JobId))
             .Returns(new ProcessingJob(run.JobId, run.UploadId, null, DateTime.UtcNow) { State = ProcessingState.Running });
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(PipelineRunOutcomeKind.Running, response.Outcome.Kind);
     }
@@ -219,7 +219,7 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun();
 
-        var result = await controller.GetDefinition(run.JobId);
+        var result = await controller.GetDefinition(run.JobId, CancellationToken.None);
 
         var content = result as ContentResult;
         Assert.IsNotNull(content, "the snapshot is passed through verbatim, not re-serialized.");
@@ -230,7 +230,7 @@ public sealed class PipelineRunControllerTest
     [TestMethod]
     public async Task GetDefinitionReturnsNotFoundForUnknownJob()
     {
-        ActionResultAssert.IsNotFound(await controller.GetDefinition(Guid.NewGuid()));
+        ActionResultAssert.IsNotFound(await controller.GetDefinition(Guid.NewGuid(), CancellationToken.None));
     }
 
     [TestMethod]
@@ -383,7 +383,7 @@ public sealed class PipelineRunControllerTest
     [TestMethod]
     public async Task ListRejectsFromAfterTo()
     {
-        ActionResultAssert.IsBadRequest(await controller.List(new PipelineRunQuery { From = Window.AddDays(1), To = Window }));
+        ActionResultAssert.IsBadRequest(await controller.List(new PipelineRunQuery { From = Window.AddDays(1), To = Window }, CancellationToken.None));
     }
 
     [TestMethod]
@@ -415,7 +415,7 @@ public sealed class PipelineRunControllerTest
         SeedAttempt(Window.AddMinutes(4), "AV-1", mandates[1].Id, client.Id);
         SeedAttempt(Window.AddMinutes(5), "av-1", mandates[0].Id, client.Id);
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(second.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(second.JobId, CancellationToken.None));
 
         CollectionAssert.AreEqual(
             new[] { third.JobId, second.JobId, first.JobId },
@@ -431,7 +431,7 @@ public sealed class PipelineRunControllerTest
         var run = SeedAttempt(Window.AddMinutes(1), null, mandate.Id, client.Id);
         SeedAttempt(Window.AddMinutes(2), null, mandate.Id, client.Id);
 
-        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId));
+        var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(run.JobId, response.Attempts.Single().JobId);
     }
@@ -559,7 +559,7 @@ public sealed class PipelineRunControllerTest
     }
 
     private async Task<PipelineRunPageResponse> List(PipelineRunQuery query)
-        => ActionResultAssert.IsOkObjectResult<PipelineRunPageResponse>(await controller.List(query));
+        => ActionResultAssert.IsOkObjectResult<PipelineRunPageResponse>(await controller.List(query, CancellationToken.None));
 
     private MachineClient AddMachineClient()
     {

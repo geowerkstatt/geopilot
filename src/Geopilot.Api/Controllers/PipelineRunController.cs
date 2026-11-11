@@ -46,7 +46,7 @@ public class PipelineRunController : ControllerBase
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "One page of pipeline runs, grouped by delivery.", typeof(PipelineRunPageResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts.", typeof(ValidationProblemDetails), "application/json")]
-    public async Task<IActionResult> List([FromQuery] PipelineRunQuery query)
+    public async Task<IActionResult> List([FromQuery] PipelineRunQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -60,7 +60,7 @@ public class PipelineRunController : ControllerBase
         var latestRuns = FilterByState(
             LatestAttemptOfEachGroup(FilterByMandateAndDeclarer(context.PipelineRuns.AsNoTracking(), query), from, to),
             query.States);
-        var totalCount = await latestRuns.CountAsync();
+        var totalCount = await latestRuns.CountAsync(cancellationToken);
 
         // shortcut: fixed order; the outcome is derived per page in C#, so it cannot be filtered on yet.
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -75,10 +75,10 @@ public class PipelineRunController : ControllerBase
                 .ThenByDescending(r => r.Id)
                 .Skip((int)skip)
                 .Take(pageSize))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        var attemptCounts = await CountAttemptsAsync(pageRuns);
-        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, pageRuns.Select(r => r.JobId).ToList());
+        var attemptCounts = await CountAttemptsAsync(pageRuns, cancellationToken);
+        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, pageRuns.Select(r => r.JobId).ToList(), cancellationToken);
         var items = pageRuns
             .Select(run => new PipelineRunGroupResponse(ToSummary(run, deliveries), attemptCounts.GetValueOrDefault(GroupKeyOf(run), 1)))
             .ToList();
@@ -93,7 +93,7 @@ public class PipelineRunController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The execution protocol of the job.", typeof(PipelineRunResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No execution protocol exists for the specified jobId.", typeof(ProblemDetails), "application/json")]
-    public async Task<IActionResult> Get(Guid jobId)
+    public async Task<IActionResult> Get(Guid jobId, CancellationToken cancellationToken)
     {
         logger.LogTrace("Execution protocol for job <{JobId}> requested.", jobId);
 
@@ -102,15 +102,15 @@ public class PipelineRunController : ControllerBase
             .Include(r => r.MachineClient)
             .Include(r => r.Mandate)
             .AsNoTracking()
-            .SingleOrDefaultAsync(r => r.JobId == jobId);
+            .SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
         if (run is null)
             return Problem($"No execution protocol found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
 
-        var attempts = await LoadAttemptsOfDeliveryAsync(run);
-        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, attempts.Select(r => r.JobId).ToList());
+        var attempts = await LoadAttemptsOfDeliveryAsync(run, cancellationToken);
+        var deliveries = await PipelineRunOutcomes.LoadDeliveriesAsync(context, attempts.Select(r => r.JobId).ToList(), cancellationToken);
         var delivery = deliveries.GetValueOrDefault(run.JobId);
         var outcome = PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), delivery);
-        var (forwardingState, notificationState) = await PipelineRunOutcomes.LoadReactionStatesAsync(context, delivery);
+        var (forwardingState, notificationState) = await PipelineRunOutcomes.LoadReactionStatesAsync(context, delivery, cancellationToken);
         var attemptSummaries = attempts.Select(attempt => ToSummary(attempt, deliveries)).ToList();
         return Ok(run.ToResponse(outcome, forwardingState, notificationState, attemptSummaries));
     }
@@ -123,14 +123,14 @@ public class PipelineRunController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The definition snapshot the job executed on.", contentTypes: "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "No execution protocol exists for the specified jobId.", typeof(ProblemDetails), "application/json")]
-    public async Task<IActionResult> GetDefinition(Guid jobId)
+    public async Task<IActionResult> GetDefinition(Guid jobId, CancellationToken cancellationToken)
     {
         logger.LogTrace("Definition snapshot for job <{JobId}> requested.", jobId);
 
         var definition = await context.PipelineRuns
             .Where(r => r.JobId == jobId)
             .Select(r => r.Definition)
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(cancellationToken);
         if (definition is null)
             return Problem($"No execution protocol found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
 
@@ -195,7 +195,7 @@ public class PipelineRunController : ControllerBase
     };
 
     // The group key of LatestAttemptOfEachGroup, newest first; a run without reference is a delivery of its own.
-    private async Task<List<PipelineRun>> LoadAttemptsOfDeliveryAsync(PipelineRun run)
+    private async Task<List<PipelineRun>> LoadAttemptsOfDeliveryAsync(PipelineRun run, CancellationToken cancellationToken)
     {
         if (run.ClientReference is null)
             return [run];
@@ -206,12 +206,12 @@ public class PipelineRunController : ControllerBase
                 && r.MachineClientId == run.MachineClientId
                 && r.MandateId == run.MandateId))
             .OrderByDescending(r => r.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
     // Counts the groups of LatestAttemptOfEachGroup that the given runs stand for. A run without reference is a group
     // of its own and has no entry.
-    private async Task<Dictionary<(string? ClientReference, int? UserId, int? MachineClientId, int? MandateId), int>> CountAttemptsAsync(IReadOnlyList<PipelineRun> latestRuns)
+    private async Task<Dictionary<(string? ClientReference, int? UserId, int? MachineClientId, int? MandateId), int>> CountAttemptsAsync(IReadOnlyList<PipelineRun> latestRuns, CancellationToken cancellationToken)
     {
         var references = latestRuns.Where(r => r.ClientReference is not null).Select(r => r.ClientReference).Distinct().ToList();
         if (references.Count == 0)
@@ -221,7 +221,7 @@ public class PipelineRunController : ControllerBase
             .Where(r => references.Contains(r.ClientReference))
             .GroupBy(r => new { r.ClientReference, r.UserId, r.MachineClientId, r.MandateId })
             .Select(group => new { group.Key, Count = group.Count() })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return groups.ToDictionary(group => (group.Key.ClientReference, group.Key.UserId, group.Key.MachineClientId, group.Key.MandateId), group => group.Count);
     }
 

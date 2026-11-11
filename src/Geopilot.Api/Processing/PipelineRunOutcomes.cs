@@ -59,7 +59,7 @@ internal static class PipelineRunOutcomes
     /// Loads the deliveries declared for the jobs with the specified <paramref name="jobIds"/>, one per job: a live
     /// delivery before a deleted one.
     /// </summary>
-    internal static async Task<Dictionary<Guid, PipelineRunDelivery>> LoadDeliveriesAsync(Context context, IReadOnlyCollection<Guid> jobIds)
+    internal static async Task<Dictionary<Guid, PipelineRunDelivery>> LoadDeliveriesAsync(Context context, IReadOnlyCollection<Guid> jobIds, CancellationToken cancellationToken)
     {
         // The unique index on the job ignores deleted deliveries, so a job can have a deleted and a live one.
         var deliveries = await context.Deliveries
@@ -67,7 +67,7 @@ internal static class PipelineRunOutcomes
             .AsNoTracking()
             .Where(d => jobIds.Contains(d.JobId))
             .Select(d => new { d.Id, d.JobId, d.Deleted })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return deliveries
             .GroupBy(d => d.JobId)
@@ -84,7 +84,7 @@ internal static class PipelineRunOutcomes
     /// Loads the summed up states of the transfers and of the notifications of the <paramref name="delivery"/>, each
     /// <see langword="null"/> without delivery, without reactions of its kind or once the delivery is deleted.
     /// </summary>
-    internal static async Task<(ReactionState? Forwarding, ReactionState? Notification)> LoadReactionStatesAsync(Context context, PipelineRunDelivery? delivery)
+    internal static async Task<(ReactionState? Forwarding, ReactionState? Notification)> LoadReactionStatesAsync(Context context, PipelineRunDelivery? delivery, CancellationToken cancellationToken)
     {
         if (delivery is null || delivery.Deleted)
             return (null, null);
@@ -93,7 +93,7 @@ internal static class PipelineRunOutcomes
             .AsNoTracking()
             .Where(r => r.DeliveryId == delivery.Id)
             .Select(r => new { r.Kind, r.State })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return (
             reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
             reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp());
