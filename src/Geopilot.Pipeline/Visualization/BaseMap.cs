@@ -26,16 +26,11 @@ internal static class BaseMap
     public const string DefaultAttributionUrl = "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste";
 
     /// <summary>
-    /// Identifier of the swisstopo colored national map: the default base map. Without it the client would
-    /// add every layer the WMTS service advertises.
+    /// Identifier of the swisstopo gray national map: the default base map. A map visualization is a thematic
+    /// map, so the base map only serves orientation and its colors must not compete with the features.
+    /// Without an identifier the client would add every layer the WMTS service advertises.
     /// </summary>
-    private const string DefaultLayerId = "ch.swisstopo.pixelkarte-farbe";
-
-    /// <summary>
-    /// Identifier of the swisstopo gray national map, offered as an additional base layer beneath the
-    /// colored one and selectable in the layer switcher.
-    /// </summary>
-    private const string GrayLayerId = "ch.swisstopo.pixelkarte-grau";
+    private const string DefaultLayerId = "ch.swisstopo.pixelkarte-grau";
 
     private static readonly Dictionary<string, string> Title = new()
     {
@@ -46,9 +41,7 @@ internal static class BaseMap
     };
 
     /// <summary>
-    /// Creates the base map layer. A value that is not configured falls back to the swisstopo default. The
-    /// colored map is listed last so it stays the default base map; the gray map sits beneath it and can be
-    /// selected in the layer switcher.
+    /// Creates the base map layer. A value that is not configured falls back to the swisstopo default.
     /// </summary>
     /// <param name="wmtsCapabilitiesUrl">The configured WMTS capabilities URL, if any.</param>
     /// <param name="layerIds">The configured layers to request from the service, drawn in this order (the last on top), if any.</param>
@@ -61,7 +54,7 @@ internal static class BaseMap
         Wmts = OrDefault(wmtsCapabilitiesUrl, DefaultWmtsCapabilitiesUrl),
 
         // An empty list must not reach the client, which would then show every layer the service advertises.
-        LayerIds = layerIds is { Count: > 0 } ? [.. layerIds] : [GrayLayerId, DefaultLayerId],
+        LayerIds = layerIds is { Count: > 0 } ? [.. layerIds] : [DefaultLayerId],
         Attribution = OrDefault(attribution, DefaultAttribution),
         AttributionUrl = OrDefault(attributionUrl, DefaultAttributionUrl),
     };

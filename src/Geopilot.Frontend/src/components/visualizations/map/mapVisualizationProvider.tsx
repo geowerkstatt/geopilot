@@ -42,6 +42,8 @@ const ZOOM_TO_NODE_DURATION = 400;
 /** Pixels around the pointer that still hit a feature, so a small marker or a thin line is easy to pick. */
 const PICK_HIT_TOLERANCE = 4;
 const PICK_OPTIONS = { hitTolerance: PICK_HIT_TOLERANCE, layerFilter: isPickable };
+/** A thematic map: the base map only orients, so it stays pale behind the features. The layer switcher changes it. */
+const BASE_MAP_OPACITY = 0.5;
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
@@ -351,7 +353,10 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
           wmtsLayerConfig.title,
         );
         // Base map is drawn below the features.
-        if (wmtsLayer) layers.unshift(wmtsLayer);
+        if (wmtsLayer) {
+          wmtsLayer.setOpacity(BASE_MAP_OPACITY);
+          layers.unshift(wmtsLayer);
+        }
       }
       if (cancelled) return;
       map.setLayers(layers);

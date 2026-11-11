@@ -81,7 +81,7 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die
         {
           "title": { "de": "Hintergrundkarte", "fr": "Carte de base", "it": "Mappa di base", "en": "Base map" },
           "wmts": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
-          "layerIds": ["ch.swisstopo.pixelkarte-grau", "ch.swisstopo.pixelkarte-farbe"],
+          "layerIds": ["ch.swisstopo.pixelkarte-grau"],
           "attribution": "swisstopo",
           "attributionUrl": "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste"
         },

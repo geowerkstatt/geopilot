@@ -14,7 +14,7 @@ public class BaseMapTest
         Assert.AreEqual("swisstopo", layer.Attribution);
         Assert.AreEqual("https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste", layer.AttributionUrl);
         Assert.IsNotNull(layer.LayerIds);
-        CollectionAssert.AreEqual(new[] { "ch.swisstopo.pixelkarte-grau", "ch.swisstopo.pixelkarte-farbe" }, layer.LayerIds.ToArray());
+        CollectionAssert.AreEqual(new[] { "ch.swisstopo.pixelkarte-grau" }, layer.LayerIds.ToArray());
         Assert.IsNull(layer.Features);
     }
 
