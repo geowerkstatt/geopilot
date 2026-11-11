@@ -6,10 +6,7 @@
         "startedAt": "2026-11-06T14:59:42Z",
         "terminalAt": "2026-11-06T14:59:44Z",
         "declarer": { "kind": "machineClient", "id": 1, "name": "Service account geopilot-api" },
-        "clientKind": "apiClient",
-        "clientReference": "SMOKE-TEST-01",
         "mandate": { "id": 1, "name": { "de": "Validierung mit Weitergabe" } },
-        "pipelineId": "ili_validation",
         "terminalState": "success",
         "outcome": { "kind": "delivered", "deliveryId": 23, "blockingSteps": [], "preflightFailed": false }
       },

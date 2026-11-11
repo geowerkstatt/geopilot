@@ -236,10 +236,7 @@ public class PipelineRunController : ControllerBase
         run.StartedAt,
         run.TerminalAt,
         run.ToDeclarer(),
-        run.ClientKind,
-        run.ClientReference,
         run.ToMandateReference(),
-        run.PipelineId,
         run.TerminalState,
         PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId)));
 

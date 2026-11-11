@@ -400,7 +400,6 @@ public sealed class PipelineRunControllerTest
         Assert.AreEqual(1, page.TotalCount, "The attempts of one delivery are one row.");
         var group = page.Items.Single();
         Assert.AreEqual(third.JobId, group.Latest.JobId);
-        Assert.AreEqual("AV-1", group.Latest.ClientReference);
         Assert.AreEqual(3, group.AttemptCount);
     }
 

@@ -10,15 +10,12 @@
         "id": 1,
         "name": "Service account geopilot-api"
       },
-      "clientKind": "apiClient",
-      "clientReference": "SMOKE-TEST-01",
       "mandate": {
         "id": 1,
         "name": {
           "de": "Validierung mit Weitergabe"
         }
       },
-      "pipelineId": "ili_validation",
       "terminalState": "success",
       "outcome": {
         "kind": "delivered",
@@ -36,15 +33,12 @@
         "id": 1,
         "name": "Service account geopilot-api"
       },
-      "clientKind": "apiClient",
-      "clientReference": "SMOKE-TEST-01",
       "mandate": {
         "id": 1,
         "name": {
           "de": "Validierung mit Weitergabe"
         }
       },
-      "pipelineId": "ili_validation",
       "terminalState": "failed",
       "outcome": {
         "kind": "notDeliverable",

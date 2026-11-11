@@ -1206,16 +1206,7 @@ export type PipelineRunSummaryResponse = {
    */
   terminalAt?: string | null;
   declarer?: PipelineRunDeclarer;
-  clientKind: ClientKind;
-  /**
-   * The client's own identifier of the delivery the run is an attempt of, or null when it carried none.
-   */
-  clientReference?: string | null;
   mandate?: MandateReference;
-  /**
-   * The id of the pipeline that ran.
-   */
-  pipelineId: string;
   terminalState?: ProcessingState;
   outcome: PipelineRunOutcome;
 };

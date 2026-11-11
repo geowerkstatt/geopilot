@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Models;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
 
 namespace Geopilot.Api.Contracts;
 
@@ -25,10 +24,7 @@ public record PipelineRunGroupResponse(PipelineRunSummaryResponse Latest, int At
 /// <param name="StartedAt">When the job was started (UTC).</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
 /// <param name="Declarer">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
-/// <param name="ClientKind">The kind of client that started the run.</param>
-/// <param name="ClientReference">The client's own identifier of the delivery the run is an attempt of, or <see langword="null"/> when it carried none.</param>
 /// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
-/// <param name="PipelineId">The id of the pipeline that ran.</param>
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> while it runs or when the outcome is unknown.</param>
 /// <param name="Outcome">What became of the run.</param>
 public record PipelineRunSummaryResponse(
@@ -36,9 +32,6 @@ public record PipelineRunSummaryResponse(
     DateTime StartedAt,
     DateTime? TerminalAt,
     PipelineRunDeclarer? Declarer,
-    ClientKind ClientKind,
-    string? ClientReference,
     MandateReference? Mandate,
-    string PipelineId,
     ProcessingState? TerminalState,
     PipelineRunOutcome Outcome);
