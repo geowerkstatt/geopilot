@@ -5,11 +5,18 @@
 namespace Geopilot.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddPipelineRunListIndexes : Migration
+    public partial class AddClientReferenceAndListIndexesToPipelineRun : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "ClientReference",
+                table: "PipelineRuns",
+                type: "character varying(128)",
+                maxLength: 128,
+                nullable: true);
+
             migrationBuilder.CreateIndex(
                 name: "IX_PipelineRuns_ClientReference",
                 table: "PipelineRuns",
@@ -31,6 +38,10 @@ namespace Geopilot.Api.Migrations
 
             migrationBuilder.DropIndex(
                 name: "IX_PipelineRuns_StartedAt_Id",
+                table: "PipelineRuns");
+
+            migrationBuilder.DropColumn(
+                name: "ClientReference",
                 table: "PipelineRuns");
         }
     }

@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Geopilot.Api.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20261106143841_AddClientReferenceToPipelineRun")]
-    partial class AddClientReferenceToPipelineRun
+    [Migration("20261111134822_AddClientReferenceAndListIndexesToPipelineRun")]
+    partial class AddClientReferenceAndListIndexesToPipelineRun
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -94,6 +94,12 @@ namespace Geopilot.Api.Migrations
                     b.Property<int>("MandateId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_array()");
+
                     b.Property<bool?>("Partial")
                         .HasColumnType("boolean");
 
@@ -161,7 +167,7 @@ namespace Geopilot.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Message")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("NextAttemptAt")
                         .HasColumnType("timestamp with time zone");
@@ -256,6 +262,12 @@ namespace Geopilot.Api.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
 
+                    b.Property<string>("MetadataFields")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_array()");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -329,6 +341,12 @@ namespace Geopilot.Api.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("Declarability")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeclarationFailure")
+                        .HasColumnType("text");
+
                     b.Property<string>("Definition")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -380,6 +398,9 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClientReference")
+                        .HasFilter("\"ClientReference\" IS NOT NULL");
+
                     b.HasIndex("JobId")
                         .IsUnique();
 
@@ -388,6 +409,8 @@ namespace Geopilot.Api.Migrations
                     b.HasIndex("MandateId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("StartedAt", "Id");
 
                     b.ToTable("PipelineRuns", t =>
                         {
@@ -499,6 +522,54 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("PipelineRunFiles");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("FromUpload")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Parameter")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PipelineRunStepId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reference")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Sha256")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PipelineRunStepId");
+
+                    b.ToTable("PipelineRunInputs");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -525,7 +596,7 @@ namespace Geopilot.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Message")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
@@ -664,6 +735,21 @@ namespace Geopilot.Api.Migrations
                     b.HasIndex("OrganisationsId");
 
                     b.ToTable("MachineClientOrganisation");
+                });
+
+            modelBuilder.Entity("MachineClientUser", b =>
+                {
+                    b.Property<int>("MachineClientsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MachineClientsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("MachineClientUser");
                 });
 
             modelBuilder.Entity("MandateOrganisation", b =>
@@ -806,6 +892,15 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("PipelineRun");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.PipelineRunStep", null)
+                        .WithMany("Inputs")
+                        .HasForeignKey("PipelineRunStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.PipelineRun", null)
@@ -842,6 +937,21 @@ namespace Geopilot.Api.Migrations
                     b.HasOne("Geopilot.Api.Models.Organisation", null)
                         .WithMany()
                         .HasForeignKey("OrganisationsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MachineClientUser", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.MachineClient", null)
+                        .WithMany()
+                        .HasForeignKey("MachineClientsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Geopilot.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -905,6 +1015,8 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Artifacts");
 
                     b.Navigation("Conditions");
+
+                    b.Navigation("Inputs");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
