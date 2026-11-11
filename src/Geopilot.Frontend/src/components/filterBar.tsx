@@ -59,6 +59,7 @@ export const FilterBar = ({
                 color="primaryOutlined"
                 className={toggleActive ? "active" : undefined}
                 onClick={() => setShowFilters(show => !show)}
+                aria-expanded={showFilters}
                 icon={<FilterAltIcon />}
                 label="toggleFilters"
               />

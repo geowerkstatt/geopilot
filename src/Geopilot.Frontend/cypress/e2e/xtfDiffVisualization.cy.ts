@@ -86,7 +86,8 @@ const markedTexts = (marks: JQuery) => [...marks].map(mark => mark.textContent);
 describe("XTF diff visualization", () => {
   it("filters the changes by class", () => {
     openDiffVisualization();
-    cy.dataCy("toggleFilters-button").click();
+    cy.dataCy("toggleFilters-button").should("have.attr", "aria-expanded", "false").click();
+    cy.dataCy("toggleFilters-button").should("have.attr", "aria-expanded", "true");
     cy.dataCy("metadata-filter-class").find("input").type("Grundstueck{downArrow}{enter}");
     cy.dataCy("diff-object").should("have.length", 1).and("contain", "Grundstueck");
   });
