@@ -52,5 +52,13 @@ public class SubmissionRequest
     /// counts as none. Never checked against earlier attempts.
     /// </summary>
     [MaxLength(PipelineRun.ClientReferenceMaxLength)]
-    public string? ClientReference { get; set; }
+    public string? ClientReference
+    {
+        get => clientReference;
+
+        // Trimmed as it binds, so the length limit counts only what is kept.
+        set => clientReference = value?.Trim();
+    }
+
+    private string? clientReference;
 }
