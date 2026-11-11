@@ -69,16 +69,12 @@ export const readProcessingRunSearchParams = (
   return { filters, page: Number.isNaN(page) || page < 0 ? 0 : page };
 };
 
-const jobIdPattern = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/;
+const jobIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** The job id in the form the API writes it, lowercase with hyphens, or undefined when the text holds none. */
+/** The job id the text holds without the spaces around it, or undefined when it holds none. */
 export const parseJobId = (text: string): string | undefined => {
-  const candidate = text.trim().replace(/^\{/, "").replace(/\}$/, "").toLowerCase();
-  if (!jobIdPattern.test(candidate)) {
-    return undefined;
-  }
-  const hex = candidate.replace(/-/g, "");
-  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join("-");
+  const candidate = text.trim();
+  return jobIdPattern.test(candidate) ? candidate : undefined;
 };
 
 // The field holds the local time of the browser, as the times in the list are shown there.

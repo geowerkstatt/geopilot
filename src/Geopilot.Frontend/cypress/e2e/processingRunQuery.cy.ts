@@ -45,13 +45,11 @@ describe("pipeline run query", () => {
     expect(params.getAll("states")).to.deep.equal(["failed", "open"]);
   });
 
-  it("reads a job id in the forms people paste it", () => {
+  it("reads a job id in either case, without the spaces around it", () => {
     const jobId = "3f9c2a71-5b0e-4c1d-9a8f-0d2e6b7c1e21";
 
     expect(parseJobId(jobId)).to.equal(jobId);
-    expect(parseJobId("3F9C2A71-5B0E-4C1D-9A8F-0D2E6B7C1E21")).to.equal(jobId);
-    expect(parseJobId(" {3f9c2a71-5b0e-4c1d-9a8f-0d2e6b7c1e21} ")).to.equal(jobId);
-    expect(parseJobId("3f9c2a715b0e4c1d9a8f0d2e6b7c1e21")).to.equal(jobId);
+    expect(parseJobId(" 3F9C2A71-5B0E-4C1D-9A8F-0D2E6B7C1E21 ")).to.equal("3F9C2A71-5B0E-4C1D-9A8F-0D2E6B7C1E21");
     expect(parseJobId("3f9c2a71")).to.equal(undefined);
     expect(parseJobId("")).to.equal(undefined);
   });
