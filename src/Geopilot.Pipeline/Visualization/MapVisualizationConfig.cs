@@ -38,6 +38,12 @@ internal class MapLayer
     public IList<string>? LayerIds { get; set; }
 
     /// <summary>
+    /// Opacity of a WMTS layer, from 0 (invisible) to 1 (opaque). When <see langword="null"/>, the client
+    /// draws the layer opaque.
+    /// </summary>
+    public double? Opacity { get; set; }
+
+    /// <summary>
     /// Attribution / data-owner credit for the layer (for example <c>swisstopo</c>), shown as a copyright
     /// credit on the map; the client adds a localized "©" prefix. Typically set on the base map layer.
     /// Optional.
