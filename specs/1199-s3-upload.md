@@ -10,7 +10,7 @@ Die Antwort von `POST api/v2/upload` nennt neu die Header für den Upload, und d
 
 ## Nicht im Umfang
 
-Anmeldung an S3 nur mit Access Key.
+Andere Anmeldungen an S3 als mit Access Key, etwa über Rollen des Providers.
 
 ## Prüfung
 
