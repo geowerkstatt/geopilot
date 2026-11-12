@@ -499,7 +499,7 @@ public class ProcessingJobCleanupServiceTest
         {
             JobId = jobId,
             Mandate = mandate,
-            DeclaringUser = user,
+            DeliveredByUser = user,
             Comment = "test",
             Assets = new List<Asset>(),
         });

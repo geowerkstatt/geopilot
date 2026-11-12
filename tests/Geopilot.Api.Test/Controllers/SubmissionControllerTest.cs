@@ -688,7 +688,7 @@ public class SubmissionControllerTest
         var jobId = Guid.NewGuid();
         if (delivered)
         {
-            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
             context.SaveChanges();
         }
 

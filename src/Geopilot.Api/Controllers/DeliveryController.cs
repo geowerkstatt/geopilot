@@ -180,8 +180,8 @@ public class DeliveryController : ControllerBase
                 d.Id,
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
-                d.DeclaringClientId,
+                DeliveredByName = d.DeliveredByUser != null ? d.DeliveredByUser.FullName : (d.DeliveredByClient != null ? d.DeliveredByClient.Name : string.Empty),
+                d.DeliveredByClientId,
                 Reactions = context.DeliveryReactions
                     .Where(r => r.DeliveryId == d.Id)
                     .Select(r => new { r.Kind, r.State })
@@ -195,7 +195,7 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 d.Mandate,
                 d.DeliveredByName,
-                d.DeclaringClientId,
+                d.DeliveredByClientId,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
                 d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
             .ToList());
@@ -223,9 +223,9 @@ public class DeliveryController : ControllerBase
                 d.Id,
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
-                d.DeclaringUserId,
-                d.DeclaringClientId,
+                DeliveredByName = d.DeliveredByUser != null ? d.DeliveredByUser.FullName : (d.DeliveredByClient != null ? d.DeliveredByClient.Name : string.Empty),
+                d.DeliveredByUserId,
+                d.DeliveredByClientId,
                 PrecursorDelivery = d.PrecursorDelivery != null ? new DeliverySummary(d.PrecursorDelivery.Id, d.PrecursorDelivery.Date) : null,
                 d.Partial,
                 d.JobId,
@@ -268,8 +268,8 @@ public class DeliveryController : ControllerBase
             delivery.Date,
             delivery.Mandate,
             delivery.DeliveredByName,
-            delivery.DeclaringUserId,
-            delivery.DeclaringClientId,
+            delivery.DeliveredByUserId,
+            delivery.DeliveredByClientId,
             delivery.PrecursorDelivery,
             delivery.Partial,
             delivery.JobId,
@@ -335,7 +335,7 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 d.Comment,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                DeliveredByName = d.DeliveredByUser != null ? d.DeliveredByUser.FullName : (d.DeliveredByClient != null ? d.DeliveredByClient.Name : string.Empty),
                 Started = started.Contains(d.Id),
             })
             .ToListAsync();
@@ -478,7 +478,7 @@ public class DeliveryController : ControllerBase
     /// the user is responsible for.
     /// </summary>
     private static Expression<Func<Delivery, bool>> DeliveredByOrForUser(int userId)
-        => d => d.DeclaringUserId == userId || (d.DeclaringClient != null && d.DeclaringClient.ResponsibleUsers.Any(u => u.Id == userId));
+        => d => d.DeliveredByUserId == userId || (d.DeliveredByClient != null && d.DeliveredByClient.ResponsibleUsers.Any(u => u.Id == userId));
 
     internal bool IsDeleteAllowedForUploader(DateTime deliveredAt, DateTime? utcNow = null)
     {

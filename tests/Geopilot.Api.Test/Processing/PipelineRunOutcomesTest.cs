@@ -49,10 +49,10 @@ public class PipelineRunOutcomesTest
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void NotDeliveredWhenDeclarableWithoutDelivery(ProcessingState terminalState)
+    public void NotDeliveredWhenPermittedWithoutDelivery(ProcessingState terminalState)
     {
         var run = Run(terminalState, userId: 1);
-        run.Declarability = Declarability.Declarable;
+        run.MayDeliver = true;
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -60,10 +60,10 @@ public class PipelineRunOutcomesTest
     }
 
     [TestMethod]
-    public void NotDeclarableWhenRecordedAsNotDeclarable()
+    public void NotPermittedWhenRecordedAsNotPermitted()
     {
         var run = Run(ProcessingState.Success, userId: 1);
-        run.Declarability = Declarability.NotDeclarable;
+        run.MayDeliver = false;
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -77,8 +77,8 @@ public class PipelineRunOutcomesTest
     {
         var run = Run(terminalState);
         run.MachineClientId = 1;
-        run.Declarability = Declarability.Declarable;
-        run.DeclarationFailure = "The mandate no longer accepts deliveries.";
+        run.MayDeliver = true;
+        run.DeliveryRejection = "The mandate no longer accepts deliveries.";
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -88,9 +88,9 @@ public class PipelineRunOutcomesTest
     [TestMethod]
     [DataRow(null, PipelineRunOutcomeKind.NotPermitted, DisplayName = "anonymous")]
     [DataRow(1, PipelineRunOutcomeKind.NotDelivered, DisplayName = "person")]
-    public void WithoutRecordedDeclarabilityOnlyAnAnonymousRunIsNotDeclarable(int? userId, PipelineRunOutcomeKind expected)
+    public void WithoutRecordedPermissionOnlyAnAnonymousRunIsNotPermitted(int? userId, PipelineRunOutcomeKind expected)
     {
-        // Runs recorded before the protocol kept the declarability; nobody who processes without signing in may deliver.
+        // Runs recorded before the protocol kept the permission; nobody who processes without signing in may deliver.
         var outcome = PipelineRunOutcomes.Determine(Run(ProcessingState.Success, userId), isRunning: false, delivery: null);
 
         Assert.AreEqual(expected, outcome.Kind);

@@ -9,8 +9,8 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Date">The date the delivery was created.</param>
 /// <param name="Mandate">The mandate the delivery fulfils.</param>
 /// <param name="DeliveredByName">Who delivered, a user or a machine client.</param>
-/// <param name="DeclaringUserId">The user who delivered, <see langword="null"/> when a machine client did.</param>
-/// <param name="DeclaringClientId">The machine client that delivered, <see langword="null"/> when a user did.</param>
+/// <param name="DeliveredByUserId">The user who delivered, <see langword="null"/> when a machine client did.</param>
+/// <param name="DeliveredByClientId">The machine client that delivered, <see langword="null"/> when a user did.</param>
 /// <param name="PrecursorDelivery">The delivery this one follows up, if any.</param>
 /// <param name="Partial">Whether the delivery holds partial data, <see langword="null"/> when the mandate does not ask.</param>
 /// <param name="JobId">The job the delivery comes from.</param>
@@ -19,7 +19,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Metadata">The copy of the mandate's metadata fields taken when the delivery was created, with the delivered values.</param>
 /// <param name="StacItem">Where the delivery is in the STAC catalog, <see langword="null"/> until it is forwarded.</param>
 /// <param name="Reactions">The reactions of the delivery, in the order they were created.</param>
-public record DeliveryDetailResponse(int Id, DateTime Date, MandateReference Mandate, string DeliveredByName, int? DeclaringUserId, int? DeclaringClientId, DeliverySummary? PrecursorDelivery, bool? Partial, Guid JobId, IReadOnlyList<AssetReference> Files, string Comment, IReadOnlyList<DeliveredMetadataField> Metadata, StacItemReference? StacItem, IReadOnlyList<DeliveryReactionResponse> Reactions);
+public record DeliveryDetailResponse(int Id, DateTime Date, MandateReference Mandate, string DeliveredByName, int? DeliveredByUserId, int? DeliveredByClientId, DeliverySummary? PrecursorDelivery, bool? Partial, Guid JobId, IReadOnlyList<AssetReference> Files, string Comment, IReadOnlyList<DeliveredMetadataField> Metadata, StacItemReference? StacItem, IReadOnlyList<DeliveryReactionResponse> Reactions);
 
 /// <summary>
 /// A file of a delivery.

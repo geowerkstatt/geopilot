@@ -92,28 +92,28 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetReturnsWhetherTheRunWasDeclarableAndWhyItsDeclarationFailed()
+    public async Task GetReturnsWhetherTheRunWasPermittedAndWhyItsDeliveryWasRejected()
     {
         var run = SeedRun();
         run.TerminalState = ProcessingState.Success;
-        run.Declarability = Declarability.Declarable;
-        run.DeclarationFailure = "No assets found.";
+        run.MayDeliver = true;
+        run.DeliveryRejection = "No assets found.";
         context.SaveChanges();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.AreEqual(Declarability.Declarable, response.Declarability);
-        Assert.AreEqual("No assets found.", response.DeclarationFailure);
+        Assert.IsTrue(response.MayDeliver);
+        Assert.AreEqual("No assets found.", response.DeliveryRejection);
     }
 
     [TestMethod]
-    public async Task GetLeavesTheDeclarabilityOfAnOlderRunOpen()
+    public async Task GetLeavesThePermissionOfAnOlderRunOpen()
     {
         var run = SeedRun();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsNull(response.Declarability, "A run recorded before the protocol kept its declarability says nothing about it, which is not the same as not declarable.");
+        Assert.IsNull(response.MayDeliver, "A run recorded before the protocol kept the permission says nothing about it, which is not the same as not permitted.");
     }
 
     [TestMethod]
@@ -557,7 +557,7 @@ public sealed class PipelineRunControllerTest
 
     private Delivery SeedDelivery(Guid jobId, bool deleted)
     {
-        var delivery = new Delivery { JobId = jobId, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(), Deleted = deleted };
+        var delivery = new Delivery { JobId = jobId, Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(), Deleted = deleted };
         context.Deliveries.Add(delivery);
         context.SaveChanges();
         return delivery;

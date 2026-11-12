@@ -41,7 +41,7 @@ public class PublicMandateItemsTest
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
         mandate = context.Mandates.Single(m => m.StacAccess == StacAccess.Public);
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First(), Comment = Comment };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = context.Users.First(), Comment = Comment };
         delivery.Assets.Add(new Asset { OriginalFilename = "Daten.xtf", SanitizedFilename = "daten.xtf", AssetType = AssetType.PrimaryData });
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -194,7 +194,7 @@ public class PublicMandateItemsTest
 
     private Delivery AddDelivery(DateTime date, params (ReactionKind Kind, ReactionState State)[] reactions)
     {
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First(), Date = date };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = context.Users.First(), Date = date };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.AddRange(reactions.Select((reaction, index) => new DeliveryReaction
         {

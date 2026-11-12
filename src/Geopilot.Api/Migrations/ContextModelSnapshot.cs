@@ -76,14 +76,14 @@ namespace Geopilot.Api.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("DeclaringClientId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("DeclaringUserId")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("Deleted")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("DeliveredByClientId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DeliveredByUserId")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid");
@@ -105,9 +105,9 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DeclaringClientId");
+                    b.HasIndex("DeliveredByClientId");
 
-                    b.HasIndex("DeclaringUserId");
+                    b.HasIndex("DeliveredByUserId");
 
                     b.HasIndex("JobId")
                         .IsUnique()
@@ -120,7 +120,7 @@ namespace Geopilot.Api.Migrations
 
                     b.ToTable("Deliveries", t =>
                         {
-                            t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)");
+                            t.HasCheckConstraint("CK_Deliveries_DeliveredBy", "(\"DeliveredByUserId\" IS NULL) <> (\"DeliveredByClientId\" IS NULL)");
                         });
                 });
 
@@ -338,15 +338,12 @@ namespace Geopilot.Api.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<string>("Declarability")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DeclarationFailure")
-                        .HasColumnType("text");
-
                     b.Property<string>("Definition")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<string>("DeliveryRejection")
+                        .HasColumnType("text");
 
                     b.Property<string>("FailureReason")
                         .HasColumnType("text");
@@ -359,6 +356,9 @@ namespace Geopilot.Api.Migrations
 
                     b.Property<int?>("MandateId")
                         .HasColumnType("integer");
+
+                    b.Property<bool?>("MayDeliver")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PipelineId")
                         .IsRequired()
@@ -411,7 +411,7 @@ namespace Geopilot.Api.Migrations
 
                     b.ToTable("PipelineRuns", t =>
                         {
-                            t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_PipelineRuns_StartedBy", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
                         });
                 });
 
@@ -792,14 +792,14 @@ namespace Geopilot.Api.Migrations
 
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.MachineClient", "DeclaringClient")
+                    b.HasOne("Geopilot.Api.Models.MachineClient", "DeliveredByClient")
                         .WithMany("Deliveries")
-                        .HasForeignKey("DeclaringClientId")
+                        .HasForeignKey("DeliveredByClientId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Geopilot.Api.Models.User", "DeclaringUser")
+                    b.HasOne("Geopilot.Api.Models.User", "DeliveredByUser")
                         .WithMany("Deliveries")
-                        .HasForeignKey("DeclaringUserId")
+                        .HasForeignKey("DeliveredByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Geopilot.Api.Models.Mandate", "Mandate")
@@ -812,9 +812,9 @@ namespace Geopilot.Api.Migrations
                         .WithMany()
                         .HasForeignKey("PrecursorDeliveryId");
 
-                    b.Navigation("DeclaringClient");
+                    b.Navigation("DeliveredByClient");
 
-                    b.Navigation("DeclaringUser");
+                    b.Navigation("DeliveredByUser");
 
                     b.Navigation("Mandate");
 

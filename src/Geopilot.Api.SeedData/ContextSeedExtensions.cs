@@ -261,15 +261,15 @@ public static class ContextSeedExtensions
             .RuleFor(d => d.JobId, f => f.Random.Guid())
             .RuleFor(d => d.Date, f => f.Date.Past().ToUniversalTime())
             .RuleFor(d => d.Mandate, f => f.PickRandom(deliveryContracts))
-            .RuleFor(d => d.DeclaringUser, (f, d) => f.PickRandom(
+            .RuleFor(d => d.DeliveredByUser, (f, d) => f.PickRandom(
                 d.Mandate!.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
 
             // The seed knows only human deliverers; the key follows the navigation, the client stays empty.
-            .Ignore(d => d.DeclaringUserId)
-            .Ignore(d => d.DeclaringClient)
-            .Ignore(d => d.DeclaringClientId)
+            .Ignore(d => d.DeliveredByUserId)
+            .Ignore(d => d.DeliveredByClient)
+            .Ignore(d => d.DeliveredByClientId)
             .RuleFor(d => d.Assets, _ => new List<Asset>())
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))

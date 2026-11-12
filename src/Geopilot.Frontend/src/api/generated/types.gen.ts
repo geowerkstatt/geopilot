@@ -167,16 +167,6 @@ export type Coordinate = {
 };
 
 /**
- * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
- */
-export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
-
-/**
- * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
- */
-export type Declarability = (typeof Declarability)[keyof typeof Declarability];
-
-/**
  * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
  * Value is null for a field that was not filled in.
  */
@@ -211,16 +201,16 @@ export type Delivery = {
    * The date the delivery was created.
    */
   date: string;
-  declaringUser?: User;
+  deliveredByUser?: User;
   /**
-   * The id of Geopilot.Api.Models.Delivery.DeclaringUser. Exposed so a query can filter on it without joining the user.
+   * The id of Geopilot.Api.Models.Delivery.DeliveredByUser. Exposed so a query can filter on it without joining the user.
    */
-  declaringUserId?: number | null;
-  declaringClient?: MachineClient;
+  deliveredByUserId?: number | null;
+  deliveredByClient?: MachineClient;
   /**
-   * The id of Geopilot.Api.Models.Delivery.DeclaringClient.
+   * The id of Geopilot.Api.Models.Delivery.DeliveredByClient.
    */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   /**
    * The name of whoever delivered, for display: the user's full name or the client's name.
    */
@@ -269,11 +259,11 @@ export type DeliveryDetailResponse = {
   /**
    * The user who delivered, null when a machine client did.
    */
-  declaringUserId?: number | null;
+  deliveredByUserId?: number | null;
   /**
    * The machine client that delivered, null when a user did.
    */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   precursorDelivery?: DeliverySummary;
   /**
    * Whether the delivery holds partial data, null when the mandate does not ask.
@@ -393,7 +383,7 @@ export type DeliveryResponse = {
   /**
    * The machine client that delivered, null when a user did.
    */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
 };
@@ -1019,7 +1009,10 @@ export type PipelineRunResponse = {
    * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.
    */
   clientReference?: string | null;
-  declarability?: Declarability;
+  /**
+   * Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery, decided when it started, or null for a run recorded before the protocol kept it.
+   */
+  mayDeliver?: boolean | null;
   /**
    * The id of the upload the run processed.
    */
@@ -1051,9 +1044,9 @@ export type PipelineRunResponse = {
    */
   failureReason?: string | null;
   /**
-   * Why geopilot could not declare the delivery of a machine delivery although the run allowed it.
+   * Why the delivery of a machine delivery was rejected although the run allowed it.
    */
-  declarationFailure?: string | null;
+  deliveryRejection?: string | null;
   /**
    * The manifest of the uploaded files.
    */

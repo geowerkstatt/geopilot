@@ -113,8 +113,8 @@ public class DeliveryCreationService : IDeliveryCreationService
         {
             JobId = jobId,
             Mandate = mandate,
-            DeclaringUser = user,
-            DeclaringClient = client,
+            DeliveredByUser = user,
+            DeliveredByClient = client,
             PrecursorDelivery = precursorDelivery,
             Partial = fields.PartialDelivery,
             Comment = fields.Comment?.Trim() ?? string.Empty,

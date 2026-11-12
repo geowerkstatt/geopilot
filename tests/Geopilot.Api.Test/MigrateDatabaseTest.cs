@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Geopilot.Api;
@@ -40,6 +41,47 @@ public class MigrateDatabaseTest
         finally
         {
             setupContext.Database.EnsureDeleted();
+        }
+    }
+
+    [TestMethod]
+    public void RenameDeclareColumnsKeepsThePermissionOfEveryRun()
+    {
+        const string before = "20261111134822_AddClientReferenceAndListIndexesToPipelineRun";
+        var connectionString = TestDatabaseFixture.ConnectionString.Replace(
+            "Database=geopilot-test",
+            "Database=geopilot-migration-test-permission",
+            StringComparison.Ordinal);
+
+        using var context = CreateContext(connectionString);
+        context.Database.EnsureDeleted();
+        try
+        {
+            var migrator = context.GetService<IMigrator>();
+            migrator.Migrate(before);
+            foreach (var declarability in new[] { "Declarable", "NotDeclarable", null })
+            {
+                context.Database.ExecuteSql($"""
+                    INSERT INTO "PipelineRuns" ("JobId", "PipelineId", "AppVersion", "ClientKind", "Definition", "UploadId",
+                        "UploadStorageLocation", "UploadInitiatedAt", "StartedAt", "ScanState", "Declarability")
+                    VALUES ({Guid.NewGuid()}, 'pipeline', '1.0', 'WebClient', {"{}"}::jsonb, {Guid.NewGuid()},
+                        'storage', now(), now(), 'Clean', {declarability})
+                    """);
+            }
+
+            migrator.Migrate();
+            CollectionAssert.AreEqual(
+                new bool?[] { true, false, null },
+                context.PipelineRuns.OrderBy(run => run.Id).Select(run => run.MayDeliver).ToList());
+
+            migrator.Migrate(before);
+            CollectionAssert.AreEqual(
+                new[] { "Declarable", "NotDeclarable", null },
+                context.Database.SqlQueryRaw<string?>("""SELECT "Declarability" AS "Value" FROM "PipelineRuns" ORDER BY "Id" """).ToList());
+        }
+        finally
+        {
+            context.Database.EnsureDeleted();
         }
     }
 

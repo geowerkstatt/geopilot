@@ -93,9 +93,9 @@ public class PipelineRun
     /// <summary>
     /// Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery,
     /// decided when its job started (see <see cref="Processing.ProcessingJob.MayDeliver"/>). <see langword="null"/>
-    /// for a run recorded before the protocol kept it: unknown, which is not the same as not declarable.
+    /// for a run recorded before the protocol kept it: unknown, which is not the same as not permitted.
     /// </summary>
-    public Declarability? Declarability { get; set; }
+    public bool? MayDeliver { get; set; }
 
     /// <summary>
     /// The id of the upload whose files the run processed.
@@ -148,12 +148,12 @@ public class PipelineRun
     public string? FailureReason { get; set; }
 
     /// <summary>
-    /// Why geopilot could not declare the delivery of a machine delivery although the run allowed it, as the caller
-    /// of the attempt reads it. <see langword="null"/> when geopilot declared it or had nothing to declare, and unknown
-    /// for a run without <see cref="Declarability"/>. Whether a delivery exists is not kept here: the delivery itself
+    /// Why the delivery of a machine delivery was rejected although the run allowed it, as the caller of the attempt
+    /// reads it. <see langword="null"/> when geopilot created it or had nothing to create, and unknown for a run
+    /// without <see cref="MayDeliver"/>. Whether a delivery exists is not kept here: the delivery itself
     /// is the record of that, reachable via <see cref="JobId"/>.
     /// </summary>
-    public string? DeclarationFailure { get; set; }
+    public string? DeliveryRejection { get; set; }
 
     /// <summary>
     /// The manifest of the uploaded files.

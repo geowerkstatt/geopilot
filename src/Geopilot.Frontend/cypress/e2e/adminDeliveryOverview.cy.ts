@@ -67,7 +67,7 @@ describe("Admin delivery overview with reactions", () => {
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
       deliveredByName: "Kelvin Spencer",
-      declaringClientId: null,
+      deliveredByClientId: null,
       forwardingState,
       notificationState,
     }) satisfies DeliveryResponse;

@@ -52,7 +52,7 @@ public class ReactionWorkerTest
         recorderMock = new Mock<IPipelineRunRecorder>();
 
         user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Erika Muster", Email = "erika.muster@example.com" }).Entity;
-        delivery = AddDelivery(declaringUser: user);
+        delivery = AddDelivery(deliveredByUser: user);
     }
 
     [TestCleanup]
@@ -103,8 +103,8 @@ public class ReactionWorkerTest
     [TestMethod]
     public async Task RunNextGivesTheChannelTheDeliveryAndItsFiles()
     {
-        var precursor = AddDelivery(declaringUser: user);
-        var withPrecursor = AddDelivery(declaringUser: user, precursor: precursor);
+        var precursor = AddDelivery(deliveredByUser: user);
+        var withPrecursor = AddDelivery(deliveredByUser: user, precursor: precursor);
         var probe = new ChannelProbe(Answer(Delivered));
         AddReaction(Probe, ProbeSnapshot(probe), of: withPrecursor);
 
@@ -144,7 +144,7 @@ public class ReactionWorkerTest
             new("due_date", TestHelpers.Localized("Termin"), MetadataFieldType.Date, FieldEvaluationType.Optional, null, JsonSerializer.SerializeToElement("2026-11-04")),
         };
         var probe = new ChannelProbe(Answer(Delivered));
-        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(declaringUser: user, metadata: metadata));
+        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(deliveredByUser: user, metadata: metadata));
 
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
@@ -161,7 +161,7 @@ public class ReactionWorkerTest
     {
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         var probe = new ChannelProbe(Answer(Delivered));
-        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(declaringClient: client));
+        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(deliveredByClient: client));
 
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
@@ -179,7 +179,7 @@ public class ReactionWorkerTest
         var deactivated = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Ehemals Betrieb", Email = "ehemals@example.com", State = UserState.Inactive }).Entity;
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR", ResponsibleUsers = [responsible, deactivated] }).Entity;
         var probe = new ChannelProbe(Answer(Delivered));
-        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(declaringClient: client));
+        AddReaction(Probe, ProbeSnapshot(probe), of: AddDelivery(deliveredByClient: client));
 
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
@@ -454,15 +454,15 @@ public class ReactionWorkerTest
     private Task<DeliveryReaction> ReloadAsync(DeliveryReaction reaction)
         => context.DeliveryReactions.IgnoreQueryFilters().AsNoTracking().SingleAsync(r => r.Id == reaction.Id);
 
-    private Delivery AddDelivery(User? declaringUser = null, MachineClient? declaringClient = null, Delivery? precursor = null, List<DeliveredMetadataField>? metadata = null)
+    private Delivery AddDelivery(User? deliveredByUser = null, MachineClient? deliveredByClient = null, Delivery? precursor = null, List<DeliveredMetadataField>? metadata = null)
     {
         var newDelivery = new Delivery
         {
             JobId = Guid.NewGuid(),
             Date = dbNow.AddHours(-1),
             Mandate = new Mandate { Name = TestHelpers.Localized("Ablage Kanton A"), Key = $"ablage-{Guid.NewGuid():N}" },
-            DeclaringUser = declaringUser,
-            DeclaringClient = declaringClient,
+            DeliveredByUser = deliveredByUser,
+            DeliveredByClient = deliveredByClient,
             PrecursorDelivery = precursor,
             Partial = true,
             Metadata = metadata ?? [],

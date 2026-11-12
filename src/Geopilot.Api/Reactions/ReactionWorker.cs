@@ -254,11 +254,11 @@ public class ReactionWorker : BackgroundService
                 MandateId = d.Mandate.Id,
                 MandateName = d.Mandate.Name,
                 MandateKey = d.Mandate.Key,
-                UserName = d.DeclaringUser == null ? null : d.DeclaringUser.FullName,
-                UserEmail = d.DeclaringUser == null ? null : d.DeclaringUser.Email,
-                ClientName = d.DeclaringClient == null ? null : d.DeclaringClient.Name,
+                UserName = d.DeliveredByUser == null ? null : d.DeliveredByUser.FullName,
+                UserEmail = d.DeliveredByUser == null ? null : d.DeliveredByUser.Email,
+                ClientName = d.DeliveredByClient == null ? null : d.DeliveredByClient.Name,
                 ResponsibleUsers = context.MachineClients
-                    .Where(c => c.Id == d.DeclaringClientId)
+                    .Where(c => c.Id == d.DeliveredByClientId)
                     .SelectMany(c => c.ResponsibleUsers)
                     .Where(u => u.State == UserState.Active)
                     .OrderBy(u => u.Id)

@@ -199,7 +199,7 @@ internal static class DtoMapperExtensions
             run.MandateId,
             run.ClientKind,
             run.ClientReference,
-            run.Declarability,
+            run.MayDeliver,
             run.UploadId,
             run.UploadStorageLocation,
             run.UploadInitiatedAt,
@@ -209,7 +209,7 @@ internal static class DtoMapperExtensions
             run.TerminalState,
             run.TerminalAt,
             run.FailureReason,
-            run.DeclarationFailure,
+            run.DeliveryRejection,
             run.Files
                 .OrderBy(file => file.Id)
                 .Select(file => new PipelineRunFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))

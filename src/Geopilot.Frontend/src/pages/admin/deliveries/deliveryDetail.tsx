@@ -75,10 +75,10 @@ export const DeliveryDetail: FC = () => {
 
   // Without machine delivery the pages of the machine clients are not routed.
   const supplierPath =
-    delivery.declaringUserId != null
-      ? `/admin/users/${delivery.declaringUserId}`
-      : delivery.declaringClientId != null && machineDeliveryEnabled
-        ? `/admin/machine-clients/${delivery.declaringClientId}`
+    delivery.deliveredByUserId != null
+      ? `/admin/users/${delivery.deliveredByUserId}`
+      : delivery.deliveredByClientId != null && machineDeliveryEnabled
+        ? `/admin/machine-clients/${delivery.deliveredByClientId}`
         : undefined;
 
   return (
@@ -93,7 +93,7 @@ export const DeliveryDetail: FC = () => {
           <SummaryField label="deliveredBy">
             <UserOrClientLabel
               userOrClient={{
-                machineClientId: delivery.declaringClientId,
+                machineClientId: delivery.deliveredByClientId,
                 name: delivery.deliveredByName,
               }}
               path={supplierPath}

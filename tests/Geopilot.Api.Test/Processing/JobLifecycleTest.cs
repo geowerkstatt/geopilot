@@ -141,9 +141,9 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
-    [DataRow(true, Declarability.Declarable)]
-    [DataRow(false, Declarability.NotDeclarable)]
-    public async Task StartRecordsWhetherTheStarterMayDeliver(bool mayDeliver, Declarability expectedDeclarability)
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartRecordsWhetherTheStarterMayDeliver(bool mayDeliver)
     {
         var upload = await CreateUploadAsync();
         SetupPipeline();
@@ -153,7 +153,7 @@ public class JobLifecycleTest
         // Both values, because a value fixed on the way to the job would pass with true alone.
         Assert.AreEqual(mayDeliver, job.MayDeliver);
         Assert.AreEqual(mayDeliver, jobStore.GetJob(job.Id)!.MayDeliver);
-        Assert.AreEqual(expectedDeclarability, (await ReadRunAsync(job.Id)).Declarability, "The protocol keeps it beyond the job's retention and a restart.");
+        Assert.AreEqual(mayDeliver, (await ReadRunAsync(job.Id)).MayDeliver, "The protocol keeps it beyond the job's retention and a restart.");
     }
 
     [TestMethod]
@@ -285,7 +285,7 @@ public class JobLifecycleTest
         Assert.AreEqual("The delivery could not be created because of an unexpected error.", job.DeliveryRejection);
         var run = await ReadRunAsync(jobId);
         Assert.AreEqual(ProcessingState.Success, run.TerminalState);
-        Assert.AreEqual("The delivery could not be created because of an unexpected error.", run.DeclarationFailure);
+        Assert.AreEqual("The delivery could not be created because of an unexpected error.", run.DeliveryRejection);
         AssertUploadKept(uploadId, false);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
@@ -305,7 +305,7 @@ public class JobLifecycleTest
         // failed creation. Every other refusal is the one thing the caller of the attempt gets to read, and the
         // protocol keeps it beyond the job's retention.
         Assert.AreEqual(expectedFailure, jobStore.GetJob(jobId)!.DeliveryRejection);
-        Assert.AreEqual(expectedFailure, (await ReadRunAsync(jobId)).DeclarationFailure);
+        Assert.AreEqual(expectedFailure, (await ReadRunAsync(jobId)).DeliveryRejection);
     }
 
     [TestMethod]

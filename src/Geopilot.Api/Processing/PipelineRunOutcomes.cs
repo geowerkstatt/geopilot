@@ -33,14 +33,12 @@ internal static class PipelineRunOutcomes
 
         if (run.TerminalState is ProcessingState.Success or ProcessingState.Warning)
         {
-            if (run.DeclarationFailure is not null)
+            if (run.DeliveryRejection is not null)
                 return Outcome(PipelineRunOutcomeKind.DeliveryRejected);
 
-            // A run recorded before the protocol kept its declarability has none; only an anonymous one surely was not.
-            var declarable = run.Declarability is { } declarability
-                ? declarability == Declarability.Declarable
-                : run.UserId is not null || run.MachineClientId is not null;
-            return Outcome(declarable ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotPermitted);
+            // A run recorded before the protocol kept the permission has none; only an anonymous one surely was not.
+            var permitted = run.MayDeliver ?? (run.UserId is not null || run.MachineClientId is not null);
+            return Outcome(permitted ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotPermitted);
         }
 
         // A restriction does not stop the pipeline, so later steps can restrict the delivery as well, or fail.

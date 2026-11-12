@@ -58,7 +58,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             MachineClientId = supplier?.MachineClientId,
             ClientKind = ClassifyClient(),
             ClientReference = job.DeliveryIntent?.Fields.ClientReference,
-            Declarability = job.MayDeliver ? Declarability.Declarable : Declarability.NotDeclarable,
+            MayDeliver = job.MayDeliver,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,
             UploadInitiatedAt = upload.CreatedAt,
@@ -279,7 +279,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                 return;
             }
 
-            run.DeclarationFailure = reason;
+            run.DeliveryRejection = reason;
             await context.SaveChangesAsync();
         }
         catch (Exception ex)

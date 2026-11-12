@@ -114,8 +114,8 @@ public class Context : DbContext
             return Deliveries
                 .Include(d => d.Mandate)
                 .Include(d => d.Assets)
-                .Include(d => d.DeclaringUser)
-                .Include(d => d.DeclaringClient)
+                .Include(d => d.DeliveredByUser)
+                .Include(d => d.DeliveredByClient)
                 .Include(d => d.PrecursorDelivery);
         }
     }
@@ -136,9 +136,9 @@ public class Context : DbContext
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
                 .Include(m => m.Deliveries)
-                .ThenInclude(d => d.DeclaringUser)
+                .ThenInclude(d => d.DeliveredByUser)
                 .Include(m => m.Deliveries)
-                .ThenInclude(d => d.DeclaringClient)
+                .ThenInclude(d => d.DeliveredByClient)
                 .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
@@ -232,9 +232,9 @@ public class Context : DbContext
         // delivered it.
         modelBuilder.Entity<Delivery>(delivery =>
         {
-            delivery.HasOne(d => d.DeclaringUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeclaringUserId).OnDelete(DeleteBehavior.Restrict);
-            delivery.HasOne(d => d.DeclaringClient).WithMany(c => c.Deliveries).HasForeignKey(d => d.DeclaringClientId).OnDelete(DeleteBehavior.Restrict);
-            delivery.ToTable(t => t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)"));
+            delivery.HasOne(d => d.DeliveredByUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeliveredByUserId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne(d => d.DeliveredByClient).WithMany(c => c.Deliveries).HasForeignKey(d => d.DeliveredByClientId).OnDelete(DeleteBehavior.Restrict);
+            delivery.ToTable(t => t.HasCheckConstraint("CK_Deliveries_DeliveredBy", "(\"DeliveredByUserId\" IS NULL) <> (\"DeliveredByClientId\" IS NULL)"));
         });
 
         modelBuilder.Entity<MachineClient>()
@@ -360,7 +360,6 @@ public class Context : DbContext
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
             run.Property(r => r.ClientReference).HasMaxLength(PipelineRun.ClientReferenceMaxLength);
-            run.Property(r => r.Declarability).HasConversion<string>();
             run.Property(r => r.ScanState).HasConversion<string>();
             run.Property(r => r.TerminalState).HasConversion<string>();
 
@@ -373,7 +372,7 @@ public class Context : DbContext
             // A run is started by a user, by a machine client or anonymously, never by both. The recorder
             // cannot write both (a Supplier is one or the other); the constraint holds that promise for every
             // other writer, the way the one on the delivery does.
-            run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
+            run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_StartedBy", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
 
             run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
             run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);

@@ -396,7 +396,7 @@ public class PipelineRunRecorderTest
         await recorder.RecordDeliveryRejectedAsync(job.Id, "No assets found.");
 
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
-        Assert.AreEqual("No assets found.", run.DeclarationFailure);
+        Assert.AreEqual("No assets found.", run.DeliveryRejection);
     }
 
     [TestMethod]
@@ -498,7 +498,7 @@ public class PipelineRunRecorderTest
     [TestMethod]
     public async Task ReactionAttemptsWithoutRunRecordDoNotThrow()
     {
-        var withoutRun = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
+        var withoutRun = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = user };
         context.Deliveries.Add(withoutRun);
         await context.SaveChangesAsync();
         var reaction = ClaimedReaction(withoutRun);
@@ -594,7 +594,7 @@ public class PipelineRunRecorderTest
     {
         var job = NewJob(out var upload);
         await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
-        var delivery = new Delivery { JobId = job.Id, Mandate = mandate, DeclaringUser = user };
+        var delivery = new Delivery { JobId = job.Id, Mandate = mandate, DeliveredByUser = user };
         context.Deliveries.Add(delivery);
         await context.SaveChangesAsync();
         return (await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id), delivery);

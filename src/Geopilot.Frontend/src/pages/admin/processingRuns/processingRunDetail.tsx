@@ -214,11 +214,11 @@ export const ProcessingRunDetail: FC = () => {
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
             {run.outcome.kind === PipelineRunOutcomeKind.DeliveryRejected && (
               <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeliveryRejection">
-                {run.declarationFailure}
+                {run.deliveryRejection}
               </Typography>
             )}
-            {/* Runs recorded before the protocol kept the declarability can only guess why there is no delivery. */}
-            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && !run.declarability && (
+            {/* Runs recorded before the protocol kept the permission can only guess why there is no delivery. */}
+            {run.outcome.kind === PipelineRunOutcomeKind.NotDelivered && run.mayDeliver == null && (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {t("processingRunNotDeliveredHint")}
               </Typography>

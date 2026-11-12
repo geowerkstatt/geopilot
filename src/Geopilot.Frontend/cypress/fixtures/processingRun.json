@@ -56,8 +56,7 @@
   ],
   "clientKind": "apiClient",
   "clientReference": "SMOKE-TEST-01",
-  "declarability": "declarable",
-  "declarationFailure": null,
+  "deliveryRejection": null,
   "failureReason": null,
   "files": [
     {
@@ -76,6 +75,7 @@
     }
   },
   "mandateId": 1,
+  "mayDeliver": true,
   "notificationState": "pending",
   "outcome": {
     "kind": "delivered",

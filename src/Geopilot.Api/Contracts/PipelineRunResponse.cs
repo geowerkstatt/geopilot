@@ -15,7 +15,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="MandateId">The mandate the run was started for.</param>
 /// <param name="ClientKind">The kind of client that started the run.</param>
 /// <param name="ClientReference">The client's own identifier of the delivery a machine delivery attempt belongs to, or <see langword="null"/> when it carried none.</param>
-/// <param name="Declarability">Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery, decided when it started, or <see langword="null"/> for a run recorded before the protocol kept it.</param>
+/// <param name="MayDeliver">Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery, decided when it started, or <see langword="null"/> for a run recorded before the protocol kept it.</param>
 /// <param name="UploadId">The id of the upload the run processed.</param>
 /// <param name="UploadStorageLocation">Where the uploaded files were stored, credential-free.</param>
 /// <param name="UploadInitiatedAt">When the upload session was initiated (UTC).</param>
@@ -25,7 +25,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> when the outcome is unknown.</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
 /// <param name="FailureReason">Why the run failed or was cancelled, when no step says why: the preflight failed, the job timed out, the host shut down, or persisting the downloads or staging the delivery files failed.</param>
-/// <param name="DeclarationFailure">Why geopilot could not declare the delivery of a machine delivery although the run allowed it.</param>
+/// <param name="DeliveryRejection">Why the delivery of a machine delivery was rejected although the run allowed it.</param>
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
 /// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
@@ -42,7 +42,7 @@ public record PipelineRunResponse(
     int? MandateId,
     ClientKind ClientKind,
     string? ClientReference,
-    Declarability? Declarability,
+    bool? MayDeliver,
     Guid UploadId,
     string UploadStorageLocation,
     DateTime UploadInitiatedAt,
@@ -52,7 +52,7 @@ public record PipelineRunResponse(
     ProcessingState? TerminalState,
     DateTime? TerminalAt,
     string? FailureReason,
-    string? DeclarationFailure,
+    string? DeliveryRejection,
     List<PipelineRunFileResponse> Files,
     List<PipelineRunStepResponse> Steps,
     List<PipelineRunReactionEventResponse> ReactionEvents,

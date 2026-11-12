@@ -75,8 +75,8 @@ public class DeliveryCreationServiceTest
 
         Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
         var delivery = await context.Deliveries.SingleAsync(d => d.Id == result.DeliveryId);
-        Assert.AreEqual(client.Id, delivery.DeclaringClientId);
-        Assert.IsNull(delivery.DeclaringUserId, "A delivery has exactly one supplier; the database constraint says the same.");
+        Assert.AreEqual(client.Id, delivery.DeliveredByClientId);
+        Assert.IsNull(delivery.DeliveredByUserId, "A delivery has exactly one supplier; the database constraint says the same.");
         Assert.AreEqual("SILENTHARBOR", delivery.DeliveredByName, "The client's name is what the catalog shows as the deliverer.");
     }
 

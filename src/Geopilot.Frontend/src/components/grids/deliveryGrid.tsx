@@ -19,7 +19,7 @@ interface DeliveryInfo {
   date: string;
   deliveredByName: string;
   /** Unknown (`undefined`) in the list of a user's own deliveries, which shows the name alone. */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   mandateName: LocalizedText;
   forwardingState?: ReactionState | null;
   notificationState?: ReactionState | null;
@@ -27,7 +27,7 @@ interface DeliveryInfo {
   canDelete?: boolean;
 }
 
-type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "declaringClientId">;
+type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "deliveredByClientId">;
 
 interface DeliveryGridProps {
   fetchUrl: string;
@@ -55,7 +55,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
             id: d.id,
             date: d.date,
             deliveredByName: d.deliveredByName,
-            declaringClientId: "declaringClientId" in d ? d.declaringClientId : undefined,
+            deliveredByClientId: "deliveredByClientId" in d ? d.deliveredByClientId : undefined,
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             notificationState: "notificationState" in d ? d.notificationState : undefined,
@@ -91,8 +91,8 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       minWidth: 250,
       display: "flex",
       renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
-        row.declaringClientId !== undefined ? (
-          <UserOrClientLabel userOrClient={{ name: row.deliveredByName, machineClientId: row.declaringClientId }} />
+        row.deliveredByClientId !== undefined ? (
+          <UserOrClientLabel userOrClient={{ name: row.deliveredByName, machineClientId: row.deliveredByClientId }} />
         ) : (
           row.deliveredByName
         ),
