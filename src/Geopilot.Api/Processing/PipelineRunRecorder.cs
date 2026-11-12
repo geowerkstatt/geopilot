@@ -38,7 +38,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Declarer? declarer, UploadInfo upload)
+    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Supplier? supplier, UploadInfo upload)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(mandate);
@@ -54,11 +54,11 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             Definition = pipelineFactory.GetDefinitionSnapshotJson(pipelineId),
             AppVersion = AppVersion,
             MandateId = mandate.Id,
-            UserId = declarer?.UserId,
-            MachineClientId = declarer?.MachineClientId,
+            UserId = supplier?.UserId,
+            MachineClientId = supplier?.MachineClientId,
             ClientKind = ClassifyClient(),
             ClientReference = job.DeliveryIntent?.Fields.ClientReference,
-            Declarability = job.IsDeclarable ? Declarability.Declarable : Declarability.NotDeclarable,
+            Declarability = job.MayDeliver ? Declarability.Declarable : Declarability.NotDeclarable,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,
             UploadInitiatedAt = upload.CreatedAt,
@@ -268,7 +268,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordDeclarationFailedAsync(Guid jobId, string reason)
+    public async Task RecordDeliveryRejectedAsync(Guid jobId, string reason)
     {
         try
         {

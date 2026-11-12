@@ -126,7 +126,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(publicMandate.Id, Declarer.ForUser(user.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(publicMandate.Id, Supplier.ForUser(user.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -138,7 +138,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(publicMandate.Id, null);
+        var result = await mandateService.GetMandateForSupplierAsync(publicMandate.Id, null);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -150,7 +150,7 @@ public class MandateServiceTest
         var privateMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Private Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(privateMandate.Id, null);
+        var result = await mandateService.GetMandateForSupplierAsync(privateMandate.Id, null);
 
         Assert.IsNull(result);
     }
@@ -160,7 +160,7 @@ public class MandateServiceTest
     {
         var (user, mandate) = context.AddMandateWithUserOrganisation();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(mandate.Id, Supplier.ForUser(user.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(mandate.Id, result.Id);
@@ -173,7 +173,7 @@ public class MandateServiceTest
         var mandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Restricted Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(mandate.Id, Declarer.ForUser(user.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(mandate.Id, Supplier.ForUser(user.Id));
 
         Assert.IsNull(result);
     }
@@ -184,7 +184,7 @@ public class MandateServiceTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeclarerAsync(int.MaxValue, Declarer.ForUser(user.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(int.MaxValue, Supplier.ForUser(user.Id));
 
         Assert.IsNull(result);
     }
@@ -194,7 +194,7 @@ public class MandateServiceTest
     {
         var client = AddMachineClient(memberOfOrganisation: true);
 
-        var result = await mandateService.GetMandateForDeclarerAsync(xtfMandate.Id, Declarer.ForClient(client.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(xtfMandate.Id, Supplier.ForClient(client.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(xtfMandate.Id, result.Id);
@@ -205,7 +205,7 @@ public class MandateServiceTest
     {
         var client = AddMachineClient(memberOfOrganisation: true);
 
-        var result = await mandateService.GetMandateForDeclarerAsync(noPermissionMandate.Id, Declarer.ForClient(client.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(noPermissionMandate.Id, Supplier.ForClient(client.Id));
 
         Assert.IsNull(result, "A client reaches the mandates of its organisations only, like a user.");
     }
@@ -215,7 +215,7 @@ public class MandateServiceTest
     {
         var client = AddMachineClient(memberOfOrganisation: false);
 
-        var result = await mandateService.GetMandateForDeclarerAsync(publicCsvMandate.Id, Declarer.ForClient(client.Id));
+        var result = await mandateService.GetMandateForSupplierAsync(publicCsvMandate.Id, Supplier.ForClient(client.Id));
 
         Assert.IsNotNull(result, "Anyone may process against a public mandate, a machine included.");
     }
@@ -223,7 +223,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateForDeliveryReturnsAPublicMandateToAMemberOfItsOrganisation()
     {
-        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForUser(editUser.Id));
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Supplier.ForUser(editUser.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicCsvMandate.Id, result.Id);
@@ -235,7 +235,7 @@ public class MandateServiceTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForUser(user.Id));
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Supplier.ForUser(user.Id));
 
         Assert.IsNull(result, "Being public opens a mandate for processing, not for deliveries.");
     }
@@ -247,44 +247,44 @@ public class MandateServiceTest
     {
         var client = AddMachineClient(memberOfOrganisation);
 
-        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Declarer.ForClient(client.Id));
+        var result = await mandateService.GetMandateForDeliveryAsync(publicCsvMandate.Id, Supplier.ForClient(client.Id));
 
         Assert.AreEqual(memberOfOrganisation, result is not null);
     }
 
     [TestMethod]
-    public async Task IsDeclarableForAMemberOnAMandateThatAcceptsDeliveries()
+    public async Task MayDeliverAsAMemberOnAMandateThatAcceptsDeliveries()
     {
-        Assert.IsTrue(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, Declarer.ForUser(editUser.Id)));
+        Assert.IsTrue(await mandateService.MayDeliverAsync(publicCsvMandate.Id, Supplier.ForUser(editUser.Id)));
     }
 
     [TestMethod]
-    public async Task IsDeclarableForAClientOfTheMandatesOrganisation()
+    public async Task MayDeliverAsAClientOfTheMandatesOrganisation()
     {
         var client = AddMachineClient(memberOfOrganisation: true);
 
-        Assert.IsTrue(await mandateService.IsDeclarableAsync(xtfMandate.Id, Declarer.ForClient(client.Id)));
+        Assert.IsTrue(await mandateService.MayDeliverAsync(xtfMandate.Id, Supplier.ForClient(client.Id)));
     }
 
     [TestMethod]
-    public async Task IsNotDeclarableForAnAnonymousRunOnAPublicMandate()
+    public async Task MayNotDeliverAnonymouslyOnAPublicMandate()
     {
-        Assert.IsFalse(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, null));
+        Assert.IsFalse(await mandateService.MayDeliverAsync(publicCsvMandate.Id, null));
     }
 
     [TestMethod]
-    public async Task IsNotDeclarableForAUserOutsideTheOrganisationsOfAPublicMandate()
+    public async Task MayNotDeliverAsAUserOutsideTheOrganisationsOfAPublicMandate()
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        Assert.IsFalse(await mandateService.IsDeclarableAsync(publicCsvMandate.Id, Declarer.ForUser(user.Id)), "Being public opens a mandate for processing, not for deliveries.");
+        Assert.IsFalse(await mandateService.MayDeliverAsync(publicCsvMandate.Id, Supplier.ForUser(user.Id)), "Being public opens a mandate for processing, not for deliveries.");
     }
 
     [TestMethod]
-    public async Task IsNotDeclarableOnAMandateThatAcceptsNoDeliveries()
+    public async Task MayNotDeliverOnAMandateThatAcceptsNoDeliveries()
     {
-        Assert.IsFalse(await mandateService.IsDeclarableAsync(noDeliveryMandate.Id, Declarer.ForUser(editUser.Id)));
+        Assert.IsFalse(await mandateService.MayDeliverAsync(noDeliveryMandate.Id, Supplier.ForUser(editUser.Id)));
     }
 
     [TestMethod]
@@ -294,7 +294,7 @@ public class MandateServiceTest
         context.SaveChanges();
         var client = AddMachineClient(memberOfOrganisation: false);
 
-        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Declarer.ForClient(client.Id)), "A key addresses a delivery, which a public mandate takes from its members only.");
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Supplier.ForClient(client.Id)), "A key addresses a delivery, which a public mandate takes from its members only.");
     }
 
     [TestMethod]
@@ -448,7 +448,7 @@ public class MandateServiceTest
         xtfMandate.Key = "GRUMPYFALCON";
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateByKeyAsync("GRUMPYFALCON", Declarer.ForUser(editUser.Id));
+        var result = await mandateService.GetMandateByKeyAsync("GRUMPYFALCON", Supplier.ForUser(editUser.Id));
 
         Assert.IsNotNull(result);
         Assert.AreEqual(xtfMandate.Id, result.Id);
@@ -460,7 +460,7 @@ public class MandateServiceTest
         xtfMandate.Key = "GRUMPYFALCON";
         context.SaveChanges();
 
-        Assert.IsNull(await mandateService.GetMandateByKeyAsync("grumpyfalcon", Declarer.ForUser(editUser.Id)), "The key is compared exactly, so a differently cased key must not address the mandate.");
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("grumpyfalcon", Supplier.ForUser(editUser.Id)), "The key is compared exactly, so a differently cased key must not address the mandate.");
     }
 
     [TestMethod]
@@ -469,7 +469,7 @@ public class MandateServiceTest
         noPermissionMandate.Key = "SOMBERSPORK";
         context.SaveChanges();
 
-        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Declarer.ForUser(editUser.Id)));
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync("SOMBERSPORK", Supplier.ForUser(editUser.Id)));
     }
 
     [TestMethod]
@@ -478,7 +478,7 @@ public class MandateServiceTest
         xtfMandate.Key = "GRUMPYFALCON";
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateByKeyAsync("  GRUMPYFALCON\n", Declarer.ForUser(editUser.Id));
+        var result = await mandateService.GetMandateByKeyAsync("  GRUMPYFALCON\n", Supplier.ForUser(editUser.Id));
 
         Assert.IsNotNull(result, "The key is trimmed when it is stored, so a key read from a config file must not miss its mandate over a trailing newline.");
         Assert.AreEqual(xtfMandate.Id, result.Id);
@@ -557,7 +557,7 @@ public class MandateServiceTest
         xtfMandate.Key = "GRUMPYFALCON";
         context.SaveChanges();
 
-        Assert.IsNull(await mandateService.GetMandateByKeyAsync(key, Declarer.ForUser(editUser.Id)));
+        Assert.IsNull(await mandateService.GetMandateByKeyAsync(key, Supplier.ForUser(editUser.Id)));
     }
 
     private Guid CreateUpload(params string[] fileNames)

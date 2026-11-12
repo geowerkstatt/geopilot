@@ -5,8 +5,8 @@ import { Box, Stack } from "@mui/material";
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { PipelineRunOutcomeKind, PipelineRunPageResponse, PipelineRunSummaryResponse } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
+import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
@@ -82,13 +82,15 @@ export const ProcessingRuns: FC = () => {
       width: 180,
     },
     {
-      field: "declarer",
+      field: "startedBy",
       headerName: t("processedBy"),
-      valueGetter: (_value, row) => row.declarer?.name ?? t("anonymous"),
+      valueGetter: (_value, row) => row.startedBy?.name ?? t("anonymous"),
       flex: 0.5,
       minWidth: 200,
       display: "flex",
-      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => <DeclarerLabel declarer={row.declarer} />,
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
+        <UserOrClientLabel userOrClient={row.startedBy} />
+      ),
     },
     {
       field: "mandate",

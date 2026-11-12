@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Geopilot.Api.Models;
 
 /// <summary>
-/// A person that is allowed to view or declare deliveries.
+/// A person that is allowed to view or create deliveries.
 /// </summary>
 public class User
 {
@@ -46,7 +46,7 @@ public class User
     public List<Organisation> Organisations { get; set; } = new List<Organisation>();
 
     /// <summary>
-    /// Deliveries the user has declared.
+    /// Deliveries the user delivered.
     /// </summary>
     public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
 

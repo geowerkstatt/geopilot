@@ -21,7 +21,7 @@ public class Context : DbContext
 
     /// <summary>
     /// Name of the unique index over <see cref="Delivery.JobId"/>. A violation of this index is how the
-    /// declaration learns that another caller declared the same job first, so the name is shared instead of
+    /// creation learns that another caller created a delivery for the same job first, so the name is shared instead of
     /// repeated as a literal.
     /// </summary>
     public const string DeliveryJobIndexName = "IX_Deliveries_JobId";
@@ -226,10 +226,10 @@ public class Context : DbContext
             .HasFilter("\"Deleted\" = false")
             .HasDatabaseName(DeliveryJobIndexName);
 
-        // A delivery is declared by a user or by a machine client, never by both and never by neither. The
+        // A delivery is made by a user or by a machine client, never by both and never by neither. The
         // navigations are optional so either can be absent, and the database keeps exactly one of them set.
         // Restrict on both: users and clients are only ever deactivated, and a delivery must not lose who
-        // declared it.
+        // delivered it.
         modelBuilder.Entity<Delivery>(delivery =>
         {
             delivery.HasOne(d => d.DeclaringUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeclaringUserId).OnDelete(DeleteBehavior.Restrict);
@@ -371,7 +371,7 @@ public class Context : DbContext
             run.HasOne(r => r.MachineClient).WithMany().HasForeignKey(r => r.MachineClientId).OnDelete(DeleteBehavior.Restrict);
 
             // A run is started by a user, by a machine client or anonymously, never by both. The recorder
-            // cannot write both (a Declarer is one or the other); the constraint holds that promise for every
+            // cannot write both (a Supplier is one or the other); the constraint holds that promise for every
             // other writer, the way the one on the delivery does.
             run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
 

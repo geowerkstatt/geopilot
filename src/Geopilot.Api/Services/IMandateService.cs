@@ -31,42 +31,42 @@ public interface IMandateService
     Task<List<string>> GetMandateKeysAsync();
 
     /// <summary>
-    /// Retrieves the mandate with the specified id, if the specified declarer may process uploads for it.
+    /// Retrieves the mandate with the specified id, if the specified supplier may process uploads for it.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
-    /// <param name="declarer">The user or machine client that tries to access the mandate. If null, the caller is
+    /// <param name="supplier">The user or machine client that tries to access the mandate. If null, the caller is
     /// considered unauthenticated and reaches public mandates only.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateForDeclarerAsync(int mandateId, Declarer? declarer);
+    Task<Mandate?> GetMandateForSupplierAsync(int mandateId, Supplier? supplier);
 
     /// <summary>
-    /// Retrieves the mandate with the specified id, if the specified declarer may deliver to it, which takes a
+    /// Retrieves the mandate with the specified id, if the specified supplier may deliver to it, which takes a
     /// member of one of its organisations even when the mandate is public. Whether the mandate allows deliveries
     /// at all is not checked here.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
-    /// <param name="declarer">The user or machine client that tries to deliver.</param>
-    /// <returns>The <see cref="Mandate"/> if found and open to the declarer; otherwise, null.</returns>
-    Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Declarer declarer);
+    /// <param name="supplier">The user or machine client that tries to deliver.</param>
+    /// <returns>The <see cref="Mandate"/> if found and open to the supplier; otherwise, null.</returns>
+    Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Supplier supplier);
 
     /// <summary>
-    /// Whether the specified declarer may deliver to the mandate, and thereby whether a run they start on it is
-    /// declarable: the declarer is a member of one of its organisations, and the mandate accepts deliveries. The
-    /// same rule decides <see cref="MandateSummary.AllowDelivery"/>.
+    /// Whether the specified supplier may deliver to the mandate, and thereby whether a run they start on it may
+    /// become a delivery: the supplier is a member of one of its organisations, and the mandate accepts deliveries.
+    /// The same rule decides <see cref="MandateSummary.AllowDelivery"/>.
     /// </summary>
     /// <param name="mandateId">The mandate the run is started on.</param>
-    /// <param name="declarer">Who starts the run, or <see langword="null"/> for an anonymous start, which is never
-    /// declarable.</param>
-    Task<bool> IsDeclarableAsync(int mandateId, Declarer? declarer);
+    /// <param name="supplier">Who starts the run, or <see langword="null"/> for an anonymous start, which is never
+    /// permitted.</param>
+    Task<bool> MayDeliverAsync(int mandateId, Supplier? supplier);
 
     /// <summary>
-    /// Retrieves the mandate with the specified key, if the specified declarer may deliver to it (see
+    /// Retrieves the mandate with the specified key, if the specified supplier may deliver to it (see
     /// <see cref="GetMandateForDeliveryAsync"/>).
     /// </summary>
     /// <param name="key">The unique key of the mandate. Compared exactly, including case.</param>
-    /// <param name="declarer">The user or machine client that tries to deliver.</param>
-    /// <returns>The <see cref="Mandate"/> if found and open to the declarer; otherwise, null.</returns>
-    Task<Mandate?> GetMandateByKeyAsync(string key, Declarer declarer);
+    /// <param name="supplier">The user or machine client that tries to deliver.</param>
+    /// <returns>The <see cref="Mandate"/> if found and open to the supplier; otherwise, null.</returns>
+    Task<Mandate?> GetMandateByKeyAsync(string key, Supplier supplier);
 
     /// <summary>
     /// Checks whether the mandate can take a delivery, and if not, what stands in the way.

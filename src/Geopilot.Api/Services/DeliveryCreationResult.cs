@@ -1,25 +1,25 @@
 ﻿namespace Geopilot.Api.Services;
 
 /// <summary>
-/// The outcome of a delivery declaration. Deliberately not an HTTP result: the declaration runs both from a
+/// The outcome of creating a delivery. Deliberately not an HTTP result: the creation runs both from a
 /// controller and from the job lifecycle, and those report a failure in different ways.
 /// </summary>
 /// <param name="Status">What happened.</param>
-/// <param name="DeliveryId">The delivery of the job: the one just created for <see cref="DeliveryDeclarationStatus.Created"/>,
-/// the one that was already there for <see cref="DeliveryDeclarationStatus.AlreadyDeclared"/>, and null otherwise.</param>
+/// <param name="DeliveryId">The delivery of the job: the one just created for <see cref="DeliveryCreationStatus.Created"/>,
+/// the one that was already there for <see cref="DeliveryCreationStatus.AlreadyDelivered"/>, and null otherwise.</param>
 /// <param name="Message">A message describing the outcome, meant for the caller.</param>
 /// <param name="FieldErrors">The violated field rules keyed by field name, set only for
-/// <see cref="DeliveryDeclarationStatus.FieldRulesViolated"/>.</param>
-public record DeliveryDeclarationResult(
-    DeliveryDeclarationStatus Status,
+/// <see cref="DeliveryCreationStatus.FieldRulesViolated"/>.</param>
+public record DeliveryCreationResult(
+    DeliveryCreationStatus Status,
     int? DeliveryId = null,
     string? Message = null,
     IReadOnlyDictionary<string, string[]>? FieldErrors = null);
 
 /// <summary>
-/// The possible outcomes of a delivery declaration.
+/// The possible outcomes of creating a delivery.
 /// </summary>
-public enum DeliveryDeclarationStatus
+public enum DeliveryCreationStatus
 {
     /// <summary>The delivery was created.</summary>
     Created,
@@ -30,17 +30,17 @@ public enum DeliveryDeclarationStatus
     /// <summary>The job has not completed, or its run does not allow a delivery.</summary>
     JobNotDeliverable,
 
-    /// <summary>Nobody can declare the job's run: whoever started it may not deliver to its mandate, or the mandate takes no
-    /// deliveries (see <see cref="Processing.ProcessingJob.IsDeclarable"/>).</summary>
-    JobNotDeclarable,
+    /// <summary>Nobody may deliver the job's run: whoever started it may not deliver to its mandate, or the mandate takes no
+    /// deliveries (see <see cref="Processing.ProcessingJob.MayDeliver"/>).</summary>
+    JobNotPermitted,
 
     /// <summary>The job was started without a mandate and can therefore not be delivered.</summary>
     JobWithoutMandate,
 
     /// <summary>The job was already delivered. A job yields at most one delivery.</summary>
-    AlreadyDeclared,
+    AlreadyDelivered,
 
-    /// <summary>The mandate is not accessible for the declaring user, or does not accept deliveries.</summary>
+    /// <summary>The mandate is not accessible for the supplier, or does not accept deliveries.</summary>
     MandateNotDeliverable,
 
     /// <summary>The delivery fields violate the rules the mandate configures.</summary>

@@ -7,19 +7,19 @@ namespace Geopilot.Api.Services;
 /// Turns a processed job into a <see cref="Delivery"/>. Holds the rules that decide whether a job may be
 /// delivered at all, independent of how the request reached the application.
 /// </summary>
-public interface IDeliveryDeclarationService
+public interface IDeliveryCreationService
 {
     /// <summary>
-    /// Declares the delivery for the specified job.
+    /// Creates the delivery for the specified job.
     /// </summary>
-    /// <param name="jobId">The processing job the delivery is declared for.</param>
+    /// <param name="jobId">The processing job the delivery is created for.</param>
     /// <param name="fields">The delivery fields whose evaluation the mandate configures.</param>
-    /// <param name="declarer">The user or machine client the delivery is declared for. Ids and not entities,
-    /// because the declaration also runs outside a request, where an entity loaded earlier belongs to a context
+    /// <param name="supplier">The user or machine client the delivery is created for. Ids and not entities,
+    /// because the creation also runs outside a request, where an entity loaded earlier belongs to a context
     /// that is long gone.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The outcome of the declaration.</returns>
-    Task<DeliveryDeclarationResult> DeclareAsync(Guid jobId, DeliveryFields fields, Declarer declarer, CancellationToken cancellationToken);
+    /// <returns>The outcome of the creation.</returns>
+    Task<DeliveryCreationResult> CreateAsync(Guid jobId, DeliveryFields fields, Supplier supplier, CancellationToken cancellationToken);
 }
 
 /// <summary>

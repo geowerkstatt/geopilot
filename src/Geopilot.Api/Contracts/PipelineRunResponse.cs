@@ -29,7 +29,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
 /// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
-/// <param name="Declarer">Who started the run, or <see langword="null"/> when it was started without signing in. Who declared the delivery is recorded on the delivery itself.</param>
+/// <param name="StartedBy">Who started the run, or <see langword="null"/> when it was started without signing in. Who delivered is recorded on the delivery itself.</param>
 /// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
 /// <param name="Outcome">What became of the run.</param>
 /// <param name="ForwardingState">The summed up state of the transfers of its delivery, <see langword="null"/> without delivery, without transfers or once the delivery is deleted.</param>
@@ -56,7 +56,7 @@ public record PipelineRunResponse(
     List<PipelineRunFileResponse> Files,
     List<PipelineRunStepResponse> Steps,
     List<PipelineRunReactionEventResponse> ReactionEvents,
-    PipelineRunDeclarer? Declarer,
+    PipelineRunStarter? StartedBy,
     MandateReference? Mandate,
     PipelineRunOutcome Outcome,
     ReactionState? ForwardingState,

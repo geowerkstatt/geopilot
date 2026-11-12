@@ -123,7 +123,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetNamesDeclarerAndMandate()
+    public async Task GetNamesStarterAndMandate()
     {
         var user = context.Users.First();
         var mandate = context.Mandates.First();
@@ -135,10 +135,10 @@ public sealed class PipelineRunControllerTest
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsNotNull(response.Declarer);
-        Assert.IsNull(response.Declarer.MachineClientId, "a run a user started names no client.");
-        Assert.AreEqual(user.Id, response.Declarer.UserId);
-        Assert.AreEqual(user.FullName, response.Declarer.Name);
+        Assert.IsNotNull(response.StartedBy);
+        Assert.IsNull(response.StartedBy.MachineClientId, "a run a user started names no client.");
+        Assert.AreEqual(user.Id, response.StartedBy.UserId);
+        Assert.AreEqual(user.FullName, response.StartedBy.Name);
         Assert.IsNotNull(response.Mandate);
         Assert.AreEqual(mandate.Id, response.Mandate.Id);
     }
@@ -234,7 +234,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task ListFiltersByMandatesDeclarersAndStates()
+    public async Task ListFiltersByMandatesStartersAndStates()
     {
         var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
         var user = context.Users.First();
@@ -351,9 +351,9 @@ public sealed class PipelineRunControllerTest
 
         var item = (await List(InWindow())).Items.Single().Latest;
 
-        Assert.IsNull(item.Declarer);
+        Assert.IsNull(item.StartedBy);
         Assert.IsNull(item.Mandate);
-        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, item.Outcome.Kind);
+        Assert.AreEqual(PipelineRunOutcomeKind.NotPermitted, item.Outcome.Kind);
     }
 
     [TestMethod]

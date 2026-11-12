@@ -67,13 +67,13 @@ public class PipelineRunOutcomesTest
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
-        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, outcome.Kind, "a person who is no member of the mandate may not deliver.");
+        Assert.AreEqual(PipelineRunOutcomeKind.NotPermitted, outcome.Kind, "a person who is no member of the mandate may not deliver.");
     }
 
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void DeclarationFailedWhenItsDeclarationFailed(ProcessingState terminalState)
+    public void DeliveryRejectedWhenItsDeliveryWasRejected(ProcessingState terminalState)
     {
         var run = Run(terminalState);
         run.MachineClientId = 1;
@@ -82,11 +82,11 @@ public class PipelineRunOutcomesTest
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
-        Assert.AreEqual(PipelineRunOutcomeKind.DeclarationFailed, outcome.Kind);
+        Assert.AreEqual(PipelineRunOutcomeKind.DeliveryRejected, outcome.Kind);
     }
 
     [TestMethod]
-    [DataRow(null, PipelineRunOutcomeKind.NotDeclarable, DisplayName = "anonymous")]
+    [DataRow(null, PipelineRunOutcomeKind.NotPermitted, DisplayName = "anonymous")]
     [DataRow(1, PipelineRunOutcomeKind.NotDelivered, DisplayName = "person")]
     public void WithoutRecordedDeclarabilityOnlyAnAnonymousRunIsNotDeclarable(int? userId, PipelineRunOutcomeKind expected)
     {

@@ -434,7 +434,7 @@ public class ProcessingJobCleanupServiceTest
     public async Task RunCleanupRetiresOrphanedStagedDelivery()
     {
         // A staged delivery payload left behind by a hard restart: the in-memory job store no longer
-        // knows the job, so nobody can declare the delivery any more.
+        // knows the job, so nobody can create the delivery any more.
         var orphanJobId = Guid.NewGuid();
         var stagedDir = Path.Combine(tempAssetStagingRoot, orphanJobId.ToString());
         Directory.CreateDirectory(stagedDir);
@@ -459,7 +459,7 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        Assert.IsTrue(Directory.Exists(stagedDir), "A deliverable job within its retention can still be declared, so its staged payload has to stay.");
+        Assert.IsTrue(Directory.Exists(stagedDir), "A deliverable job within its retention can still be delivered, so its staged payload has to stay.");
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 

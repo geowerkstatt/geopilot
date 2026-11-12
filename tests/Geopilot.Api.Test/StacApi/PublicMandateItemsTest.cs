@@ -22,7 +22,7 @@ namespace Geopilot.Api.StacApi;
 public class PublicMandateItemsTest
 {
     private const string Comment = "Nur für Admins";
-    private const string DeclaredByProperty = "Abgegeben durch";
+    private const string DeliveredByProperty = "Abgegeben durch";
     private const string PrecursorProperty = "Vorgängerversion";
 
     // Far apart, so the time span of the collection shows which deliveries it covers.
@@ -71,11 +71,11 @@ public class PublicMandateItemsTest
         var listed = (await new FeaturesClient(anonymousClient).GetFeaturesAsync(collectionId, null, null, null)).Features.Single(f => f.Id == itemId);
         var searched = (await new ItemSearchClient(anonymousClient).PostItemSearchAsync(new SearchBody { Collections = new[] { collectionId } })).Items.Single(i => i.Id == itemId);
 
-        Assert.IsFalse(listed.Properties.ContainsKey(DeclaredByProperty));
+        Assert.IsFalse(listed.Properties.ContainsKey(DeliveredByProperty));
         foreach (var anonymousItem in new[] { item, searched })
         {
             Assert.HasCount(1, anonymousItem.Assets);
-            Assert.IsFalse(anonymousItem.Properties.ContainsKey(DeclaredByProperty));
+            Assert.IsFalse(anonymousItem.Properties.ContainsKey(DeliveredByProperty));
             Assert.IsTrue(string.IsNullOrEmpty(anonymousItem.Description));
         }
     }
@@ -91,7 +91,7 @@ public class PublicMandateItemsTest
         foreach (var adminItem in new[] { item, searched })
         {
             Assert.HasCount(1, adminItem.Assets);
-            Assert.IsTrue(adminItem.Properties.ContainsKey(DeclaredByProperty));
+            Assert.IsTrue(adminItem.Properties.ContainsKey(DeliveredByProperty));
             Assert.AreEqual(Comment, adminItem.Description);
         }
     }

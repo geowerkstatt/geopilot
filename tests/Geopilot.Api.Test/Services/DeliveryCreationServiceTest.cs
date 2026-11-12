@@ -14,12 +14,12 @@ using System.Text.Json;
 namespace Geopilot.Api.Test.Services;
 
 /// <summary>
-/// The declaration rules are covered through <see cref="Controllers.DeliveryControllerTest"/>, which wires the
-/// service up for real but only ever declares as a user and mocks the mandate rules. What is checked here is the
-/// other declarer, and who may declare against the real mandate rules.
+/// The delivery rules are covered through <see cref="Controllers.DeliveryControllerTest"/>, which wires the
+/// service up for real but only ever creates as a user and mocks the mandate rules. What is checked here is the
+/// other supplier, and who may deliver against the real mandate rules.
 /// </summary>
 [TestClass]
-public class DeliveryDeclarationServiceTest
+public class DeliveryCreationServiceTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
@@ -28,7 +28,7 @@ public class DeliveryDeclarationServiceTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
-    private DeliveryDeclarationService service;
+    private DeliveryCreationService service;
 
     [TestInitialize]
     public void Initialize()
@@ -38,8 +38,8 @@ public class DeliveryDeclarationServiceTest
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
-        service = new DeliveryDeclarationService(
-            Mock.Of<ILogger<DeliveryDeclarationService>>(),
+        service = new DeliveryCreationService(
+            Mock.Of<ILogger<DeliveryCreationService>>(),
             context,
             processingServiceMock.Object,
             mandateServiceMock.Object,
@@ -52,12 +52,12 @@ public class DeliveryDeclarationServiceTest
     public void Cleanup() => context.Dispose();
 
     [TestMethod]
-    public async Task DeclaresTheDeliveryForAMachineClient()
+    public async Task CreatesTheDeliveryForAMachineClient()
     {
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         var mandate = context.Mandates.Add(new Mandate
         {
-            Name = TestHelpers.Localized(nameof(DeclaresTheDeliveryForAMachineClient)),
+            Name = TestHelpers.Localized(nameof(CreatesTheDeliveryForAMachineClient)),
             IsPublic = true,
             AllowDelivery = true,
             EvaluateComment = FieldEvaluationType.NotEvaluated,
@@ -66,40 +66,40 @@ public class DeliveryDeclarationServiceTest
         }).Entity;
         context.SaveChanges();
 
-        var declarer = Declarer.ForClient(client.Id);
+        var supplier = Supplier.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
+        mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
-        var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), declarer, CancellationToken.None);
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
 
-        Assert.AreEqual(DeliveryDeclarationStatus.Created, result.Status);
+        Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
         var delivery = await context.Deliveries.SingleAsync(d => d.Id == result.DeliveryId);
         Assert.AreEqual(client.Id, delivery.DeclaringClientId);
-        Assert.IsNull(delivery.DeclaringUserId, "A delivery has exactly one declarer; the database constraint says the same.");
-        Assert.AreEqual("SILENTHARBOR", delivery.DeclarerName, "The client's name is what the catalog shows as the deliverer.");
+        Assert.IsNull(delivery.DeclaringUserId, "A delivery has exactly one supplier; the database constraint says the same.");
+        Assert.AreEqual("SILENTHARBOR", delivery.DeliveredByName, "The client's name is what the catalog shows as the deliverer.");
     }
 
     [TestMethod]
-    public async Task RefusesARunNobodyCanDeclare()
+    public async Task RefusesARunNobodyMayDeliver()
     {
-        var jobId = SetupDeliverableJob(mandateId: 1, isDeclarable: false);
+        var jobId = SetupDeliverableJob(mandateId: 1, mayDeliver: false);
 
-        var result = await service.DeclareAsync(jobId, new DeliveryFields(null, null, null), Declarer.ForUser(1), CancellationToken.None);
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(1), CancellationToken.None);
 
-        // Refused before the declarer or the mandate is looked at: the strict mocks would fail on any further call.
-        Assert.AreEqual(DeliveryDeclarationStatus.JobNotDeclarable, result.Status);
+        // Refused before the supplier or the mandate is looked at: the strict mocks would fail on any further call.
+        Assert.AreEqual(DeliveryCreationStatus.JobNotPermitted, result.Status);
     }
 
     [TestMethod]
-    [DataRow(true, true, DeliveryDeclarationStatus.Created, DisplayName = "A member, on a mandate that takes deliveries")]
-    [DataRow(false, true, DeliveryDeclarationStatus.MandateNotDeliverable, DisplayName = "Someone outside its organisations, on a public mandate")]
-    [DataRow(true, false, DeliveryDeclarationStatus.MandateNotDeliverable, DisplayName = "A member, on a mandate that stopped taking deliveries")]
-    public async Task DeclaresOnlyForACallerWhoMayDeliverNow(bool callerIsMember, bool allowDelivery, DeliveryDeclarationStatus expected)
+    [DataRow(true, true, DeliveryCreationStatus.Created, DisplayName = "A member, on a mandate that takes deliveries")]
+    [DataRow(false, true, DeliveryCreationStatus.MandateNotDeliverable, DisplayName = "Someone outside its organisations, on a public mandate")]
+    [DataRow(true, false, DeliveryCreationStatus.MandateNotDeliverable, DisplayName = "A member, on a mandate that stopped taking deliveries")]
+    public async Task CreatesOnlyForACallerWhoMayDeliverNow(bool callerIsMember, bool allowDelivery, DeliveryCreationStatus expected)
     {
         var (member, mandate) = context.AddMandateWithUserOrganisation(new Mandate
         {
-            Name = TestHelpers.Localized(nameof(DeclaresOnlyForACallerWhoMayDeliverNow)),
+            Name = TestHelpers.Localized(nameof(CreatesOnlyForACallerWhoMayDeliverNow)),
             IsPublic = true,
             AllowDelivery = allowDelivery,
             EvaluateComment = FieldEvaluationType.NotEvaluated,
@@ -109,13 +109,13 @@ public class DeliveryDeclarationServiceTest
         var caller = callerIsMember ? member : context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        // Declarable at its start, so only who asks now and what the mandate allows now decide.
+        // Permitted at its start, so only who asks now and what the mandate allows now decide.
         var jobId = SetupDeliverableJob(mandate.Id);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
-        // The real mandate rules rather than a mock of one lookup, so this holds whichever lookup the declaration uses.
-        var declaringService = new DeliveryDeclarationService(
-            Mock.Of<ILogger<DeliveryDeclarationService>>(),
+        // The real mandate rules rather than a mock of one lookup, so this holds whichever lookup the creation uses.
+        var creationService = new DeliveryCreationService(
+            Mock.Of<ILogger<DeliveryCreationService>>(),
             context,
             processingServiceMock.Object,
             new MandateService(context, Mock.Of<IUploadStore>(), Mock.Of<IPipelineService>()),
@@ -123,7 +123,7 @@ public class DeliveryDeclarationServiceTest
             pipelineFactoryMock.Object,
             Options.Create(new DeliveryOptions()));
 
-        var result = await declaringService.DeclareAsync(jobId, new DeliveryFields(null, null, null), Declarer.ForUser(caller.Id), CancellationToken.None);
+        var result = await creationService.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(caller.Id), CancellationToken.None);
 
         Assert.AreEqual(expected, result.Status);
     }
@@ -137,7 +137,7 @@ public class DeliveryDeclarationServiceTest
         context.SaveChanges();
         SetupSet("ablage_pro_mandat", "weitergabe", new Parameterization { ["mode"] = "copy" }, "subfolder");
 
-        var deliveryId = await DeclareAsync(mandate);
+        var deliveryId = await CreateAsync(mandate);
 
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         var reaction = Assert.ContainsSingle(context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList());
@@ -164,7 +164,7 @@ public class DeliveryDeclarationServiceTest
         context.SaveChanges();
         SetupSet("ablage_pro_mandat", "weitergabe", new Parameterization(), "subfolder");
 
-        var deliveryId = await DeclareAsync(mandate);
+        var deliveryId = await CreateAsync(mandate);
 
         var reaction = Assert.ContainsSingle(context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList());
         CollectionAssert.AreEqual(new[] { "subfolder" }, reaction.Config.Mandate.Keys.ToArray());
@@ -179,7 +179,7 @@ public class DeliveryDeclarationServiceTest
         context.SaveChanges();
         SetupSet("ablage_mit_meldung", [(Reaction("weitergabe"), new Parameterization())], [(Reaction("meldung", "subfolder"), new Parameterization())]);
 
-        var deliveryId = await DeclareAsync(mandate);
+        var deliveryId = await CreateAsync(mandate);
 
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         var reactions = context.DeliveryReactions.AsNoTracking().Where(r => r.DeliveryId == deliveryId).ToList();
@@ -198,7 +198,7 @@ public class DeliveryDeclarationServiceTest
         var mandate = AddMandate(nameof(CreatesNoReactionsWithoutASet));
         context.SaveChanges();
 
-        var deliveryId = await DeclareAsync(mandate);
+        var deliveryId = await CreateAsync(mandate);
 
         Assert.IsFalse(context.DeliveryReactions.Any(r => r.DeliveryId == deliveryId));
     }
@@ -234,7 +234,7 @@ public class DeliveryDeclarationServiceTest
     {
         var mandate = AddMandateWithMetadataFields(nameof(KeepsACopyOfTheMetadataFieldsWithTheirValues));
 
-        var deliveryId = await DeclareAsync(mandate, MetadataValues(("responsible", "canton")));
+        var deliveryId = await CreateAsync(mandate, MetadataValues(("responsible", "canton")));
 
         var delivery = context.Deliveries.AsNoTracking().Single(d => d.Id == deliveryId);
         Assert.HasCount(2, delivery.Metadata);
@@ -247,7 +247,7 @@ public class DeliveryDeclarationServiceTest
     public async Task KeepsTheCopyWhenTheMandateChangesLater()
     {
         var mandate = AddMandateWithMetadataFields(nameof(KeepsTheCopyWhenTheMandateChangesLater));
-        var deliveryId = await DeclareAsync(mandate, MetadataValues(("responsible", "canton")));
+        var deliveryId = await CreateAsync(mandate, MetadataValues(("responsible", "canton")));
 
         mandate.MetadataFields =
         [
@@ -263,21 +263,21 @@ public class DeliveryDeclarationServiceTest
     }
 
     [TestMethod]
-    public async Task RefusesTheDeclarationWhenTheMandateGainedARequiredField()
+    public async Task RefusesTheDeliveryWhenTheMandateGainedARequiredField()
     {
-        var mandate = AddMandateWithMetadataFields(nameof(RefusesTheDeclarationWhenTheMandateGainedARequiredField));
+        var mandate = AddMandateWithMetadataFields(nameof(RefusesTheDeliveryWhenTheMandateGainedARequiredField));
         var fields = MetadataValues(("responsible", "canton"));
         mandate.MetadataFields = [mandate.MetadataFields[0], mandate.MetadataFields[1] with { Evaluation = FieldEvaluationType.Required }];
         context.SaveChanges();
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         context.SaveChanges();
-        var declarer = Declarer.ForClient(client.Id);
+        var supplier = Supplier.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
+        mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
 
-        var result = await service.DeclareAsync(jobId, fields, declarer, CancellationToken.None);
+        var result = await service.CreateAsync(jobId, fields, supplier, CancellationToken.None);
 
-        Assert.AreEqual(DeliveryDeclarationStatus.FieldRulesViolated, result.Status);
+        Assert.AreEqual(DeliveryCreationStatus.FieldRulesViolated, result.Status);
         Assert.IsNotNull(result.FieldErrors);
         Assert.IsTrue(result.FieldErrors.ContainsKey("metadata.project_number"));
         Assert.IsFalse(context.Deliveries.Any(d => d.JobId == jobId));
@@ -314,28 +314,28 @@ public class DeliveryDeclarationServiceTest
             EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
         }).Entity;
 
-    private async Task<int> DeclareAsync(Mandate mandate, DeliveryFields? fields = null)
+    private async Task<int> CreateAsync(Mandate mandate, DeliveryFields? fields = null)
     {
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         context.SaveChanges();
 
-        var declarer = Declarer.ForClient(client.Id);
+        var supplier = Supplier.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
-        mandateServiceMock.Setup(m => m.IsDeclarableAsync(mandate.Id, declarer)).ReturnsAsync(true);
+        mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
         assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
 
-        var result = await service.DeclareAsync(jobId, fields ?? new DeliveryFields(null, null, null), declarer, CancellationToken.None);
+        var result = await service.CreateAsync(jobId, fields ?? new DeliveryFields(null, null, null), supplier, CancellationToken.None);
 
-        Assert.AreEqual(DeliveryDeclarationStatus.Created, result.Status);
+        Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
         return result.DeliveryId ?? throw new AssertFailedException("A created delivery has an id.");
     }
 
-    private Guid SetupDeliverableJob(int mandateId, bool isDeclarable = true)
+    private Guid SetupDeliverableJob(int mandateId, bool mayDeliver = true)
     {
         var jobId = Guid.NewGuid();
         processingServiceMock
             .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success, IsDeclarable = isDeclarable });
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success, MayDeliver = mayDeliver });
         return jobId;
     }
 }

@@ -56,7 +56,7 @@ public class PipelineRun
 
     /// <summary>
     /// The user that started the run, or <see langword="null"/> when the job was started anonymously on a
-    /// public mandate. Anonymous users may process but not deliver; who declared the delivery is recorded
+    /// public mandate. Anonymous users may process but not deliver; who delivered is recorded
     /// on the <see cref="Delivery"/> itself, reachable via <see cref="JobId"/>.
     /// </summary>
     public int? UserId { get; set; }
@@ -92,7 +92,7 @@ public class PipelineRun
 
     /// <summary>
     /// Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery,
-    /// decided when its job started (see <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/>
+    /// decided when its job started (see <see cref="Processing.ProcessingJob.MayDeliver"/>). <see langword="null"/>
     /// for a run recorded before the protocol kept it: unknown, which is not the same as not declarable.
     /// </summary>
     public Declarability? Declarability { get; set; }

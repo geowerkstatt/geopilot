@@ -6,8 +6,8 @@ import { PipelineRunOutcomeKind, PipelineRunResponse, ReactionState } from "../.
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../../../appTheme.ts";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
+import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
@@ -161,11 +161,11 @@ export const ProcessingRunDetail: FC = () => {
 
   const duration = formatDuration(run.startedAt, run.terminalAt);
   // Without machine delivery the pages of the machine clients are not routed.
-  const declarerPath =
-    run.declarer?.userId != null
-      ? `/admin/users/${run.declarer.userId}`
-      : run.declarer?.machineClientId != null && machineDeliveryEnabled
-        ? `/admin/machine-clients/${run.declarer.machineClientId}`
+  const startedByPath =
+    run.startedBy?.userId != null
+      ? `/admin/users/${run.startedBy.userId}`
+      : run.startedBy?.machineClientId != null && machineDeliveryEnabled
+        ? `/admin/machine-clients/${run.startedBy.machineClientId}`
         : undefined;
   // Reactions wait without events until their first attempt, so a delivery with reactions offers the tab from the start.
   const hasReactions = run.reactionEvents.length > 0 || !!run.forwardingState || !!run.notificationState;
@@ -207,13 +207,13 @@ export const ProcessingRunDetail: FC = () => {
             />
           </SummaryField>
           <SummaryField label="processedBy">
-            <DeclarerLabel declarer={run.declarer} path={declarerPath} />
+            <UserOrClientLabel userOrClient={run.startedBy} path={startedByPath} />
           </SummaryField>
           {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
           <SummaryField label="delivery">
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
-            {run.outcome.kind === PipelineRunOutcomeKind.DeclarationFailed && (
-              <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeclarationFailure">
+            {run.outcome.kind === PipelineRunOutcomeKind.DeliveryRejected && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeliveryRejection">
                 {run.declarationFailure}
               </Typography>
             )}

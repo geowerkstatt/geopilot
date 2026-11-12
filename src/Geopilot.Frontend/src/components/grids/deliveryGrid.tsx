@@ -10,14 +10,14 @@ import { DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/gen
 import { useDeleteDelivery } from "../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
-import { DeclarerLabel } from "../declarerLabel.tsx";
+import { UserOrClientLabel } from "../userOrClientLabel.tsx";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
 import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface DeliveryInfo {
   id: number;
   date: string;
-  declarerName: string;
+  deliveredByName: string;
   /** Unknown (`undefined`) in the list of a user's own deliveries, which shows the name alone. */
   declaringClientId?: number | null;
   mandateName: LocalizedText;
@@ -54,7 +54,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
           response.map(d => ({
             id: d.id,
             date: d.date,
-            declarerName: d.declarerName,
+            deliveredByName: d.deliveredByName,
             declaringClientId: "declaringClientId" in d ? d.declaringClientId : undefined,
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
@@ -84,17 +84,17 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       valueGetter: (date: string) => new Date(date),
       width: 180,
     },
-    declarerName: {
-      field: "declarerName",
+    deliveredByName: {
+      field: "deliveredByName",
       headerName: t("deliveredBy"),
       flex: 0.5,
       minWidth: 250,
       display: "flex",
       renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
         row.declaringClientId !== undefined ? (
-          <DeclarerLabel declarer={{ name: row.declarerName, machineClientId: row.declaringClientId }} />
+          <UserOrClientLabel userOrClient={{ name: row.deliveredByName, machineClientId: row.declaringClientId }} />
         ) : (
-          row.declarerName
+          row.deliveredByName
         ),
     },
     mandateName: {

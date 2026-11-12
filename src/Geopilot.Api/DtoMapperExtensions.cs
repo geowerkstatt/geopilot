@@ -234,7 +234,7 @@ internal static class DtoMapperExtensions
                     reactionEvent.Message,
                     reactionEvent.UserId))
                 .ToList(),
-            run.ToDeclarer(),
+            run.ToStarter(),
             run.ToMandateReference(),
             outcome,
             forwardingState,
@@ -246,13 +246,13 @@ internal static class DtoMapperExtensions
     /// Names who started the <paramref name="run"/>, from its loaded <see cref="PipelineRun.User"/> or
     /// <see cref="PipelineRun.MachineClient"/>; <see langword="null"/> when it was started without signing in.
     /// </summary>
-    internal static PipelineRunDeclarer? ToDeclarer(this PipelineRun run)
+    internal static PipelineRunStarter? ToStarter(this PipelineRun run)
     {
         if (run.User is not null)
-            return new PipelineRunDeclarer(run.User.Id, null, run.User.FullName);
+            return new PipelineRunStarter(run.User.Id, null, run.User.FullName);
 
         if (run.MachineClient is not null)
-            return new PipelineRunDeclarer(null, run.MachineClient.Id, run.MachineClient.Name);
+            return new PipelineRunStarter(null, run.MachineClient.Id, run.MachineClient.Name);
 
         return null;
     }

@@ -23,10 +23,10 @@ describe("pipeline run query", () => {
     expect(params.get("to")).to.equal(new Date("2026-10-31T00:00:00").toISOString());
   });
 
-  it("sends who processed as the ids of persons and machine clients", () => {
+  it("sends who processed as the ids of users and machine clients", () => {
     const params = new URLSearchParams(
       toProcessingRunQuery(
-        { ...emptyProcessingRunFilters, declarers: ["person:12", "machineClient:3", "person:14"] },
+        { ...emptyProcessingRunFilters, startedBy: ["user:12", "machineClient:3", "user:14"] },
         0,
         25,
       ),
@@ -71,7 +71,7 @@ describe("pipeline run query", () => {
     const filters = {
       from: "2026-10-28T08:00",
       to: "2026-10-30T17:30",
-      declarers: ["person:12", "machineClient:3"],
+      startedBy: ["user:12", "machineClient:3"],
       mandateIds: ["5"],
       states: ["failed", "open"],
     };
@@ -95,15 +95,15 @@ describe("pipeline run query", () => {
     expect(toProcessingRunQuery(filters, page, 25)).to.equal("page=0&pageSize=25&states=failed");
   });
 
-  it("drops the declarers, mandates and states in the address that the API cannot take", () => {
+  it("drops the starters, mandates and states in the address that the API cannot take", () => {
     const params = new URLSearchParams(
-      "declarer=person:12&declarer=foo&declarer=machineClient:&declarer=person:1234567890" +
+      "startedBy=user:12&startedBy=foo&startedBy=machineClient:&startedBy=user:1234567890" +
         "&mandate=5&mandate=abc&mandate=-1&state=open&state=bogus",
     );
 
     const { filters } = readProcessingRunSearchParams(params);
 
-    expect(filters.declarers).to.deep.equal(["person:12"]);
+    expect(filters.startedBy).to.deep.equal(["user:12"]);
     expect(filters.mandateIds).to.deep.equal(["5"]);
     expect(filters.states).to.deep.equal(["open"]);
   });

@@ -6,9 +6,9 @@ import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, Reactio
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import { ReactionsTable } from "../../../components/reactionsTable.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
+import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
@@ -74,7 +74,7 @@ export const DeliveryDetail: FC = () => {
     .map(reaction => localized(reaction.displayName ?? undefined, reaction.reactionId));
 
   // Without machine delivery the pages of the machine clients are not routed.
-  const declarerPath =
+  const supplierPath =
     delivery.declaringUserId != null
       ? `/admin/users/${delivery.declaringUserId}`
       : delivery.declaringClientId != null && machineDeliveryEnabled
@@ -91,12 +91,12 @@ export const DeliveryDetail: FC = () => {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="deliveryDate">{formatTime(delivery.date)}</SummaryField>
           <SummaryField label="deliveredBy">
-            <DeclarerLabel
-              declarer={{
+            <UserOrClientLabel
+              userOrClient={{
                 machineClientId: delivery.declaringClientId,
-                name: delivery.declarerName,
+                name: delivery.deliveredByName,
               }}
-              path={declarerPath}
+              path={supplierPath}
             />
           </SummaryField>
           <SummaryField label="mandate">

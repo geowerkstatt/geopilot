@@ -39,7 +39,7 @@ public class PipelineRunController : ControllerBase
 
     /// <summary>
     /// Lists the pipeline runs that match the <paramref name="query"/>, newest first, one page at a time. The attempts
-    /// of one delivery, runs with the same client reference, declarer and mandate, form one group and one row.
+    /// of one delivery, runs with the same client reference, starter and mandate, form one group and one row.
     /// </summary>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "One page of pipeline runs, grouped by delivery.", typeof(PipelineRunPageResponse), "application/json")]
@@ -56,7 +56,7 @@ public class PipelineRunController : ControllerBase
         var from = query.From is { } fromValue ? AsUtc(fromValue) : (DateTime?)null;
         var to = query.To is { } toValue ? AsUtc(toValue) : (DateTime?)null;
         var latestRuns = FilterByState(
-            LatestAttemptOfEachGroup(FilterByMandateAndDeclarer(context.PipelineRuns.AsNoTracking(), query), from, to),
+            LatestAttemptOfEachGroup(FilterByMandateAndStarter(context.PipelineRuns.AsNoTracking(), query), from, to),
             query.States);
         var totalCount = await latestRuns.CountAsync(cancellationToken);
 
@@ -129,8 +129,8 @@ public class PipelineRunController : ControllerBase
         return Content(definition, "application/json");
     }
 
-    // Mandate and declarer are part of the group key, so narrowing by them before grouping splits no group.
-    private static IQueryable<PipelineRun> FilterByMandateAndDeclarer(IQueryable<PipelineRun> runs, PipelineRunQuery query)
+    // Mandate and starter are part of the group key, so narrowing by them before grouping splits no group.
+    private static IQueryable<PipelineRun> FilterByMandateAndStarter(IQueryable<PipelineRun> runs, PipelineRunQuery query)
     {
         var mandateIds = query.MandateIds;
         var userIds = query.UserIds;
@@ -228,7 +228,7 @@ public class PipelineRunController : ControllerBase
         run.JobId,
         run.StartedAt,
         run.TerminalAt,
-        run.ToDeclarer(),
+        run.ToStarter(),
         run.ToMandateReference(),
         run.TerminalState,
         PipelineRunOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId)));

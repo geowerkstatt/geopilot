@@ -28,7 +28,7 @@ describe("User Delivery Overview tests", () => {
 
     // Who delivered, so the own deliveries stand apart from those of a machine client the user is responsible for.
     cy.dataCy("deliveryOverview-grid")
-      .find('[role="columnheader"][data-field="declarerName"]')
+      .find('[role="columnheader"][data-field="deliveredByName"]')
       .contains("Delivered by");
     // The name of the identity provider, which replaced the seeded one when the uploader signed in.
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Ursula Uploader");

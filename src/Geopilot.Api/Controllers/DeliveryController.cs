@@ -19,7 +19,7 @@ using System.Linq.Expressions;
 namespace Geopilot.Api.Controllers;
 
 /// <summary>
-/// Controller for declaring deliveries.
+/// Controller for creating deliveries.
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
@@ -27,7 +27,7 @@ public class DeliveryController : ControllerBase
 {
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
-    private readonly IDeliveryDeclarationService deliveryDeclarationService;
+    private readonly IDeliveryCreationService deliveryCreationService;
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
@@ -39,7 +39,7 @@ public class DeliveryController : ControllerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryCreationService deliveryCreationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
     {
         this.authorizationService = authorizationService;
         this.reactionStore = reactionStore;
@@ -47,7 +47,7 @@ public class DeliveryController : ControllerBase
         this.pipelineFactory = pipelineFactory;
         this.logger = logger;
         this.context = context;
-        this.deliveryDeclarationService = deliveryDeclarationService;
+        this.deliveryCreationService = deliveryCreationService;
         this.mandateService = mandateService;
         this.assetHandler = assetHandler;
         this.deliveryOptions = deliveryOptions;
@@ -56,7 +56,7 @@ public class DeliveryController : ControllerBase
     /// <summary>
     /// Create a delivery from a successfully processed job whose pipeline allows delivery.
     /// </summary>
-    /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
+    /// <param name="request"><see cref="DeliveryRequest"/> containing all information for creating the delivery.</param>
     /// <returns>Created <see cref="Delivery"/>.</returns>
     [HttpPost]
     [Authorize(Policy = GeopilotPolicies.User)]
@@ -66,19 +66,19 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job could not be found.")]
     [SwaggerResponse(StatusCodes.Status409Conflict, "The job was already delivered.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.", typeof(ProblemDetails), "application/json")]
-    public async Task<IActionResult> Create(DeliveryRequest declaration)
+    public async Task<IActionResult> Create(DeliveryRequest request)
     {
-        ArgumentNullException.ThrowIfNull(declaration);
+        ArgumentNullException.ThrowIfNull(request);
 
-        logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
+        logger.LogInformation("Delivery for job with id <{JobId}> requested.", request.JobId);
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var fields = new DeliveryFields(declaration.PartialDelivery, declaration.PrecursorDeliveryId, declaration.Comment, declaration.Metadata);
-        var result = await deliveryDeclarationService.DeclareAsync(declaration.JobId, fields, Declarer.ForUser(user.Id), HttpContext.RequestAborted);
+        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
+        var result = await deliveryCreationService.CreateAsync(request.JobId, fields, Supplier.ForUser(user.Id), HttpContext.RequestAborted);
 
-        if (result is not { Status: DeliveryDeclarationStatus.Created, DeliveryId: int deliveryId })
+        if (result is not { Status: DeliveryCreationStatus.Created, DeliveryId: int deliveryId })
         {
-            return MapDeclarationFailure(result);
+            return MapCreationFailure(result);
         }
 
         var resultDelivery = context.Deliveries
@@ -93,25 +93,25 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Maps a failed declaration onto the response this endpoint has always returned for it.
+    /// Maps a failed creation onto the response this endpoint has always returned for it.
     /// </summary>
-    private IActionResult MapDeclarationFailure(DeliveryDeclarationResult result)
+    private IActionResult MapCreationFailure(DeliveryCreationResult result)
     {
         switch (result.Status)
         {
-            case DeliveryDeclarationStatus.JobNotFound:
-            case DeliveryDeclarationStatus.MandateNotDeliverable:
+            case DeliveryCreationStatus.JobNotFound:
+            case DeliveryCreationStatus.MandateNotDeliverable:
                 return NotFound(result.Message);
 
-            case DeliveryDeclarationStatus.JobNotDeliverable:
-            case DeliveryDeclarationStatus.JobNotDeclarable:
-            case DeliveryDeclarationStatus.JobWithoutMandate:
+            case DeliveryCreationStatus.JobNotDeliverable:
+            case DeliveryCreationStatus.JobNotPermitted:
+            case DeliveryCreationStatus.JobWithoutMandate:
                 return BadRequest(result.Message);
 
-            case DeliveryDeclarationStatus.AlreadyDeclared:
+            case DeliveryCreationStatus.AlreadyDelivered:
                 return Conflict(result.Message);
 
-            case DeliveryDeclarationStatus.FieldRulesViolated:
+            case DeliveryCreationStatus.FieldRulesViolated:
                 foreach (var (field, messages) in result.FieldErrors ?? ReadOnlyDictionary<string, string[]>.Empty)
                 {
                     foreach (var message in messages)
@@ -148,7 +148,7 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var mandate = await mandateService.GetMandateForDeliveryAsync(mandateId, Declarer.ForUser(user.Id));
+        var mandate = await mandateService.GetMandateForDeliveryAsync(mandateId, Supplier.ForUser(user.Id));
         if (mandate == null)
             return NotFound();
 
@@ -180,7 +180,7 @@ public class DeliveryController : ControllerBase
                 d.Id,
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
                 d.DeclaringClientId,
                 Reactions = context.DeliveryReactions
                     .Where(r => r.DeliveryId == d.Id)
@@ -194,7 +194,7 @@ public class DeliveryController : ControllerBase
                 d.Id,
                 d.Date,
                 d.Mandate,
-                d.DeclarerName,
+                d.DeliveredByName,
                 d.DeclaringClientId,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
                 d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
@@ -223,7 +223,7 @@ public class DeliveryController : ControllerBase
                 d.Id,
                 d.Date,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
                 d.DeclaringUserId,
                 d.DeclaringClientId,
                 PrecursorDelivery = d.PrecursorDelivery != null ? new DeliverySummary(d.PrecursorDelivery.Id, d.PrecursorDelivery.Date) : null,
@@ -267,7 +267,7 @@ public class DeliveryController : ControllerBase
             delivery.Id,
             delivery.Date,
             delivery.Mandate,
-            delivery.DeclarerName,
+            delivery.DeliveredByName,
             delivery.DeclaringUserId,
             delivery.DeclaringClientId,
             delivery.PrecursorDelivery,
@@ -308,7 +308,7 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the deliveries the user declared, and those of the machine clients the user is responsible for.
+    /// Gets the deliveries the user delivered, and those of the machine clients the user is responsible for.
     /// </summary>
     /// <returns>A list of <see cref="UploadedDelivery"/>.</returns>
     [HttpGet("uploads")]
@@ -327,7 +327,7 @@ public class DeliveryController : ControllerBase
         var started = context.DeliveryReactions.DeliveryIdsWithStartedReactions();
         var deliveries = await context.Deliveries
             .AsNoTracking()
-            .Where(DeclaredByOrForUser(user.Id))
+            .Where(DeliveredByOrForUser(user.Id))
             .OrderBy(d => d.Id)
             .Select(d => new
             {
@@ -335,13 +335,13 @@ public class DeliveryController : ControllerBase
                 d.Date,
                 d.Comment,
                 Mandate = new MandateReference(d.Mandate.Id, d.Mandate.Name),
-                DeclarerName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
+                DeliveredByName = d.DeclaringUser != null ? d.DeclaringUser.FullName : (d.DeclaringClient != null ? d.DeclaringClient.Name : string.Empty),
                 Started = started.Contains(d.Id),
             })
             .ToListAsync();
 
         return Ok(deliveries
-            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.DeclarerName, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
+            .Select(d => new UploadedDelivery(d.Id, d.Date, d.Mandate, d.DeliveredByName, d.Comment, !d.Started && IsDeleteAllowedForUploader(d.Date)))
             .ToList());
     }
 
@@ -366,7 +366,7 @@ public class DeliveryController : ControllerBase
             var user = await context.GetUserByPrincipalAsync(User);
             if (!user.IsAdmin)
             {
-                deliveries = deliveries.Where(DeclaredByOrForUser(user.Id));
+                deliveries = deliveries.Where(DeliveredByOrForUser(user.Id));
             }
 
             var delivery = await deliveries.SingleOrDefaultAsync(d => d.Id == deliveryId);
@@ -376,7 +376,7 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
-            // The window decides on its own only while the configuration stays as it was at the declaration. A reaction
+            // The window decides on its own only while the configuration stays as it was at creation. A reaction
             // that has begun means the delivery left already, after a longer window or a later enabled deletion.
             // shortcut: checked before the deletion rather than with it, so a reaction claimed in between still runs once;
             // its attempt then fails on the deleted files or its report is refused.
@@ -474,13 +474,13 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// The deliveries a user sees and deletes as their own: those the user declared, and those of the machine clients
+    /// The deliveries a user sees and deletes as their own: those the user delivered, and those of the machine clients
     /// the user is responsible for.
     /// </summary>
-    private static Expression<Func<Delivery, bool>> DeclaredByOrForUser(int userId)
+    private static Expression<Func<Delivery, bool>> DeliveredByOrForUser(int userId)
         => d => d.DeclaringUserId == userId || (d.DeclaringClient != null && d.DeclaringClient.ResponsibleUsers.Any(u => u.Id == userId));
 
-    internal bool IsDeleteAllowedForUploader(DateTime declaredAt, DateTime? utcNow = null)
+    internal bool IsDeleteAllowedForUploader(DateTime deliveredAt, DateTime? utcNow = null)
     {
         var options = deliveryOptions.Value;
         if (!options.UploaderDeleteEnabled)
@@ -488,7 +488,7 @@ public class DeliveryController : ControllerBase
             return false;
         }
 
-        var windowEnd = options.GetDeleteWindowEnd(declaredAt);
+        var windowEnd = options.GetDeleteWindowEnd(deliveredAt);
         return windowEnd is null || (utcNow ?? DateTime.UtcNow) < windowEnd;
     }
 }

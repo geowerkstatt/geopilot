@@ -5,7 +5,7 @@
       "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
       "startedAt": "2026-11-06T14:59:42Z",
       "terminalAt": "2026-11-06T14:59:44Z",
-      "declarer": {
+      "startedBy": {
         "userId": null,
         "machineClientId": 1,
         "name": "Service account geopilot-api"
@@ -28,7 +28,7 @@
       "jobId": "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80",
       "startedAt": "2026-11-06T14:58:46Z",
       "terminalAt": "2026-11-06T14:58:52Z",
-      "declarer": {
+      "startedBy": {
         "userId": null,
         "machineClientId": 1,
         "name": "Service account geopilot-api"
@@ -58,11 +58,6 @@
   "clientReference": "SMOKE-TEST-01",
   "declarability": "declarable",
   "declarationFailure": null,
-  "declarer": {
-    "userId": null,
-    "machineClientId": 1,
-    "name": "Service account geopilot-api"
-  },
   "failureReason": null,
   "files": [
     {
@@ -93,6 +88,11 @@
   "scanDetails": null,
   "scanState": "clean",
   "startedAt": "2026-11-06T14:59:42Z",
+  "startedBy": {
+    "userId": null,
+    "machineClientId": 1,
+    "name": "Service account geopilot-api"
+  },
   "steps": [
     {
       "stepId": "validation",

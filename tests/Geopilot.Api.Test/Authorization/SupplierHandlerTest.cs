@@ -9,18 +9,18 @@ using System.Security.Claims;
 namespace Geopilot.Api.Test.Authorization;
 
 [TestClass]
-public class DeclarerHandlerTest
+public class SupplierHandlerTest
 {
     private Context context;
     private Mock<IGeopilotUserResolver> userResolverMock;
-    private DeclarerHandler handler;
+    private SupplierHandler handler;
 
     [TestInitialize]
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
         userResolverMock = new Mock<IGeopilotUserResolver>();
-        handler = new DeclarerHandler(Mock.Of<ILogger<DeclarerHandler>>(), context, userResolverMock.Object);
+        handler = new SupplierHandler(Mock.Of<ILogger<SupplierHandler>>(), context, userResolverMock.Object);
     }
 
     [TestCleanup]
@@ -82,7 +82,7 @@ public class DeclarerHandlerTest
     [TestMethod]
     public async Task IgnoresAnUnauthenticatedCaller()
     {
-        var authorizationContext = new AuthorizationHandlerContext([new DeclarerRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), null);
+        var authorizationContext = new AuthorizationHandlerContext([new SupplierRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), null);
 
         await handler.HandleAsync(authorizationContext);
 
@@ -100,7 +100,7 @@ public class DeclarerHandlerTest
     private async Task<AuthorizationHandlerContext> HandleAsync(string subject)
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.Sub, subject)], "Test"));
-        var authorizationContext = new AuthorizationHandlerContext([new DeclarerRequirement()], principal, null);
+        var authorizationContext = new AuthorizationHandlerContext([new SupplierRequirement()], principal, null);
         await handler.HandleAsync(authorizationContext);
         return authorizationContext;
     }

@@ -144,7 +144,7 @@ describe("Delivery tests", () => {
     cy.intercept("POST", "/api/v1/delivery").as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
 
-    // The declared metadata reaches the API as text.
+    // The entered metadata reaches the API as text.
     cy.wait<DeliveryRequest, Delivery>("@createDelivery").then(({ request, response }) => {
       const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
       expect(body.partialDelivery).to.equal(true);

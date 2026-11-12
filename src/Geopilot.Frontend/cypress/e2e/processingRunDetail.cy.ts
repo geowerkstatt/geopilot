@@ -84,7 +84,7 @@ describe("Processing run", () => {
   it("marks a run that a machine client started", () => {
     cy.visit(`/admin/processing-runs/${jobId}`);
 
-    cy.dataCy("declarer-machineClient")
+    cy.dataCy("userOrClient-machineClient")
       .should("contain", "Service account geopilot-api")
       .find("svg title")
       .should("have.text", "Machine client");

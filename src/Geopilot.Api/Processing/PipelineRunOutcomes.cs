@@ -19,7 +19,7 @@ internal static class PipelineRunOutcomes
     /// </summary>
     /// <param name="run">The run with its steps.</param>
     /// <param name="isRunning">Whether the job of the run is still pending or running in this instance.</param>
-    /// <param name="delivery">The delivery declared for the run, live before deleted, or <see langword="null"/>.</param>
+    /// <param name="delivery">The delivery created for the run, live before deleted, or <see langword="null"/>.</param>
     internal static PipelineRunOutcome Determine(PipelineRun run, bool isRunning, PipelineRunDelivery? delivery)
     {
         if (delivery is not null)
@@ -34,13 +34,13 @@ internal static class PipelineRunOutcomes
         if (run.TerminalState is ProcessingState.Success or ProcessingState.Warning)
         {
             if (run.DeclarationFailure is not null)
-                return Outcome(PipelineRunOutcomeKind.DeclarationFailed);
+                return Outcome(PipelineRunOutcomeKind.DeliveryRejected);
 
             // A run recorded before the protocol kept its declarability has none; only an anonymous one surely was not.
             var declarable = run.Declarability is { } declarability
                 ? declarability == Declarability.Declarable
                 : run.UserId is not null || run.MachineClientId is not null;
-            return Outcome(declarable ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotDeclarable);
+            return Outcome(declarable ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotPermitted);
         }
 
         // A restriction does not stop the pipeline, so later steps can restrict the delivery as well, or fail.
@@ -56,7 +56,7 @@ internal static class PipelineRunOutcomes
     }
 
     /// <summary>
-    /// Loads the deliveries declared for the jobs with the specified <paramref name="jobIds"/>, one per job: a live
+    /// Loads the deliveries created for the jobs with the specified <paramref name="jobIds"/>, one per job: a live
     /// delivery before a deleted one.
     /// </summary>
     internal static async Task<Dictionary<Guid, PipelineRunDelivery>> LoadDeliveriesAsync(Context context, IReadOnlyCollection<Guid> jobIds, CancellationToken cancellationToken)
@@ -103,7 +103,7 @@ internal static class PipelineRunOutcomes
 }
 
 /// <summary>
-/// The delivery declared for a pipeline run, as far as the outcome of the run needs it.
+/// The delivery created for a pipeline run, as far as the outcome of the run needs it.
 /// </summary>
 /// <param name="Id">The id of the delivery.</param>
 /// <param name="Deleted">Whether the delivery was deleted.</param>

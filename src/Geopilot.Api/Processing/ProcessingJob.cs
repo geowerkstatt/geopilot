@@ -34,20 +34,20 @@ public record class ProcessingJob(
     /// <summary>
     /// Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery:
     /// a member of an organisation of the mandate, on a mandate that accepts deliveries. Decided once when the job
-    /// starts; a run nobody can declare is not staged, and its delivery is refused. Declaring still checks the
+    /// starts; a run nobody may deliver is not staged, and its delivery is refused. Creating it still checks the
     /// mandate on its own.
     /// </summary>
-    public bool IsDeclarable { get; init; }
+    public bool MayDeliver { get; init; }
 
     /// <summary>
-    /// The wish expressed at the start that geopilot declares the delivery itself, or <see langword="null"/> for a
-    /// job whose delivery is declared by hand, if at all. Only a machine delivery attempt carries one.
+    /// The wish expressed at the start that geopilot creates the delivery itself, or <see langword="null"/> for a
+    /// job whose delivery is created by hand, if at all. Only a machine delivery attempt carries one.
     /// </summary>
     public DeliveryIntent? DeliveryIntent { get; init; }
 
     /// <summary>
-    /// Why geopilot could not declare the delivery of its <see cref="DeliveryIntent"/>, although the run allowed it.
+    /// Why the delivery of its <see cref="DeliveryIntent"/> was rejected, although the run allowed it.
     /// Whether a delivery exists is not kept here: the delivery itself is the record of that.
     /// </summary>
-    public string? DeclarationFailure { get; init; }
+    public string? DeliveryRejection { get; init; }
 }

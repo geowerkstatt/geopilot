@@ -116,16 +116,16 @@ public class ReactionWorkerTest
         Assert.AreEqual(withPrecursor.Id, info.Id);
         Assert.AreEqual(withPrecursor.JobId, info.JobId);
         Assert.AreEqual("weitergabe", info.ReactionId);
-        Assert.AreEqual(new DateTimeOffset(DateTime.SpecifyKind(withPrecursor.Date, DateTimeKind.Utc)), info.DeclaredAt);
+        Assert.AreEqual(new DateTimeOffset(DateTime.SpecifyKind(withPrecursor.Date, DateTimeKind.Utc)), info.DeliveredAt);
         Assert.IsTrue(info.Partial);
         Assert.AreEqual(precursor.Id, info.PrecursorDeliveryId);
         Assert.IsNull(info.Comment, "An empty comment is no comment.");
         Assert.AreEqual(withPrecursor.Mandate.Id, info.Mandate.Id);
         Assert.AreEqual(withPrecursor.Mandate.Name, info.Mandate.Name);
         Assert.AreEqual(withPrecursor.Mandate.Key, info.Mandate.Key);
-        Assert.AreEqual(DeclarerKind.User, info.Declarer.Kind);
-        Assert.AreEqual("Erika Muster", info.Declarer.Name);
-        Assert.AreEqual("erika.muster@example.com", info.Declarer.Email);
+        Assert.AreEqual(SupplierKind.User, info.Supplier.Kind);
+        Assert.AreEqual("Erika Muster", info.Supplier.Name);
+        Assert.AreEqual("erika.muster@example.com", info.Supplier.Email);
         CollectionAssert.AreEqual(new[] { (FileName, FileContent) }, probe.Files.ToArray());
     }
 
@@ -167,9 +167,9 @@ public class ReactionWorkerTest
         await worker.RunNextAsync(CancellationToken.None);
 
         Assert.IsNotNull(probe.Delivery);
-        Assert.AreEqual(DeclarerKind.MachineClient, probe.Delivery.Declarer.Kind);
-        Assert.AreEqual("SILENTHARBOR", probe.Delivery.Declarer.Name);
-        Assert.IsNull(probe.Delivery.Declarer.Email);
+        Assert.AreEqual(SupplierKind.MachineClient, probe.Delivery.Supplier.Kind);
+        Assert.AreEqual("SILENTHARBOR", probe.Delivery.Supplier.Name);
+        Assert.IsNull(probe.Delivery.Supplier.Email);
     }
 
     [TestMethod]
@@ -187,7 +187,7 @@ public class ReactionWorkerTest
         Assert.IsNotNull(probe.Delivery);
         Assert.AreEqual(
             new ResponsibleUserInfo("Betrieb Fachschale", "betrieb@example.com"),
-            Assert.ContainsSingle(probe.Delivery.Declarer.ResponsibleUsers),
+            Assert.ContainsSingle(probe.Delivery.Supplier.ResponsibleUsers),
             "A deactivated user no longer gets the mail meant for the client.");
     }
 
