@@ -6,7 +6,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
 import { LocalizedText } from "../../api/apiInterfaces";
-import { DeclarerKind, DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/generated";
+import { DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/generated";
 import { useDeleteDelivery } from "../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -18,7 +18,8 @@ interface DeliveryInfo {
   id: number;
   date: string;
   declarerName: string;
-  declarerKind?: DeclarerKind;
+  /** Unknown (`undefined`) in the list of a user's own deliveries, which shows the name alone. */
+  declaringClientId?: number | null;
   mandateName: LocalizedText;
   forwardingState?: ReactionState | null;
   notificationState?: ReactionState | null;
@@ -26,7 +27,7 @@ interface DeliveryInfo {
   canDelete?: boolean;
 }
 
-type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "declarerKind">;
+type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "declaringClientId">;
 
 interface DeliveryGridProps {
   fetchUrl: string;
@@ -54,7 +55,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
             id: d.id,
             date: d.date,
             declarerName: d.declarerName,
-            declarerKind: "declarerKind" in d ? d.declarerKind : undefined,
+            declaringClientId: "declaringClientId" in d ? d.declaringClientId : undefined,
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             notificationState: "notificationState" in d ? d.notificationState : undefined,
@@ -90,8 +91,8 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       minWidth: 250,
       display: "flex",
       renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
-        row.declarerKind ? (
-          <DeclarerLabel declarer={{ kind: row.declarerKind, name: row.declarerName }} />
+        row.declaringClientId !== undefined ? (
+          <DeclarerLabel declarer={{ name: row.declarerName, machineClientId: row.declaringClientId }} />
         ) : (
           row.declarerName
         ),

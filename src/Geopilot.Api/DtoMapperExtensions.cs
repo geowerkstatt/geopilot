@@ -197,8 +197,6 @@ internal static class DtoMapperExtensions
             run.PipelineId,
             run.AppVersion,
             run.MandateId,
-            run.UserId,
-            run.MachineClientId,
             run.ClientKind,
             run.ClientReference,
             run.Declarability,
@@ -251,10 +249,10 @@ internal static class DtoMapperExtensions
     internal static PipelineRunDeclarer? ToDeclarer(this PipelineRun run)
     {
         if (run.User is not null)
-            return new PipelineRunDeclarer(DeclarerKind.Person, run.User.Id, run.User.FullName);
+            return new PipelineRunDeclarer(run.User.Id, null, run.User.FullName);
 
         if (run.MachineClient is not null)
-            return new PipelineRunDeclarer(DeclarerKind.MachineClient, run.MachineClient.Id, run.MachineClient.Name);
+            return new PipelineRunDeclarer(null, run.MachineClient.Id, run.MachineClient.Name);
 
         return null;
     }

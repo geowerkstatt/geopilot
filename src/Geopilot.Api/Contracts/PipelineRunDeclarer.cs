@@ -1,25 +1,10 @@
 ﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
-/// Whether a person or a machine client started a pipeline run.
+/// Who started a pipeline run: a user or a machine client, told apart by which id is set. A run started without
+/// signing in has none.
 /// </summary>
-public enum DeclarerKind
-{
-    /// <summary>
-    /// A signed in person.
-    /// </summary>
-    Person,
-
-    /// <summary>
-    /// A registered machine client.
-    /// </summary>
-    MachineClient,
-}
-
-/// <summary>
-/// Who started a pipeline run. A run started without signing in has none.
-/// </summary>
-/// <param name="Kind">Whether a person or a machine client started the run.</param>
-/// <param name="Id">The id of the person or the machine client.</param>
-/// <param name="Name">The display name of the person or the machine client.</param>
-public record PipelineRunDeclarer(DeclarerKind Kind, int Id, string Name);
+/// <param name="UserId">The id of the user, or <see langword="null"/> when a machine client started the run.</param>
+/// <param name="MachineClientId">The id of the machine client, or <see langword="null"/> when a user started the run.</param>
+/// <param name="Name">The display name of the user or the machine client.</param>
+public record PipelineRunDeclarer(int? UserId, int? MachineClientId, string Name);

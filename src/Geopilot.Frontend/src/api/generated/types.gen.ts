@@ -177,16 +177,6 @@ export const Declarability = { Declarable: "declarable", NotDeclarable: "notDecl
 export type Declarability = (typeof Declarability)[keyof typeof Declarability];
 
 /**
- * Whether a person or a machine client started a pipeline run.
- */
-export const DeclarerKind = { Person: "person", MachineClient: "machineClient" } as const;
-
-/**
- * Whether a person or a machine client started a pipeline run.
- */
-export type DeclarerKind = (typeof DeclarerKind)[keyof typeof DeclarerKind];
-
-/**
  * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
  * Value is null for a field that was not filled in.
  */
@@ -400,7 +390,10 @@ export type DeliveryResponse = {
    * Who declared the delivery, a person or a machine client.
    */
   declarerName: string;
-  declarerKind: DeclarerKind;
+  /**
+   * The machine client that declared the delivery, null when a user did.
+   */
+  declaringClientId?: number | null;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
 };
@@ -832,16 +825,20 @@ export type PipelineRunConditionResponse = {
 };
 
 /**
- * Who started a pipeline run. A run started without signing in has none.
+ * Who started a pipeline run: a user or a machine client, told apart by which id is set. A run started without
+ * signing in has none.
  */
 export type PipelineRunDeclarer = {
-  kind: DeclarerKind;
   /**
-   * The id of the person or the machine client.
+   * The id of the user, or null when a machine client started the run.
    */
-  id: number;
+  userId?: number | null;
   /**
-   * The display name of the person or the machine client.
+   * The id of the machine client, or null when a user started the run.
+   */
+  machineClientId?: number | null;
+  /**
+   * The display name of the user or the machine client.
    */
   name: string;
 };
@@ -1036,14 +1033,6 @@ export type PipelineRunResponse = {
    * The mandate the run was started for.
    */
   mandateId?: number | null;
-  /**
-   * The user that started the run, or null when a machine client started it or the job was started anonymously. Who declared the delivery is recorded on the delivery itself.
-   */
-  userId?: number | null;
-  /**
-   * The machine client that started the run, or null when a user started it or the job was started anonymously.
-   */
-  machineClientId?: number | null;
   clientKind: ClientKind;
   /**
    * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.

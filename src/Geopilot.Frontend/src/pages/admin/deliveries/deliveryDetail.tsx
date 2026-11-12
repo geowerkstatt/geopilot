@@ -2,13 +2,7 @@ import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
-import {
-  DeclarerKind,
-  DeliveryDetailResponse,
-  DeliveryReactionResponse,
-  ReactionKind,
-  ReactionState,
-} from "../../../api/generated";
+import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -99,7 +93,7 @@ export const DeliveryDetail: FC = () => {
           <SummaryField label="deliveredBy">
             <DeclarerLabel
               declarer={{
-                kind: delivery.declaringClientId != null ? DeclarerKind.MachineClient : DeclarerKind.Person,
+                machineClientId: delivery.declaringClientId,
                 name: delivery.declarerName,
               }}
               path={declarerPath}

@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typography } from "@mui/material";
-import { DeclarerKind, PipelineRunOutcomeKind, PipelineRunResponse, ReactionState } from "../../../api/generated";
+import { PipelineRunOutcomeKind, PipelineRunResponse, ReactionState } from "../../../api/generated";
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../../../appTheme.ts";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -162,10 +162,10 @@ export const ProcessingRunDetail: FC = () => {
   const duration = formatDuration(run.startedAt, run.terminalAt);
   // Without machine delivery the pages of the machine clients are not routed.
   const declarerPath =
-    run.declarer?.kind === DeclarerKind.Person
-      ? `/admin/users/${run.declarer.id}`
-      : run.declarer?.kind === DeclarerKind.MachineClient && machineDeliveryEnabled
-        ? `/admin/machine-clients/${run.declarer.id}`
+    run.declarer?.userId != null
+      ? `/admin/users/${run.declarer.userId}`
+      : run.declarer?.machineClientId != null && machineDeliveryEnabled
+        ? `/admin/machine-clients/${run.declarer.machineClientId}`
         : undefined;
   // Reactions wait without events until their first attempt, so a delivery with reactions offers the tab from the start.
   const hasReactions = run.reactionEvents.length > 0 || !!run.forwardingState || !!run.notificationState;

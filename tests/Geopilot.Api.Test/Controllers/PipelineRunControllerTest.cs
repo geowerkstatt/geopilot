@@ -136,8 +136,8 @@ public sealed class PipelineRunControllerTest
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.IsNotNull(response.Declarer);
-        Assert.AreEqual(DeclarerKind.Person, response.Declarer.Kind);
-        Assert.AreEqual(user.Id, response.Declarer.Id);
+        Assert.IsNull(response.Declarer.MachineClientId, "a run a user started names no client.");
+        Assert.AreEqual(user.Id, response.Declarer.UserId);
         Assert.AreEqual(user.FullName, response.Declarer.Name);
         Assert.IsNotNull(response.Mandate);
         Assert.AreEqual(mandate.Id, response.Mandate.Id);

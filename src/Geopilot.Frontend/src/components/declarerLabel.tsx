@@ -4,11 +4,11 @@ import { Link as RouterLink } from "react-router-dom";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import { Link, Stack, Typography } from "@mui/material";
-import { DeclarerKind } from "../api/generated";
 import { useCapabilities } from "./capabilities/capabilitiesInterface.ts";
 
 interface DeclarerLabelProps {
-  declarer?: { kind: DeclarerKind; name: string } | null;
+  /** A machine client when `machineClientId` is set, a user otherwise. */
+  declarer?: { name: string; machineClientId?: number | null } | null;
   /** Where the name links to; without it the name is plain text. */
   path?: string;
 }
@@ -29,7 +29,7 @@ export const DeclarerLabel: FC<DeclarerLabelProps> = ({ declarer, path }) => {
     );
   }
 
-  const isMachineClient = declarer.kind === DeclarerKind.MachineClient;
+  const isMachineClient = declarer.machineClientId != null;
   const Icon = isMachineClient ? SmartToyOutlinedIcon : PersonOutlinedIcon;
   const kindLabel = t(isMachineClient ? "declarerKindMachineClient" : "declarerKindPerson");
   return (
@@ -37,7 +37,7 @@ export const DeclarerLabel: FC<DeclarerLabelProps> = ({ declarer, path }) => {
       component="span"
       direction="row"
       sx={{ alignItems: "center", gap: 1, minWidth: 0 }}
-      data-cy={`declarer-${declarer.kind}`}>
+      data-cy={isMachineClient ? "declarer-machineClient" : "declarer-person"}>
       {machineDeliveryEnabled && (
         <Icon fontSize="small" titleAccess={kindLabel} color="primary" sx={{ flexShrink: 0 }} />
       )}

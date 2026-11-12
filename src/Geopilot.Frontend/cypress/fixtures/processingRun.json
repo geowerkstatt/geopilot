@@ -6,8 +6,8 @@
       "startedAt": "2026-11-06T14:59:42Z",
       "terminalAt": "2026-11-06T14:59:44Z",
       "declarer": {
-        "kind": "machineClient",
-        "id": 1,
+        "userId": null,
+        "machineClientId": 1,
         "name": "Service account geopilot-api"
       },
       "mandate": {
@@ -29,8 +29,8 @@
       "startedAt": "2026-11-06T14:58:46Z",
       "terminalAt": "2026-11-06T14:58:52Z",
       "declarer": {
-        "kind": "machineClient",
-        "id": 1,
+        "userId": null,
+        "machineClientId": 1,
         "name": "Service account geopilot-api"
       },
       "mandate": {
@@ -59,8 +59,8 @@
   "declarability": "declarable",
   "declarationFailure": null,
   "declarer": {
-    "kind": "machineClient",
-    "id": 1,
+    "userId": null,
+    "machineClientId": 1,
     "name": "Service account geopilot-api"
   },
   "failureReason": null,
@@ -74,7 +74,6 @@
   ],
   "forwardingState": "done",
   "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
-  "machineClientId": 1,
   "mandate": {
     "id": 1,
     "name": {
@@ -150,6 +149,5 @@
   "terminalState": "success",
   "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
   "uploadInitiatedAt": "2026-11-06T14:59:40Z",
-  "uploadStorageLocation": "https://localhost:10000/devstoreaccount1/uploads",
-  "userId": null
+  "uploadStorageLocation": "https://localhost:10000/devstoreaccount1/uploads"
 }

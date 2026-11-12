@@ -14,7 +14,6 @@ export {
   ConditionPhase,
   type Coordinate,
   Declarability,
-  DeclarerKind,
   type DeleteApiV1DeliveryByDeliveryIdData,
   type DeleteApiV1DeliveryByDeliveryIdError,
   type DeleteApiV1DeliveryByDeliveryIdErrors,
