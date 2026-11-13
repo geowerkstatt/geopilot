@@ -10,7 +10,7 @@ Eine XTF Diff Visualisierung muss unter `processes[X].implementation` den Wert `
 
 ## Konfiguration
 
-- `baseMapWmtsCapabilitiesUrl`, `baseMapLayerIds`, `baseMapAttribution`, `baseMapAttributionUrl`: Optional, die Hintergrundkarte, gleich wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md). Ein anderer Dienst als swisstopo braucht `baseMapLayerIds`, und sein Host muss in geopilot freigegeben werden, siehe dort [Hintergrundkarte eines anderen Dienstes](xtf-fehlervisualisierung.md#hintergrundkarte-eines-anderen-dienstes).
+- `baseMapWmtsCapabilitiesUrl`, `baseMapLayerIds`, `baseMapOpacity`, `baseMapAttribution`, `baseMapAttributionUrl`: Optional, die Hintergrundkarte, gleich wie bei der [XTF Fehlervisualisierung](xtf-fehlervisualisierung.md). Ein anderer Dienst als swisstopo braucht `baseMapLayerIds`, und sein Host muss in geopilot freigegeben werden, siehe dort [Hintergrundkarte eines anderen Dienstes](xtf-fehlervisualisierung.md#hintergrundkarte-eines-anderen-dienstes).
 
 ## Input
 
@@ -81,7 +81,8 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfDiff`. Die
         {
           "title": { "de": "Hintergrundkarte", "fr": "Carte de base", "it": "Mappa di base", "en": "Base map" },
           "wmts": "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml",
-          "layerIds": ["ch.swisstopo.pixelkarte-grau", "ch.swisstopo.pixelkarte-farbe"],
+          "layerIds": ["ch.swisstopo.pixelkarte-grau"],
+          "opacity": 0.5,
           "attribution": "swisstopo",
           "attributionUrl": "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste"
         },

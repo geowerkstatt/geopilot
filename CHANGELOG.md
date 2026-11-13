@@ -66,6 +66,7 @@
 
 - Where machine delivery is offered, the delivery overview and the page of a delivery in the administration show an icon before the name of whoever delivered, telling a user from a machine client.
 - The delivery overview of the administration moved from `/admin/delivery-overview` to `/admin/deliveries`, beside the new `/admin/processing-runs`. Bookmarks to the old address have to be updated.
+- The maps of the error and the diff visualization show the gray swisstopo national map at half opacity instead of the colored one, so the base map only serves orientation and does not compete with the errors and changes drawn on it. A step that wants the colored map requests it with `baseMapLayerIds: [ch.swisstopo.pixelkarte-farbe]`, and a map chosen that way is drawn opaque. The new `baseMapOpacity` (from 0 to 1) sets the opacity of any base map; a value outside that range fails the start of a job, not the start of the application. Viewers can still change the opacity in the layer switcher.
 - The map popup of the error and the diff visualization lists only features of the same kind as the clicked one, so a point no longer brings the areas around it along. The mouse wheel scrolls the popup instead of zooming the map.
 - The map button in the tree of the error visualization scrolls the whole map into view.
 - The layer panel of the maps opens beside its button at the bottom right.

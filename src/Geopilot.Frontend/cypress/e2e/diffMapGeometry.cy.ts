@@ -181,9 +181,31 @@ describe("diff map geometry", () => {
   });
 
   it("draws each change type in its own look", () => {
-    expect(getLook("added", "new")).to.equal("dotted");
-    expect(getLook("deleted", "old")).to.equal("dashed");
+    expect(getLook("added", "new")).to.equal("filled");
+    expect(getLook("deleted", "old")).to.equal("crossed");
     expect(getLook("changed", "old")).to.equal("ghost");
     expect(getLook("changed", "new")).to.equal("crisp");
+  });
+
+  it("fills a changed area only where its own geometry changed", () => {
+    const surface = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+    const feature = new Feature(readLocation(surface));
+    feature.setId("o");
+    const fillOf = (partTypes: ReturnType<typeof buildPartTypeIndex>) => {
+      const inputs = {
+        current: {
+          objectTypes: new Map<string, "changed">([["o", "changed"]]),
+          partTypes,
+          highlightedIds: new Set<string>(),
+          hoveredIds: new Set<string>(),
+        },
+      };
+      const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
+      const styles = buildDiffStyleFunction("new", inputs, colors)(feature, 1);
+      return Array.isArray(styles) ? styles[0].getFill()?.getColor() : undefined;
+    };
+
+    expect(fillOf(buildPartTypeIndex([]))).to.equal("rgba(0, 0, 255, 0)");
+    expect(fillOf(buildPartTypeIndex([geometryChange({ newLocation: surface })]))).to.equal("rgba(0, 0, 255, 0.25)");
   });
 });

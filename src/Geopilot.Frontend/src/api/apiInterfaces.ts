@@ -68,6 +68,8 @@ export interface MapLayer {
    * Only meaningful for WMTS layers.
    */
   layerIds?: string[];
+  /** Opacity of a WMTS layer from 0 (invisible) to 1 (opaque); absent means opaque. */
+  opacity?: number;
   /** Attribution / data-owner credit for the layer (e.g. "swisstopo"); shown as a copyright credit, the client prepends a localized "©" label. */
   attribution?: string;
   /** Optional URL the attribution links to; when set, the credit is rendered as a link. */
