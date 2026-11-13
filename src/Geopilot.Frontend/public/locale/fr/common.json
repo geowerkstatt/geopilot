@@ -142,6 +142,7 @@
   "fieldNotEvaluated": "N'est pas évalué",
   "fieldOptional": "Est facultatif",
   "fieldRequired": "Est requis",
+  "fileCreatedInProcessing": "créé pendant le traitement",
   "fileDropzoneErrorChooseFile": "Veuillez sélectionner un fichier valide",
   "fileDropzoneErrorFileTooLarge": "Le fichier sélectionné dépasse la taille maximale autorisée",
   "fileDropzoneErrorInvalidName": "Le nom du fichier contient des caractères non valides",

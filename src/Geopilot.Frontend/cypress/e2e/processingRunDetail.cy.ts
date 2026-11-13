@@ -1,4 +1,6 @@
 import {
+  InputKind,
+  InputOrigin,
   PipelineRunOutcomeKind,
   PipelineRunStepResponse,
   ProcessingState,
@@ -273,5 +275,57 @@ describe("Processing run", () => {
 
     cy.dataCy("pipelineSnapshotNotLoaded").should("be.visible");
     cy.get('[role="tabpanel"]').find('[role="progressbar"]').should("not.exist");
+  });
+
+  describe("with files an earlier step passed on", () => {
+    // The upload delivered roads.xtf and a matcher passed it on; a step of the run made a roads.xtf of its own.
+    beforeEach(() => {
+      cy.fixture("processingRun.json").then(run => {
+        cy.intercept(
+          { method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` },
+          {
+            ...run,
+            steps: run.steps.map((step: PipelineRunStepResponse) => ({
+              ...step,
+              inputs: [
+                {
+                  parameter: "transferFile",
+                  origin: InputOrigin.StepOutput,
+                  reference: "xtf_matching.XtfFiles",
+                  kind: InputKind.File,
+                  fileName: "roads.xtf",
+                  size: 20480,
+                  fromUpload: true,
+                },
+                {
+                  parameter: "referenceDataFiles",
+                  origin: InputOrigin.StepOutput,
+                  reference: "unzip.Files",
+                  kind: InputKind.File,
+                  fileName: "roads.xtf",
+                  size: 1024,
+                  fromUpload: false,
+                },
+              ],
+            })),
+          },
+        );
+      });
+      cy.visit(`/admin/processing-runs/${jobId}`);
+    });
+
+    it("shows the hash of the preparation for a delivered file", () => {
+      cy.dataCy("processingRunStep-validation")
+        .contains("tr", "transferFile")
+        .should("contain", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+    });
+
+    it("says that a file made during the processing has no hash, also under the name of a delivered one", () => {
+      cy.dataCy("processingRunStep-validation")
+        .contains("tr", "referenceDataFiles")
+        .should("contain", "created during processing")
+        .and("not.contain", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08")
+        .and("not.contain", "not computed");
+    });
   });
 });

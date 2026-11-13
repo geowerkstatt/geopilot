@@ -18,6 +18,8 @@ import {
   ConditionPhase,
   InputKind,
   InputOrigin,
+  PipelineRunFileResponse,
+  PipelineRunInputResponse,
   PipelineRunResponse,
   StepState,
 } from "../../../api/generated";
@@ -38,6 +40,15 @@ const inputOriginLabelKey: Record<InputOrigin, TranslationKey> = {
   [InputOrigin.Upload]: "inputOriginUpload",
   [InputOrigin.Configuration]: "inputOriginConfiguration",
 };
+
+// A delivered file shows the hash of the preparation also where an earlier step passed it on, so a reader sees that a
+// step got exactly the delivered file. The protocol records it only at the step that took the file from the upload.
+const hashOfFile = (input: PipelineRunInputResponse, files: PipelineRunFileResponse[]) =>
+  input.sha256 ?? (input.fromUpload ? files.find(file => file.fileName === input.fileName)?.sha256 : undefined);
+
+// A file a step of the run made never has a hash; any other file lacks one only where it could not be computed.
+const missingHashKey = (input: PipelineRunInputResponse): TranslationKey =>
+  input.origin === InputOrigin.StepOutput && !input.fromUpload ? "fileCreatedInProcessing" : "hashNotComputed";
 
 interface ProcessingRunStepsProps {
   run: PipelineRunResponse;
@@ -122,38 +133,41 @@ export const ProcessingRunSteps: FC<ProcessingRunStepsProps> = ({ run }) => {
                           { label: t("value") },
                           { label: t("sha256"), width: "30%" },
                         ]}>
-                        {step.inputs.map((input, inputIndex) => (
-                          <TableRow key={inputIndex}>
-                            <TableCell>{input.parameter}</TableCell>
-                            <TableCell>
-                              {t(inputOriginLabelKey[input.origin])}
-                              {input.reference && (
-                                <Box>
-                                  <TechnicalText>{input.reference}</TechnicalText>
-                                </Box>
-                              )}
-                            </TableCell>
-                            <TableCell
-                              sx={
-                                input.kind === InputKind.Absent
-                                  ? { color: "text.secondary", fontStyle: "italic" }
-                                  : undefined
-                              }>
-                              {input.kind === InputKind.Absent && t("stepStateSkipped")}
-                              {input.kind === InputKind.Value && (
-                                <TechnicalText>{formatInputValue(input)}</TechnicalText>
-                              )}
-                              {input.kind === InputKind.File && formatInputValue(input)}
-                            </TableCell>
-                            <TableCell sx={{ color: input.sha256 ? undefined : "text.secondary" }}>
-                              {input.sha256 ? (
-                                <TechnicalText>{input.sha256}</TechnicalText>
-                              ) : (
-                                input.kind === InputKind.File && t("hashNotComputed")
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {step.inputs.map((input, inputIndex) => {
+                          const hash = hashOfFile(input, run.files);
+                          return (
+                            <TableRow key={inputIndex}>
+                              <TableCell>{input.parameter}</TableCell>
+                              <TableCell>
+                                {t(inputOriginLabelKey[input.origin])}
+                                {input.reference && (
+                                  <Box>
+                                    <TechnicalText>{input.reference}</TechnicalText>
+                                  </Box>
+                                )}
+                              </TableCell>
+                              <TableCell
+                                sx={
+                                  input.kind === InputKind.Absent
+                                    ? { color: "text.secondary", fontStyle: "italic" }
+                                    : undefined
+                                }>
+                                {input.kind === InputKind.Absent && t("stepStateSkipped")}
+                                {input.kind === InputKind.Value && (
+                                  <TechnicalText>{formatInputValue(input)}</TechnicalText>
+                                )}
+                                {input.kind === InputKind.File && formatInputValue(input)}
+                              </TableCell>
+                              <TableCell sx={{ color: hash ? undefined : "text.secondary" }}>
+                                {hash ? (
+                                  <TechnicalText>{hash}</TechnicalText>
+                                ) : (
+                                  input.kind === InputKind.File && t(missingHashKey(input))
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </DetailTable>
                     </SummaryField>
                   )}
