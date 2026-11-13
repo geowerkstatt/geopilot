@@ -73,7 +73,7 @@ Administratoren finden das Protokoll im Admin-Portal unter «Verarbeitungen». D
 
 Was aus einem Lauf wurde, steht nicht im Protokoll. Die Ansicht leitet es beim Lesen ab: aus dem Protokoll, aus den Lieferungen und daraus, ob der Job in der antwortenden Instanz noch läuft. Ob eine Lieferung entstehen konnte, entscheiden zwei unabhängige Fragen: ob die Daten sie zuliessen, der Lauf also in `Success` oder `Warning` endete, und ob, wer ihn startete, auf dem Mandat abgeben durfte (`Declarability`).
 
-- Die Id der Lieferung, die für den Lauf deklariert wurde, mit dem Zustand ihrer Weitergabe; «(gelöscht)», wenn sie wieder gelöscht wurde.
+- Die Id der Lieferung, die für den Lauf deklariert wurde; «(gelöscht)», wenn sie wieder gelöscht wurde.
 - «nicht möglich»: Die Daten liessen keine Lieferung zu, gleich wer den Lauf startete. Der Zustand nennt die Schritte, die die Lieferung einschränkten, scheiterten oder abgebrochen wurden, oder die Vorbereitung, wenn der Preflight scheiterte. Endete der Lauf ausserhalb der Schritte, nennt er keinen.
 - «nicht berechtigt»: Die Daten liessen eine Lieferung zu, aber wer den Lauf startete, durfte nicht abgeben, etwa nach einem anonymen Start auf einem öffentlichen Mandat.
 - «nicht abgegeben»: Die Daten liessen eine Lieferung zu, und wer den Lauf startete, durfte abgeben, deklariert wurde aber keine. Das umfasst auch eine Abgabe im Web, die abgewiesen und nicht wiederholt wurde; die Person sah eine Fehlermeldung beim Schritt «Lieferung», das Protokoll hält nichts davon fest.
