@@ -2504,27 +2504,27 @@ export type GetApiV1PipelineRunData = {
      */
     To?: string;
     /**
-     * Only runs started for one of these mandates.
+     * Only runs started for one of these mandates. At most 100.
      */
     MandateIds?: Array<number>;
     /**
-     * Only runs started by one of these persons, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.MachineClientIds.
+     * Only runs started by one of these persons, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.MachineClientIds. At most 100.
      */
     UserIds?: Array<number>;
     /**
-     * Only runs started by one of these machine clients, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.UserIds.
+     * Only runs started by one of these machine clients, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.UserIds. At most 100.
      */
     MachineClientIds?: Array<number>;
     /**
-     * Only deliveries whose newest attempt is in one of these states.
+     * Only deliveries whose newest attempt is in one of these states. At most 100.
      */
     States?: Array<PipelineRunStateFilter>;
     /**
-     * The page to return, starting at 0.
+     * The page to return, from 0 to 1,000,000, which keeps the offset of the page within a whole number.
      */
     Page?: number;
     /**
-     * The number of runs per page, at most 100.
+     * The number of runs per page, from 1 to 100.
      */
     PageSize?: number;
   };
@@ -2533,7 +2533,7 @@ export type GetApiV1PipelineRunData = {
 
 export type GetApiV1PipelineRunErrors = {
   /**
-   * The period ends before it starts.
+   * The period ends before it starts, or the page or a filter is out of bounds.
    */
   400: ValidationProblemDetails;
 };
