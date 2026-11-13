@@ -11,6 +11,30 @@ import { loginAsAdmin } from "./helpers/appHelpers";
 
 const jobId = "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a";
 
+// The first attempt of the transfer of the delivery, as the protocol holds it once it went through.
+const transferAttempt = {
+  deliveryId: 23,
+  reactionId: "ablage",
+  reactionKind: ReactionKind.Transfer,
+  implementation: "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
+  event: ReactionEvent.Attempt,
+  attempt: 1,
+  occurredAt: "2026-11-06T15:05:00Z",
+  finishedAt: "2026-11-06T15:05:01Z",
+  state: ReactionState.Done,
+  message: { en: "Delivered to the target." },
+};
+
+// Moves the clock of the page on by the time between two loads until the check passes. The page sets its timer a
+// moment after an answer arrived, so a single tick could come before it.
+const tickUntil = (check: () => void) =>
+  cy.clock().then(clock =>
+    cy.wrap(null).should(() => {
+      clock.tick(15_000);
+      check();
+    }),
+  );
+
 // The seeded database holds no runs, so the run is answered from a fixture.
 describe("Processing run", () => {
   beforeEach(() => {
@@ -75,20 +99,7 @@ describe("Processing run", () => {
                 ...run,
                 forwardingState: ReactionState.Done,
                 notificationState: null,
-                reactionEvents: [
-                  {
-                    deliveryId: 23,
-                    reactionId: "ablage",
-                    reactionKind: ReactionKind.Transfer,
-                    implementation: "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel",
-                    event: ReactionEvent.Attempt,
-                    attempt: 1,
-                    occurredAt: "2026-11-06T15:05:00Z",
-                    finishedAt: "2026-11-06T15:05:01Z",
-                    state: ReactionState.Done,
-                    message: { en: "Delivered to the target." },
-                  },
-                ],
+                reactionEvents: [transferAttempt],
               }
             : { ...run, forwardingState: ReactionState.Pending, notificationState: null, reactionEvents: [] },
         ),
@@ -104,6 +115,62 @@ describe("Processing run", () => {
       attempted = true;
     });
     cy.contains("td", "Delivered to the target.", { timeout: 20000 }).should("be.visible");
+  });
+
+  it("keeps loading the run again after one of the loads failed", () => {
+    // The answer follows the test: the transfer waits, then loading fails, then the first attempt went through.
+    let answer: "waiting" | "failing" | "attempted" = "waiting";
+    const answers = { waiting: 0, failing: 0, attempted: 0 };
+    // The first answer waits for the test, so that the page sets its timer on the clock the test moves.
+    let requested = false;
+    let answerFirst: () => void = () => undefined;
+    const firstAnswerDue = new Promise<void>(resolve => {
+      answerFirst = resolve;
+    });
+    cy.fixture("processingRun.json").then(run => {
+      cy.intercept({ method: "GET", pathname: `/api/v1/pipelinerun/${jobId}` }, async request => {
+        requested = true;
+        await firstAnswerDue;
+        answers[answer]++;
+        if (answer === "failing") {
+          request.reply({
+            statusCode: 500,
+            body: { title: "An error occurred while processing your request.", status: 500 },
+          });
+        } else if (answer === "attempted") {
+          request.reply({
+            ...run,
+            forwardingState: ReactionState.Done,
+            notificationState: null,
+            reactionEvents: [transferAttempt],
+          });
+        } else {
+          request.reply({
+            ...run,
+            forwardingState: ReactionState.Pending,
+            notificationState: null,
+            reactionEvents: [],
+          });
+        }
+      });
+    });
+
+    cy.visit(`/admin/processing-runs/${jobId}#reactions`);
+    cy.wrap(null).should(() => expect(requested, "run requested").to.equal(true));
+    cy.clock(Date.now(), ["setTimeout", "clearTimeout"]);
+    cy.then(() => answerFirst());
+    cy.dataCy("reactionEventsNone").should("be.visible");
+
+    cy.then(() => {
+      answer = "failing";
+    });
+    tickUntil(() => expect(answers.failing, "loads that failed").to.be.greaterThan(0));
+    cy.then(() => {
+      answer = "attempted";
+    });
+    tickUntil(() => expect(answers.attempted, "loads after the failed one").to.be.greaterThan(0));
+
+    cy.contains("td", "Delivered to the target.").should("be.visible");
   });
 
   it("opens another attempt of the delivery on its own page and the same tab", () => {
