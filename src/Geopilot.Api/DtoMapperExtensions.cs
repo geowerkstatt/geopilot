@@ -190,7 +190,7 @@ internal static class DtoMapperExtensions
     /// Maps a <see cref="PipelineRun"/> including its children to a <see cref="PipelineRunResponse"/>.
     /// The definition snapshot is deliberately not part of the response; it is served by its own endpoint.
     /// </summary>
-    public static PipelineRunResponse ToResponse(this PipelineRun run)
+    public static PipelineRunResponse ToResponse(this PipelineRun run, PipelineRunOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState, List<PipelineRunSummaryResponse> attempts)
     {
         return new PipelineRunResponse(
             run.JobId,
@@ -200,6 +200,7 @@ internal static class DtoMapperExtensions
             run.UserId,
             run.MachineClientId,
             run.ClientKind,
+            run.ClientReference,
             run.Declarability,
             run.UploadId,
             run.UploadStorageLocation,
@@ -234,8 +235,35 @@ internal static class DtoMapperExtensions
                     reactionEvent.State,
                     reactionEvent.Message,
                     reactionEvent.UserId))
-                .ToList());
+                .ToList(),
+            run.ToDeclarer(),
+            run.ToMandateReference(),
+            outcome,
+            forwardingState,
+            notificationState,
+            attempts);
     }
+
+    /// <summary>
+    /// Names who started the <paramref name="run"/>, from its loaded <see cref="PipelineRun.User"/> or
+    /// <see cref="PipelineRun.MachineClient"/>; <see langword="null"/> when it was started without signing in.
+    /// </summary>
+    internal static PipelineRunDeclarer? ToDeclarer(this PipelineRun run)
+    {
+        if (run.User is not null)
+            return new PipelineRunDeclarer(DeclarerKind.Person, run.User.Id, run.User.FullName);
+
+        if (run.MachineClient is not null)
+            return new PipelineRunDeclarer(DeclarerKind.MachineClient, run.MachineClient.Id, run.MachineClient.Name);
+
+        return null;
+    }
+
+    /// <summary>
+    /// Points at the loaded <see cref="PipelineRun.Mandate"/> of the <paramref name="run"/>, if any.
+    /// </summary>
+    internal static MandateReference? ToMandateReference(this PipelineRun run) =>
+        run.Mandate is null ? null : new MandateReference(run.Mandate.Id, run.Mandate.Name);
 
     private static Dictionary<string, string?>? DeserializeEvaluatedValues(string? evaluatedValues) =>
         evaluatedValues is null ? null : JsonSerializer.Deserialize<Dictionary<string, string?>>(evaluatedValues);

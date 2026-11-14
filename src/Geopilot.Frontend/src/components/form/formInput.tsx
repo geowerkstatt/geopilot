@@ -1,10 +1,11 @@
 import { FC, ReactElement } from "react";
-import { FieldValues, useFormContext } from "react-hook-form";
+import { Controller, FieldValues, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { InputProps, SxProps, TextField } from "@mui/material";
-import { isValid } from "date-fns";
 import { TranslationKey } from "../../appInterfaces";
+import { DatePickerField } from "./datePickerField.tsx";
 import { FormValueType, getFormFieldError, getFormFieldErrorMessage } from "./form";
+import { parseLocalDate, partlyTypedDate } from "./localDateTime.ts";
 
 export interface FormInputProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
@@ -69,6 +70,8 @@ export const FormInput: FC<FormInputProps> = ({
 
   const resolvedLabel = typeof label === "string" ? t(label) : label;
 
+  const slotProps = { input: { ...inputProps } };
+
   const getDefaultValue = (value: string | number | undefined) => {
     if (value == undefined) {
       return "";
@@ -79,6 +82,63 @@ export const FormInput: FC<FormInputProps> = ({
       return value;
     }
   };
+
+  if (type === FormValueType.Date || type === FormValueType.DateTime) {
+    const pickerProps = {
+      withTime: type === FormValueType.DateTime,
+      label: resolvedLabel,
+      required: required || showRequiredIndicator || false,
+      disabled: disabled || false,
+      sx,
+      dataCy: dataCy ?? (fieldName ? fieldName + "-formInput" : undefined),
+    };
+
+    if (onChange) {
+      return (
+        <DatePickerField
+          {...pickerProps}
+          value={typeof value === "string" ? value : ""}
+          onChange={onChange}
+          error={error}
+          helperText={helperText}
+        />
+      );
+    }
+
+    return (
+      <Controller
+        name={fieldName!}
+        control={formContext.control}
+        defaultValue={getDefaultValue(value)}
+        rules={{
+          required: required || false,
+          deps,
+          validate: (fieldValue: string, formValues) => {
+            const date = parseLocalDate(fieldValue);
+            if (fieldValue !== "" && !(date && date.getFullYear() > 1800 && date.getFullYear() < 3000)) {
+              return false;
+            }
+            return validate ? validate(fieldValue, formValues) : true;
+          },
+        }}
+        render={({ field, fieldState }) => (
+          <DatePickerField
+            {...pickerProps}
+            value={field.value}
+            onChange={changed => {
+              field.onChange(changed);
+              onUpdate?.(changed);
+            }}
+            partlyTypedValue={partlyTypedDate}
+            onBlur={field.onBlur}
+            inputRef={field.ref}
+            error={!!fieldState.error}
+            helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : helperText}
+          />
+        )}
+      />
+    );
+  }
 
   if (onChange) {
     return (
@@ -97,7 +157,7 @@ export const FormInput: FC<FormInputProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
-        slotProps={{ input: { ...inputProps } }}
+        slotProps={slotProps}
       />
     );
   }
@@ -123,15 +183,7 @@ export const FormInput: FC<FormInputProps> = ({
         required: required || false,
         valueAsNumber: type === FormValueType.Number,
         deps,
-        validate: (value, formValues) => {
-          if (value !== "" && (type === FormValueType.Date || type === FormValueType.DateTime)) {
-            const date = new Date(value);
-            if (!(isValid(date) && date.getFullYear() > 1800 && date.getFullYear() < 3000)) {
-              return false;
-            }
-          }
-          return validate ? validate(value, formValues) : true;
-        },
+        validate: (value, formValues) => (validate ? validate(value, formValues) : true),
         onChange: e => {
           if (onUpdate) {
             onUpdate(e.target.value);
@@ -141,7 +193,7 @@ export const FormInput: FC<FormInputProps> = ({
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
       data-cy={dataCy ?? fieldName + "-formInput"}
-      slotProps={{ input: { ...inputProps } }}
+      slotProps={slotProps}
     />
   );
 };

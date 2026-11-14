@@ -611,6 +611,28 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task StepExceptionIsRecordedOnTheStepOnly()
+    {
+        var jobId = NewJob();
+        var step = BuildThrowingStep("step_1");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.IsNotNull(step.ErrorMessage);
+        Assert.Contains("step failed", step.ErrorMessage);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Failed, null, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "The run must not repeat the exception of the step as its own failure reason.");
+    }
+
+    [TestMethod]
     public async Task DownloadFromCompletedStepSurvivesJobTimeout()
     {
         var jobId = NewJob();
@@ -927,6 +949,10 @@ public class ProcessingRunnerTest
             s => s.TryPipelineFinished(It.IsAny<Guid>(), ProcessingState.Success),
             Times.Never,
             "A job whose delivery files could not be staged must never turn deliverable.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Failed, It.IsNotNull<string>(), It.IsAny<CancellationToken>()),
+            Times.Once,
+            "A failure outside the steps must keep its reason on the run.");
     }
 
     [TestMethod]

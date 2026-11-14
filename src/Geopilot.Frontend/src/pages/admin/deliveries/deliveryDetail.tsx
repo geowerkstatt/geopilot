@@ -2,11 +2,18 @@ import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
-import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
+import {
+  DeclarerKind,
+  DeliveryDetailResponse,
+  DeliveryReactionResponse,
+  ReactionKind,
+  ReactionState,
+} from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { ReactionsGrid } from "../../../components/grids/reactionsGrid.tsx";
+import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
+import { ReactionsTable } from "../../../components/reactionsTable.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -14,7 +21,7 @@ import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { formatMetadataValue } from "./metadataValue.ts";
 import { SummaryField } from "./summaryField.tsx";
 
-const overviewPath = "/admin/delivery-overview";
+const overviewPath = "/admin/deliveries";
 
 const formatTime = (value: string) => new Date(value).toLocaleString();
 
@@ -84,19 +91,19 @@ export const DeliveryDetail: FC = () => {
     <Stack>
       <AdminDetailHeader backLabel="backToDeliveryOverview" onBack={() => navigate(overviewPath)} id={delivery.id} />
       <GeopilotBox>
-        <Typography variant="h3" sx={{ marginTop: 0 }}>
+        <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="deliveryDate">{formatTime(delivery.date)}</SummaryField>
           <SummaryField label="deliveredBy">
-            {declarerPath ? (
-              <Link component={RouterLink} to={declarerPath}>
-                {delivery.declarerName}
-              </Link>
-            ) : (
-              delivery.declarerName
-            )}
+            <DeclarerLabel
+              declarer={{
+                kind: delivery.declaringClientId != null ? DeclarerKind.MachineClient : DeclarerKind.Person,
+                name: delivery.declarerName,
+              }}
+              path={declarerPath}
+            />
           </SummaryField>
           <SummaryField label="mandate">
             <Link component={RouterLink} to={`/admin/mandates/${delivery.mandate.id}`}>
@@ -113,7 +120,11 @@ export const DeliveryDetail: FC = () => {
           {delivery.partial != null && (
             <SummaryField label="partialDelivery">{t(delivery.partial ? "yes" : "no")}</SummaryField>
           )}
-          <SummaryField label="jobId">{delivery.jobId}</SummaryField>
+          <SummaryField label="jobId">
+            <Link component={RouterLink} to={`/admin/processing-runs/${delivery.jobId}`} data-cy="showProcessingRun">
+              {delivery.jobId}
+            </Link>
+          </SummaryField>
           <SummaryField label="files">
             {delivery.files.map((file, index) => (
               <Fragment key={file.id}>
@@ -166,7 +177,7 @@ export const DeliveryDetail: FC = () => {
           <Typography variant="h3" sx={{ marginTop: 0 }}>
             {t("reactions")}
           </Typography>
-          <ReactionsGrid reactions={delivery.reactions} forwarded={!!stacItem} onRetry={retryReaction} />
+          <ReactionsTable reactions={delivery.reactions} forwarded={!!stacItem} onRetry={retryReaction} />
         </GeopilotBox>
       )}
       <Stack direction="row">

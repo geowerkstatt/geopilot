@@ -8,6 +8,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Id">The id of the attempt, which is also the id of its processing job.</param>
 /// <param name="State">Where the attempt stands.</param>
 /// <param name="MandateKey">The mandate the attempt was started for.</param>
+/// <param name="ClientReference">Your own identifier of the delivery, as the attempt carried it, or <see langword="null"/> when it carried none.</param>
 /// <param name="DeliveryId">The delivery that was created, once it exists.</param>
 /// <param name="Messages">What the run reported, per step.</param>
 /// <param name="Downloads">The files the run offers for download, whatever its steps tagged as such.</param>
@@ -15,6 +16,7 @@ public record SubmissionResponse(
     Guid Id,
     SubmissionState State,
     string MandateKey,
+    string? ClientReference,
     int? DeliveryId,
     IReadOnlyList<SubmissionMessage> Messages,
     IReadOnlyList<SubmissionDownload> Downloads);

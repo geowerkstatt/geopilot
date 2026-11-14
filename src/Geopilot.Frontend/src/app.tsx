@@ -18,6 +18,8 @@ import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
 import Mandates from "./pages/admin/mandates/mandates.tsx";
 import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
 import Organisations from "./pages/admin/organisations/organisations.tsx";
+import { ProcessingRunDetail } from "./pages/admin/processingRuns/processingRunDetail.tsx";
+import { ProcessingRuns } from "./pages/admin/processingRuns/processingRuns.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
@@ -96,9 +98,11 @@ const App: FC = () => {
                           <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
                         </CapabilitiesProvider>
                       }>
-                      <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
-                      <Route path="delivery-overview" element={<DeliveryOverview />} />
-                      <Route path="delivery-overview/:id" element={<DeliveryDetail />} />
+                      <Route index element={<Navigate to="/admin/deliveries" replace />} />
+                      <Route path="deliveries" element={<DeliveryOverview />} />
+                      <Route path="deliveries/:id" element={<DeliveryDetail />} />
+                      <Route path="processing-runs" element={<ProcessingRuns />} />
+                      <Route path="processing-runs/:jobId" element={<ProcessingRunDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />

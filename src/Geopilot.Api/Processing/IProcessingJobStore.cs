@@ -37,7 +37,7 @@ public interface IProcessingJobStore
     /// queue relies on it for its bound. Once that job has ended, the upload can be started again.
     /// </summary>
     /// <param name="uploadId">The upload whose files the job processes.</param>
-    /// <param name="isDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
+    /// <param name="isDeclarable">Whether whoever started the run may deliver to its mandate, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
     /// <param name="deliveryIntent">The wish that geopilot declares the delivery itself, see
     /// <see cref="ProcessingJob.DeliveryIntent"/>; <see langword="null"/> for a job without one.</param>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running.</exception>

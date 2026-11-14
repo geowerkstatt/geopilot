@@ -968,10 +968,12 @@ public class DeliveryControllerTest
         var byId = list.ToDictionary(d => d.Id);
         var forwardedResponse = byId[forwarded.Id];
         Assert.AreEqual(declarer.FullName, forwardedResponse.DeclarerName);
+        Assert.AreEqual(DeclarerKind.Person, forwardedResponse.DeclarerKind);
         Assert.AreEqual(forwarded.Mandate.Id, forwardedResponse.Mandate.Id);
         Assert.AreEqual(ReactionState.Done, forwardedResponse.ForwardingState, "a notification does not hold up the forwarding.");
         Assert.AreEqual(ReactionState.Pending, forwardedResponse.NotificationState);
         Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeclarerName);
+        Assert.AreEqual(DeclarerKind.MachineClient, byId[failed.Id].DeclarerKind);
         Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
         Assert.IsNull(byId[failed.Id].NotificationState, "a delivery without notifications has none to sum up.");
         Assert.IsNull(byId[withoutReactions.Id].ForwardingState);

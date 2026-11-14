@@ -108,6 +108,20 @@ public class SubmissionHttpTest
     }
 
     [TestMethod]
+    public async Task AcceptsAClientReferenceOfTheLongestLengthWithSpacesAround()
+    {
+        using var installation = new MachineDeliveryTestApp(backend: UploadBackend.Cloud);
+        using var client = CreateAuthenticatedClient(installation);
+        var uploadId = await InitiateUploadAsync(client);
+        var clientReference = $"  {new string('x', PipelineRun.ClientReferenceMaxLength)}  ";
+        using var body = JsonContent.Create(new { mandateKey = MandateKey, uploadId, clientReference });
+
+        var response = await client.PostAsync("/api/v1/submission", body);
+
+        Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode, "The length counts once the spaces at either end are dropped.");
+    }
+
+    [TestMethod]
     public async Task AcceptsMetadataAsAFormFieldBeforeTheFiles()
     {
         using var installation = new MachineDeliveryTestApp();

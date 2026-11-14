@@ -1,6 +1,6 @@
 import type { DeliveryDetailResponse, DeliveryReactionResponse } from "@/api/generated";
 import { FieldEvaluationType, MetadataFieldType, ReactionKind, ReactionState } from "@/api/generated";
-import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
+import { getTableRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
 describe("Admin delivery detail", () => {
@@ -51,7 +51,7 @@ describe("Admin delivery detail", () => {
   const visit = (detail: DeliveryDetailResponse) => {
     cy.intercept("GET", `/api/v1/delivery/${detail.id}`, { statusCode: 200, body: detail }).as("delivery");
     loginAsAdmin();
-    cy.visit(`/admin/delivery-overview/${detail.id}`);
+    cy.visit(`/admin/deliveries/${detail.id}`);
     cy.wait("@delivery");
   };
 
@@ -66,14 +66,14 @@ describe("Admin delivery detail", () => {
 
     cy.dataCy("summary-deliveredBy").find('a[href="/admin/users/7"]').should("contain", "Kelvin Spencer");
     cy.dataCy("summary-mandate").find('a[href="/admin/mandates/1"]').should("contain", "Mandate");
-    cy.dataCy("summary-precursor").find('a[href="/admin/delivery-overview/9000"]').should("contain", "9000");
+    cy.dataCy("summary-precursor").find('a[href="/admin/deliveries/9000"]').should("contain", "9000");
     cy.dataCy("summary-partialDelivery").should("contain", "No");
     cy.dataCy("summary-files").find('a[href="/api/v1/delivery/assets/41"]').should("contain", "strassen.xtf");
     cy.dataCy("summary-stacBrowser")
       .find('a[href="/browser/stac/collections/coll_1/items/item_9001"]')
       .should("contain", "item_9001");
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
-    getGridRowThatContains("reactions-grid", "ablage").should("contain", "File drop").and("contain", "Ended");
+    getTableRowThatContains("reactions-table", "ablage").should("contain", "File drop").and("contain", "Ended");
     cy.dataCy("retryReaction").should("not.exist");
   });
 
@@ -84,7 +84,7 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-stacBrowser").should("contain", "Only available after forwarding");
     cy.dataCy("summary-precursor").should("not.exist");
     cy.dataCy("summary-partialDelivery").should("not.exist");
-    getGridRowThatContains("reactions-grid", "ablage").should("contain", "Waits until");
+    getTableRowThatContains("reactions-table", "ablage").should("contain", "Waits until");
   });
 
   it("shows that the notifications wait for the forwarding", () => {
@@ -95,7 +95,7 @@ describe("Admin delivery detail", () => {
       ]),
     );
 
-    getGridRowThatContains("reactions-grid", "info_mail").should("contain", "Waits for the forwarding");
+    getTableRowThatContains("reactions-table", "info_mail").should("contain", "Waits for the forwarding");
   });
 
   it("retries a reaction that gave up", () => {
@@ -114,7 +114,7 @@ describe("Admin delivery detail", () => {
     );
     cy.intercept("POST", "/api/v1/delivery/9002/reactions/ablage/reset", { statusCode: 204 }).as("retry");
 
-    getGridRowThatContains("reactions-grid", "ablage")
+    getTableRowThatContains("reactions-table", "ablage")
       .should("not.contain", "File drop")
       .and("contain", "does not exist")
       .find('[data-cy="retryReaction"]')
@@ -138,7 +138,7 @@ describe("Admin delivery detail", () => {
     );
 
     cy.wait("@deleteDelivery");
-    cy.location("pathname").should("eq", "/admin/delivery-overview");
+    cy.location("pathname").should("eq", "/admin/deliveries");
   });
 
   it("shows the metadata of the delivery", () => {

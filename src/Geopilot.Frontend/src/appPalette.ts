@@ -80,6 +80,9 @@ export const themePalette = {
     insertBackground: "#CDEBCF",
     deleteBackground: "#F9D0D0",
   },
+  action: {
+    hover: alpha("#000000", 0.04),
+  },
   divider: alpha("#124A4F", 0.2),
   tooltip: {
     background: "#424242",

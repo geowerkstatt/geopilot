@@ -334,6 +334,10 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("Declarability")
                         .HasColumnType("text");
 
@@ -391,6 +395,9 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClientReference")
+                        .HasFilter("\"ClientReference\" IS NOT NULL");
+
                     b.HasIndex("JobId")
                         .IsUnique();
 
@@ -399,6 +406,8 @@ namespace Geopilot.Api.Migrations
                     b.HasIndex("MandateId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("StartedAt", "Id");
 
                     b.ToTable("PipelineRuns", t =>
                         {

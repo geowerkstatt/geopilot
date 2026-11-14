@@ -1,5 +1,5 @@
 import type { DeliveryDetailResponse, DeliveryResponse } from "@/api/generated";
-import { ReactionState } from "@/api/generated";
+import { DeclarerKind, ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
@@ -8,7 +8,7 @@ describe("Admin Delivery Overview tests", () => {
     cy.intercept({ url: "/api/v1/delivery", method: "GET" }).as("deliveries");
     loginAsAdmin();
 
-    cy.visit("/admin/delivery-overview");
+    cy.visit("/admin/deliveries");
     cy.wait("@deliveries");
 
     // Newest delivery first
@@ -55,7 +55,7 @@ describe("Admin Delivery Overview tests", () => {
     handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "delete");
     cy.wait("@deleteDelivery");
     cy.wait("@deliveries");
-    cy.location("pathname").should("eq", "/admin/delivery-overview");
+    cy.location("pathname").should("eq", "/admin/deliveries");
   });
 });
 
@@ -67,6 +67,7 @@ describe("Admin delivery overview with reactions", () => {
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
       declarerName: "Kelvin Spencer",
+      declarerKind: DeclarerKind.Person,
       forwardingState,
       notificationState,
     }) satisfies DeliveryResponse;
@@ -80,7 +81,7 @@ describe("Admin delivery overview with reactions", () => {
   beforeEach(() => {
     cy.intercept("GET", "/api/v1/delivery", { statusCode: 200, body: deliveries }).as("deliveries");
     loginAsAdmin();
-    cy.visit("/admin/delivery-overview");
+    cy.visit("/admin/deliveries");
     cy.wait("@deliveries");
   });
 
@@ -116,9 +117,9 @@ describe("Admin delivery overview with reactions", () => {
     getGridRowThatContains("deliveryOverview-grid", "9004").find('[data-field="mandateName"]').click();
 
     cy.wait("@delivery");
-    cy.location("pathname").should("eq", "/admin/delivery-overview/9004");
+    cy.location("pathname").should("eq", "/admin/deliveries/9004");
     cy.go("back");
-    cy.location("pathname").should("eq", "/admin/delivery-overview");
-    cy.dataCy("reactions-grid").should("not.exist");
+    cy.location("pathname").should("eq", "/admin/deliveries");
+    cy.dataCy("reactions-table").should("not.exist");
   });
 });
