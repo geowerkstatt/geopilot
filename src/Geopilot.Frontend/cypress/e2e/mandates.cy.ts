@@ -942,6 +942,13 @@ describe("Mandate with metadata fields", () => {
     cy.visit("/admin/mandates/9994");
     cy.wait("@getMandate");
     cy.wait("@getPipelines");
+    // The dev server loads the mandate twice (React StrictMode), and every answer fills the fields again, which
+    // discards what a test did in between. So a test starts once every load that was started has its answer.
+    cy.get<unknown[]>("@getMandate.all").then(loads => {
+      for (let answered = 1; answered < loads.length; answered++) {
+        cy.wait("@getMandate");
+      }
+    });
   };
 
   const savedMandate = () =>
@@ -949,6 +956,9 @@ describe("Mandate with metadata fields", () => {
       // The intercepted body is parsed JSON, which carries no type of its own.
       return (typeof request.body === "string" ? JSON.parse(request.body) : request.body) as Mandate;
     });
+
+  // A field is a row that opens into its editor. Loaded fields start closed, a new one is open.
+  const metadataFieldRow = (index: number) => cy.dataCy(`metadataField-${index}-summary`);
 
   beforeEach(() => {
     loginAsAdmin();
@@ -1016,6 +1026,9 @@ describe("Mandate with metadata fields", () => {
   it("opens a mandate with metadata fields unchanged", () => {
     openMandateWith([projectNumber, responsible]);
 
+    // The fields load as closed rows, with their values in the form.
+    metadataFieldRow(0).should("have.attr", "aria-expanded", "false");
+    metadataFieldRow(1).should("have.attr", "aria-expanded", "false");
     evaluateInput("metadataFields.0.id", "project_number");
     evaluateCheckbox("metadataFields.0.evaluation", true);
     evaluateSelect("metadataFields.1.type", "selection");
@@ -1023,12 +1036,96 @@ describe("Mandate with metadata fields", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
+    metadataFieldRow(0).click();
     toggleCheckbox("metadataFields.0.evaluation");
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("reset-button").should("be.enabled").click();
     evaluateCheckbox("metadataFields.0.evaluation", true);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
+  });
+
+  it("opens one metadata field at a time", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    metadataFieldRow(0).click();
+    cy.dataCy("metadataFields.0.id-formInput").should("be.visible");
+
+    // Opening a field closes the open one.
+    metadataFieldRow(1).click();
+    metadataFieldRow(0).should("have.attr", "aria-expanded", "false");
+    cy.dataCy("metadataFields.0.id-formInput").should("not.be.visible");
+    cy.dataCy("metadataFields.1.id-formInput").should("be.visible");
+
+    // A new field is the one to fill in, so it opens. A click on the open row closes it.
+    cy.dataCy("addMetadataField-button").click();
+    metadataFieldRow(1).should("have.attr", "aria-expanded", "false");
+    metadataFieldRow(2).should("have.attr", "aria-expanded", "true").click();
+    metadataFieldRow(2).should("have.attr", "aria-expanded", "false");
+  });
+
+  it("shows on its row what a metadata field holds", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    metadataFieldRow(0)
+      .should("contain.text", "Project number")
+      .and("contain.text", "project_number")
+      .and("contain.text", "Text")
+      .and("contain.text", "Required");
+    metadataFieldRow(1)
+      .should("contain.text", "Responsible")
+      .and("contain.text", "Selection · 2")
+      .and("not.contain.text", "Required");
+
+    // The row follows the inputs of its field and the language of the titles.
+    metadataFieldRow(0).click();
+    setInput("metadataFields.0.title.en", "Project no.");
+    toggleCheckbox("metadataFields.0.evaluation");
+    metadataFieldRow(0).should("contain.text", "Project no.").and("not.contain.text", "Required");
+    cy.dataCy("metadataFields-language-tab-fr").click();
+    metadataFieldRow(0).should("contain.text", "Untitled");
+  });
+
+  it("marks the row of a closed metadata field with an error", () => {
+    openMandateWith([projectNumber]);
+
+    // A field is checked when it closes, so its row tells that the title, which was never touched, is missing.
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.1.id", "contact");
+    metadataFieldRow(1).should("not.contain.text", "Contains errors");
+    metadataFieldRow(0).click();
+    metadataFieldRow(1).should("contain.text", "Contains errors");
+    cy.dataCy("save-button").should("be.disabled");
+
+    metadataFieldRow(1).click();
+    setInput("metadataFields.1.title.en", "Contact");
+    metadataFieldRow(1).should("not.contain.text", "Contains errors");
+    cy.dataCy("save-button").should("be.enabled");
+  });
+
+  it("moves the focus to a neighbour when a metadata field is removed", () => {
+    const remark: MetadataField = { id: "remark", title: { en: "Remark" }, type: "text", evaluation: "optional" };
+    openMandateWith([projectNumber, responsible, remark]);
+
+    // The button that removes a field goes with it. The row that takes the place of the field gets the focus.
+    metadataFieldRow(0).click();
+    cy.dataCy("removeMetadataField-button").eq(0).click();
+    metadataFieldRow(0)
+      .should("contain.text", "Responsible")
+      .and("have.attr", "aria-expanded", "false")
+      .and("have.focus");
+
+    // After the last field, it is the row before it.
+    metadataFieldRow(1).click();
+    cy.dataCy("removeMetadataField-button").eq(1).click();
+    cy.dataCy("metadataField-1").should("not.exist");
+    metadataFieldRow(0).should("have.focus");
+
+    // Without a row left, it is the button that adds a field.
+    metadataFieldRow(0).click();
+    cy.dataCy("removeMetadataField-button").eq(0).click();
+    cy.dataCy("metadataField-0").should("not.exist");
+    cy.dataCy("addMetadataField-button").should("have.focus");
   });
 
   it("names the language rows, the fields and their buttons for assistive technology", () => {
@@ -1050,6 +1147,7 @@ describe("Mandate with metadata fields", () => {
 
   it("switches the language of the titles apart from the general data", () => {
     openMandateWith([projectNumber]);
+    metadataFieldRow(0).click();
 
     setFormLanguage("de");
     cy.dataCy("name.de-formInput").should("be.visible");
@@ -1064,6 +1162,7 @@ describe("Mandate with metadata fields", () => {
 
   it("saves a former selection without its options", () => {
     openMandateWith([responsible]);
+    metadataFieldRow(0).click();
 
     // An option left empty marks its id as required. Once the options are hidden, that must not block saving.
     cy.dataCy("addMetadataFieldOption-button").click();
@@ -1087,7 +1186,9 @@ describe("Mandate with metadata fields", () => {
     hasError("metadataFields.0.id");
     cy.dataCy("save-button").should("be.disabled");
 
-    setInput("metadataFields.0.id", "abc1");
+    // The message can take two lines, which puts the middle of the field, where setInput clicks, below its input.
+    cy.dataCy("metadataFields.0.id-formInput").find("input").clear();
+    cy.dataCy("metadataFields.0.id-formInput").find("input").type("abc1");
     hasError("metadataFields.0.id", false);
 
     // react-hook-form refuses the word as a path segment, so the delivery form could not hold its value.
@@ -1101,18 +1202,23 @@ describe("Mandate with metadata fields", () => {
   it("refuses a field id or an option id that is already taken", () => {
     openMandateWith([responsible]);
 
-    // Both entries are marked, and changing one of them checks the other one again.
+    // Both entries are marked, the closed one on its row, and changing one of them checks the other one again.
     cy.dataCy("addMetadataField-button").click();
     setInput("metadataFields.1.id", "responsible");
     hasError("metadataFields.0.id");
     hasError("metadataFields.1.id");
+    metadataFieldRow(0).should("contain.text", "Contains errors");
     cy.dataCy("save-button").should("be.disabled");
     setInput("metadataFields.1.id", "contact");
     hasError("metadataFields.0.id", false);
     hasError("metadataFields.1.id", false);
+    metadataFieldRow(0).should("not.contain.text", "Contains errors");
     cy.dataCy("save-button").should("be.enabled");
 
     // An option id only has to be unique within its field. Removing the duplicate checks the remaining ids again.
+    // The new field gets its title first, since it is checked when the other field opens.
+    setInput("metadataFields.1.title.en", "Contact");
+    metadataFieldRow(0).click();
     cy.dataCy("addMetadataFieldOption-button").click();
     setInput("metadataFields.0.options.2.id", "canton");
     hasError("metadataFields.0.options.0.id");

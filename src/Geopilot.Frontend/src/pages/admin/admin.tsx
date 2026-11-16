@@ -3,11 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { TranslationKey } from "../../appInterfaces";
+import { themeSpacing } from "../../appTheme";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useCapabilities } from "../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledLinkClick } from "../../components/controlledNavigate";
+import { ScrollMarginProvider } from "../../components/scrollMargin/ScrollMarginProvider.tsx";
 import { PageContent } from "../../components/styledComponents.ts";
 import { useApplicationName } from "../../hooks/useApplicationName.ts";
+
+// The header is fixed above the page and covers its top, so what an admin page scrolls into view keeps clear of it.
+const headerHeight = "60px";
+const scrollMarginTop = `calc(${headerHeight} + ${themeSpacing(2)})`;
+const scrollMarginBottom = themeSpacing(2);
 
 interface AdminProps {
   isSubMenuOpen: boolean;
@@ -100,7 +107,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           }}
           data-cy="admin-navigation">
           <>
-            <Box sx={{ height: "60px" }} />
+            <Box sx={{ height: headerHeight }} />
             {drawerContent(true)}
           </>
         </Drawer>
@@ -158,7 +165,9 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
             height: "100%",
             marginLeft: { xs: "0", md: drawerWidth },
           }}>
-          <Outlet />
+          <ScrollMarginProvider scrollMarginTop={scrollMarginTop} scrollMarginBottom={scrollMarginBottom}>
+            <Outlet />
+          </ScrollMarginProvider>
         </Stack>
       </Box>
     </PageContent>

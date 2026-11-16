@@ -44,7 +44,14 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
   }
 
   return (
-    <Stack>
+    // The options sit on a surface of their own, so their rows do not read as further rows of the field.
+    <Stack
+      sx={theme => ({
+        backgroundColor: theme.palette.background.base,
+        borderRadius: theme.radius.default,
+        padding: theme.spacing(2),
+        "& .MuiOutlinedInput-root": { backgroundColor: theme.palette.background.content },
+      })}>
       <Typography variant={"body2"}>{t("metadataFieldOptions")}</Typography>
       {fields.map((option, optionIndex) => (
         <FormContainer
