@@ -119,6 +119,10 @@ export type CapabilitiesResponse = {
    * uploaders that closes: the reactions only run once it has.
    */
   reactionSetsEnabled: boolean;
+  /**
+   * Whether this installation maintains the reference data mapping in the admin portal.
+   */
+  refMappingEnabled: boolean;
 };
 
 /**
