@@ -164,7 +164,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
 
   return (
     <GeopilotDataGrid
-      name="deliveryOverview"
+      name="deliveries"
       loading={isLoading}
       rows={deliveries}
       columns={columnDefs}

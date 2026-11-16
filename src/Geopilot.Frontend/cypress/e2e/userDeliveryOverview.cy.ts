@@ -22,32 +22,30 @@ describe("User Delivery Overview tests", () => {
     cy.wait("@deliveries");
 
     // Newest delivery first
-    cy.dataCy("deliveryOverview-grid")
+    cy.dataCy("deliveries-grid")
       .find('[role="columnheader"][data-field="date"]')
       .should("have.attr", "aria-sort", "descending");
 
     // Who delivered, so the own deliveries stand apart from those of a machine client the user is responsible for.
-    cy.dataCy("deliveryOverview-grid")
-      .find('[role="columnheader"][data-field="declarerName"]')
-      .contains("Delivered by");
+    cy.dataCy("deliveries-grid").find('[role="columnheader"][data-field="declarerName"]').contains("Delivered by");
     // The name of the identity provider, which replaced the seeded one when the uploader signed in.
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Ursula Uploader");
+    cy.dataCy("deliveries-grid").find(".MuiDataGrid-row").first().contains("Ursula Uploader");
 
     // Unsorted, in the order of the server
-    cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
+    cy.dataCy("deliveries-grid").contains("Delivery date").click();
+    cy.dataCy("deliveries-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
 
     // Sort by delivery date ascending
-    cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("2023");
+    cy.dataCy("deliveries-grid").contains("Delivery date").click();
+    cy.dataCy("deliveries-grid").find(".MuiDataGrid-row").first().contains("2023");
 
     // Sort by Mandate
-    cy.dataCy("deliveryOverview-grid").contains("Mandate").click();
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
+    cy.dataCy("deliveries-grid").contains("Mandate").click();
+    cy.dataCy("deliveries-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
 
     // Sort by comment
-    cy.dataCy("deliveryOverview-grid").contains("Comment").click();
-    cy.dataCy("deliveryOverview-grid")
+    cy.dataCy("deliveries-grid").contains("Comment").click();
+    cy.dataCy("deliveries-grid")
       .find(".MuiDataGrid-row")
       .first()
       .contains("I saw one of these in Saint Lucia and I bought one.");
