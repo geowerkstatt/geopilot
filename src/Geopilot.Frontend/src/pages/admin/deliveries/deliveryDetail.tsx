@@ -65,7 +65,7 @@ export const DeliveryDetail: FC = () => {
   if (!delivery) {
     return (
       <Stack>
-        <AdminDetailHeader backLabel="backToDeliveryOverview" onBack={() => navigate(overviewPath)} />
+        <AdminDetailHeader backLabel="backToDeliveries" onBack={() => navigate(overviewPath)} />
         <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
           <CircularProgress />
         </Stack>
@@ -89,7 +89,7 @@ export const DeliveryDetail: FC = () => {
 
   return (
     <Stack>
-      <AdminDetailHeader backLabel="backToDeliveryOverview" onBack={() => navigate(overviewPath)} id={delivery.id} />
+      <AdminDetailHeader backLabel="backToDeliveries" onBack={() => navigate(overviewPath)} id={delivery.id} />
       <GeopilotBox>
         <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}

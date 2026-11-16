@@ -64,14 +64,14 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
     <div>
       <Box sx={{ overflow: "auto" }}>
         <List subheader={<ListSubheader>{t("overviews")}</ListSubheader>}>
-          <ListItem key={"deliveryOverview"} disablePadding>
+          <ListItem key={"deliveries"} disablePadding>
             <ListItemButton
               component={RouterLink}
               to="/admin/deliveries"
               selected={isActive("deliveries")}
               onClick={handleNavClick("/admin/deliveries")}
               data-cy={isPermanent ? "admin-deliveries-nav" : undefined}>
-              <ListItemText primary={t("deliveryOverview")} />
+              <ListItemText primary={t("deliveries")} />
             </ListItemButton>
           </ListItem>
           <ListItem key={"processingRuns"} disablePadding>

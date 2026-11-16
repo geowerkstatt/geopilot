@@ -47,7 +47,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
   const loadDeliveries = useCallback(async () => {
     // Administrators get all deliveries with how far their reactions got, users their own uploads and whether they
     // may delete them.
-    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveriesLoadingError" })
       .then(response => {
         setDeliveries(
           response.map(d => ({
