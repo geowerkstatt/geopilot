@@ -62,6 +62,20 @@ public class S3UploadStorageTest
     }
 
     [TestMethod]
+    public async Task PresignedUrlAcceptsUploadWithAzureHeader()
+    {
+        var key = $"uploads/{Guid.NewGuid()}/test-file.xtf";
+        var url = await service.GenerateUploadUrlAsync(key, null, TimeSpan.FromMinutes(10));
+
+        using var httpClient = new HttpClient();
+        using var content = new ByteArrayContent("test content"u8.ToArray());
+        content.Headers.Add("x-ms-blob-type", "BlockBlob");
+        var response = await httpClient.PutAsync(url, content);
+
+        Assert.IsTrue(response.IsSuccessStatusCode, $"Upload with Azure header failed: {response.StatusCode}");
+    }
+
+    [TestMethod]
     public void UploadHeadersAreEmpty()
     {
         Assert.IsEmpty(service.UploadHeaders);
