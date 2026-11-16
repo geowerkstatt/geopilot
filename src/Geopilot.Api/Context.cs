@@ -150,6 +150,11 @@ public class Context : DbContext
     public DbSet<Asset> Assets { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="RefMapping"/>, the entries of the reference data mapping.
+    /// </summary>
+    public DbSet<RefMapping> RefMappings { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="DeliveryReaction"/>, the reactions to deliveries and the queue they are claimed from.
     /// </summary>
     public DbSet<DeliveryReaction> DeliveryReactions { get; set; }
@@ -254,6 +259,10 @@ public class Context : DbContext
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
+
+        modelBuilder.Entity<RefMapping>()
+            .HasIndex(r => r.Scope)
+            .IsUnique();
 
         // The snapshot holds dictionaries, so the comparer compares the JSON, as for the reaction set values of a mandate.
         var reactionSnapshotConverter = new ValueConverter<ReactionSnapshot, string>(
