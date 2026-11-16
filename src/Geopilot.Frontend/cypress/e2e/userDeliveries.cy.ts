@@ -1,7 +1,7 @@
 import { loginAsUploader } from "./helpers/appHelpers";
-import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper";
+import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveriesHelpers";
 
-describe("User Delivery Overview tests", () => {
+describe("User deliveries tests", () => {
   it("user can navigate to uploaded deliveries", () => {
     loginAsUploader();
 

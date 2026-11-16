@@ -156,7 +156,7 @@ describe("Delivery tests", () => {
     cy.dataCy("createDelivery-button").should("not.exist");
     stepIsCompleted("delivery");
 
-    // The delivery is real and would otherwise stay in the database, where the delivery overview tests
+    // The delivery is real and would otherwise stay in the database, where the deliveries tests
     // would find an extra row that their assertions do not expect.
     cy.then(() =>
       cy.request({

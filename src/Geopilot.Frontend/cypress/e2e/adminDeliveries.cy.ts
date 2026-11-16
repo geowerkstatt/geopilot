@@ -3,7 +3,7 @@ import { DeclarerKind, ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
-describe("Admin Delivery Overview tests", () => {
+describe("Admin deliveries tests", () => {
   it("can delete delivery", () => {
     cy.intercept({ url: "/api/v1/delivery", method: "GET" }).as("deliveries");
     loginAsAdmin();
@@ -59,7 +59,7 @@ describe("Admin Delivery Overview tests", () => {
   });
 });
 
-describe("Admin delivery overview with reactions", () => {
+describe("Admin deliveries with reactions", () => {
   // The seeded deliveries have no reactions, so the list is stubbed with deliveries in different states.
   const delivery = (id: number, forwardingState?: ReactionState, notificationState?: ReactionState) =>
     ({
