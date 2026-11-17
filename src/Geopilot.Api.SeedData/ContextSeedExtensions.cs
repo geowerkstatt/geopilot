@@ -33,6 +33,7 @@ public static class ContextSeedExtensions
         context.SeedMachineClients();
         context.SeedDeliveries();
         context.SeedAssets();
+        context.SeedRefMappings();
         context.AddOrganisationsToDefaultUsers();
         context.AddOrganisationToPublicMandate();
 
@@ -240,6 +241,31 @@ public static class ContextSeedExtensions
             Name = "Service account geopilot-api",
             State = MachineClientState.Active,
             Organisations = keyedMandate.Organisations.Take(1).ToList(),
+        });
+
+        context.SaveChanges();
+    }
+
+    /// <summary>
+    /// The reference data of the DMAV test world (TestData/Dmav/README.md) for Sauge, so its deliveries validate
+    /// against them. The ids are those of TestData/Dmav/repository/ilidata.xml.
+    /// </summary>
+    private static void SeedRefMappings(this Context context)
+    {
+        context.RefMappings.Add(new RefMapping
+        {
+            Scope = "449",
+            RefDataUris =
+            [
+                "ilidata:dmav_Gemeinden95_V1_0",
+                "ilidata:dmav_v1_10_hoheitsgrenzen_lv",
+                "ilidata:dmav_LFP1_V1_0",
+                "ilidata:dmav_HFP1_V1_0",
+                "ilidata:dmav_OfficialIndesOfLocalities",
+                "ilidata:dmav_LFP2_BE",
+                "ilidata:dmav_LFP3_449",
+            ],
+            Comment = "Gemeinde Sauge",
         });
 
         context.SaveChanges();

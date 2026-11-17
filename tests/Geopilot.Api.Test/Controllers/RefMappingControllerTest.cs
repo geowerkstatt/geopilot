@@ -27,13 +27,13 @@ public class RefMappingControllerTest
     {
         var created = await CreateAsync(new RefMapping
         {
-            Scope = "  449 ",
-            RefDataUris = [" ilidata:dmav_LFP3_449 "],
+            Scope = "  351 ",
+            RefDataUris = [" ilidata:dmav_LFP3_351 "],
             Comment = "   ",
         });
 
-        Assert.AreEqual("449", created.Scope);
-        Assert.AreEqual("ilidata:dmav_LFP3_449", Assert.ContainsSingle(created.RefDataUris));
+        Assert.AreEqual("351", created.Scope);
+        Assert.AreEqual("ilidata:dmav_LFP3_351", Assert.ContainsSingle(created.RefDataUris));
         Assert.IsNull(created.Comment);
     }
 
@@ -64,10 +64,10 @@ public class RefMappingControllerTest
     {
         var created = await CreateAsync(NewEntry());
 
-        var result = await controller.Edit(new RefMapping { Id = created.Id, Scope = "449", RefDataUris = ["/etc/passwd"] }, CancellationToken.None);
+        var result = await controller.Edit(new RefMapping { Id = created.Id, Scope = "351", RefDataUris = ["/etc/passwd"] }, CancellationToken.None);
 
         ActionResultAssert.IsBadRequest(result);
-        Assert.AreEqual("ilidata:dmav_LFP3_449", context.RefMappings.AsNoTracking().Single(r => r.Id == created.Id).RefDataUris.Single());
+        Assert.AreEqual("ilidata:dmav_LFP3_351", context.RefMappings.AsNoTracking().Single(r => r.Id == created.Id).RefDataUris.Single());
     }
 
     [TestMethod]
@@ -104,21 +104,21 @@ public class RefMappingControllerTest
     }
 
     [TestMethod]
-    [DataRow("449", "ilidata:dmav_LFP3_449")]
+    [DataRow("351", "ilidata:dmav_LFP3_351")]
     public void ValidateAcceptsAValidEntry(string scope, string uri)
     {
         Assert.IsNull(RefMappingController.Validate(new RefMapping { Scope = scope, RefDataUris = [uri] }));
     }
 
     [TestMethod]
-    [DataRow(null, "ilidata:dmav_LFP3_449", DisplayName = "null scope")]
-    [DataRow(" ", "ilidata:dmav_LFP3_449", DisplayName = "blank scope")]
-    [DataRow("449", "https://example.ch/lfp3.xtf", DisplayName = "http reference")]
-    [DataRow("449", "C:\\data\\lfp3.xtf", DisplayName = "local windows path")]
-    [DataRow("449", "/data/lfp3.xtf", DisplayName = "local unix path")]
-    [DataRow("449", "ilidata:../lfp3.xtf", DisplayName = "path inside ilidata")]
-    [DataRow("449", "ilidata:", DisplayName = "ilidata without id")]
-    [DataRow("449", "ILIDATA:dmav_LFP3_449", DisplayName = "upper case prefix")]
+    [DataRow(null, "ilidata:dmav_LFP3_351", DisplayName = "null scope")]
+    [DataRow(" ", "ilidata:dmav_LFP3_351", DisplayName = "blank scope")]
+    [DataRow("351", "https://example.ch/lfp3.xtf", DisplayName = "http reference")]
+    [DataRow("351", "C:\\data\\lfp3.xtf", DisplayName = "local windows path")]
+    [DataRow("351", "/data/lfp3.xtf", DisplayName = "local unix path")]
+    [DataRow("351", "ilidata:../lfp3.xtf", DisplayName = "path inside ilidata")]
+    [DataRow("351", "ilidata:", DisplayName = "ilidata without id")]
+    [DataRow("351", "ILIDATA:dmav_LFP3_351", DisplayName = "upper case prefix")]
     public void ValidateRefusesAnInvalidEntry(string? scope, string uri)
     {
         Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = scope!, RefDataUris = [uri] }));
@@ -127,20 +127,20 @@ public class RefMappingControllerTest
     [TestMethod]
     public void ValidateRefusesAnEntryWithoutReference()
     {
-        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = "449" }));
+        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = "351" }));
     }
 
     [TestMethod]
     public void ValidateRefusesAnyInvalidReferenceAmongValidOnes()
     {
-        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = "449", RefDataUris = ["ilidata:dmav_LFP3_449", "file:///etc/passwd"] }));
+        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = "351", RefDataUris = ["ilidata:dmav_LFP3_351", "file:///etc/passwd"] }));
     }
 
     [TestMethod]
     public void ValidateRefusesScopeLongerThan250Characters()
     {
-        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = new string('1', 251), RefDataUris = ["ilidata:dmav_LFP3_449"] }));
-        Assert.IsNull(RefMappingController.Validate(new RefMapping { Scope = new string('1', 250), RefDataUris = ["ilidata:dmav_LFP3_449"] }));
+        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = new string('1', 251), RefDataUris = ["ilidata:dmav_LFP3_351"] }));
+        Assert.IsNull(RefMappingController.Validate(new RefMapping { Scope = new string('1', 250), RefDataUris = ["ilidata:dmav_LFP3_351"] }));
     }
 
     private async Task<RefMapping> CreateAsync(RefMapping refMapping)
@@ -153,7 +153,7 @@ public class RefMappingControllerTest
     private static RefMapping NewEntry(int id = 0) => new()
     {
         Id = id,
-        Scope = "449",
-        RefDataUris = ["ilidata:dmav_LFP3_449"],
+        Scope = "351",
+        RefDataUris = ["ilidata:dmav_LFP3_351"],
     };
 }
