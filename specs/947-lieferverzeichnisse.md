@@ -1,4 +1,4 @@
-# Cleanup-Regeln hängen unsichtbar an der Single-Instance-Annahme (#947)
+# Cleanup löscht Lieferverzeichnisse, die die Datenbank nicht kennt (#947)
 
 Review: required. Es ändert, wann geopilot gelieferte Daten löscht, und die Reihenfolge der Deklaration. Ein Fehler darin kostet Lieferungen, das zähle ich zu sicherheitsrelevant (Integrität der Lieferungen). Keine Migration, keine neue Einstellung.
 
