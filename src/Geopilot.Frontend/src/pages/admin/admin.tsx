@@ -19,7 +19,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const linkClick = useControlledLinkClick();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
-  const { machineDeliveryEnabled } = useCapabilities();
+  const { machineDeliveryEnabled, refMappingEnabled } = useCapabilities();
   const applicationName = useApplicationName();
 
   // The machine clients only exist where the installation offers machine delivery.
@@ -28,6 +28,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
     { path: "mandates", label: "mandates" },
     { path: "organisations", label: "organisations" },
     ...(machineDeliveryEnabled ? [{ path: "machine-clients", label: "machineClients" as const }] : []),
+    ...(refMappingEnabled ? [{ path: "refmappings", label: "refData" as const }] : []),
   ];
 
   const handleDrawerClose = () => {
