@@ -10,22 +10,6 @@ namespace Geopilot.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Deliveries_MachineClients_DeclaringClientId",
-                table: "Deliveries");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Deliveries_Users_DeclaringUserId",
-                table: "Deliveries");
-
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_PipelineRuns_Declarer",
-                table: "PipelineRuns");
-
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_Deliveries_Declarer",
-                table: "Deliveries");
-
             migrationBuilder.RenameColumn(
                 name: "Declarability",
                 table: "PipelineRuns",
@@ -58,51 +42,23 @@ namespace Geopilot.Api.Migrations
                 table: "Deliveries",
                 newName: "IX_Deliveries_DeliveredByClientId");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_PipelineRuns_StartedBy",
-                table: "PipelineRuns",
-                sql: "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
+            RenameConstraint(migrationBuilder, "Deliveries", "FK_Deliveries_Users_DeclaringUserId", "FK_Deliveries_Users_DeliveredByUserId");
+            RenameConstraint(migrationBuilder, "Deliveries", "FK_Deliveries_MachineClients_DeclaringClientId", "FK_Deliveries_MachineClients_DeliveredByClientId");
+            RenameConstraint(migrationBuilder, "Deliveries", "CK_Deliveries_Declarer", "CK_Deliveries_DeliveredBy");
+            RenameConstraint(migrationBuilder, "PipelineRuns", "CK_PipelineRuns_Declarer", "CK_PipelineRuns_StartedBy");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Deliveries_DeliveredBy",
-                table: "Deliveries",
-                sql: "(\"DeliveredByUserId\" IS NULL) <> (\"DeliveredByClientId\" IS NULL)");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Deliveries_MachineClients_DeliveredByClientId",
-                table: "Deliveries",
-                column: "DeliveredByClientId",
-                principalTable: "MachineClients",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Deliveries_Users_DeliveredByUserId",
-                table: "Deliveries",
-                column: "DeliveredByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            RenameMandateValue(migrationBuilder, "includeDeclarer", "includeSupplier");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Deliveries_MachineClients_DeliveredByClientId",
-                table: "Deliveries");
+            RenameMandateValue(migrationBuilder, "includeSupplier", "includeDeclarer");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_Deliveries_Users_DeliveredByUserId",
-                table: "Deliveries");
-
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_PipelineRuns_StartedBy",
-                table: "PipelineRuns");
-
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_Deliveries_DeliveredBy",
-                table: "Deliveries");
+            RenameConstraint(migrationBuilder, "Deliveries", "FK_Deliveries_Users_DeliveredByUserId", "FK_Deliveries_Users_DeclaringUserId");
+            RenameConstraint(migrationBuilder, "Deliveries", "FK_Deliveries_MachineClients_DeliveredByClientId", "FK_Deliveries_MachineClients_DeclaringClientId");
+            RenameConstraint(migrationBuilder, "Deliveries", "CK_Deliveries_DeliveredBy", "CK_Deliveries_Declarer");
+            RenameConstraint(migrationBuilder, "PipelineRuns", "CK_PipelineRuns_StartedBy", "CK_PipelineRuns_Declarer");
 
             migrationBuilder.Sql("UPDATE \"PipelineRuns\" SET \"PermissionToDeliver\" = CASE \"PermissionToDeliver\" WHEN 'Permitted' THEN 'Declarable' WHEN 'NotPermitted' THEN 'NotDeclarable' END WHERE \"PermissionToDeliver\" IS NOT NULL;");
 
@@ -135,32 +91,35 @@ namespace Geopilot.Api.Migrations
                 name: "IX_Deliveries_DeliveredByClientId",
                 table: "Deliveries",
                 newName: "IX_Deliveries_DeclaringClientId");
+        }
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_PipelineRuns_Declarer",
-                table: "PipelineRuns",
-                sql: "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
+        // EF Core has no operation to rename a constraint, and dropping and adding it again checks every row.
+        private static void RenameConstraint(MigrationBuilder migrationBuilder, string table, string name, string newName)
+            => migrationBuilder.Sql($"ALTER TABLE \"{table}\" RENAME CONSTRAINT \"{name}\" TO \"{newName}\";");
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Deliveries_Declarer",
-                table: "Deliveries",
-                sql: "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)");
+        // A channel finds mandate values by key, both in the mandate and in the snapshot of every reaction already created.
+        private static void RenameMandateValue(MigrationBuilder migrationBuilder, string key, string newKey)
+        {
+            migrationBuilder.Sql($$"""
+                UPDATE "Mandates" m
+                SET "ReactionSetValues" = (
+                    SELECT jsonb_object_agg(r.key,
+                        CASE WHEN r.value -> '{{key}}' IS NOT NULL
+                            THEN (r.value - '{{key}}') || jsonb_build_object('{{newKey}}', r.value -> '{{key}}')
+                            ELSE r.value END)
+                    FROM jsonb_each(m."ReactionSetValues") r)
+                WHERE jsonb_path_exists(m."ReactionSetValues", '$.*.{{key}}');
+                """);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Deliveries_MachineClients_DeclaringClientId",
-                table: "Deliveries",
-                column: "DeclaringClientId",
-                principalTable: "MachineClients",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Deliveries_Users_DeclaringUserId",
-                table: "Deliveries",
-                column: "DeclaringUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            foreach (var part in new[] { "config", "mandate" })
+            {
+                migrationBuilder.Sql($$"""
+                    UPDATE "DeliveryReactions"
+                    SET "Config" = "Config" || jsonb_build_object('{{part}}',
+                        (("Config" -> '{{part}}') - '{{key}}') || jsonb_build_object('{{newKey}}', "Config" -> '{{part}}' -> '{{key}}'))
+                    WHERE "Config" -> '{{part}}' -> '{{key}}' IS NOT NULL;
+                    """);
+            }
         }
     }
 }
