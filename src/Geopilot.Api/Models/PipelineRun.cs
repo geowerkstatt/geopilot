@@ -11,6 +11,11 @@ namespace Geopilot.Api.Models;
 public class PipelineRun
 {
     /// <summary>
+    /// How many characters the client reference of a machine delivery may have, wherever it is accepted.
+    /// </summary>
+    public const int ClientReferenceMaxLength = 128;
+
+    /// <summary>
     /// The unique identifier for the run record.
     /// </summary>
     public int Id { get; set; }
@@ -79,9 +84,16 @@ public class PipelineRun
     public ClientKind ClientKind { get; set; }
 
     /// <summary>
-    /// Whether the run can ever become a delivery, decided when its job started (see
-    /// <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/> for a run recorded before the
-    /// protocol kept it: unknown, which is not the same as not declarable.
+    /// The client's own identifier of the delivery a machine delivery attempt belongs to, as sent with the attempt,
+    /// or <see langword="null"/> when it carried none. Attempts of one delivery share it, which is all the list of
+    /// runs needs to group them; it is never checked against earlier attempts.
+    /// </summary>
+    public string? ClientReference { get; set; }
+
+    /// <summary>
+    /// Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery,
+    /// decided when its job started (see <see cref="Processing.ProcessingJob.IsDeclarable"/>). <see langword="null"/>
+    /// for a run recorded before the protocol kept it: unknown, which is not the same as not declarable.
     /// </summary>
     public Declarability? Declarability { get; set; }
 
@@ -130,8 +142,8 @@ public class PipelineRun
     public DateTime? TerminalAt { get; set; }
 
     /// <summary>
-    /// Why the run failed or was cancelled, when known (e.g. the preflight failure reason, a job
-    /// timeout, or a host shutdown).
+    /// Why the run failed or was cancelled, when no step says why: the preflight failure reason, a job
+    /// timeout, a host shutdown, or an error while persisting the downloads or staging the delivery files.
     /// </summary>
     public string? FailureReason { get; set; }
 

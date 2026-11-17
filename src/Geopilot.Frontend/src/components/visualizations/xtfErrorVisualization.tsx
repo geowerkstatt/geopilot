@@ -2,7 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } fro
 import { useTranslation } from "react-i18next";
 import { MapVisualizationConfig, TreeField, TreeVisualizationConfig } from "../../api/apiInterfaces";
 import { useLocalized } from "../../hooks/useLocalized";
-import { FieldFilters, FilterBar } from "./filterBar";
+import { AttributeFilterBar, FieldFilters } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
 import { MapListLayout } from "./mapListLayout";
@@ -132,7 +132,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   );
 
   const filter = config.tree && (
-    <FilterBar
+    <AttributeFilterBar
       attributes={attributes}
       searchPlaceholder="treeVisualizationMessageSearch"
       messageQuery={messageQuery}

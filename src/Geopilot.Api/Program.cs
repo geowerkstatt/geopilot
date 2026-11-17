@@ -239,6 +239,9 @@ builder.Services.AddDbContextFactory<Context>(configureContextOptions);
 
 builder.Services.AddStacData(builder => { });
 
+// Post-configured, so it goes ahead of the binders the STAC library puts at the front.
+builder.Services.PostConfigure<Microsoft.AspNetCore.Mvc.MvcOptions>(options => options.ModelBinderProviders.Insert(0, new GeopilotEnumModelBinderProvider(options)));
+
 builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<Context>("Database", tags: [HealthEndpoints.ReadyTag])

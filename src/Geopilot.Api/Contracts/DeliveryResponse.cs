@@ -11,13 +11,14 @@ namespace Geopilot.Api.Contracts;
 /// <param name="Date">The date the delivery was declared.</param>
 /// <param name="Mandate">The mandate the delivery fulfils.</param>
 /// <param name="DeclarerName">Who declared the delivery, a person or a machine client.</param>
+/// <param name="DeclarerKind">Whether a person or a machine client declared the delivery.</param>
 /// <param name="ForwardingState">The states of its transfers summed up: <see cref="ReactionState.Error"/> before
 /// <see cref="ReactionState.Running"/> before <see cref="ReactionState.Pending"/> before <see cref="ReactionState.Done"/>,
 /// which means the delivery is forwarded. <see langword="null"/> for a delivery without transfers, which counts as
 /// forwarded right away.</param>
 /// <param name="NotificationState">The states of its notifications summed up the same way, <see langword="null"/> for a
 /// delivery without notifications. They wait until the delivery is forwarded.</param>
-public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, ReactionState? ForwardingState, ReactionState? NotificationState);
+public record DeliveryResponse(int Id, DateTime Date, MandateReference Mandate, string DeclarerName, DeclarerKind DeclarerKind, ReactionState? ForwardingState, ReactionState? NotificationState);
 
 /// <summary>
 /// How far a reaction to a delivery got.

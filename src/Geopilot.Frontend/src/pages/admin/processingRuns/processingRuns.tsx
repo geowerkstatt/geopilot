@@ -1,0 +1,165 @@
+import { FC, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Box, Stack } from "@mui/material";
+import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
+import { PipelineRunOutcomeKind, PipelineRunPageResponse, PipelineRunSummaryResponse } from "../../../api/generated";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
+import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
+import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
+import useFetch from "../../../hooks/useFetch.ts";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { ProcessingRunDeliveryLabel } from "./processingRunDeliveryLabel.tsx";
+import { ProcessingRunFilters } from "./processingRunFilters.tsx";
+import { formatDuration } from "./processingRunFormat.ts";
+import {
+  listQueryState,
+  ProcessingRunFilterValues,
+  readProcessingRunSearchParams,
+  toProcessingRunQuery,
+  toProcessingRunSearchParams,
+} from "./processingRunQuery.ts";
+import { ProcessingStateLabel } from "./processingStateLabel.tsx";
+
+type ProcessingRunRow = PipelineRunSummaryResponse & { attemptCount: number };
+
+// The most runs the API returns per page, fewer than the grid fits on a very tall screen.
+const maxPageSize = 100;
+
+/** All pipeline runs of the installation, newest first, paged and filtered on the server. */
+export const ProcessingRuns: FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { fetchApi } = useFetch();
+  const { localized } = useLocalized();
+  const { machineDeliveryEnabled } = useCapabilities();
+  // Filters and page live in the address, so going back from a run shows the same runs again.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { filters, page } = readProcessingRunSearchParams(searchParams);
+  // The grid fits its page to its height like the other lists and reports the size once it has measured it. Until
+  // then the size is 0, as in the grid itself, and nothing is loaded, so the list does not ask twice.
+  const [pageSize, setPageSize] = useState(0);
+  const [loaded, setLoaded] = useState<{ query: string; page?: PipelineRunPageResponse }>();
+
+  const query = toProcessingRunQuery(filters, page, Math.min(pageSize, maxPageSize));
+  // Loading lasts until the answer to the current query is there, so no effect has to switch it on.
+  const isLoading = loaded?.query !== query;
+
+  useEffect(() => {
+    if (pageSize === 0) {
+      return;
+    }
+    let current = true;
+    fetchApi<PipelineRunPageResponse>(`/api/v1/pipelinerun?${query}`, {
+      errorMessageLabel: "processingRunsLoadingError",
+    })
+      .then(page => current && setLoaded({ query, page }))
+      // useFetch has shown why; an empty page ends the loading.
+      .catch(() => current && setLoaded({ query }));
+    return () => {
+      current = false;
+    };
+  }, [fetchApi, query, pageSize]);
+
+  const changeFilters = (values: ProcessingRunFilterValues) =>
+    setSearchParams(toProcessingRunSearchParams(values, 0), { replace: true });
+
+  const changePagination = (model: GridPaginationModel) => {
+    setPageSize(model.pageSize);
+    // The grid also reports a new page size when its height changes, possibly to the handler of an earlier render,
+    // whose filters would undo the latest change.
+    if (model.page !== page) {
+      setSearchParams(toProcessingRunSearchParams(filters, model.page), { replace: true });
+    }
+  };
+
+  const columns: GridColDef<ProcessingRunRow>[] = [
+    {
+      field: "startedAt",
+      headerName: t("processingStarted"),
+      type: "dateTime",
+      valueGetter: (startedAt: string) => new Date(startedAt),
+      width: 180,
+    },
+    {
+      field: "declarer",
+      headerName: t("processedBy"),
+      valueGetter: (_value, row) => row.declarer?.name ?? t("anonymous"),
+      flex: 0.5,
+      minWidth: 200,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => <DeclarerLabel declarer={row.declarer} />,
+    },
+    {
+      field: "mandate",
+      headerName: t("mandate"),
+      valueGetter: (_value, row) => (row.mandate ? localized(row.mandate.name) : ""),
+      flex: 0.5,
+      minWidth: 200,
+    },
+    {
+      field: "terminalState",
+      headerName: t("processingState"),
+      flex: 0.6,
+      minWidth: 260,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
+        <ProcessingStateLabel
+          state={row.terminalState}
+          running={row.outcome.kind === PipelineRunOutcomeKind.Running}
+          blockingSteps={row.outcome.blockingSteps}
+          preflightFailed={row.outcome.preflightFailed}
+        />
+      ),
+    },
+    // Only a machine client sends the attempts of one delivery under one reference, so without them every run is one.
+    ...(machineDeliveryEnabled
+      ? [{ field: "attemptCount", headerName: t("attempts"), width: 100 } satisfies GridColDef<ProcessingRunRow>]
+      : []),
+    {
+      field: "outcome",
+      headerName: t("delivery"),
+      width: 160,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<ProcessingRunRow>) => (
+        <ProcessingRunDeliveryLabel outcome={row.outcome} />
+      ),
+    },
+    {
+      field: "duration",
+      headerName: t("duration"),
+      valueGetter: (_value, row) => formatDuration(row.startedAt, row.terminalAt) ?? t("durationOpen"),
+      width: 120,
+    },
+  ];
+
+  return (
+    <Stack sx={{ height: "100%" }}>
+      <ProcessingRunFilters
+        values={filters}
+        onChange={changeFilters}
+        onJobIdEntered={jobId =>
+          navigate(`/admin/processing-runs/${jobId}`, { state: listQueryState(searchParams.toString()) })
+        }
+      />
+      <Box sx={{ flex: "1 1 0", minHeight: 0 }}>
+        <GeopilotDataGrid
+          name="processingRuns"
+          loading={isLoading}
+          rows={(loaded?.page?.items ?? []).map(group => ({ ...group.latest, attemptCount: group.attemptCount }))}
+          getRowId={row => row.jobId}
+          columns={columns}
+          paginationMode="server"
+          rowCount={loaded?.page?.totalCount ?? 0}
+          paginationModel={{ page, pageSize }}
+          onPaginationModelChange={changePagination}
+          disableColumnSorting
+          disableColumnFilter
+          onSelect={jobId =>
+            navigate(`/admin/processing-runs/${jobId}`, { state: listQueryState(searchParams.toString()) })
+          }
+        />
+      </Box>
+    </Stack>
+  );
+};

@@ -29,4 +29,6 @@ public interface IDeliveryDeclarationService
 /// <param name="PrecursorDeliveryId">The delivery this one supersedes.</param>
 /// <param name="Comment">The comment accompanying the delivery.</param>
 /// <param name="Metadata">The values of the mandate's metadata fields, keyed by field id; <see langword="null"/> when none were supplied.</param>
-public record DeliveryFields(bool? PartialDelivery, int? PrecursorDeliveryId, string? Comment, IReadOnlyDictionary<string, JsonElement>? Metadata = null);
+/// <param name="ClientReference">The caller's own identifier of the delivery, already trimmed, which the protocol records
+/// and the status of the attempt echoes. No mandate evaluates it.</param>
+public record DeliveryFields(bool? PartialDelivery, int? PrecursorDeliveryId, string? Comment, IReadOnlyDictionary<string, JsonElement>? Metadata = null, string? ClientReference = null);

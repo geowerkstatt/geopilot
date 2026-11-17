@@ -174,6 +174,60 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task PassesTheTrimmedClientReferenceToTheJob()
+    {
+        var controller = CreateController(withUrlHelper: true);
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+
+        // Strict: a reference that reached the job untrimmed would match no setup.
+        var jobId = Guid.NewGuid();
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == "AV-2026-0042")))
+            .ReturnsAsync(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
+
+        var result = await controller.Create(NewRequest("  AV-2026-0042  "), CancellationToken.None);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<AcceptedResult>(result).Value);
+        Assert.AreEqual("AV-2026-0042", response.ClientReference, "The status echoes the reference the attempt carries.");
+    }
+
+    [TestMethod]
+    public async Task TakesAClientReferenceOfOnlySpacesAsNone()
+    {
+        var controller = CreateController(withUrlHelper: true);
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == null)))
+            .ReturnsAsync(NewAttemptJob(Guid.NewGuid(), uploadId));
+
+        var result = await controller.Create(NewRequest("   "), CancellationToken.None);
+
+        Assert.IsInstanceOfType<AcceptedResult>(result, "Spaces alone are no reference: the attempt stands on its own, not in a group of empty references.");
+    }
+
+    [TestMethod]
+    [DataRow("AV\u00072026", DisplayName = "Control character")]
+    [DataRow("AV\u200B2026", DisplayName = "Zero-width space")]
+    [DataRow("AV\u202E2026", DisplayName = "Bidi override")]
+    [DataRow("AV\u20282026", DisplayName = "Line separator")]
+    public async Task RefusesAClientReferenceWithAnInvisibleCharacter(string clientReference)
+    {
+        // An invisible character would make two references that look the same form two deliveries.
+        var controller = CreateController();
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+
+        var result = await controller.Create(NewRequest(clientReference), CancellationToken.None);
+
+        var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
+        Assert.IsNotNull(problem, "A reference the protocol cannot keep must be reported like a violated field rule.");
+        Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.ClientReference)));
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task RefusesAnUploadAnEarlierAttemptIsStillProcessing()
     {
         var controller = CreateController();
@@ -338,6 +392,55 @@ public class SubmissionControllerTest
         Assert.IsEmpty(
             Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories),
             "The fields are checked before the files, so nothing may have been written.");
+    }
+
+    [TestMethod]
+    public async Task RefusesAClientReferenceLongerThanTheProtocolKeeps()
+    {
+        var controller = CreateController(UploadBackend.Direct);
+        SetupDirectMandate();
+        SetMultipartBody(controller, MandateKey, [("data.xtf", "content")], fieldsBeforeTheFiles: [("clientReference", new string('x', 129))]);
+
+        var result = await controller.CreateWithFiles(CancellationToken.None);
+
+        var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
+        Assert.IsNotNull(problem);
+        Assert.IsTrue(problem.Errors.ContainsKey("clientReference"));
+        Assert.IsEmpty(
+            Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories),
+            "The reference is a field like the others, so it is checked before any file is written.");
+    }
+
+    [TestMethod]
+    public async Task PassesTheClientReferenceOfTheFormToTheJob()
+    {
+        var controller = CreateController(UploadBackend.Direct, withUrlHelper: true);
+        SetupDirectMandate();
+
+        // The longest reference the protocol keeps; strict, so any other value would match no setup.
+        var reference = new string('x', 128);
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == reference)))
+            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields)
+                => NewAttemptJob(Guid.NewGuid(), upload, clientReference: fields?.ClientReference));
+        SetMultipartBody(controller, MandateKey, [("data.xtf", "content")], fieldsBeforeTheFiles: [("clientReference", reference)]);
+
+        var result = await controller.CreateWithFiles(CancellationToken.None);
+
+        Assert.IsInstanceOfType<AcceptedResult>(result);
+    }
+
+    [TestMethod]
+    public async Task EchoesTheClientReferenceInTheStatus()
+    {
+        var controller = CreateController();
+        var jobId = Guid.NewGuid();
+        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
+
+        var result = await controller.GetSubmissionStatus(jobId);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.AreEqual("AV-2026-0042", response.ClientReference);
     }
 
     [TestMethod]
@@ -566,11 +669,11 @@ public class SubmissionControllerTest
     /// <summary>
     /// The job of an attempt, as the start returns it for a machine delivery.
     /// </summary>
-    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Declarer? startedBy = null)
+    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Declarer? startedBy = null, string? clientReference = null)
         => new(jobId, attemptUploadId, mandate.Id, DateTime.UtcNow)
         {
             IsDeclarable = true,
-            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null)),
+            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null, ClientReference: clientReference)),
         };
 
     private Guid SetupAttemptOfAnotherCaller()
@@ -614,13 +717,21 @@ public class SubmissionControllerTest
         SubmissionController controller,
         string mandateKey,
         (string FileName, string Content)[] files,
-        (string Name, string Value)? fieldAfterTheFiles = null)
+        (string Name, string Value)? fieldAfterTheFiles = null,
+        (string Name, string Value)[]? fieldsBeforeTheFiles = null)
     {
         const string boundary = "geopilot-test-boundary";
         var builder = new StringBuilder();
         builder.Append(CultureInfo.InvariantCulture, $"--{boundary}\r\n");
         builder.Append("Content-Disposition: form-data; name=\"mandateKey\"\r\n\r\n");
         builder.Append(CultureInfo.InvariantCulture, $"{mandateKey}\r\n");
+
+        foreach (var (name, value) in fieldsBeforeTheFiles ?? [])
+        {
+            builder.Append(CultureInfo.InvariantCulture, $"--{boundary}\r\n");
+            builder.Append(CultureInfo.InvariantCulture, $"Content-Disposition: form-data; name=\"{name}\"\r\n\r\n");
+            builder.Append(CultureInfo.InvariantCulture, $"{value}\r\n");
+        }
 
         foreach (var (fileName, content) in files)
         {
@@ -649,7 +760,8 @@ public class SubmissionControllerTest
             ? new DirectUploadStorage(Options.Create(new UploadDirectOptions { Directory = uploadRoot }), Mock.Of<ILogger<DirectUploadStorage>>())
             : Mock.Of<IUploadStorage>();
 
-    private SubmissionRequest NewRequest() => new() { MandateKey = MandateKey, UploadId = uploadId };
+    private SubmissionRequest NewRequest(string? clientReference = null)
+        => new() { MandateKey = MandateKey, UploadId = uploadId, ClientReference = clientReference };
 
     private void SetupMandateLookup(bool found = true)
         => mandateServiceMock

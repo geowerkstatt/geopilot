@@ -167,14 +167,24 @@ export type Coordinate = {
 };
 
 /**
- * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
  */
 export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
 
 /**
- * Whether a run can ever become a delivery, decided once when its job starts. Persisted as text.
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
  */
 export type Declarability = (typeof Declarability)[keyof typeof Declarability];
+
+/**
+ * Whether a person or a machine client started a pipeline run.
+ */
+export const DeclarerKind = { Person: "person", MachineClient: "machineClient" } as const;
+
+/**
+ * Whether a person or a machine client started a pipeline run.
+ */
+export type DeclarerKind = (typeof DeclarerKind)[keyof typeof DeclarerKind];
 
 /**
  * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
@@ -390,6 +400,7 @@ export type DeliveryResponse = {
    * Who declared the delivery, a person or a machine client.
    */
   declarerName: string;
+  declarerKind: DeclarerKind;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
 };
@@ -779,6 +790,22 @@ export type PipelineRunArtifactResponse = {
 };
 
 /**
+ * A step that kept a pipeline run from allowing a delivery.
+ */
+export type PipelineRunBlockingStep = {
+  /**
+   * The step id from the pipeline definition.
+   */
+  stepId: string;
+  /**
+   * The step's localized display name.
+   */
+  displayName: {
+    [key: string]: string;
+  };
+};
+
+/**
  * The evaluation result of one step condition.
  */
 export type PipelineRunConditionResponse = {
@@ -805,6 +832,21 @@ export type PipelineRunConditionResponse = {
 };
 
 /**
+ * Who started a pipeline run. A run started without signing in has none.
+ */
+export type PipelineRunDeclarer = {
+  kind: DeclarerKind;
+  /**
+   * The id of the person or the machine client.
+   */
+  id: number;
+  /**
+   * The display name of the person or the machine client.
+   */
+  name: string;
+};
+
+/**
  * One uploaded file of the run.
  */
 export type PipelineRunFileResponse = {
@@ -824,6 +866,18 @@ export type PipelineRunFileResponse = {
    * The SHA-256 of the content as lowercase hex, when the file was scanned.
    */
   sha256?: string | null;
+};
+
+/**
+ * The attempts of one delivery: the runs a client started with the same client reference, sender and mandate. A run
+ * without client reference is a group of its own. A group counts as one row of the list.
+ */
+export type PipelineRunGroupResponse = {
+  latest: PipelineRunSummaryResponse;
+  /**
+   * How many attempts the delivery had, the newest included, whether or not they lie in the period.
+   */
+  attemptCount: number;
 };
 
 /**
@@ -861,6 +915,58 @@ export type PipelineRunInputResponse = {
    * For a file whether it is an uploaded file passed on unchanged.
    */
   fromUpload?: boolean | null;
+};
+
+/**
+ * What became of a pipeline run, derived from its protocol, its delivery and whether its job still runs.
+ */
+export type PipelineRunOutcome = {
+  kind: PipelineRunOutcomeKind;
+  /**
+   * The delivery declared for the run, deleted or not.
+   */
+  deliveryId?: number | null;
+  /**
+   * For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed outside the steps.
+   */
+  blockingSteps: Array<PipelineRunBlockingStep>;
+  /**
+   * Whether the run failed in the preflight, before any step started.
+   */
+  preflightFailed: boolean;
+};
+
+/**
+ * What became of a pipeline run.
+ */
+export const PipelineRunOutcomeKind = {
+  Delivered: "delivered",
+  DeliveredAndDeleted: "deliveredAndDeleted",
+  NotDelivered: "notDelivered",
+  NotDeliverable: "notDeliverable",
+  NotDeclarable: "notDeclarable",
+  DeclarationFailed: "declarationFailed",
+  Running: "running",
+  Unknown: "unknown",
+} as const;
+
+/**
+ * What became of a pipeline run.
+ */
+export type PipelineRunOutcomeKind = (typeof PipelineRunOutcomeKind)[keyof typeof PipelineRunOutcomeKind];
+
+/**
+ * One page of pipeline runs, grouped by delivery and newest first.
+ */
+export type PipelineRunPageResponse = {
+  /**
+   * How many groups match the filters, across all pages.
+   */
+  totalCount: number;
+  /**
+   * The groups on this page.
+   */
+  items: Array<PipelineRunGroupResponse>;
 };
 
 /**
@@ -939,6 +1045,10 @@ export type PipelineRunResponse = {
    */
   machineClientId?: number | null;
   clientKind: ClientKind;
+  /**
+   * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.
+   */
+  clientReference?: string | null;
   declarability?: Declarability;
   /**
    * The id of the upload the run processed.
@@ -967,7 +1077,7 @@ export type PipelineRunResponse = {
    */
   terminalAt?: string | null;
   /**
-   * Why the run failed or was cancelled, when known.
+   * Why the run failed or was cancelled, when no step says why: the preflight failed, the job timed out, the host shut down, or persisting the downloads or staging the delivery files failed.
    */
   failureReason?: string | null;
   /**
@@ -986,7 +1096,33 @@ export type PipelineRunResponse = {
    * What happened to the reactions of the delivery the run produced, in the order it happened.
    */
   reactionEvents: Array<PipelineRunReactionEventResponse>;
+  declarer?: PipelineRunDeclarer;
+  mandate?: MandateReference;
+  outcome: PipelineRunOutcome;
+  forwardingState?: ReactionState;
+  notificationState?: ReactionState;
+  /**
+   * The attempts of the delivery the run belongs to, newest first and this run among them. A run without Geopilot.Api.Contracts.PipelineRunResponse.ClientReference is the only attempt of its delivery.
+   */
+  attempts: Array<PipelineRunSummaryResponse>;
 };
+
+/**
+ * The state a pipeline run is filtered by.
+ */
+export const PipelineRunStateFilter = {
+  Success: "success",
+  Warning: "warning",
+  DeliveryRestriction: "deliveryRestriction",
+  Failed: "failed",
+  Cancelled: "cancelled",
+  Open: "open",
+} as const;
+
+/**
+ * The state a pipeline run is filtered by.
+ */
+export type PipelineRunStateFilter = (typeof PipelineRunStateFilter)[keyof typeof PipelineRunStateFilter];
 
 /**
  * The protocol record of one pipeline step.
@@ -1051,6 +1187,28 @@ export type PipelineRunStepResponse = {
    * The artifacts the step produced, by name.
    */
   artifacts: Array<PipelineRunArtifactResponse>;
+};
+
+/**
+ * A pipeline run as the list shows it.
+ */
+export type PipelineRunSummaryResponse = {
+  /**
+   * The id of the processing job.
+   */
+  jobId: string;
+  /**
+   * When the job was started (UTC).
+   */
+  startedAt: string;
+  /**
+   * When the job reached its terminal state (UTC).
+   */
+  terminalAt?: string | null;
+  declarer?: PipelineRunDeclarer;
+  mandate?: MandateReference;
+  terminalState?: ProcessingState;
+  outcome: PipelineRunOutcome;
 };
 
 /**
@@ -1405,6 +1563,13 @@ export type SubmissionMultipartRequest = {
    */
   metadata?: string | null;
   /**
+   * Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
+   * the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
+   * control or invisible format characters; white space at either end is dropped, and nothing but white space
+   * counts as none. Never checked against earlier attempts. Sent before the files.
+   */
+  clientReference?: string | null;
+  /**
    * The delivered files, after every field. The name of the part does not matter; a part counts as a file
    * when it carries a file name.
    */
@@ -1444,6 +1609,13 @@ export type SubmissionRequest = {
   metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
+   * the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
+   * control or invisible format characters; white space at either end is dropped, and nothing but white space
+   * counts as none. Never checked against earlier attempts.
+   */
+  clientReference?: string | null;
 };
 
 /**
@@ -1459,6 +1631,10 @@ export type SubmissionResponse = {
    * The mandate the attempt was started for.
    */
   mandateKey: string;
+  /**
+   * Your own identifier of the delivery, as the attempt carried it, or null when it carried none.
+   */
+  clientReference?: string | null;
   /**
    * The delivery that was created, once it exists.
    */
@@ -2314,6 +2490,64 @@ export type GetApiV1PipelineResponses = {
 };
 
 export type GetApiV1PipelineResponse = GetApiV1PipelineResponses[keyof GetApiV1PipelineResponses];
+
+export type GetApiV1PipelineRunData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Only deliveries with an attempt started at or after this time (UTC), and before Geopilot.Api.Contracts.PipelineRunQuery.To if set.
+     */
+    From?: string;
+    /**
+     * Only deliveries with an attempt started before this time (UTC), and at or after Geopilot.Api.Contracts.PipelineRunQuery.From if set.
+     */
+    To?: string;
+    /**
+     * Only runs started for one of these mandates. At most 100.
+     */
+    MandateIds?: Array<number>;
+    /**
+     * Only runs started by one of these persons, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.MachineClientIds. At most 100.
+     */
+    UserIds?: Array<number>;
+    /**
+     * Only runs started by one of these machine clients, or by one of the Geopilot.Api.Contracts.PipelineRunQuery.UserIds. At most 100.
+     */
+    MachineClientIds?: Array<number>;
+    /**
+     * Only deliveries whose newest attempt is in one of these states. At most 100.
+     */
+    States?: Array<PipelineRunStateFilter>;
+    /**
+     * The page to return, from 0 to 1,000,000, which keeps the offset of the page within a whole number.
+     */
+    Page?: number;
+    /**
+     * The number of runs per page, from 1 to 100.
+     */
+    PageSize?: number;
+  };
+  url: "/api/v1/PipelineRun";
+};
+
+export type GetApiV1PipelineRunErrors = {
+  /**
+   * The period ends before it starts, or the page or a filter is out of bounds.
+   */
+  400: ValidationProblemDetails;
+};
+
+export type GetApiV1PipelineRunError = GetApiV1PipelineRunErrors[keyof GetApiV1PipelineRunErrors];
+
+export type GetApiV1PipelineRunResponses = {
+  /**
+   * One page of pipeline runs, grouped by delivery.
+   */
+  200: PipelineRunPageResponse;
+};
+
+export type GetApiV1PipelineRunResponse = GetApiV1PipelineRunResponses[keyof GetApiV1PipelineRunResponses];
 
 export type GetApiV1PipelineRunByJobIdData = {
   body?: never;

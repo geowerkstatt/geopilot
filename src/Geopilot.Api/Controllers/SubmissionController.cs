@@ -146,7 +146,11 @@ public class SubmissionController : ControllerBase
                 break;
         }
 
-        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
+        var clientReference = ReadClientReference(request.ClientReference, nameof(SubmissionRequest.ClientReference));
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata, clientReference);
         var fieldErrors = await ValidateDeliveryFieldsAsync(mandate.Id, fields, cancellationToken);
         if (fieldErrors.Count > 0)
         {
@@ -433,7 +437,7 @@ public class SubmissionController : ControllerBase
                 new Dictionary<string, string> { ["en"] = job.DeclarationFailure }));
         }
 
-        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, deliveryId, messages, downloads);
+        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, job.DeliveryIntent?.Fields.ClientReference, deliveryId, messages, downloads);
     }
 
     private static SubmissionState DeriveState(ProcessingJob job, int? deliveryId)
@@ -528,7 +532,8 @@ public class SubmissionController : ControllerBase
         }
 
         fields.TryGetValue("comment", out var comment);
-        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment, ReadMetadata(fields));
+        var clientReference = ReadClientReference(fields.GetValueOrDefault("clientReference"), "clientReference");
+        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment, ReadMetadata(fields), clientReference);
     }
 
     private Dictionary<string, JsonElement>? ReadMetadata(Dictionary<string, string> fields)
@@ -546,6 +551,26 @@ public class SubmissionController : ControllerBase
             ModelState.AddModelError("metadata", "Must be a JSON object with the ids of the metadata fields as keys.");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Reads the caller's own identifier of the delivery, trimmed; nothing but white space means none. The protocol
+    /// keeps it as sent, so what its column cannot hold is refused, and so is an invisible character, which would make
+    /// two references that look alike two deliveries. Free text from the request: it may be reflected to its sender,
+    /// but it must not reach the log.
+    /// </summary>
+    private string? ReadClientReference(string? value, string fieldName)
+    {
+        var reference = value?.Trim();
+        if (string.IsNullOrEmpty(reference))
+            return null;
+
+        if (reference.Length > PipelineRun.ClientReferenceMaxLength)
+            ModelState.AddModelError(fieldName, $"Must be at most {PipelineRun.ClientReferenceMaxLength} characters.");
+        else if (reference.Any(StringExtensions.IsControlOrFormat))
+            ModelState.AddModelError(fieldName, "Must not contain control or invisible format characters.");
+
+        return reference;
     }
 
     private async Task<IActionResult?> StoreFileAsync(

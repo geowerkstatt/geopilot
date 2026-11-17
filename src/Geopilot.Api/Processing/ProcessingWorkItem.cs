@@ -9,6 +9,6 @@ namespace Geopilot.Api.Processing;
 /// </summary>
 /// <param name="Pipeline">The pipeline to run.</param>
 /// <param name="Files">The uploaded files the run reads.</param>
-/// <param name="IsDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.
-/// Only then are its delivery files staged.</param>
+/// <param name="IsDeclarable">Whether whoever started the run may deliver to its mandate, see
+/// <see cref="ProcessingJob.IsDeclarable"/>. Only then are its delivery files staged.</param>
 public sealed record ProcessingWorkItem(IPipeline Pipeline, IReadOnlyList<IPipelineFile> Files, bool IsDeclarable);

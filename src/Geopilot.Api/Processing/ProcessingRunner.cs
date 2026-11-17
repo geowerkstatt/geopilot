@@ -130,6 +130,10 @@ public class ProcessingRunner : BackgroundService
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
                 outcome = new RunOutcome.ShutDown();
             }
+            catch (Exception) when (StepThrew(pipeline))
+            {
+                outcome = new RunOutcome.Completed(ProcessingState.Failed);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
@@ -143,6 +147,14 @@ public class ProcessingRunner : BackgroundService
             await lifecycle.RunFinishedAsync(pipeline, outcome, cancellationToken);
         });
     }
+
+    /// <summary>
+    /// Whether a step ended the run by throwing. Such a step has logged the exception and keeps it as its error
+    /// message, so the run failed in that step rather than crashed. A step failed by a condition has no error message,
+    /// so an exception thrown while persisting its downloads still counts as a crash.
+    /// </summary>
+    private static bool StepThrew(IPipeline pipeline)
+        => pipeline.Steps.Any(step => step.State == StepState.Error && step.ErrorMessage is not null);
 
     /// <summary>
     /// Persists a single step's outputs the moment it finishes, via <see cref="IPipeline.OnStepCompleted"/>,

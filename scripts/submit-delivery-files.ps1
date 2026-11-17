@@ -63,6 +63,10 @@
     option and a list of texts as an array. Left out when not given; the mandate decides which fields there
     are and which of them are required.
 
+.PARAMETER ClientReference
+    Your own identifier of the delivery, such as your delivery number. Give the same one with every attempt of the
+    same delivery, so geopilot shows the attempts together. Left out when not given.
+
 .PARAMETER PollSeconds
     Seconds between two status requests.
 
@@ -95,6 +99,7 @@ param(
     [nullable[bool]]$PartialDelivery,
     [nullable[int]]$PrecursorDeliveryId,
     [hashtable]$Metadata,
+    [string]$ClientReference,
     [int]$PollSeconds = 5,
     [int]$TimeoutMinutes = 30,
     [switch]$SkipCertificateCheck
@@ -257,6 +262,7 @@ if ($Comment) { $form.comment = $Comment }
 if ($null -ne $PartialDelivery) { $form.partialDelivery = $PartialDelivery.ToString().ToLowerInvariant() }
 if ($null -ne $PrecursorDeliveryId) { $form.precursorDeliveryId = $PrecursorDeliveryId.ToString() }
 if ($null -ne $Metadata) { $form.metadata = ConvertTo-Json -InputObject $Metadata -Compress }
+if ($ClientReference) { $form.clientReference = $ClientReference }
 $form.file = $files
 
 # 1. The token, fetched once up front, so wrong credentials fail before anything else is attempted.

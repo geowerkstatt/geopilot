@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "latest": {
+        "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
+        "startedAt": "2026-11-06T14:59:42Z",
+        "terminalAt": "2026-11-06T14:59:44Z",
+        "declarer": { "kind": "machineClient", "id": 1, "name": "Service account geopilot-api" },
+        "mandate": { "id": 1, "name": { "de": "Validierung mit Weitergabe" } },
+        "terminalState": "success",
+        "outcome": { "kind": "delivered", "deliveryId": 23, "blockingSteps": [], "preflightFailed": false }
+      },
+      "attemptCount": 2
+    }
+  ],
+  "totalCount": 1
+}

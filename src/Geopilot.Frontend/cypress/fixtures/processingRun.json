@@ -1,0 +1,155 @@
+{
+  "appVersion": "3.2.118",
+  "attempts": [
+    {
+      "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
+      "startedAt": "2026-11-06T14:59:42Z",
+      "terminalAt": "2026-11-06T14:59:44Z",
+      "declarer": {
+        "kind": "machineClient",
+        "id": 1,
+        "name": "Service account geopilot-api"
+      },
+      "mandate": {
+        "id": 1,
+        "name": {
+          "de": "Validierung mit Weitergabe"
+        }
+      },
+      "terminalState": "success",
+      "outcome": {
+        "kind": "delivered",
+        "deliveryId": 23,
+        "blockingSteps": [],
+        "preflightFailed": false
+      }
+    },
+    {
+      "jobId": "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80",
+      "startedAt": "2026-11-06T14:58:46Z",
+      "terminalAt": "2026-11-06T14:58:52Z",
+      "declarer": {
+        "kind": "machineClient",
+        "id": 1,
+        "name": "Service account geopilot-api"
+      },
+      "mandate": {
+        "id": 1,
+        "name": {
+          "de": "Validierung mit Weitergabe"
+        }
+      },
+      "terminalState": "failed",
+      "outcome": {
+        "kind": "notDeliverable",
+        "blockingSteps": [
+          {
+            "stepId": "validation",
+            "displayName": {
+              "de": "XTF Validierung"
+            }
+          }
+        ],
+        "preflightFailed": false
+      }
+    }
+  ],
+  "clientKind": "apiClient",
+  "clientReference": "SMOKE-TEST-01",
+  "declarability": "declarable",
+  "declarationFailure": null,
+  "declarer": {
+    "kind": "machineClient",
+    "id": 1,
+    "name": "Service account geopilot-api"
+  },
+  "failureReason": null,
+  "files": [
+    {
+      "fileName": "roads.xtf",
+      "storageKey": "uploads/0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21/roads.xtf",
+      "declaredSize": 20480,
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+    }
+  ],
+  "forwardingState": "done",
+  "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
+  "machineClientId": 1,
+  "mandate": {
+    "id": 1,
+    "name": {
+      "de": "Validierung mit Weitergabe"
+    }
+  },
+  "mandateId": 1,
+  "notificationState": "pending",
+  "outcome": {
+    "kind": "delivered",
+    "deliveryId": 23,
+    "blockingSteps": [],
+    "preflightFailed": false
+  },
+  "pipelineId": "ili_validation",
+  "reactionEvents": [],
+  "scanDetails": null,
+  "scanState": "clean",
+  "startedAt": "2026-11-06T14:59:42Z",
+  "steps": [
+    {
+      "stepId": "validation",
+      "displayName": {
+        "de": "XTF Validierung"
+      },
+      "processImplementation": "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess",
+      "processAssemblyName": "Geopilot.Pipeline",
+      "processAssemblyVersion": "2.0.0+0b2fe6c0",
+      "state": "success",
+      "startedAt": "2026-11-06T14:59:42Z",
+      "finishedAt": "2026-11-06T14:59:44Z",
+      "errorMessage": null,
+      "statusMessage": {
+        "de": "Keine Fehler gefunden."
+      },
+      "conditionMessage": null,
+      "inputs": [
+        {
+          "parameter": "xtfFiles",
+          "origin": "upload",
+          "reference": null,
+          "kind": "file",
+          "value": null,
+          "fileName": "roads.xtf",
+          "size": 20480,
+          "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+          "fromUpload": true
+        }
+      ],
+      "conditions": [
+        {
+          "conditionId": "validation_failed",
+          "phase": "post",
+          "kind": "fail",
+          "expression": "[validation.ValidationSuccessful] == false",
+          "matched": false,
+          "evaluatedValues": {
+            "validation.ValidationSuccessful": "True"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "download",
+          "originalFileName": "roads_log.xtf",
+          "persistedFileName": "validation_roads_log.xtf",
+          "fromUpload": false
+        }
+      ]
+    }
+  ],
+  "terminalAt": "2026-11-06T14:59:44Z",
+  "terminalState": "success",
+  "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
+  "uploadInitiatedAt": "2026-11-06T14:59:40Z",
+  "uploadStorageLocation": "https://localhost:10000/devstoreaccount1/uploads",
+  "userId": null
+}

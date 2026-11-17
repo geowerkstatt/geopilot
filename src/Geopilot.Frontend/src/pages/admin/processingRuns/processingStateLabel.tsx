@@ -1,0 +1,102 @@
+import { FC } from "react";
+import { useTranslation } from "react-i18next";
+import BlockIcon from "@mui/icons-material/Block";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { CircularProgress, Stack, Tooltip } from "@mui/material";
+import { PipelineRunBlockingStep, ProcessingState } from "../../../api/generated";
+import { px2rem } from "../../../appTheme.ts";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { formatBlockingSteps, formatProcessingState, shownProcessingState } from "./processingRunFormat.ts";
+
+interface ProcessingStateLabelProps {
+  /** The state the run ended in; without one, its outcome is unknown or it still runs. */
+  state?: ProcessingState | null;
+  /** Whether a run without terminal state still runs, rather than having stopped with its instance. */
+  running?: boolean;
+  /** The steps that kept the run from allowing a delivery, named after the state as its reason. */
+  blockingSteps?: PipelineRunBlockingStep[];
+  /** Whether the run failed in the preflight, which is then named like a step as its reason. */
+  preflightFailed?: boolean;
+  /** Name every blocking step, rather than the first and how many more. */
+  allSteps?: boolean;
+  /** How long the run took, named after the state. */
+  duration?: string;
+}
+
+const stateColor: Record<ProcessingState, string> = {
+  [ProcessingState.Pending]: "primary.main",
+  [ProcessingState.Running]: "primary.main",
+  [ProcessingState.Success]: "primary.main",
+  [ProcessingState.Failed]: "error.main",
+  [ProcessingState.Cancelled]: "error.main",
+  [ProcessingState.Warning]: "warning.main",
+  [ProcessingState.DeliveryRestriction]: "error.main",
+};
+
+// The icons take the color of the state.
+const renderIcon = (state: ProcessingState) => {
+  switch (state) {
+    case ProcessingState.Pending:
+      return <ScheduleIcon fontSize="small" />;
+    case ProcessingState.Running:
+      return <CircularProgress size={px2rem(16)} color="inherit" aria-hidden />;
+    case ProcessingState.Success:
+      return <CheckCircleOutlineIcon fontSize="small" />;
+    case ProcessingState.Warning:
+      return <WarningAmberIcon fontSize="small" />;
+    case ProcessingState.DeliveryRestriction:
+      return <BlockIcon fontSize="small" />;
+    case ProcessingState.Failed:
+    case ProcessingState.Cancelled:
+      return <ErrorOutlineIcon fontSize="small" />;
+  }
+};
+
+/** The state of a run as its icon in the color of the state; a question mark when the state is unknown. */
+const ProcessingStateIcon: FC<{ state?: ProcessingState }> = ({ state }) => (
+  <Stack component="span" sx={{ color: state ? stateColor[state] : "primary.states.disabledBackground" }}>
+    {state ? renderIcon(state) : <HelpOutlineIcon fontSize="small" />}
+  </Stack>
+);
+
+/** The state of a pipeline run as a colored icon with its name. */
+export const ProcessingStateLabel: FC<ProcessingStateLabelProps> = ({
+  state,
+  running,
+  blockingSteps,
+  preflightFailed,
+  allSteps,
+  duration,
+}) => {
+  const { t } = useTranslation();
+  const { localized } = useLocalized();
+  const shownState = shownProcessingState(state, running);
+  const stateName = formatProcessingState(t, shownState);
+  const label = duration ? t("stepStateAfterDuration", { state: stateName, duration }) : stateName;
+
+  // A restriction does not stop the pipeline, so several steps can keep the run from allowing a delivery.
+  const steps = preflightFailed
+    ? [t("preparation")]
+    : (blockingSteps ?? []).map(step => localized(step.displayName, step.stepId));
+  const text =
+    steps.length === 0
+      ? label
+      : t("processingStateInSteps", { state: label, steps: allSteps ? steps.join(", ") : formatBlockingSteps(steps) });
+
+  // Only the icon takes the color: as text, the warning and error colors are too pale to read.
+  const content = (
+    <Stack
+      component="span"
+      direction="row"
+      sx={{ alignItems: "center", gap: 1 }}
+      data-cy={`processingState-${shownState ?? "unknown"}`}>
+      <ProcessingStateIcon state={shownState} />
+      {text}
+    </Stack>
+  );
+  return steps.length > 1 && !allSteps ? <Tooltip title={steps.join(", ")}>{content}</Tooltip> : content;
+};

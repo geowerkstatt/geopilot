@@ -113,6 +113,24 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task RecordJobStartedWritesTheClientReference()
+    {
+        currentHttpContext = null;
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
+        context.SaveChanges();
+        var declarer = Declarer.ForClient(client.Id);
+        var job = NewJob(out var upload) with
+        {
+            DeliveryIntent = new DeliveryIntent(declarer, "KEY", new DeliveryFields(null, null, null, ClientReference: "AV-2026-0042")),
+        };
+
+        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+
+        var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual("AV-2026-0042", run.ClientReference, "The list groups the attempts of a delivery by what the protocol kept.");
+    }
+
+    [TestMethod]
     public async Task RecordJobStartedClassifiesTheClient()
     {
         var bearerContext = new DefaultHttpContext();
