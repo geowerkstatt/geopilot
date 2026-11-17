@@ -16,7 +16,7 @@ public enum AssetType
     ProcessedData,
 
     /// <summary>
-    /// Metadata created by the declaration or validation process.
+    /// Metadata created by the delivery or validation process.
     /// </summary>
     /// <remarks>
     /// This asset type is currently unused.

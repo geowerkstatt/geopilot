@@ -167,26 +167,6 @@ export type Coordinate = {
 };
 
 /**
- * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
- */
-export const Declarability = { Declarable: "declarable", NotDeclarable: "notDeclarable" } as const;
-
-/**
- * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
- */
-export type Declarability = (typeof Declarability)[keyof typeof Declarability];
-
-/**
- * Whether a person or a machine client started a pipeline run.
- */
-export const DeclarerKind = { Person: "person", MachineClient: "machineClient" } as const;
-
-/**
- * Whether a person or a machine client started a pipeline run.
- */
-export type DeclarerKind = (typeof DeclarerKind)[keyof typeof DeclarerKind];
-
-/**
  * The copy of a Geopilot.Api.Models.MetadataField that a delivery keeps, together with the value that was delivered.
  * Value is null for a field that was not filled in.
  */
@@ -218,23 +198,23 @@ export type Delivery = {
    */
   jobId: string;
   /**
-   * The date the delivery was declared.
+   * The date the delivery was created.
    */
   date: string;
-  declaringUser?: User;
+  deliveredByUser?: User;
   /**
-   * The id of Geopilot.Api.Models.Delivery.DeclaringUser. Exposed so a query can filter on it without joining the user.
+   * The id of Geopilot.Api.Models.Delivery.DeliveredByUser. Exposed so a query can filter on it without joining the user.
    */
-  declaringUserId?: number | null;
-  declaringClient?: MachineClient;
+  deliveredByUserId?: number | null;
+  deliveredByClient?: MachineClient;
   /**
-   * The id of Geopilot.Api.Models.Delivery.DeclaringClient.
+   * The id of Geopilot.Api.Models.Delivery.DeliveredByClient.
    */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   /**
-   * The name of whoever declared the delivery, for display: the user's full name or the client's name.
+   * The name of whoever delivered, for display: the user's full name or the client's name.
    */
-  readonly declarerName: string;
+  readonly deliveredByName: string;
   mandate: Mandate;
   /**
    * Assets delivered or created by the validation and delivery process.
@@ -268,22 +248,22 @@ export type DeliveryDetailResponse = {
    */
   id: number;
   /**
-   * The date the delivery was declared.
+   * The date the delivery was created.
    */
   date: string;
   mandate: MandateReference;
   /**
-   * Who declared the delivery, a person or a machine client.
+   * Who delivered, a user or a machine client.
    */
-  declarerName: string;
+  deliveredByName: string;
   /**
-   * The user who declared the delivery, null when a machine client did.
+   * The user who delivered, null when a machine client did.
    */
-  declaringUserId?: number | null;
+  deliveredByUserId?: number | null;
   /**
-   * The machine client that declared the delivery, null when a user did.
+   * The machine client that delivered, null when a user did.
    */
-  declaringClientId?: number | null;
+  deliveredByClientId?: number | null;
   precursorDelivery?: DeliverySummary;
   /**
    * Whether the delivery holds partial data, null when the mandate does not ask.
@@ -302,7 +282,7 @@ export type DeliveryDetailResponse = {
    */
   comment: string;
   /**
-   * The copy of the mandate's metadata fields taken at declaration, with the delivered values.
+   * The copy of the mandate's metadata fields taken when the delivery was created, with the delivered values.
    */
   metadata: Array<DeliveredMetadataField>;
   stacItem?: StacItemReference;
@@ -392,15 +372,18 @@ export type DeliveryResponse = {
    */
   id: number;
   /**
-   * The date the delivery was declared.
+   * The date the delivery was created.
    */
   date: string;
   mandate: MandateReference;
   /**
-   * Who declared the delivery, a person or a machine client.
+   * Who delivered, a user or a machine client.
    */
-  declarerName: string;
-  declarerKind: DeclarerKind;
+  deliveredByName: string;
+  /**
+   * The machine client that delivered, null when a user did.
+   */
+  deliveredByClientId?: number | null;
   forwardingState?: ReactionState;
   notificationState?: ReactionState;
 };
@@ -414,7 +397,7 @@ export type DeliverySummary = {
    */
   id: number;
   /**
-   * The date the delivery was declared.
+   * The date the delivery was created.
    */
   date: string;
 };
@@ -518,12 +501,12 @@ export type MachineClient = {
    */
   organisations: Array<Organisation>;
   /**
-   * Deliveries the client has declared.
+   * Deliveries the client delivered.
    */
   deliveries: Array<Delivery>;
   /**
    * Persons an administrator made responsible for the client. They see its deliveries among their own, may
-   * delete them like their own and receive the mail a delivery sends to its declarer, but gain no right on
+   * delete them like their own and receive the mail a delivery sends to its supplier, but gain no right on
    * the client's mandates.
    */
   responsibleUsers: Array<User>;
@@ -614,7 +597,7 @@ export type Mandate = {
    */
   organisations: Array<Organisation>;
   /**
-   * Data deliveries that have been declared fulfilling the mandate.
+   * Data deliveries fulfilling the mandate.
    */
   deliveries: Array<Delivery>;
 };
@@ -771,6 +754,16 @@ export type Organisation = {
 };
 
 /**
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
+ */
+export const PermissionToDeliver = { Permitted: "permitted", NotPermitted: "notPermitted" } as const;
+
+/**
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
+ */
+export type PermissionToDeliver = (typeof PermissionToDeliver)[keyof typeof PermissionToDeliver];
+
+/**
  * One artifact a step produced.
  */
 export type PipelineRunArtifactResponse = {
@@ -829,21 +822,6 @@ export type PipelineRunConditionResponse = {
   evaluatedValues?: {
     [key: string]: string | null;
   } | null;
-};
-
-/**
- * Who started a pipeline run. A run started without signing in has none.
- */
-export type PipelineRunDeclarer = {
-  kind: DeclarerKind;
-  /**
-   * The id of the person or the machine client.
-   */
-  id: number;
-  /**
-   * The display name of the person or the machine client.
-   */
-  name: string;
 };
 
 /**
@@ -923,7 +901,7 @@ export type PipelineRunInputResponse = {
 export type PipelineRunOutcome = {
   kind: PipelineRunOutcomeKind;
   /**
-   * The delivery declared for the run, deleted or not.
+   * The delivery created for the run, deleted or not.
    */
   deliveryId?: number | null;
   /**
@@ -944,8 +922,8 @@ export const PipelineRunOutcomeKind = {
   DeliveredAndDeleted: "deliveredAndDeleted",
   NotDelivered: "notDelivered",
   NotDeliverable: "notDeliverable",
-  NotDeclarable: "notDeclarable",
-  DeclarationFailed: "declarationFailed",
+  NotPermitted: "notPermitted",
+  DeliveryFailed: "deliveryFailed",
   Running: "running",
   Unknown: "unknown",
 } as const;
@@ -1036,20 +1014,12 @@ export type PipelineRunResponse = {
    * The mandate the run was started for.
    */
   mandateId?: number | null;
-  /**
-   * The user that started the run, or null when a machine client started it or the job was started anonymously. Who declared the delivery is recorded on the delivery itself.
-   */
-  userId?: number | null;
-  /**
-   * The machine client that started the run, or null when a user started it or the job was started anonymously.
-   */
-  machineClientId?: number | null;
   clientKind: ClientKind;
   /**
    * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.
    */
   clientReference?: string | null;
-  declarability?: Declarability;
+  permissionToDeliver?: PermissionToDeliver;
   /**
    * The id of the upload the run processed.
    */
@@ -1081,9 +1051,9 @@ export type PipelineRunResponse = {
    */
   failureReason?: string | null;
   /**
-   * Why geopilot could not declare the delivery of a machine delivery although the run allowed it.
+   * Why geopilot could not create the delivery of a machine delivery although the run allowed it.
    */
-  declarationFailure?: string | null;
+  deliveryFailure?: string | null;
   /**
    * The manifest of the uploaded files.
    */
@@ -1096,7 +1066,7 @@ export type PipelineRunResponse = {
    * What happened to the reactions of the delivery the run produced, in the order it happened.
    */
   reactionEvents: Array<PipelineRunReactionEventResponse>;
-  declarer?: PipelineRunDeclarer;
+  startedBy?: PipelineRunStarter;
   mandate?: MandateReference;
   outcome: PipelineRunOutcome;
   forwardingState?: ReactionState;
@@ -1105,6 +1075,25 @@ export type PipelineRunResponse = {
    * The attempts of the delivery the run belongs to, newest first and this run among them. A run without Geopilot.Api.Contracts.PipelineRunResponse.ClientReference is the only attempt of its delivery.
    */
   attempts: Array<PipelineRunSummaryResponse>;
+};
+
+/**
+ * Who started a pipeline run: a user or a machine client, told apart by which id is set. A run started without
+ * signing in has none.
+ */
+export type PipelineRunStarter = {
+  /**
+   * The id of the user, or null when a machine client started the run.
+   */
+  userId?: number | null;
+  /**
+   * The id of the machine client, or null when a user started the run.
+   */
+  machineClientId?: number | null;
+  /**
+   * The display name of the user or the machine client.
+   */
+  name: string;
 };
 
 /**
@@ -1205,7 +1194,7 @@ export type PipelineRunSummaryResponse = {
    * When the job reached its terminal state (UTC).
    */
   terminalAt?: string | null;
-  declarer?: PipelineRunDeclarer;
+  startedBy?: PipelineRunStarter;
   mandate?: MandateReference;
   terminalState?: ProcessingState;
   outcome: PipelineRunOutcome;
@@ -1674,7 +1663,7 @@ export type UploadSettingsResponse = {
 };
 
 /**
- * A delivery as a user sees it in the list of their deliveries: one the user declared, or one of a machine client the
+ * A delivery as a user sees it in the list of their deliveries: one the user delivered, or one of a machine client the
  * user is responsible for. Of the mandate it carries no more than its id and name, because the configuration of a
  * mandate belongs to the administrators.
  */
@@ -1684,14 +1673,14 @@ export type UploadedDelivery = {
    */
   id: number;
   /**
-   * The date the delivery was declared.
+   * The date the delivery was created.
    */
   date: string;
   mandate: MandateReference;
   /**
-   * The name of whoever declared the delivery, the user or the machine client.
+   * The name of whoever delivered, the user or the machine client.
    */
-  declarerName: string;
+  deliveredByName: string;
   /**
    * The comment given with the delivery.
    */
@@ -1703,7 +1692,7 @@ export type UploadedDelivery = {
 };
 
 /**
- * A person that is allowed to view or declare deliveries.
+ * A person that is allowed to view or create deliveries.
  */
 export type User = {
   /**
@@ -1728,7 +1717,7 @@ export type User = {
    */
   organisations: Array<Organisation>;
   /**
-   * Deliveries the user has declared.
+   * Deliveries the user delivered.
    */
   deliveries: Array<Delivery>;
   /**
@@ -1817,7 +1806,7 @@ export type GetApiV1DeliveryResponse = GetApiV1DeliveryResponses[keyof GetApiV1D
 
 export type PostApiV1DeliveryData = {
   /**
-   * Geopilot.Api.Contracts.DeliveryRequest containing all information for the declaration process.
+   * Geopilot.Api.Contracts.DeliveryRequest containing all information for creating the delivery.
    */
   body?: DeliveryRequest;
   path?: never;

@@ -1018,7 +1018,7 @@ reaction_sets:
               fr: Copie cachée à
               it: Copia nascosta a
               en: Blind copy to
-          - key: includeDeclarer
+          - key: includeSupplier
             display_name:
               de: Lieferant erhält die Info-Mail
               fr: Le fournisseur reçoit l'e-mail d'information

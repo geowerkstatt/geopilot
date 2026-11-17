@@ -13,10 +13,10 @@ public class MailTemplateTest
         Id = 42,
         JobId = Guid.NewGuid(),
         ReactionId = "info_mail",
-        DeclaredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
+        DeliveredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
         Comment = "Erste Zeile & <b>fett</b>\nZweite Zeile",
         Mandate = new MandateInfo { Id = 7, Name = new Dictionary<string, string> { ["de"] = "Nachführung AV", ["fr"] = "Mise à jour MO" } },
-        Declarer = new DeclarerInfo { Kind = DeclarerKind.User, Name = "Muster & Partner <AG>", Email = "lieferant@example.com" },
+        Supplier = new SupplierInfo { Kind = SupplierKind.User, Name = "Muster & Partner <AG>", Email = "lieferant@example.com" },
     };
 
     private static readonly string[] FileNames = ["daten.xtf", "<bericht>.pdf"];
@@ -53,7 +53,7 @@ public class MailTemplateTest
     [TestMethod]
     public void RenderBodyEncodesEveryValueForHtml()
     {
-        var template = MailTemplate.Parse("<title>Neue Lieferung</title><p>{{declarer_name}}</p><p>{{comment}}</p>{{files}}");
+        var template = MailTemplate.Parse("<title>Neue Lieferung</title><p>{{supplier_name}}</p><p>{{comment}}</p>{{files}}");
 
         Assert.AreEqual(
             "<title>Neue Lieferung</title><p>Muster &amp; Partner &lt;AG&gt;</p><p>Erste Zeile &amp; &lt;b&gt;fett&lt;/b&gt;<br>Zweite Zeile</p>"
@@ -64,10 +64,10 @@ public class MailTemplateTest
     [TestMethod]
     [DataRow(2026, 10, 20, "20.10.2026 10:00", DisplayName = "Summer time")]
     [DataRow(2026, 11, 20, "20.11.2026 09:00", DisplayName = "Winter time")]
-    public void RenderBodyGivesTheDeclarationInLocalTime(int year, int month, int day, string expected)
+    public void RenderBodyGivesTheDeliveryTimeInLocalTime(int year, int month, int day, string expected)
     {
-        var template = MailTemplate.Parse("<title>{{declared_at}}</title>");
-        var delivery = Delivery with { DeclaredAt = new DateTimeOffset(year, month, day, 8, 0, 0, TimeSpan.Zero) };
+        var template = MailTemplate.Parse("<title>{{delivered_at}}</title>");
+        var delivery = Delivery with { DeliveredAt = new DateTimeOffset(year, month, day, 8, 0, 0, TimeSpan.Zero) };
 
         Assert.AreEqual($"<title>{expected}</title>", template.RenderBody(delivery, FileNames, Zurich));
     }

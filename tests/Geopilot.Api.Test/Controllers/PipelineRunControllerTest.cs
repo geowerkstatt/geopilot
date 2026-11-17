@@ -92,28 +92,28 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetReturnsWhetherTheRunWasDeclarableAndWhyItsDeclarationFailed()
+    public async Task GetReturnsWhetherTheRunWasPermittedAndWhyItsDeliveryFailed()
     {
         var run = SeedRun();
         run.TerminalState = ProcessingState.Success;
-        run.Declarability = Declarability.Declarable;
-        run.DeclarationFailure = "No assets found.";
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
+        run.DeliveryFailure = "No assets found.";
         context.SaveChanges();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.AreEqual(Declarability.Declarable, response.Declarability);
-        Assert.AreEqual("No assets found.", response.DeclarationFailure);
+        Assert.AreEqual(PermissionToDeliver.Permitted, response.PermissionToDeliver);
+        Assert.AreEqual("No assets found.", response.DeliveryFailure);
     }
 
     [TestMethod]
-    public async Task GetLeavesTheDeclarabilityOfAnOlderRunOpen()
+    public async Task GetLeavesThePermissionOfAnOlderRunOpen()
     {
         var run = SeedRun();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsNull(response.Declarability, "A run recorded before the protocol kept its declarability says nothing about it, which is not the same as not declarable.");
+        Assert.IsNull(response.PermissionToDeliver, "A run recorded before the protocol kept the permission says nothing about it, which is not the same as not permitted.");
     }
 
     [TestMethod]
@@ -123,7 +123,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetNamesDeclarerAndMandate()
+    public async Task GetNamesStarterAndMandate()
     {
         var user = context.Users.First();
         var mandate = context.Mandates.First();
@@ -135,10 +135,10 @@ public sealed class PipelineRunControllerTest
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsNotNull(response.Declarer);
-        Assert.AreEqual(DeclarerKind.Person, response.Declarer.Kind);
-        Assert.AreEqual(user.Id, response.Declarer.Id);
-        Assert.AreEqual(user.FullName, response.Declarer.Name);
+        Assert.IsNotNull(response.StartedBy);
+        Assert.IsNull(response.StartedBy.MachineClientId, "a run a user started names no client.");
+        Assert.AreEqual(user.Id, response.StartedBy.UserId);
+        Assert.AreEqual(user.FullName, response.StartedBy.Name);
         Assert.IsNotNull(response.Mandate);
         Assert.AreEqual(mandate.Id, response.Mandate.Id);
     }
@@ -234,7 +234,7 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task ListFiltersByMandatesDeclarersAndStates()
+    public async Task ListFiltersByMandatesStartersAndStates()
     {
         var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
         var user = context.Users.First();
@@ -351,9 +351,9 @@ public sealed class PipelineRunControllerTest
 
         var item = (await List(InWindow())).Items.Single().Latest;
 
-        Assert.IsNull(item.Declarer);
+        Assert.IsNull(item.StartedBy);
         Assert.IsNull(item.Mandate);
-        Assert.AreEqual(PipelineRunOutcomeKind.NotDeclarable, item.Outcome.Kind);
+        Assert.AreEqual(PipelineRunOutcomeKind.NotPermitted, item.Outcome.Kind);
     }
 
     [TestMethod]
@@ -557,7 +557,7 @@ public sealed class PipelineRunControllerTest
 
     private Delivery SeedDelivery(Guid jobId, bool deleted)
     {
-        var delivery = new Delivery { JobId = jobId, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(), Deleted = deleted };
+        var delivery = new Delivery { JobId = jobId, Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(), Deleted = deleted };
         context.Deliveries.Add(delivery);
         context.SaveChanges();
         return delivery;

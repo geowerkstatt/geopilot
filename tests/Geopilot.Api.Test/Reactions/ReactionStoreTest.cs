@@ -376,7 +376,7 @@ public class ReactionStoreTest
 
     private Delivery AddDelivery()
     {
-        var newDelivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First() };
+        var newDelivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First() };
         context.Deliveries.Add(newDelivery);
         context.SaveChanges();
         return newDelivery;

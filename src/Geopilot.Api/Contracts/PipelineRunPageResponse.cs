@@ -23,7 +23,7 @@ public record PipelineRunGroupResponse(PipelineRunSummaryResponse Latest, int At
 /// <param name="JobId">The id of the processing job.</param>
 /// <param name="StartedAt">When the job was started (UTC).</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
-/// <param name="Declarer">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
+/// <param name="StartedBy">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
 /// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> while it runs or when the outcome is unknown.</param>
 /// <param name="Outcome">What became of the run.</param>
@@ -31,7 +31,7 @@ public record PipelineRunSummaryResponse(
     Guid JobId,
     DateTime StartedAt,
     DateTime? TerminalAt,
-    PipelineRunDeclarer? Declarer,
+    PipelineRunStarter? StartedBy,
     MandateReference? Mandate,
     ProcessingState? TerminalState,
     PipelineRunOutcome Outcome);

@@ -16,8 +16,8 @@ public static class GeopilotPolicies
     public const string User = "User";
 
     /// <summary>
-    /// Allow access for whoever may declare a delivery: a stored user or a registered machine client. The
+    /// Allow access for whoever may deliver: a stored user or a registered machine client. The
     /// only policy a machine client satisfies, and therefore the boundary of the machine delivery surface.
     /// </summary>
-    public const string Declarer = "Declarer";
+    public const string Supplier = "Supplier";
 }

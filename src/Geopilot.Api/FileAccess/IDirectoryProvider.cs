@@ -18,14 +18,14 @@ public interface IDirectoryProvider
 
     /// <summary>
     /// Gets the root directory for persisted assets of deliveries. Until
-    /// the declaration the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
-    /// belongs to a delivery, or to a declaration that failed after promoting it and retires with the job.
+    /// the delivery is created the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
+    /// belongs to a delivery, or to a creation that failed after promoting it and retires with the job.
     /// </summary>
     string AssetDirectory { get; }
 
     /// <summary>
     /// Gets the root directory for staged delivery payloads: the files a finished, deliverable job tagged
-    /// for delivery wait here until the delivery is declared and they move into <see cref="AssetDirectory"/>.
+    /// for delivery wait here until the delivery is created and they move into <see cref="AssetDirectory"/>.
     /// Lies below the asset directory on purpose, so that move is a rename on one volume.
     /// </summary>
     string AssetStagingDirectory { get; }

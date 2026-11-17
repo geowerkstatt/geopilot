@@ -4,7 +4,7 @@ export const Deliveries = () => {
   return (
     <DeliveryGrid
       fetchUrl="/api/v1/delivery"
-      columns={["id", "date", "declarerName", "mandateName", "forwardingState", "notificationState"]}
+      columns={["id", "date", "deliveredByName", "mandateName", "forwardingState", "notificationState"]}
       rowAction="details"
     />
   );

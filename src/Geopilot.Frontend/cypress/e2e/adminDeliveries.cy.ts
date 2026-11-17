@@ -1,5 +1,5 @@
 import type { DeliveryDetailResponse, DeliveryResponse } from "@/api/generated";
-import { DeclarerKind, ReactionState } from "@/api/generated";
+import { ReactionState } from "@/api/generated";
 import { getGridRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
 
@@ -66,8 +66,8 @@ describe("Admin deliveries with reactions", () => {
       id,
       date: "2026-10-23T08:00:00Z",
       mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
-      declarerName: "Kelvin Spencer",
-      declarerKind: DeclarerKind.Person,
+      deliveredByName: "Kelvin Spencer",
+      deliveredByClientId: null,
       forwardingState,
       notificationState,
     }) satisfies DeliveryResponse;
@@ -105,7 +105,7 @@ describe("Admin deliveries with reactions", () => {
         id: 9004,
         date: "2026-10-23T08:00:00Z",
         mandate: { id: 1, name: { de: "Mandat", en: "Mandate" } },
-        declarerName: "Kelvin Spencer",
+        deliveredByName: "Kelvin Spencer",
         jobId: "3f2a9c1e-6b7d-4e58-9a0b-2c4d6e8f1a3b",
         files: [],
         comment: "",

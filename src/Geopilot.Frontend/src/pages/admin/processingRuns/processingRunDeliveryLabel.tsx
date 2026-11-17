@@ -14,10 +14,10 @@ interface ProcessingRunDeliveryLabelProps {
 // A run that still runs or whose outcome is unknown has nothing to say about a delivery yet.
 const deliveryLabelKey: Partial<Record<PipelineRunOutcomeKind, TranslationKey>> = {
   [PipelineRunOutcomeKind.DeliveredAndDeleted]: "processingRunDeliveryDeleted",
-  [PipelineRunOutcomeKind.DeclarationFailed]: "processingRunDeliveryFailed",
+  [PipelineRunOutcomeKind.DeliveryFailed]: "processingRunDeliveryFailed",
   [PipelineRunOutcomeKind.NotDelivered]: "processingRunDeliveryNotDelivered",
   [PipelineRunOutcomeKind.NotDeliverable]: "processingRunDeliveryNotPossible",
-  [PipelineRunOutcomeKind.NotDeclarable]: "processingRunDeliveryNotPermitted",
+  [PipelineRunOutcomeKind.NotPermitted]: "processingRunDeliveryNotPermitted",
 };
 
 /** What became of the delivery of a run: its id, or why there is none. */

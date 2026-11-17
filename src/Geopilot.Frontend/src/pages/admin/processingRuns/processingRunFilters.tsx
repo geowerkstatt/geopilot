@@ -67,8 +67,8 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
     }
   }, [fetchApi, machineDeliveryEnabled]);
 
-  const declarerOptions = toOptions([
-    ...users.map(user => ({ value: `person:${user.id}`, name: user.fullName })),
+  const startedByOptions = toOptions([
+    ...users.map(user => ({ value: `user:${user.id}`, name: user.fullName })),
     ...machineClients.map(client => ({ value: `machineClient:${client.id}`, name: client.name })),
   ]);
   const mandateOptions = toOptions(
@@ -94,7 +94,7 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
   };
 
   const listFilter = (
-    field: "declarers" | "mandateIds" | "states",
+    field: "startedBy" | "mandateIds" | "states",
     label: TranslationKey,
     options: FilterOption[],
     dataCy: string,
@@ -134,7 +134,7 @@ export const ProcessingRunFilters: FC<ProcessingRunFiltersProps> = ({ values, on
         onChange={changeTime("to")}
         dataCy="processingRunFilter-to"
       />
-      {listFilter("declarers", "processedBy", declarerOptions, "processingRunFilter-declarer")}
+      {listFilter("startedBy", "processedBy", startedByOptions, "processingRunFilter-startedBy")}
       {listFilter("mandateIds", "mandate", mandateOptions, "processingRunFilter-mandate")}
       {listFilter("states", "processingState", stateOptions, "processingRunFilter-state")}
     </FilterBar>

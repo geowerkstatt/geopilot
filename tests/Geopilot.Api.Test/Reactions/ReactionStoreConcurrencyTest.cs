@@ -83,7 +83,7 @@ public class ReactionStoreConcurrencyTest
         {
             JobId = Guid.NewGuid(),
             Mandate = await context.Mandates.FirstAsync(),
-            DeclaringUser = await context.Users.FirstAsync(),
+            DeliveredByUser = await context.Users.FirstAsync(),
         };
         var reactions = Enumerable.Range(0, count)
             .Select(index => new DeliveryReaction

@@ -25,7 +25,7 @@ public class PipelineRunRecorderTest
     private PipelineRunRecorder recorder;
     private Mandate mandate;
     private User user;
-    private Declarer declarer;
+    private Supplier supplier;
 
     [TestInitialize]
     public void Initialize()
@@ -53,7 +53,7 @@ public class PipelineRunRecorderTest
         context.Mandates.Add(mandate);
         context.Users.Add(user);
         context.SaveChanges();
-        declarer = Declarer.ForUser(user.Id);
+        supplier = Supplier.ForUser(user.Id);
     }
 
     [TestCleanup]
@@ -67,7 +67,7 @@ public class PipelineRunRecorderTest
 
         var job = NewJob(out var upload, StepMock("matching").Object, StepMock("validation").Object);
 
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         var run = await context.PipelineRuns.Include(r => r.Files).Include(r => r.Steps).SingleAsync(r => r.JobId == job.Id);
         Assert.AreEqual("pipe_a", run.PipelineId);
@@ -105,7 +105,7 @@ public class PipelineRunRecorderTest
         context.SaveChanges();
         var job = NewJob(out var upload);
 
-        await recorder.RecordJobStartedAsync(job, mandate, Declarer.ForClient(client.Id), upload);
+        await recorder.RecordJobStartedAsync(job, mandate, Supplier.ForClient(client.Id), upload);
 
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
         Assert.AreEqual(client.Id, run.MachineClientId);
@@ -118,13 +118,13 @@ public class PipelineRunRecorderTest
         currentHttpContext = null;
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
         context.SaveChanges();
-        var declarer = Declarer.ForClient(client.Id);
+        var supplier = Supplier.ForClient(client.Id);
         var job = NewJob(out var upload) with
         {
-            DeliveryIntent = new DeliveryIntent(declarer, "KEY", new DeliveryFields(null, null, null, ClientReference: "AV-2026-0042")),
+            DeliveryIntent = new DeliveryIntent(supplier, "KEY", new DeliveryFields(null, null, null, ClientReference: "AV-2026-0042")),
         };
 
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
         Assert.AreEqual("AV-2026-0042", run.ClientReference, "The list groups the attempts of a delivery by what the protocol kept.");
@@ -150,7 +150,7 @@ public class PipelineRunRecorderTest
     [TestMethod]
     public async Task TheDatabaseRefusesARunStartedByAUserAndAMachineClient()
     {
-        // The recorder cannot write this, a Declarer is one or the other, so only the database keeps every
+        // The recorder cannot write this, a Supplier is one or the other, so only the database keeps every
         // other writer from recording a run that two principals started.
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "TWINLANTERN" }).Entity;
         context.SaveChanges();
@@ -183,9 +183,9 @@ public class PipelineRunRecorderTest
         // violates the unique index, standing in for any failing write.
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => recorder.RecordJobStartedAsync(job, mandate, declarer, upload));
+        await Assert.ThrowsAsync<DbUpdateException>(() => recorder.RecordJobStartedAsync(job, mandate, supplier, upload));
     }
 
     [TestMethod]
@@ -198,7 +198,7 @@ public class PipelineRunRecorderTest
         step.SetupGet(s => s.Process).Returns(PluginProcess(informationalVersion));
         var job = NewJob(out var upload, step.Object);
 
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         var row = await LoadStepRowAsync(job.Id, "validation");
         Assert.AreEqual(expectedVersion, row.ProcessAssemblyVersion);
@@ -209,7 +209,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         var step = StepMock("validation");
         await recorder.RecordStepStartedAsync(job.Id, step.Object, 0);
@@ -259,7 +259,7 @@ public class PipelineRunRecorderTest
         currentHttpContext = null;
         var step = StepMock("validation");
         var job = NewJob(out var upload, step.Object);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
         var inputs = new[]
         {
             new StepInput("scope", InputOrigin.StepOutput, "metadata.Scope", InputKind.Value, "ch.dmav.sauge"),
@@ -280,7 +280,7 @@ public class PipelineRunRecorderTest
         currentHttpContext = null;
         var step = StepMock("validation");
         var job = NewJob(out var upload, step.Object);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
         await recorder.RecordScanOutcomeAsync(job.Id, new ScanResult(IsClean: true, Hashes: new Dictionary<string, string> { ["uploads/1/data.xtf"] = "cafe01", ["uploads/1/model.ili"] = "cafe02" }));
 
         await recorder.RecordStepInputsAsync(job.Id, step.Object, 0, new[]
@@ -306,7 +306,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         // The first step completed with a delivery file that was extracted only after the last step;
         // the second step was never reached, so no row exists for it yet.
@@ -342,7 +342,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         var scanResult = new ScanResult(
             IsClean: false,
@@ -363,7 +363,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         await recorder.RecordScanOutcomeAsync(job.Id, new ScanResult(true, Scanned: false));
 
@@ -376,7 +376,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
         await recorder.RecordPreflightFailedAsync(job.Id, "ThreatDetected: The uploaded files could not be processed.");
 
@@ -387,16 +387,16 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
-    public async Task RecordDeclarationFailedKeepsTheReason()
+    public async Task RecordDeliveryFailedKeepsTheReason()
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
-        await recorder.RecordDeclarationFailedAsync(job.Id, "No assets found.");
+        await recorder.RecordDeliveryFailedAsync(job.Id, "No assets found.");
 
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
-        Assert.AreEqual("No assets found.", run.DeclarationFailure);
+        Assert.AreEqual("No assets found.", run.DeliveryFailure);
     }
 
     [TestMethod]
@@ -410,7 +410,7 @@ public class PipelineRunRecorderTest
         await recorder.RecordStepCompletedAsync(unknownJobId, step.Object, 0);
         await recorder.RecordRunFinishedAsync(unknownJobId, new List<IPipelineStep> { step.Object }, ProcessingState.Failed, "boom");
         await recorder.RecordPreflightFailedAsync(unknownJobId, "boom");
-        await recorder.RecordDeclarationFailedAsync(unknownJobId, "boom");
+        await recorder.RecordDeliveryFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a run record must be skipped, not fail.");
     }
@@ -498,7 +498,7 @@ public class PipelineRunRecorderTest
     [TestMethod]
     public async Task ReactionAttemptsWithoutRunRecordDoNotThrow()
     {
-        var withoutRun = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
+        var withoutRun = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = user };
         context.Deliveries.Add(withoutRun);
         await context.SaveChangesAsync();
         var reaction = ClaimedReaction(withoutRun);
@@ -593,8 +593,8 @@ public class PipelineRunRecorderTest
     private async Task<(PipelineRun Run, Delivery Delivery)> SeedRunWithDeliveryAsync()
     {
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
-        var delivery = new Delivery { JobId = job.Id, Mandate = mandate, DeclaringUser = user };
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        var delivery = new Delivery { JobId = job.Id, Mandate = mandate, DeliveredByUser = user };
         context.Deliveries.Add(delivery);
         await context.SaveChangesAsync();
         return (await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id), delivery);
@@ -604,7 +604,7 @@ public class PipelineRunRecorderTest
     {
         currentHttpContext = httpContext;
         var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, declarer, upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
         return run.ClientKind;
     }

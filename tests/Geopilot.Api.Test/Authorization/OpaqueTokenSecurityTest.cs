@@ -13,7 +13,7 @@ public class OpaqueTokenSecurityTest
     private static OpaqueTestApp app = null!;
     private static HttpClient client = null!;
 
-    public static IEnumerable<object[]> DeclarerEndpoints => EndpointDiscovery.GetDeclarerEndpoints();
+    public static IEnumerable<object[]> SupplierEndpoints => EndpointDiscovery.GetSupplierEndpoints();
 
     [ClassInitialize]
     public static void ClassInitialize(TestContext context)
@@ -97,8 +97,8 @@ public class OpaqueTokenSecurityTest
     }
 
     [TestMethod]
-    [DynamicData(nameof(DeclarerEndpoints))]
-    public async Task DeclarerEndpointActiveClientTokenReturnsNon401(string method, string url, string policy, string description)
+    [DynamicData(nameof(SupplierEndpoints))]
+    public async Task SupplierEndpointActiveClientTokenReturnsNon401(string method, string url, string policy, string description)
     {
         // The counterpart of the sweep in JwtSecurityTest: a client credentials token has to reach the machine
         // delivery in this format too, where the subject comes from the introspection answer instead of a claim.
