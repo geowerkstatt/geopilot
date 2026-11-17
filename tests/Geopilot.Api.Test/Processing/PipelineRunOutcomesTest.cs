@@ -52,7 +52,7 @@ public class PipelineRunOutcomesTest
     public void NotDeliveredWhenPermittedWithoutDelivery(ProcessingState terminalState)
     {
         var run = Run(terminalState, userId: 1);
-        run.MayDeliver = true;
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -63,7 +63,7 @@ public class PipelineRunOutcomesTest
     public void NotPermittedWhenRecordedAsNotPermitted()
     {
         var run = Run(ProcessingState.Success, userId: 1);
-        run.MayDeliver = false;
+        run.PermissionToDeliver = PermissionToDeliver.NotPermitted;
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -77,7 +77,7 @@ public class PipelineRunOutcomesTest
     {
         var run = Run(terminalState);
         run.MachineClientId = 1;
-        run.MayDeliver = true;
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
         run.DeliveryRejection = "The mandate no longer accepts deliveries.";
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);

@@ -58,7 +58,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             MachineClientId = supplier?.MachineClientId,
             ClientKind = ClassifyClient(),
             ClientReference = job.DeliveryIntent?.Fields.ClientReference,
-            MayDeliver = job.MayDeliver,
+            PermissionToDeliver = job.MayDeliver ? PermissionToDeliver.Permitted : PermissionToDeliver.NotPermitted,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,
             UploadInitiatedAt = upload.CreatedAt,

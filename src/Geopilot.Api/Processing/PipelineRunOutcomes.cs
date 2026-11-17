@@ -37,7 +37,9 @@ internal static class PipelineRunOutcomes
                 return Outcome(PipelineRunOutcomeKind.DeliveryRejected);
 
             // A run recorded before the protocol kept the permission has none; only an anonymous one surely was not.
-            var permitted = run.MayDeliver ?? (run.UserId is not null || run.MachineClientId is not null);
+            var permitted = run.PermissionToDeliver is { } permission
+                ? permission == PermissionToDeliver.Permitted
+                : run.UserId is not null || run.MachineClientId is not null;
             return Outcome(permitted ? PipelineRunOutcomeKind.NotDelivered : PipelineRunOutcomeKind.NotPermitted);
         }
 

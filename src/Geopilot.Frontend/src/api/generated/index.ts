@@ -156,6 +156,7 @@ export {
   type MetadataFieldOption,
   MetadataFieldType,
   type Organisation,
+  PermissionToDeliver,
   type PipelineRunArtifactResponse,
   type PipelineRunBlockingStep,
   type PipelineRunConditionResponse,

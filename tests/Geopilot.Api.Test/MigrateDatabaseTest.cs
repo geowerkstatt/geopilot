@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Geopilot.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -71,8 +72,8 @@ public class MigrateDatabaseTest
 
             migrator.Migrate();
             CollectionAssert.AreEqual(
-                new bool?[] { true, false, null },
-                context.PipelineRuns.OrderBy(run => run.Id).Select(run => run.MayDeliver).ToList());
+                new PermissionToDeliver?[] { PermissionToDeliver.Permitted, PermissionToDeliver.NotPermitted, null },
+                context.PipelineRuns.OrderBy(run => run.Id).Select(run => run.PermissionToDeliver).ToList());
 
             migrator.Migrate(before);
             CollectionAssert.AreEqual(

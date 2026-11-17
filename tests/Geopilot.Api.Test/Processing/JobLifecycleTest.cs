@@ -141,9 +141,9 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
-    [DataRow(true)]
-    [DataRow(false)]
-    public async Task StartRecordsWhetherTheStarterMayDeliver(bool mayDeliver)
+    [DataRow(true, PermissionToDeliver.Permitted)]
+    [DataRow(false, PermissionToDeliver.NotPermitted)]
+    public async Task StartRecordsWhetherTheStarterMayDeliver(bool mayDeliver, PermissionToDeliver expectedPermission)
     {
         var upload = await CreateUploadAsync();
         SetupPipeline();
@@ -153,7 +153,7 @@ public class JobLifecycleTest
         // Both values, because a value fixed on the way to the job would pass with true alone.
         Assert.AreEqual(mayDeliver, job.MayDeliver);
         Assert.AreEqual(mayDeliver, jobStore.GetJob(job.Id)!.MayDeliver);
-        Assert.AreEqual(mayDeliver, (await ReadRunAsync(job.Id)).MayDeliver, "The protocol keeps it beyond the job's retention and a restart.");
+        Assert.AreEqual(expectedPermission, (await ReadRunAsync(job.Id)).PermissionToDeliver, "The protocol keeps it beyond the job's retention and a restart.");
     }
 
     [TestMethod]

@@ -29,9 +29,9 @@ namespace Geopilot.Api.Migrations
             migrationBuilder.RenameColumn(
                 name: "Declarability",
                 table: "PipelineRuns",
-                newName: "MayDeliver");
+                newName: "PermissionToDeliver");
 
-            migrationBuilder.Sql("ALTER TABLE \"PipelineRuns\" ALTER COLUMN \"MayDeliver\" TYPE boolean USING \"MayDeliver\" = 'Declarable';");
+            migrationBuilder.Sql("UPDATE \"PipelineRuns\" SET \"PermissionToDeliver\" = CASE \"PermissionToDeliver\" WHEN 'Declarable' THEN 'Permitted' WHEN 'NotDeclarable' THEN 'NotPermitted' END WHERE \"PermissionToDeliver\" IS NOT NULL;");
 
             migrationBuilder.RenameColumn(
                 name: "DeclarationFailure",
@@ -104,10 +104,10 @@ namespace Geopilot.Api.Migrations
                 name: "CK_Deliveries_DeliveredBy",
                 table: "Deliveries");
 
-            migrationBuilder.Sql("ALTER TABLE \"PipelineRuns\" ALTER COLUMN \"MayDeliver\" TYPE text USING CASE \"MayDeliver\" WHEN true THEN 'Declarable' WHEN false THEN 'NotDeclarable' END;");
+            migrationBuilder.Sql("UPDATE \"PipelineRuns\" SET \"PermissionToDeliver\" = CASE \"PermissionToDeliver\" WHEN 'Permitted' THEN 'Declarable' WHEN 'NotPermitted' THEN 'NotDeclarable' END WHERE \"PermissionToDeliver\" IS NOT NULL;");
 
             migrationBuilder.RenameColumn(
-                name: "MayDeliver",
+                name: "PermissionToDeliver",
                 table: "PipelineRuns",
                 newName: "Declarability");
 

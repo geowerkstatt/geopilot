@@ -75,7 +75,6 @@
     }
   },
   "mandateId": 1,
-  "mayDeliver": true,
   "notificationState": "pending",
   "outcome": {
     "kind": "delivered",
@@ -83,6 +82,7 @@
     "blockingSteps": [],
     "preflightFailed": false
   },
+  "permissionToDeliver": "permitted",
   "pipelineId": "ili_validation",
   "reactionEvents": [],
   "scanDetails": null,

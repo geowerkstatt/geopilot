@@ -95,7 +95,7 @@ public class PipelineRun
     /// decided when its job started (see <see cref="Processing.ProcessingJob.MayDeliver"/>). <see langword="null"/>
     /// for a run recorded before the protocol kept it: unknown, which is not the same as not permitted.
     /// </summary>
-    public bool? MayDeliver { get; set; }
+    public PermissionToDeliver? PermissionToDeliver { get; set; }
 
     /// <summary>
     /// The id of the upload whose files the run processed.
@@ -150,7 +150,7 @@ public class PipelineRun
     /// <summary>
     /// Why the delivery of a machine delivery was rejected although the run allowed it, as the caller of the attempt
     /// reads it. <see langword="null"/> when geopilot created it or had nothing to create, and unknown for a run
-    /// without <see cref="MayDeliver"/>. Whether a delivery exists is not kept here: the delivery itself
+    /// without <see cref="PermissionToDeliver"/>. Whether a delivery exists is not kept here: the delivery itself
     /// is the record of that, reachable via <see cref="JobId"/>.
     /// </summary>
     public string? DeliveryRejection { get; set; }

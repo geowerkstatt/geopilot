@@ -96,13 +96,13 @@ public sealed class PipelineRunControllerTest
     {
         var run = SeedRun();
         run.TerminalState = ProcessingState.Success;
-        run.MayDeliver = true;
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
         run.DeliveryRejection = "No assets found.";
         context.SaveChanges();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsTrue(response.MayDeliver);
+        Assert.AreEqual(PermissionToDeliver.Permitted, response.PermissionToDeliver);
         Assert.AreEqual("No assets found.", response.DeliveryRejection);
     }
 
@@ -113,7 +113,7 @@ public sealed class PipelineRunControllerTest
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
-        Assert.IsNull(response.MayDeliver, "A run recorded before the protocol kept the permission says nothing about it, which is not the same as not permitted.");
+        Assert.IsNull(response.PermissionToDeliver, "A run recorded before the protocol kept the permission says nothing about it, which is not the same as not permitted.");
     }
 
     [TestMethod]

@@ -754,6 +754,16 @@ export type Organisation = {
 };
 
 /**
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
+ */
+export const PermissionToDeliver = { Permitted: "permitted", NotPermitted: "notPermitted" } as const;
+
+/**
+ * Whether whoever started a run may deliver to its mandate, regardless of whether its data allow a delivery. Decided once when its job starts. Persisted as text.
+ */
+export type PermissionToDeliver = (typeof PermissionToDeliver)[keyof typeof PermissionToDeliver];
+
+/**
  * One artifact a step produced.
  */
 export type PipelineRunArtifactResponse = {
@@ -1009,10 +1019,7 @@ export type PipelineRunResponse = {
    * The client's own identifier of the delivery a machine delivery attempt belongs to, or null when it carried none.
    */
   clientReference?: string | null;
-  /**
-   * Whether whoever started the run may deliver to its mandate, regardless of whether its data allow a delivery, decided when it started, or null for a run recorded before the protocol kept it.
-   */
-  mayDeliver?: boolean | null;
+  permissionToDeliver?: PermissionToDeliver;
   /**
    * The id of the upload the run processed.
    */

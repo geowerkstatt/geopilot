@@ -360,8 +360,8 @@ namespace Geopilot.Api.Migrations
                     b.Property<int?>("MandateId")
                         .HasColumnType("integer");
 
-                    b.Property<bool?>("MayDeliver")
-                        .HasColumnType("boolean");
+                    b.Property<string>("PermissionToDeliver")
+                        .HasColumnType("text");
 
                     b.Property<string>("PipelineId")
                         .IsRequired()
