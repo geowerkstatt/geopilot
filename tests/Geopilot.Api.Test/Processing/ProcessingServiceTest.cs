@@ -78,17 +78,17 @@ public class ProcessingServiceTest
         // Arrange
         var uploadId = Guid.NewGuid();
         var mandateId = 1;
-        var declarer = Declarer.ForUser(2);
+        var supplier = Supplier.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandateId, declarer)).ReturnsAsync((Mandate?)null);
+        mandateServiceMock.Setup(x => x.GetMandateForSupplierAsync(mandateId, supplier)).ReturnsAsync((Mandate?)null);
 
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, declarer, null);
+            await processingService.StartJobAsync(uploadId, mandateId, supplier, null);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);
@@ -103,18 +103,18 @@ public class ProcessingServiceTest
         // Arrange
         var uploadId = Guid.NewGuid();
         var mandateId = 1;
-        var declarer = Declarer.ForUser(2);
+        var supplier = Supplier.ForUser(2);
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = TestHelpers.Localized(nameof(StartJobThrowsForMandateWithoutPipeline)), FileTypes = [".xtf"], PipelineId = null };
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
-        mandateServiceMock.Setup(x => x.GetMandateForDeclarerAsync(mandateId, declarer)).ReturnsAsync(mandate);
+        mandateServiceMock.Setup(x => x.GetMandateForSupplierAsync(mandateId, supplier)).ReturnsAsync(mandate);
 
         // Act & Assert
         var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await processingService.StartJobAsync(uploadId, mandateId, declarer, null);
+            await processingService.StartJobAsync(uploadId, mandateId, supplier, null);
         });
 
         Assert.AreEqual($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.", exception.Message);

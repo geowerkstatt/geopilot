@@ -67,8 +67,8 @@ export const RecordingFilters: FC<RecordingFiltersProps> = ({ values, onChange, 
     }
   }, [fetchApi, machineDeliveryEnabled]);
 
-  const declarerOptions = toOptions([
-    ...users.map(user => ({ value: `person:${user.id}`, name: user.fullName })),
+  const startedByOptions = toOptions([
+    ...users.map(user => ({ value: `user:${user.id}`, name: user.fullName })),
     ...machineClients.map(client => ({ value: `machineClient:${client.id}`, name: client.name })),
   ]);
   const mandateOptions = toOptions(
@@ -94,7 +94,7 @@ export const RecordingFilters: FC<RecordingFiltersProps> = ({ values, onChange, 
   };
 
   const listFilter = (
-    field: "declarers" | "mandateIds" | "states",
+    field: "startedBy" | "mandateIds" | "states",
     label: TranslationKey,
     options: FilterOption[],
     dataCy: string,
@@ -134,7 +134,7 @@ export const RecordingFilters: FC<RecordingFiltersProps> = ({ values, onChange, 
         onChange={changeTime("to")}
         dataCy="recordingFilter-to"
       />
-      {listFilter("declarers", "processedBy", declarerOptions, "recordingFilter-declarer")}
+      {listFilter("startedBy", "processedBy", startedByOptions, "recordingFilter-startedBy")}
       {listFilter("mandateIds", "mandate", mandateOptions, "recordingFilter-mandate")}
       {listFilter("states", "processingState", stateOptions, "recordingFilter-state")}
     </FilterBar>

@@ -23,7 +23,7 @@ public record RecordingGroupResponse(RecordingSummaryResponse Latest, int Attemp
 /// <param name="JobId">The id of the processing job.</param>
 /// <param name="StartedAt">When the job was started (UTC).</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
-/// <param name="Declarer">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
+/// <param name="StartedBy">Who started the run, or <see langword="null"/> when it was started without signing in.</param>
 /// <param name="Mandate">The mandate the run was started for, when it still exists.</param>
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> while it runs or when the outcome is unknown.</param>
 /// <param name="Outcome">What became of the run.</param>
@@ -31,7 +31,7 @@ public record RecordingSummaryResponse(
     Guid JobId,
     DateTime StartedAt,
     DateTime? TerminalAt,
-    RecordingDeclarer? Declarer,
+    RecordingStarter? StartedBy,
     MandateReference? Mandate,
     ProcessingState? TerminalState,
     RecordingOutcome Outcome);

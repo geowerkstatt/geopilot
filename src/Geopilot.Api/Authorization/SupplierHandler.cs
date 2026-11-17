@@ -7,22 +7,22 @@ using System.IdentityModel.Tokens.Jwt;
 namespace Geopilot.Api.Authorization;
 
 /// <summary>
-/// Authorization handler for <see cref="DeclarerRequirement"/>. A registered machine client is admitted on
+/// Authorization handler for <see cref="SupplierRequirement"/>. A registered machine client is admitted on
 /// its subject alone, without asking the identity provider anything: its token carries no person and most
 /// providers describe none for it. Everyone else is admitted the way the user policy admits them. The two
 /// branches are kept apart on purpose, so that restricting the machine delivery to machines later is the
 /// removal of one of them.
 /// </summary>
-public class DeclarerHandler : AuthorizationHandler<DeclarerRequirement>
+public class SupplierHandler : AuthorizationHandler<SupplierRequirement>
 {
-    private readonly ILogger<DeclarerHandler> logger;
+    private readonly ILogger<SupplierHandler> logger;
     private readonly Context dbContext;
     private readonly IGeopilotUserResolver userResolver;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DeclarerHandler"/> class.
+    /// Initializes a new instance of the <see cref="SupplierHandler"/> class.
     /// </summary>
-    public DeclarerHandler(ILogger<DeclarerHandler> logger, Context dbContext, IGeopilotUserResolver userResolver)
+    public SupplierHandler(ILogger<SupplierHandler> logger, Context dbContext, IGeopilotUserResolver userResolver)
     {
         this.logger = logger;
         this.dbContext = dbContext;
@@ -30,7 +30,7 @@ public class DeclarerHandler : AuthorizationHandler<DeclarerRequirement>
     }
 
     /// <inheritdoc/>
-    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, DeclarerRequirement requirement)
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, SupplierRequirement requirement)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(requirement);

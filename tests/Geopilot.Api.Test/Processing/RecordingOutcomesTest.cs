@@ -49,10 +49,10 @@ public class RecordingOutcomesTest
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void NotDeliveredWhenDeclarableWithoutDelivery(ProcessingState terminalState)
+    public void NotDeliveredWhenPermittedWithoutDelivery(ProcessingState terminalState)
     {
         var run = Run(terminalState, userId: 1);
-        run.Declarability = Declarability.Declarable;
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
 
         var outcome = RecordingOutcomes.Determine(run, isRunning: false, delivery: null);
 
@@ -60,37 +60,37 @@ public class RecordingOutcomesTest
     }
 
     [TestMethod]
-    public void NotDeclarableWhenRecordedAsNotDeclarable()
+    public void NotPermittedWhenRecordedAsNotPermitted()
     {
         var run = Run(ProcessingState.Success, userId: 1);
-        run.Declarability = Declarability.NotDeclarable;
+        run.PermissionToDeliver = PermissionToDeliver.NotPermitted;
 
         var outcome = RecordingOutcomes.Determine(run, isRunning: false, delivery: null);
 
-        Assert.AreEqual(RecordingOutcomeKind.NotDeclarable, outcome.Kind, "a person who is no member of the mandate may not deliver.");
+        Assert.AreEqual(RecordingOutcomeKind.NotPermitted, outcome.Kind, "a person who is no member of the mandate may not deliver.");
     }
 
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void DeclarationFailedWhenItsDeclarationFailed(ProcessingState terminalState)
+    public void DeliveryFailedWhenGeopilotCouldNotCreateIt(ProcessingState terminalState)
     {
         var run = Run(terminalState);
         run.MachineClientId = 1;
-        run.Declarability = Declarability.Declarable;
-        run.DeclarationFailure = "The mandate no longer accepts deliveries.";
+        run.PermissionToDeliver = PermissionToDeliver.Permitted;
+        run.DeliveryFailure = "The mandate no longer accepts deliveries.";
 
         var outcome = RecordingOutcomes.Determine(run, isRunning: false, delivery: null);
 
-        Assert.AreEqual(RecordingOutcomeKind.DeclarationFailed, outcome.Kind);
+        Assert.AreEqual(RecordingOutcomeKind.DeliveryFailed, outcome.Kind);
     }
 
     [TestMethod]
-    [DataRow(null, RecordingOutcomeKind.NotDeclarable, DisplayName = "anonymous")]
+    [DataRow(null, RecordingOutcomeKind.NotPermitted, DisplayName = "anonymous")]
     [DataRow(1, RecordingOutcomeKind.NotDelivered, DisplayName = "person")]
-    public void WithoutRecordedDeclarabilityOnlyAnAnonymousRunIsNotDeclarable(int? userId, RecordingOutcomeKind expected)
+    public void WithoutRecordedPermissionOnlyAnAnonymousRunIsNotPermitted(int? userId, RecordingOutcomeKind expected)
     {
-        // Runs recorded before the protocol kept the declarability; nobody who processes without signing in may deliver.
+        // Runs recorded before the protocol kept the permission; nobody who processes without signing in may deliver.
         var outcome = RecordingOutcomes.Determine(Run(ProcessingState.Success, userId), isRunning: false, delivery: null);
 
         Assert.AreEqual(expected, outcome.Kind);

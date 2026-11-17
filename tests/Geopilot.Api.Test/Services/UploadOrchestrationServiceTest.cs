@@ -215,7 +215,7 @@ public class UploadOrchestrationServiceTest
     public void RegisterJobFilesRecordsFilesWithoutTransferringAnything()
     {
         var upload = CreateUpload("test.xtf", 1024);
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
         var files = service.RegisterJobFiles(upload.Id, job.Id);
 
@@ -231,7 +231,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesMaterializesInsideTheJobsPipelineDirectory()
     {
         var upload = CreateUpload("test.xtf", 1024);
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
         uploadStorageMock
             .Setup(s => s.DownloadAsync($"uploads/{upload.Id}/test.xtf", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
@@ -255,7 +255,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesDisambiguatesFilesThatSanitizeToTheSameName()
     {
         var upload = CreateUpload(("a:b.xtf", 1024), ("a*b.xtf", 2048));
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -275,7 +275,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
     {
         var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -296,7 +296,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public void RegisterJobFilesThrowsForUnknownUpload()
     {
-        var job = jobStore.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = jobStore.CreateJob(Guid.NewGuid(), mayDeliver: false);
         Assert.ThrowsExactly<ArgumentException>(() => service.RegisterJobFiles(Guid.NewGuid(), job.Id));
     }
 

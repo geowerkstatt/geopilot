@@ -1,9 +1,9 @@
 ﻿namespace Geopilot.Pipeline.Channels;
 
 /// <summary>
-/// Whether a user or a machine client declared a delivery.
+/// Whether a user or a machine client delivered.
 /// </summary>
-internal enum DeclarerKind
+internal enum SupplierKind
 {
     /// <summary>
     /// A person with a user account.

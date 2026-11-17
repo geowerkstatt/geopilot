@@ -1,6 +1,6 @@
 # Mail
 
-Schickt eine Mail über eine weitergegebene Lieferung, etwa an die Stelle, welche sie übernimmt. Der Mail-Kanal ist eine Benachrichtigung (`notifications`): Er läuft, sobald die Lieferung weitergegeben ist, und ändert ihren Zustand nie. Mit dem Schalter `includeDeclarer` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
+Schickt eine Mail über eine weitergegebene Lieferung, etwa an die Stelle, welche sie übernimmt. Der Mail-Kanal ist eine Benachrichtigung (`notifications`): Er läuft, sobald die Lieferung weitergegeben ist, und ändert ihren Zustand nie. Mit dem Schalter `includeSupplier` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
 
 ## Implementierung
 
@@ -17,7 +17,7 @@ Ein Mail-Kanal muss unter `channels[X].implementation` den Wert `Geopilot.Pipeli
 | `encryption` | Basis-Konfiguration, optional | `StartTls` (Vorgabe), `SslOnConnect` oder `None`. Ohne Verschlüsselung sendet der Kanal nur ohne Anmeldung, etwa an einen Relay im eigenen Netz. |
 | `template` | Pipeline-Definition (`default_config`, in einer Reaktion überschreibbar) | Der Pfad des Templates relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), siehe [Template](#template). |
 | `to`, `cc`, `bcc` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Listen von Mail-Adressen für `To`, `Cc` und `Bcc`. |
-| `includeDeclarer` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Ob der Lieferant ebenfalls ins `To` kommt, bei einer maschinellen Lieferung die für den Client verantwortlichen Personen. Nicht gesetzt heisst nein. |
+| `includeSupplier` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Ob der Lieferant ebenfalls ins `To` kommt, bei einer maschinellen Lieferung die für den Client verantwortlichen Personen. Nicht gesetzt heisst nein. |
 
 Die Werte der Basis-Konfiguration setzt nur der Betrieb: Setzt die Pipeline-Definition einen davon, startet geopilot nicht. Server und Absender stehen in den Appsettings:
 
@@ -69,7 +69,7 @@ reaction_sets:
           - key: cc
             display_name:
               de: Kopie an
-          - key: includeDeclarer
+          - key: includeSupplier
             display_name:
               de: Lieferant erhält die Info-Mail
 ```
@@ -86,9 +86,9 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 | Platzhalter | Wert |
 | --- | --- |
 | `{{delivery_id}}` | Die Id der Lieferung. |
-| `{{declared_at}}` | Wann die Lieferung deklariert wurde, in Ortszeit wie das Löschfenster, etwa `20.10.2026 10:00`. |
+| `{{delivered_at}}` | Wann die Lieferung erstellt wurde, in Ortszeit wie das Löschfenster, etwa `20.10.2026 10:00`. |
 | `{{mandate_name}}`, `{{mandate_name:de}}` | Der Name des Mandats, mit Sprache in dieser Sprache. Fehlt der Name in ihr, gilt dieselbe Reihenfolge wie bei den Titeln im STAC-Katalog: Englisch, Deutsch, Französisch, Italienisch, dann jede weitere. |
-| `{{declarer_name}}` | Der Name des Lieferanten, bei einer maschinellen Lieferung der Name des Clients. |
+| `{{supplier_name}}` | Der Name des Lieferanten, bei einer maschinellen Lieferung der Name des Clients. |
 | `{{metadata}}`, `{{metadata:de}}` | Die Metadaten, die der Lieferant ausgefüllt hat, als Liste `Titel: Wert`, im Betreff mit Kommas getrennt. Mit Sprache stehen Titel und Optionen in dieser Sprache, sonst gilt dieselbe Reihenfolge wie beim Namen des Mandats. Leer gelassene Felder fehlen, Listen stehen mit Kommas, das Datum als `04.11.2026`, Zahlen mit Punkt als Dezimaltrennzeichen. Leer, wenn das Mandat keine Metadaten verlangt oder keines der Felder ausgefüllt ist. |
 | `{{comment}}` | Der Kommentar des Lieferanten, mit seinen Zeilenumbrüchen. Leer, wenn er keinen geschrieben hat. |
 | `{{files}}` | Die gelieferten Dateien als Liste, im Betreff mit Kommas getrennt. |
@@ -99,7 +99,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
     <title>Neue Lieferung für {{mandate_name:de}}</title>
   </head>
   <body>
-    <p>{{declarer_name}} hat am {{declared_at}} die Lieferung {{delivery_id}} abgegeben:</p>
+    <p>{{supplier_name}} hat am {{delivered_at}} die Lieferung {{delivery_id}} abgegeben:</p>
     {{files}}
     <p>{{comment}}</p>
   </body>
@@ -108,7 +108,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 
 ## Ablauf
 
-- Die Mail geht an `to`, `cc` und `bcc`, und mit `includeDeclarer` an den Lieferanten, sofern er eine Person mit Mail-Adresse ist. Bei einer maschinellen Lieferung geht sie an die aktiven Personen, die ein Admin für den Client verantwortlich gemacht hat, so wie die Zuordnung beim Versand steht; der Client selbst hat keine Adresse.
+- Die Mail geht an `to`, `cc` und `bcc`, und mit `includeSupplier` an den Lieferanten, sofern er eine Person mit Mail-Adresse ist. Bei einer maschinellen Lieferung geht sie an die aktiven Personen, die ein Admin für den Client verantwortlich gemacht hat, so wie die Zuordnung beim Versand steht; der Client selbst hat keine Adresse.
 - Jede Adresse bekommt die Mail einmal, auch wenn sie mehrfach vorkommt, etwa der Lieferant, der zugleich in `to` steht. Sie steht im ersten Feld, das sie nennt, `To` vor `Cc` vor `Bcc`, ohne Unterschied zwischen Gross- und Kleinschreibung.
 - Bleibt kein Empfänger, endet die Reaktion ohne Versand und ohne Fehler, mit einer Meldung dazu.
 - Weist der Server einen Empfänger ab, geht die Mail an niemanden hinaus. Der Versuch scheitert mit der abgewiesenen Adresse in der Meldung und wird wiederholt wie jeder andere, zuletzt steht die Reaktion auf `Error`. Ein falscher Empfänger fällt so auf, statt still zu fehlen. Korrigiert wird er am Mandat, für die folgenden Lieferungen.
@@ -117,7 +117,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 
 ## Personendaten
 
-Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeDeclarer` geht sie an seine Adresse, bei einem Maschinen-Client an die Adressen der verantwortlichen Personen. Weist der Server eine dieser Adressen ab, steht sie in der Meldung der Reaktion und damit im Ausführungsprotokoll.
+Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeSupplier` geht sie an seine Adresse, bei einem Maschinen-Client an die Adressen der verantwortlichen Personen. Weist der Server eine dieser Adressen ab, steht sie in der Meldung der Reaktion und damit im Ausführungsprotokoll.
 
 ## Betrieb
 

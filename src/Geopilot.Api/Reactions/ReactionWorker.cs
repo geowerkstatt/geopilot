@@ -235,7 +235,7 @@ public class ReactionWorker : BackgroundService
     }
 
     /// <summary>
-    /// Reads what the channel learns about the delivery, anew for every attempt, so the personal data of the declarer
+    /// Reads what the channel learns about the delivery, anew for every attempt, so the personal data of the supplier
     /// never goes into the reaction.
     /// </summary>
     private static async Task<DeliveryToForward?> ReadDeliveryAsync(Context context, DeliveryReaction reaction, CancellationToken cancellationToken)
@@ -254,11 +254,11 @@ public class ReactionWorker : BackgroundService
                 MandateId = d.Mandate.Id,
                 MandateName = d.Mandate.Name,
                 MandateKey = d.Mandate.Key,
-                UserName = d.DeclaringUser == null ? null : d.DeclaringUser.FullName,
-                UserEmail = d.DeclaringUser == null ? null : d.DeclaringUser.Email,
-                ClientName = d.DeclaringClient == null ? null : d.DeclaringClient.Name,
+                UserName = d.DeliveredByUser == null ? null : d.DeliveredByUser.FullName,
+                UserEmail = d.DeliveredByUser == null ? null : d.DeliveredByUser.Email,
+                ClientName = d.DeliveredByClient == null ? null : d.DeliveredByClient.Name,
                 ResponsibleUsers = context.MachineClients
-                    .Where(c => c.Id == d.DeclaringClientId)
+                    .Where(c => c.Id == d.DeliveredByClientId)
                     .SelectMany(c => c.ResponsibleUsers)
                     .Where(u => u.State == UserState.Active)
                     .OrderBy(u => u.Id)
@@ -276,14 +276,14 @@ public class ReactionWorker : BackgroundService
             Id = delivery.Id,
             JobId = delivery.JobId,
             ReactionId = reaction.ReactionId,
-            DeclaredAt = new DateTimeOffset(DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc)),
+            DeliveredAt = new DateTimeOffset(DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc)),
             Partial = delivery.Partial,
             PrecursorDeliveryId = delivery.PrecursorDeliveryId,
             Comment = string.IsNullOrEmpty(delivery.Comment) ? null : delivery.Comment,
             Mandate = new MandateInfo { Id = delivery.MandateId, Name = delivery.MandateName, Key = delivery.MandateKey },
-            Declarer = delivery.UserName is not null
-                ? new DeclarerInfo { Kind = DeclarerKind.User, Name = delivery.UserName, Email = string.IsNullOrEmpty(delivery.UserEmail) ? null : delivery.UserEmail }
-                : new DeclarerInfo { Kind = DeclarerKind.MachineClient, Name = delivery.ClientName ?? string.Empty, ResponsibleUsers = delivery.ResponsibleUsers },
+            Supplier = delivery.UserName is not null
+                ? new SupplierInfo { Kind = SupplierKind.User, Name = delivery.UserName, Email = string.IsNullOrEmpty(delivery.UserEmail) ? null : delivery.UserEmail }
+                : new SupplierInfo { Kind = SupplierKind.MachineClient, Name = delivery.ClientName ?? string.Empty, ResponsibleUsers = delivery.ResponsibleUsers },
             Metadata = ToMetadataInfo(delivery.Metadata),
         };
         return new DeliveryToForward(info, delivery.FileNames);

@@ -27,7 +27,7 @@ describe("User deliveries tests", () => {
       .should("have.attr", "aria-sort", "descending");
 
     // Who delivered, so the own deliveries stand apart from those of a machine client the user is responsible for.
-    cy.dataCy("deliveries-grid").find('[role="columnheader"][data-field="declarerName"]').contains("Delivered by");
+    cy.dataCy("deliveries-grid").find('[role="columnheader"][data-field="deliveredByName"]').contains("Delivered by");
     // The name of the identity provider, which replaced the seeded one when the uploader signed in.
     cy.dataCy("deliveries-grid").find(".MuiDataGrid-row").first().contains("Ursula Uploader");
 

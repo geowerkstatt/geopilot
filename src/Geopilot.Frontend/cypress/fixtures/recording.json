@@ -5,9 +5,9 @@
       "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
       "startedAt": "2026-11-06T14:59:42Z",
       "terminalAt": "2026-11-06T14:59:44Z",
-      "declarer": {
-        "kind": "machineClient",
-        "id": 1,
+      "startedBy": {
+        "userId": null,
+        "machineClientId": 1,
         "name": "Service account geopilot-api"
       },
       "mandate": {
@@ -28,9 +28,9 @@
       "jobId": "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80",
       "startedAt": "2026-11-06T14:58:46Z",
       "terminalAt": "2026-11-06T14:58:52Z",
-      "declarer": {
-        "kind": "machineClient",
-        "id": 1,
+      "startedBy": {
+        "userId": null,
+        "machineClientId": 1,
         "name": "Service account geopilot-api"
       },
       "mandate": {
@@ -56,13 +56,7 @@
   ],
   "clientKind": "apiClient",
   "clientReference": "SMOKE-TEST-01",
-  "declarability": "declarable",
-  "declarationFailure": null,
-  "declarer": {
-    "kind": "machineClient",
-    "id": 1,
-    "name": "Service account geopilot-api"
-  },
+  "deliveryFailure": null,
   "failureReason": null,
   "files": [
     {
@@ -74,7 +68,6 @@
   ],
   "forwardingState": "done",
   "jobId": "6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a",
-  "machineClientId": 1,
   "mandate": {
     "id": 1,
     "name": {
@@ -89,11 +82,17 @@
     "blockingSteps": [],
     "preflightFailed": false
   },
+  "permissionToDeliver": "permitted",
   "pipelineId": "ili_validation",
   "reactionEvents": [],
   "scanDetails": null,
   "scanState": "clean",
   "startedAt": "2026-11-06T14:59:42Z",
+  "startedBy": {
+    "userId": null,
+    "machineClientId": 1,
+    "name": "Service account geopilot-api"
+  },
   "steps": [
     {
       "stepId": "validation",
@@ -150,6 +149,5 @@
   "terminalState": "success",
   "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
   "uploadInitiatedAt": "2026-11-06T14:59:40Z",
-  "uploadStorageLocation": "https://localhost:10000/devstoreaccount1/uploads",
-  "userId": null
+  "uploadStorageLocation": "https://localhost:10000/devstoreaccount1/uploads"
 }

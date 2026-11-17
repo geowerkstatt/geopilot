@@ -197,11 +197,9 @@ internal static class DtoMapperExtensions
             run.PipelineId,
             run.AppVersion,
             run.MandateId,
-            run.UserId,
-            run.MachineClientId,
             run.ClientKind,
             run.ClientReference,
-            run.Declarability,
+            run.PermissionToDeliver,
             run.UploadId,
             run.UploadStorageLocation,
             run.UploadInitiatedAt,
@@ -211,7 +209,7 @@ internal static class DtoMapperExtensions
             run.TerminalState,
             run.TerminalAt,
             run.FailureReason,
-            run.DeclarationFailure,
+            run.DeliveryFailure,
             run.Files
                 .OrderBy(file => file.Id)
                 .Select(file => new RecordingFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))
@@ -236,7 +234,7 @@ internal static class DtoMapperExtensions
                     reactionEvent.Message,
                     reactionEvent.UserId))
                 .ToList(),
-            run.ToDeclarer(),
+            run.ToStarter(),
             run.ToMandateReference(),
             outcome,
             forwardingState,
@@ -248,13 +246,13 @@ internal static class DtoMapperExtensions
     /// Names who started the <paramref name="run"/>, from its loaded <see cref="Recording.User"/> or
     /// <see cref="Recording.MachineClient"/>; <see langword="null"/> when it was started without signing in.
     /// </summary>
-    internal static RecordingDeclarer? ToDeclarer(this Recording run)
+    internal static RecordingStarter? ToStarter(this Recording run)
     {
         if (run.User is not null)
-            return new RecordingDeclarer(DeclarerKind.Person, run.User.Id, run.User.FullName);
+            return new RecordingStarter(run.User.Id, null, run.User.FullName);
 
         if (run.MachineClient is not null)
-            return new RecordingDeclarer(DeclarerKind.MachineClient, run.MachineClient.Id, run.MachineClient.Name);
+            return new RecordingStarter(null, run.MachineClient.Id, run.MachineClient.Name);
 
         return null;
     }

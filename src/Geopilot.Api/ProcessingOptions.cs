@@ -9,7 +9,7 @@ public class ProcessingOptions
 {
     /// <summary>
     /// The duration after the end of a job's run after which the in-memory job entry and its remaining files
-    /// (working directory, delivery files staged but never declared) are retired. A job that has not finished
+    /// (working directory, delivery files staged but never delivered) are retired. A job that has not finished
     /// counts from its creation.
     /// </summary>
     public TimeSpan JobRetention { get; set; }

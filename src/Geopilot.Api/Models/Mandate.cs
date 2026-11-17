@@ -123,7 +123,7 @@ public class Mandate
     public List<Organisation> Organisations { get; set; } = new List<Organisation>();
 
     /// <summary>
-    /// Data deliveries that have been declared fulfilling the mandate.
+    /// Data deliveries fulfilling the mandate.
     /// </summary>
     public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
 

@@ -14,10 +14,10 @@ interface RecordingDeliveryLabelProps {
 // A run that still runs or whose outcome is unknown has nothing to say about a delivery yet.
 const deliveryLabelKey: Partial<Record<RecordingOutcomeKind, TranslationKey>> = {
   [RecordingOutcomeKind.DeliveredAndDeleted]: "recordingDeliveryDeleted",
-  [RecordingOutcomeKind.DeclarationFailed]: "recordingDeliveryFailed",
+  [RecordingOutcomeKind.DeliveryFailed]: "recordingDeliveryFailed",
   [RecordingOutcomeKind.NotDelivered]: "recordingDeliveryNotDelivered",
   [RecordingOutcomeKind.NotDeliverable]: "recordingDeliveryNotPossible",
-  [RecordingOutcomeKind.NotDeclarable]: "recordingDeliveryNotPermitted",
+  [RecordingOutcomeKind.NotPermitted]: "recordingDeliveryNotPermitted",
 };
 
 /** What became of the delivery of a run: its id, or why there is none. */

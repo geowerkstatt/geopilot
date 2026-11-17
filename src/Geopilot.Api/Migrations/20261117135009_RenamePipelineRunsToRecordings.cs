@@ -30,7 +30,7 @@ namespace Geopilot.Api.Migrations
         private static readonly (string Table, string Constraint)[] Constraints =
         [
             ("{0}s", "PK_{0}s"),
-            ("{0}s", "CK_{0}s_Declarer"),
+            ("{0}s", "CK_{0}s_StartedBy"),
             ("{0}s", "FK_{0}s_MachineClients_MachineClientId"),
             ("{0}s", "FK_{0}s_Mandates_MandateId"),
             ("{0}s", "FK_{0}s_Users_UserId"),

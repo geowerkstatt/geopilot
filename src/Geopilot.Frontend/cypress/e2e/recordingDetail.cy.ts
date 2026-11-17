@@ -84,7 +84,7 @@ describe("Recording", () => {
   it("marks a run that a machine client started", () => {
     cy.visit(`/admin/recordings/${jobId}`);
 
-    cy.dataCy("declarer-machineClient")
+    cy.dataCy("userOrClient-machineClient")
       .should("contain", "Service account geopilot-api")
       .find("svg title")
       .should("have.text", "Machine client");

@@ -150,7 +150,7 @@ public class DeliveryChannelFactoryTest
     {
         var factory = new DeliveryChannelFactory(null);
 
-        Assert.IsEmpty(factory.Validate(SwitchChannel, null, ["copyToDeclarer", "confirmed"]));
+        Assert.IsEmpty(factory.Validate(SwitchChannel, null, ["copyToSupplier", "confirmed"]));
     }
 
     [TestMethod]
@@ -254,7 +254,7 @@ public class DeliveryChannelFactoryTest
     {
         var values = new DeliveryChannelFactory(null).DescribeMandateValues(SwitchChannel);
 
-        Assert.AreEqual((MandateValueType.Switch, false), values["copyToDeclarer"]);
+        Assert.AreEqual((MandateValueType.Switch, false), values["copyToSupplier"]);
         Assert.AreEqual((MandateValueType.Switch, true), values["confirmed"]);
     }
 
@@ -265,12 +265,12 @@ public class DeliveryChannelFactoryTest
 
         var channel = factory.Create(SwitchChannel, null, new Parameterization
         {
-            ["copyToDeclarer"] = JsonSerializer.SerializeToElement(true),
+            ["copyToSupplier"] = JsonSerializer.SerializeToElement(true),
             ["confirmed"] = JsonSerializer.SerializeToElement(false),
         });
 
         var switches = Assert.IsInstanceOfType<SwitchChannel>(channel);
-        Assert.IsTrue(switches.CopyToDeclarer);
+        Assert.IsTrue(switches.CopyToSupplier);
         Assert.IsFalse(switches.Confirmed);
     }
 
@@ -279,7 +279,7 @@ public class DeliveryChannelFactoryTest
     {
         var channel = new DeliveryChannelFactory(null).Create(SwitchChannel, null, new Parameterization { ["confirmed"] = JsonSerializer.SerializeToElement(true) });
 
-        Assert.IsNull(Assert.IsInstanceOfType<SwitchChannel>(channel).CopyToDeclarer);
+        Assert.IsNull(Assert.IsInstanceOfType<SwitchChannel>(channel).CopyToSupplier);
     }
 
     [TestMethod]
@@ -436,13 +436,13 @@ internal sealed class SecretChannel : IDeliveryChannel
 
 internal sealed class SwitchChannel : IDeliveryChannel
 {
-    public SwitchChannel([MandateValue] bool? copyToDeclarer, [MandateValue] bool confirmed)
+    public SwitchChannel([MandateValue] bool? copyToSupplier, [MandateValue] bool confirmed)
     {
-        CopyToDeclarer = copyToDeclarer;
+        CopyToSupplier = copyToSupplier;
         Confirmed = confirmed;
     }
 
-    public bool? CopyToDeclarer { get; }
+    public bool? CopyToSupplier { get; }
 
     public bool Confirmed { get; }
 

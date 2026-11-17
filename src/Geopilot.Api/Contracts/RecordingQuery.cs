@@ -5,7 +5,7 @@ namespace Geopilot.Api.Contracts;
 /// <summary>
 /// Filters and pages the list of recordings, whose rows are the attempts of one delivery each (see
 /// <see cref="RecordingGroupResponse"/>). Every filter that is set narrows the list, and a run matches a filter
-/// with several values when it matches one of them. Mandate and declarer are the same for all attempts of a delivery.
+/// with several values when it matches one of them. Mandate and starter are the same for all attempts of a delivery.
 /// </summary>
 public class RecordingQuery
 {

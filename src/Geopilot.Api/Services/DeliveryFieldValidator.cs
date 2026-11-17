@@ -4,7 +4,7 @@ namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Checks the delivery fields against the evaluation the mandate configures for each of them. Shared by the
-/// declaration itself and by the machine delivery resource, which applies the same rules up front so a caller
+/// creation itself and by the machine delivery resource, which applies the same rules up front so a caller
 /// learns about a missing field before it uploads anything.
 /// </summary>
 public static class DeliveryFieldValidator

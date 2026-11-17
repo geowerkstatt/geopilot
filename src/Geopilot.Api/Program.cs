@@ -149,14 +149,14 @@ builder.Services.AddAuthorization(options =>
 
     // The machine delivery surface: a user or a registered machine client. Every other policy stays closed
     // to clients, which is what keeps client credentials out of the web interface.
-    options.AddPolicy(GeopilotPolicies.Declarer, policy => policy.Requirements.Add(new DeclarerRequirement()));
+    options.AddPolicy(GeopilotPolicies.Supplier, policy => policy.Requirements.Add(new SupplierRequirement()));
 
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
     options.DefaultPolicy = adminPolicy;
     options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
-builder.Services.AddTransient<IAuthorizationHandler, DeclarerHandler>();
+builder.Services.AddTransient<IAuthorizationHandler, SupplierHandler>();
 builder.Services.AddScoped<IGeopilotUserResolver, GeopilotUserResolver>();
 
 builder.Services.AddOptions<ProcessingOptions>()
@@ -185,7 +185,7 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateOnStart();
 
 // Hosted services stop in reverse registration order. The reaction worker comes first, so it stops after the runner
-// has drained and still forwards a delivery declared meanwhile; the runner comes ahead of the upload services, so the
+// has drained and still forwards a delivery created meanwhile; the runner comes ahead of the upload services, so the
 // preflight stops first and nothing is queued any more once the runner stops reading.
 builder.Services.AddSingleton<ReactionStore>();
 builder.Services.AddHostedService<ReactionWorker>();
@@ -211,7 +211,7 @@ builder.Services.AddTransient<IAssetStagingFileStore, PhysicalAssetStagingFileSt
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
-builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
+builder.Services.AddTransient<IDeliveryCreationService, DeliveryCreationService>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();

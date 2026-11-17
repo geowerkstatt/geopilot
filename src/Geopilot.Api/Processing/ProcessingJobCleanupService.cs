@@ -109,9 +109,9 @@ public class ProcessingJobCleanupService : BackgroundService
             // the job ended, or it stays on purpose until its upload session expires (a cancelled run, see
             // JobLifecycle.Decide). The asset directory is the long-term archive of deliveries, which survive
             // cleanup and are only removed via DeliveryController.Delete; a job directory there without a
-            // delivery is a declaration that failed after the promotion, and goes. A staged payload (the staging
+            // delivery is a creation that failed after the promotion, and goes. A staged payload (the staging
             // root below the asset directory) belongs to a deliverable run that was never delivered: once the
-            // in-memory job is gone nobody can declare its delivery any more, so it retires with the job.
+            // in-memory job is gone nobody can create its delivery any more, so it retires with the job.
             // Pipeline working directories are normally removed by Pipeline.Dispose, but survive a hard restart
             // (nothing gets disposed), so they count as retirement candidates too.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);

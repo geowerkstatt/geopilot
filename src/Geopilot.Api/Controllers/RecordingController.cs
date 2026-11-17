@@ -39,7 +39,7 @@ public class RecordingController : ControllerBase
 
     /// <summary>
     /// Lists the recordings that match the <paramref name="query"/>, newest first, one page at a time. The attempts
-    /// of one delivery, runs with the same client reference, declarer and mandate, form one group and one row.
+    /// of one delivery, runs with the same client reference, starter and mandate, form one group and one row.
     /// </summary>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "One page of recordings, grouped by delivery.", typeof(RecordingPageResponse), "application/json")]
@@ -56,7 +56,7 @@ public class RecordingController : ControllerBase
         var from = query.From is { } fromValue ? AsUtc(fromValue) : (DateTime?)null;
         var to = query.To is { } toValue ? AsUtc(toValue) : (DateTime?)null;
         var latestRuns = FilterByState(
-            LatestAttemptOfEachGroup(FilterByMandateAndDeclarer(context.Recordings.AsNoTracking(), query), from, to),
+            LatestAttemptOfEachGroup(FilterByMandateAndStarter(context.Recordings.AsNoTracking(), query), from, to),
             query.States);
         var totalCount = await latestRuns.CountAsync(cancellationToken);
 
@@ -129,8 +129,8 @@ public class RecordingController : ControllerBase
         return Content(definition, "application/json");
     }
 
-    // Mandate and declarer are part of the group key, so narrowing by them before grouping splits no group.
-    private static IQueryable<Recording> FilterByMandateAndDeclarer(IQueryable<Recording> runs, RecordingQuery query)
+    // Mandate and starter are part of the group key, so narrowing by them before grouping splits no group.
+    private static IQueryable<Recording> FilterByMandateAndStarter(IQueryable<Recording> runs, RecordingQuery query)
     {
         var mandateIds = query.MandateIds;
         var userIds = query.UserIds;
@@ -228,7 +228,7 @@ public class RecordingController : ControllerBase
         run.JobId,
         run.StartedAt,
         run.TerminalAt,
-        run.ToDeclarer(),
+        run.ToStarter(),
         run.ToMandateReference(),
         run.TerminalState,
         RecordingOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId)));

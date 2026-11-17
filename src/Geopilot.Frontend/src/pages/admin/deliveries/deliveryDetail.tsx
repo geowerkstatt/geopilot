@@ -2,19 +2,13 @@ import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
-import {
-  DeclarerKind,
-  DeliveryDetailResponse,
-  DeliveryReactionResponse,
-  ReactionKind,
-  ReactionState,
-} from "../../../api/generated";
+import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
 import { Button } from "../../../components/buttons.tsx";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
-import { DeclarerLabel } from "../../../components/declarerLabel.tsx";
 import { ReactionsTable } from "../../../components/reactionsTable.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
+import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
@@ -80,11 +74,11 @@ export const DeliveryDetail: FC = () => {
     .map(reaction => localized(reaction.displayName ?? undefined, reaction.reactionId));
 
   // Without machine delivery the pages of the machine clients are not routed.
-  const declarerPath =
-    delivery.declaringUserId != null
-      ? `/admin/users/${delivery.declaringUserId}`
-      : delivery.declaringClientId != null && machineDeliveryEnabled
-        ? `/admin/machine-clients/${delivery.declaringClientId}`
+  const supplierPath =
+    delivery.deliveredByUserId != null
+      ? `/admin/users/${delivery.deliveredByUserId}`
+      : delivery.deliveredByClientId != null && machineDeliveryEnabled
+        ? `/admin/machine-clients/${delivery.deliveredByClientId}`
         : undefined;
 
   return (
@@ -97,12 +91,12 @@ export const DeliveryDetail: FC = () => {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <SummaryField label="deliveryDate">{formatTime(delivery.date)}</SummaryField>
           <SummaryField label="deliveredBy">
-            <DeclarerLabel
-              declarer={{
-                kind: delivery.declaringClientId != null ? DeclarerKind.MachineClient : DeclarerKind.Person,
-                name: delivery.declarerName,
+            <UserOrClientLabel
+              userOrClient={{
+                machineClientId: delivery.deliveredByClientId,
+                name: delivery.deliveredByName,
               }}
-              path={declarerPath}
+              path={supplierPath}
             />
           </SummaryField>
           <SummaryField label="mandate">

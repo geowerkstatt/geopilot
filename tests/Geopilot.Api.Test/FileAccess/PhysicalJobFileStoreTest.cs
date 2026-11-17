@@ -95,7 +95,7 @@ public sealed class PhysicalJobFileStoreTest
     [TestMethod]
     public void PromoteStagedFilesWithoutStagedFilesLeavesTheAssetDirectoryAlone()
     {
-        // A declaration retried after an earlier attempt already promoted the files finds nothing staged and must still succeed.
+        // A creation retried after an earlier attempt already promoted the files finds nothing staged and must still succeed.
         var assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
         var jobId = Guid.NewGuid();
         using (var stream = assetStore.CreateFile(jobId, "delivery.xtf")) stream.WriteByte(0x42);

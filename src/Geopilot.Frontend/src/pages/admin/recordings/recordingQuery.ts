@@ -15,8 +15,8 @@ export interface RecordingFilterValues {
   from: string;
   /** The last minute of the period, included, in local time as yyyy-mm-ddThh:mm. */
   to: string;
-  /** "person:<id>" or "machineClient:<id>" each. */
-  declarers: string[];
+  /** "user:<id>" or "machineClient:<id>" each. */
+  startedBy: string[];
   mandateIds: string[];
   states: string[];
 }
@@ -24,17 +24,17 @@ export interface RecordingFilterValues {
 export const emptyRecordingFilters: RecordingFilterValues = {
   from: "",
   to: "",
-  declarers: [],
+  startedBy: [],
   mandateIds: [],
   states: [],
 };
 
 const timeFields = ["from", "to"] as const;
-const listFields = ["declarers", "mandateIds", "states"] as const;
+const listFields = ["startedBy", "mandateIds", "states"] as const;
 
 // The names in the address of the list, one parameter per value.
 const listSearchParamNames: Record<(typeof listFields)[number], string> = {
-  declarers: "declarer",
+  startedBy: "startedBy",
   mandateIds: "mandate",
   states: "state",
 };
@@ -57,7 +57,7 @@ const readTime = (params: URLSearchParams, field: (typeof timeFields)[number]) =
 };
 
 // Ids as the API binds them, at most nine digits so that they fit its whole numbers.
-const declarerPattern = /^(person|machineClient):\d{1,9}$/;
+const startedByPattern = /^(user|machineClient):\d{1,9}$/;
 const idPattern = /^\d{1,9}$/;
 const stateFilters: readonly string[] = Object.values(RecordingStateFilter);
 
@@ -75,7 +75,7 @@ export const readRecordingSearchParams = (
   const filters: RecordingFilterValues = {
     from: readTime(params, "from"),
     to: readTime(params, "to"),
-    declarers: readList(params, "declarers", value => declarerPattern.test(value)),
+    startedBy: readList(params, "startedBy", value => startedByPattern.test(value)),
     mandateIds: readList(params, "mandateIds", value => idPattern.test(value)),
     states: readList(params, "states", value => stateFilters.includes(value)),
   };
@@ -108,8 +108,8 @@ export const toRecordingQuery = (filters: RecordingFilterValues, page: number, p
     // The API excludes the end, so the last minute ends where the next one starts.
     params.set("to", toInstant(filters.to, 1));
   }
-  filters.declarers.forEach(declarer => {
-    const [kind, id] = declarer.split(":");
+  filters.startedBy.forEach(userOrClient => {
+    const [kind, id] = userOrClient.split(":");
     params.append(kind === "machineClient" ? "machineClientIds" : "userIds", id);
   });
   filters.mandateIds.forEach(mandateId => params.append("mandateIds", mandateId));
