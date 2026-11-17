@@ -30,7 +30,7 @@ public class DeliveryControllerTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
-    private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
+    private Mock<ILogger<DeliveryCreationService>> creationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private Mock<IAuthorizationService> authorizationServiceMock;
     private Mock<IPipelineRunRecorder> recorderMock;
@@ -42,7 +42,7 @@ public class DeliveryControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
-        declarationLoggerMock = new Mock<ILogger<DeliveryDeclarationService>>();
+        creationLoggerMock = new Mock<ILogger<DeliveryCreationService>>();
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
@@ -50,9 +50,9 @@ public class DeliveryControllerTest
         deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
 
-        // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
+        // The creation service is wired up for real, not mocked: these tests cover the delivery rules, which
         // moved into it, and mocking it here would leave those rules untested.
-        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object);
+        var creationService = new DeliveryCreationService(creationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object);
         authorizationServiceMock = new Mock<IAuthorizationService>();
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
@@ -61,7 +61,7 @@ public class DeliveryControllerTest
         var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
         pipelineFactoryMock = new Mock<IPipelineFactory>();
         pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
-        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object, pipelineFactoryMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, creationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, authorizationServiceMock.Object, reactionStore, recorderMock.Object, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -99,19 +99,19 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task CreateFailsForARunNobodyCanDeclare()
+    public async Task CreateFailsForARunNobodyMayDeliver()
     {
-        // A member of the mandate asks to declare a run that nobody can declare, such as an anonymous one on a
+        // A member of the mandate asks to deliver a run that nobody may deliver, such as an anonymous one on a
         // public mandate. Being a member now does not make up for who started it. The refusal comes before the
-        // declarer's membership is looked up, so no lookup is set up for it.
+        // supplier's membership is looked up, so no lookup is set up for it.
         var (user, publicMandate) = context.AddMandateWithUserOrganisation(new Mandate
         {
-            Name = TestHelpers.Localized(nameof(CreateFailsForARunNobodyCanDeclare)),
+            Name = TestHelpers.Localized(nameof(CreateFailsForARunNobodyMayDeliver)),
             IsPublic = true,
             AllowDelivery = true,
         });
         deliveryController.SetupTestUser(user);
-        var jobId = SetupProcessingJob(publicMandate.Id, isDeclarable: false);
+        var jobId = SetupProcessingJob(publicMandate.Id, mayDeliver: false);
         var deliveriesCount = context.Deliveries.Count();
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
@@ -155,7 +155,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
 
         // The user belongs to no organisation of the mandate, which being public does not make up for.
-        SetupDeclarable(addedMandate.Entity.Id, user.Entity, isDeclarable: false);
+        SetupMayDeliver(addedMandate.Entity.Id, user.Entity, mayDeliver: false);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
@@ -310,7 +310,7 @@ public class DeliveryControllerTest
 
         Assert.IsNotNull(second);
         Assert.AreEqual(StatusCodes.Status409Conflict, second.StatusCode, "A job that was already delivered must not be delivered a second time.");
-        Assert.AreEqual(deliveriesCount, context.Deliveries.Count(), "The rejected declaration must not have created a delivery.");
+        Assert.AreEqual(deliveriesCount, context.Deliveries.Count(), "The rejected request must not have created a delivery.");
     }
 
     [TestMethod]
@@ -320,10 +320,10 @@ public class DeliveryControllerTest
             new Mandate { Name = TestHelpers.Localized(nameof(TheDatabaseRefusesASecondDeliveryForTheSameJob)), AllowDelivery = true });
         var jobId = Guid.NewGuid();
 
-        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
         await context.SaveChangesAsync();
 
-        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
 
         await Assert.ThrowsAsync<DbUpdateException>(
             () => context.SaveChangesAsync(),
@@ -338,10 +338,10 @@ public class DeliveryControllerTest
             new Mandate { Name = TestHelpers.Localized(nameof(ADeletedDeliveryDoesNotKeepItsJobFromBeingDeliveredAgain)), AllowDelivery = true });
         var jobId = Guid.NewGuid();
 
-        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user, Deleted = true });
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user, Deleted = true });
         await context.SaveChangesAsync();
 
-        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
         await context.SaveChangesAsync();
 
         Assert.HasCount(
@@ -457,7 +457,7 @@ public class DeliveryControllerTest
         Guid jobId = SetupProcessingJob(mandate.Id);
         if (responseValueType == typeof(Delivery))
             SetupJobPersistence(jobId);
-        var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
+        var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = user };
         context.Deliveries.Add(precursorDelivery);
         context.SaveChanges();
 
@@ -483,7 +483,7 @@ public class DeliveryControllerTest
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var otherMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, }).Entity;
-        var precursorDelivery = context.Deliveries.Add(new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user }).Entity;
+        var precursorDelivery = context.Deliveries.Add(new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeliveredByUser = user }).Entity;
         context.SaveChanges();
 
         var request = new DeliveryRequest
@@ -544,11 +544,11 @@ public class DeliveryControllerTest
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success, bool isDeclarable = true)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success, bool mayDeliver = true)
     {
         var guid = Guid.NewGuid();
 
-        // The pipeline always reports Success, so a refused declaration shows that the gate reads the job state:
+        // The pipeline always reports Success, so a refused delivery shows that the gate reads the job state:
         // the job only becomes deliverable once its delivery files are staged.
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
@@ -559,7 +559,7 @@ public class DeliveryControllerTest
         {
             Pipeline = pipelineMock.Object,
             State = jobState,
-            IsDeclarable = isDeclarable,
+            MayDeliver = mayDeliver,
         };
 
         processingServiceMock
@@ -577,7 +577,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(admin);
 
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = user };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeliveredByUser = user };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -602,7 +602,7 @@ public class DeliveryControllerTest
     {
         var admin = context.Users.First(u => u.IsAdmin);
         deliveryController.SetupTestUser(admin);
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(u => !u.IsAdmin) };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.AddRange(NewReaction(delivery, "ablage", ReactionState.Pending), NewReaction(delivery, "meldung", ReactionState.Done));
         context.SaveChanges();
@@ -633,7 +633,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user);
 
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = user };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeliveredByUser = user };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -662,7 +662,7 @@ public class DeliveryControllerTest
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = user };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.Add(NewReaction(delivery, "ablage", state, attempts: attempts));
         context.SaveChanges();
@@ -679,7 +679,7 @@ public class DeliveryControllerTest
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = user };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = user };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.Add(NewReaction(delivery, "ablage", ReactionState.Pending));
         context.SaveChanges();
@@ -713,7 +713,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(deleter);
 
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = uploader };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeliveredByUser = uploader };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -737,7 +737,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(uploader);
 
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = uploader, Date = DateTime.UtcNow.AddHours(-12) };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeliveredByUser = uploader, Date = DateTime.UtcNow.AddHours(-12) };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -822,18 +822,18 @@ public class DeliveryControllerTest
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
         // Midnight in Zurich is 23:00 UTC in winter, an hour before midnight UTC.
-        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
-        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
+        var deliveredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(deliveredAt, new DateTime(2026, 1, 15, 22, 59, 0, DateTimeKind.Utc)));
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(deliveredAt, new DateTime(2026, 1, 15, 23, 30, 0, DateTimeKind.Utc)));
     }
 
     [TestMethod]
-    public void IsDeleteAllowedForUploaderStaysDisabledBeforeTheDeclaration()
+    public void IsDeleteAllowedForUploaderStaysDisabledBeforeTheDelivery()
     {
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = false });
 
-        var declaredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
-        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(declaredAt, declaredAt.AddMinutes(-1)));
+        var deliveredAt = new DateTime(2026, 1, 15, 10, 0, 0, DateTimeKind.Utc);
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(deliveredAt, deliveredAt.AddMinutes(-1)));
     }
 
     [TestMethod]
@@ -916,7 +916,7 @@ public class DeliveryControllerTest
 
     private Delivery CreateDeliveryWithAsset(Mandate mandate)
     {
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = context.Users.First() };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = mandate, DeliveredByUser = context.Users.First() };
         delivery.Assets.Add(new Asset() { OriginalFilename = "Test.xml", SanitizedFilename = "xyz.xml" });
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -949,11 +949,11 @@ public class DeliveryControllerTest
     public async Task GetListsEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
-        var declarer = context.Users.First(u => !u.IsAdmin);
+        var supplier = context.Users.First(u => !u.IsAdmin);
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
-        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
-        var failed = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringClient = client };
-        var withoutReactions = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
+        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
+        var failed = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByClient = client };
+        var withoutReactions = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
         context.Deliveries.AddRange(forwarded, failed, withoutReactions);
         context.DeliveryReactions.AddRange(
             NewReaction(forwarded, "ablage", ReactionState.Done),
@@ -967,11 +967,13 @@ public class DeliveryControllerTest
         Assert.IsNotNull(list);
         var byId = list.ToDictionary(d => d.Id);
         var forwardedResponse = byId[forwarded.Id];
-        Assert.AreEqual(declarer.FullName, forwardedResponse.DeclarerName);
+        Assert.AreEqual(supplier.FullName, forwardedResponse.DeliveredByName);
+        Assert.IsNull(forwardedResponse.DeliveredByClientId, "a delivery a user made names no client.");
         Assert.AreEqual(forwarded.Mandate.Id, forwardedResponse.Mandate.Id);
         Assert.AreEqual(ReactionState.Done, forwardedResponse.ForwardingState, "a notification does not hold up the forwarding.");
         Assert.AreEqual(ReactionState.Pending, forwardedResponse.NotificationState);
-        Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeclarerName);
+        Assert.AreEqual("SILENTHARBOR", byId[failed.Id].DeliveredByName);
+        Assert.AreEqual(client.Id, byId[failed.Id].DeliveredByClientId);
         Assert.AreEqual(ReactionState.Error, byId[failed.Id].ForwardingState);
         Assert.IsNull(byId[failed.Id].NotificationState, "a delivery without notifications has none to sum up.");
         Assert.IsNull(byId[withoutReactions.Id].ForwardingState);
@@ -992,7 +994,7 @@ public class DeliveryControllerTest
                 Notifications = [new ReactionConfig { Id = "meldung", DisplayName = TestHelpers.Localized("Info-Mail"), ChannelId = "mail" }],
             },
         ]);
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(u => !u.IsAdmin) };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.AddRange(
             NewReaction(delivery, "ablage", ReactionState.Done),
@@ -1076,12 +1078,12 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task CreateDeclaresTheMetadataOfTheRequest()
+    public async Task CreateStoresTheMetadataOfTheRequest()
     {
         var (user, mandate) = SetupMandateWithUserOrganisation(
             new Mandate
             {
-                Name = TestHelpers.Localized(nameof(CreateDeclaresTheMetadataOfTheRequest)),
+                Name = TestHelpers.Localized(nameof(CreateStoresTheMetadataOfTheRequest)),
                 EvaluateComment = FieldEvaluationType.NotEvaluated,
                 EvaluatePartial = FieldEvaluationType.NotEvaluated,
                 EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
@@ -1135,12 +1137,12 @@ public class DeliveryControllerTest
     public async Task GetByIdReturnsTheMetadataCopy()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
-        var declarer = context.Users.First(u => !u.IsAdmin);
+        var supplier = context.Users.First(u => !u.IsAdmin);
         var delivery = new Delivery
         {
             JobId = Guid.NewGuid(),
             Mandate = context.Mandates.First(),
-            DeclaringUser = declarer,
+            DeliveredByUser = supplier,
             Metadata =
             [
                 new DeliveredMetadataField("project_number", TestHelpers.Localized("Project number"), MetadataFieldType.Text, FieldEvaluationType.Optional, null, JsonSerializer.SerializeToElement("P-17")),
@@ -1162,9 +1164,9 @@ public class DeliveryControllerTest
     public async Task GetByIdShowsWhatWasDelivered()
     {
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
-        var declarer = context.Users.First(u => !u.IsAdmin);
-        var precursor = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer };
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = declarer, PrecursorDelivery = precursor, Partial = true, Comment = "zweite Lieferung" };
+        var supplier = context.Users.First(u => !u.IsAdmin);
+        var precursor = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier, PrecursorDelivery = precursor, Partial = true, Comment = "zweite Lieferung" };
         delivery.Assets.Add(new Asset { OriginalFilename = "Strassen 2026.xtf", SanitizedFilename = "Strassen_2026.xtf" });
         delivery.Assets.Add(new Asset { OriginalFilename = "errorLog.log", SanitizedFilename = "errorLog.log" });
         context.Deliveries.AddRange(precursor, delivery);
@@ -1176,9 +1178,9 @@ public class DeliveryControllerTest
         var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
 
         Assert.IsNotNull(detail);
-        Assert.AreEqual(declarer.FullName, detail.DeclarerName);
-        Assert.AreEqual(declarer.Id, detail.DeclaringUserId);
-        Assert.IsNull(detail.DeclaringClientId);
+        Assert.AreEqual(supplier.FullName, detail.DeliveredByName);
+        Assert.AreEqual(supplier.Id, detail.DeliveredByUserId);
+        Assert.IsNull(detail.DeliveredByClientId);
         Assert.AreEqual(delivery.Mandate.Id, detail.Mandate.Id);
         Assert.AreEqual(precursor.Id, detail.PrecursorDelivery?.Id);
         Assert.IsTrue(detail.Partial);
@@ -1225,7 +1227,7 @@ public class DeliveryControllerTest
 
     private Delivery AddDeliveryWithReactions(params (string ReactionId, ReactionState State)[] reactions)
     {
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringUser = context.Users.First(u => !u.IsAdmin) };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(u => !u.IsAdmin) };
         context.Deliveries.Add(delivery);
         context.DeliveryReactions.AddRange(reactions.Select(reaction => NewReaction(delivery, reaction.ReactionId, reaction.State)));
         context.SaveChanges();
@@ -1273,13 +1275,13 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetUploadsReturnsDeliveriesOfUserInTheOrderTheyWereDeclared()
+    public async Task GetUploadsReturnsDeliveriesOfUserInTheOrderTheyWereCreated()
     {
-        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeliveredByUserId == u.Id) >= 2);
         deliveryController.SetupTestUser(user);
 
         // An update moves the row within the table, so the database no longer returns the deliveries in id order by chance.
-        var first = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        var first = context.Deliveries.Where(d => d.DeliveredByUserId == user.Id).OrderBy(d => d.Id).First();
         first.Comment += " (edited)";
         context.SaveChanges();
 
@@ -1288,7 +1290,7 @@ public class DeliveryControllerTest
         var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
         var expected = context.Deliveries
             .Include(d => d.Mandate)
-            .Where(d => d.DeclaringUserId == user.Id)
+            .Where(d => d.DeliveredByUserId == user.Id)
             .OrderBy(d => d.Id)
             .AsEnumerable()
             .Select(d => (d.Id, d.Date, d.Comment, Mandate: new MandateReference(d.Mandate.Id, d.Mandate.Name)))
@@ -1314,9 +1316,9 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task GetUploadsReportsThatADeliveryWhoseForwardingBeganCannotBeDeleted()
     {
-        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeclaringUserId == u.Id) >= 2);
+        var user = context.Users.First(u => !u.IsAdmin && context.Deliveries.Count(d => d.DeliveredByUserId == u.Id) >= 2);
         deliveryController.SetupTestUser(user);
-        var forwarded = context.Deliveries.Where(d => d.DeclaringUserId == user.Id).OrderBy(d => d.Id).First();
+        var forwarded = context.Deliveries.Where(d => d.DeliveredByUserId == user.Id).OrderBy(d => d.Id).First();
         context.DeliveryReactions.Add(NewReaction(forwarded, "ablage", ReactionState.Done, attempts: 1));
         context.SaveChanges();
 
@@ -1338,8 +1340,8 @@ public class DeliveryControllerTest
         var response = (await deliveryController.GetUploads()) as ObjectResult;
 
         var uploads = Assert.IsInstanceOfType<List<UploadedDelivery>>(response?.Value);
-        Assert.AreEqual(client.Name, uploads.Single(upload => upload.Id == clientDelivery.Id).DeclarerName, "A deactivated client's deliveries stay with the persons responsible for it.");
-        Assert.IsTrue(uploads.Where(upload => upload.Id != clientDelivery.Id).All(upload => upload.DeclarerName == user.FullName));
+        Assert.AreEqual(client.Name, uploads.Single(upload => upload.Id == clientDelivery.Id).DeliveredByName, "A deactivated client's deliveries stay with the persons responsible for it.");
+        Assert.IsTrue(uploads.Where(upload => upload.Id != clientDelivery.Id).All(upload => upload.DeliveredByName == user.FullName));
     }
 
     [TestMethod]
@@ -1400,7 +1402,7 @@ public class DeliveryControllerTest
     }
 
     private User UserWithDeliveries()
-        => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeclaringUserId == user.Id));
+        => context.Users.First(user => !user.IsAdmin && context.Deliveries.Any(delivery => delivery.DeliveredByUserId == user.Id));
 
     private MachineClient AddMachineClient(MachineClientState state, params User[] responsibleUsers)
     {
@@ -1417,7 +1419,7 @@ public class DeliveryControllerTest
 
     private Delivery AddClientDelivery(MachineClient client, DateTime? date = null)
     {
-        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeclaringClient = client, Date = date ?? DateTime.UtcNow };
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByClient = client, Date = date ?? DateTime.UtcNow };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -1452,12 +1454,12 @@ public class DeliveryControllerTest
         var (user, createdMandate) = context.AddMandateWithUserOrganisation(mandate);
 
         // A member, so the rule comes down to whether the mandate takes deliveries.
-        SetupDeclarable(createdMandate.Id, user, createdMandate.AllowDelivery);
+        SetupMayDeliver(createdMandate.Id, user, createdMandate.AllowDelivery);
         return (user, createdMandate);
     }
 
-    private void SetupDeclarable(int mandateId, User user, bool isDeclarable)
-        => mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateId, Declarer.ForUser(user.Id))).ReturnsAsync(isDeclarable);
+    private void SetupMayDeliver(int mandateId, User user, bool mayDeliver)
+        => mandateServiceMock.Setup(s => s.MayDeliverAsync(mandateId, Supplier.ForUser(user.Id))).ReturnsAsync(mayDeliver);
 
     private void SetupGetMandateForUser(int mandateId, User user, bool returnNull = false)
     {
@@ -1467,7 +1469,7 @@ public class DeliveryControllerTest
             : context.Mandates.AsNoTracking().First(m => m.Id == mandateId);
 
         mandateServiceMock
-            .Setup(s => s.GetMandateForDeliveryAsync(mandateId, Declarer.ForUser(user.Id)))
+            .Setup(s => s.GetMandateForDeliveryAsync(mandateId, Supplier.ForUser(user.Id)))
             .ReturnsAsync(detachedMandate);
     }
 }

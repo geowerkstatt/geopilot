@@ -38,7 +38,7 @@ public class ProcessingJobStore : IProcessingJobStore
     public IReadOnlyCollection<Guid> GetJobIds() => jobs.Keys.ToList();
 
     /// <inheritdoc/>
-    public ProcessingJob CreateJob(Guid uploadId, bool isDeclarable, DeliveryIntent? deliveryIntent = null)
+    public ProcessingJob CreateJob(Guid uploadId, bool mayDeliver, DeliveryIntent? deliveryIntent = null)
     {
         // State changes happen outside the lock, which is safe: they only ever make a job less active, so only
         // two starts at once could admit a second active job.
@@ -46,8 +46,8 @@ public class ProcessingJobStore : IProcessingJobStore
         lock (createLock)
         {
             // A job counts as ended once its terminal state is set, but its upload is only released after the
-            // declaration and the protocol. A start in between is accepted and then fails in its preflight; after a
-            // cancelled run, the one case where a restart makes sense, nothing is released.
+            // delivery is created and the protocol written. A start in between is accepted and then fails in its
+            // preflight; after a cancelled run, the one case where a restart makes sense, nothing is released.
             if (jobs.Values.Any(job => job.UploadId == uploadId && !IsTerminal(job.State)))
                 throw new JobAlreadyActiveException(uploadId);
 
@@ -57,7 +57,7 @@ public class ProcessingJobStore : IProcessingJobStore
                 MandateId: null,
                 CreatedAt: DateTime.UtcNow)
             {
-                IsDeclarable = isDeclarable,
+                MayDeliver = mayDeliver,
                 DeliveryIntent = deliveryIntent,
             };
 
@@ -118,15 +118,15 @@ public class ProcessingJobStore : IProcessingJobStore
             });
 
         // A job left in Running without a work item would never run and never end, so a refused write must surface.
-        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files, updatedJob.IsDeclarable)))
+        if (!processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files, updatedJob.MayDeliver)))
             throw new InvalidOperationException($"Job <{jobId}> could not be queued for processing.");
 
         return updatedJob;
     }
 
     /// <inheritdoc/>
-    public void RecordDeclarationFailure(Guid jobId, string reason)
-        => TryUpdate(jobId, job => job with { DeclarationFailure = reason });
+    public void RecordDeliveryFailure(Guid jobId, string reason)
+        => TryUpdate(jobId, job => job with { DeliveryFailure = reason });
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);

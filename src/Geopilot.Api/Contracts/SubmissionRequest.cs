@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Api.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace Geopilot.Api.Contracts;
@@ -43,4 +44,21 @@ public class SubmissionRequest
     /// mandate.
     /// </summary>
     public Dictionary<string, JsonElement>? Metadata { get; set; }
+
+    /// <summary>
+    /// Your own identifier of the delivery, such as your delivery number. Send the same one with every attempt of
+    /// the same delivery, so its attempts are recognized as one delivery. Optional. At most 128 characters, without
+    /// control or invisible format characters; white space at either end is dropped, and nothing but white space
+    /// counts as none. Never checked against earlier attempts.
+    /// </summary>
+    [MaxLength(PipelineRun.ClientReferenceMaxLength)]
+    public string? ClientReference
+    {
+        get => clientReference;
+
+        // Trimmed as it binds, so the length limit counts only what is kept.
+        set => clientReference = value?.Trim();
+    }
+
+    private string? clientReference;
 }

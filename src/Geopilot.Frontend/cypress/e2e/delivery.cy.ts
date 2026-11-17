@@ -32,7 +32,7 @@ import {
   uploadFile,
   waitForProcessingToFinish,
 } from "./helpers/deliveryHelpers";
-import { hasError, setChipInput, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers";
+import { hasError, setChipInput, setDate, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {
@@ -144,7 +144,7 @@ describe("Delivery tests", () => {
     cy.intercept("POST", "/api/v1/delivery").as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
 
-    // The declared metadata reaches the API as text.
+    // The entered metadata reaches the API as text.
     cy.wait<DeliveryRequest, Delivery>("@createDelivery").then(({ request, response }) => {
       const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
       expect(body.partialDelivery).to.equal(true);
@@ -156,7 +156,7 @@ describe("Delivery tests", () => {
     cy.dataCy("createDelivery-button").should("not.exist");
     stepIsCompleted("delivery");
 
-    // The delivery is real and would otherwise stay in the database, where the delivery overview tests
+    // The delivery is real and would otherwise stay in the database, where the deliveries tests
     // would find an extra row that their assertions do not expect.
     cy.then(() =>
       cy.request({
@@ -588,7 +588,7 @@ describe("Delivery metadata fields", () => {
     setChipInput("metadata.municipalities", "Aarau");
     setSelect("metadata.responsible", 0);
     setInput("metadata.parcel_count", "12");
-    setInput("metadata.due_date", "2026-11-04");
+    setDate("metadata.due_date", "2026-11-04");
 
     cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();

@@ -1,6 +1,6 @@
 # Maschinelle Anlieferung
 
-Datenlieferantinnen und -lieferanten, die ihre Daten aus einem automatisierten Prozess abgeben, brauchen keine Weboberfläche. geopilot bietet ihnen dafür eine eigene Ressource: ein Aufruf übergibt Mandat, Lieferangaben und Daten, danach wird der Versuch abgefragt, bis er geliefert oder abgelehnt ist. Die Lieferung deklariert geopilot selbst, sobald der Lauf sie zulässt.
+Datenlieferantinnen und -lieferanten, die ihre Daten aus einem automatisierten Prozess abgeben, brauchen keine Weboberfläche. geopilot bietet ihnen dafür eine eigene Ressource: ein Aufruf übergibt Mandat, Lieferangaben und Daten, danach wird der Versuch abgefragt, bis er geliefert oder abgelehnt ist. Die Lieferung erstellt geopilot selbst, sobald der Lauf sie zulässt.
 
 Diese Schnittstelle ist bewusst von der Weboberfläche getrennt. Die Endpunkte, die das Frontend bedient, bewegen sich mit ihm; die hier beschriebenen sollen über die Zeit stabil bleiben.
 
@@ -16,7 +16,7 @@ Maschinell und über die Weboberfläche angelieferte Daten landen in derselben A
 
 Ein Maschinen-Client holt sich sein Token mit **Client Credentials** (Client ID und Secret) beim Identity Provider der Installation, demselben, an dem sich auch die Benutzerinnen und Benutzer anmelden: dieselbe Authority, dieselbe Audience. Je nach Identity Provider trägt das Token die Audience erst, wenn der Client sie beim Token-Aufruf über einen Scope anfordert; die Referenzskripte unter `scripts/` nehmen diesen Scope mit `-Scope`. Das Token schickt er unverändert als `Authorization: Bearer <token>` mit.
 
-Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client über seine **Kennung**, das `sub` seines Tokens. Bei opaken Tokens ist es das `sub` der Introspection-Antwort, ersatzweise deren `client_id`. Eine Administratorin oder ein Administrator registriert den Client in der Verwaltung unter *Maschinen-Clients* mit dieser Kennung und einem Anzeigenamen und teilt ihn Organisationen zu, so wie eine Person; über die Organisationen erreicht der Client seine Mandate. Dazu kann sie ihm verantwortliche Personen zuordnen: Sie sehen seine Lieferungen unter *Meine Lieferungen*, dürfen sie im Löschfenster löschen wie eigene und bekommen die Mail, die eine Lieferung mit `includeDeclarer` an ihren Lieferanten schickt. Rechte auf die Mandate des Clients bekommen sie dadurch nicht. Nichts registriert einen Client von sich aus: ein gültiges Token mit unbekannter Kennung wird mit `403` abgewiesen, und das Log der Installation nennt die Kennung, damit sie beim Registrieren nicht am Identity Provider zusammengesucht werden muss. Ein deaktivierter Client wird ebenso abgewiesen, und auf den offenen Endpunkten der Verarbeitung zählt er ab dann als niemand, erreicht also auch die nicht öffentlichen Mandate seiner Organisationen nicht mehr. Das ist der Weg, einen Client zu sperren, ohne am Identity Provider etwas zu ändern.
+Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client über seine **Kennung**, das `sub` seines Tokens. Bei opaken Tokens ist es das `sub` der Introspection-Antwort, ersatzweise deren `client_id`. Eine Administratorin oder ein Administrator registriert den Client in der Verwaltung unter *Maschinen-Clients* mit dieser Kennung und einem Anzeigenamen und teilt ihn Organisationen zu, so wie eine Person; über die Organisationen erreicht der Client seine Mandate. Dazu kann sie ihm verantwortliche Personen zuordnen: Sie sehen seine Lieferungen unter *Meine Lieferungen*, dürfen sie im Löschfenster löschen wie eigene und bekommen die Mail, die eine Lieferung mit `includeSupplier` an ihren Lieferanten schickt. Rechte auf die Mandate des Clients bekommen sie dadurch nicht. Nichts registriert einen Client von sich aus: ein gültiges Token mit unbekannter Kennung wird mit `403` abgewiesen, und das Log der Installation nennt die Kennung, damit sie beim Registrieren nicht am Identity Provider zusammengesucht werden muss. Ein deaktivierter Client wird ebenso abgewiesen, und auf den offenen Endpunkten der Verarbeitung zählt er ab dann als niemand, erreicht also auch die nicht öffentlichen Mandate seiner Organisationen nicht mehr. Das ist der Weg, einen Client zu sperren, ohne am Identity Provider etwas zu ändern.
 
 Die Zugangsdaten eines Clients öffnen die Weboberfläche nicht. Ein Client ist kein Benutzer: er erreicht ausschliesslich `api/v1/submission*`, weder eine Lieferungsliste noch die Verwaltung, und ein Token, dessen Kennung als Client registriert ist, wird nirgends als Person behandelt, auch wenn der Identity Provider dazu Benutzerinformationen liefern würde; geopilot fragt sie für einen registrierten Client gar nicht ab. Umgekehrt lässt sich die Kennung einer bestehenden Person nicht als Client registrieren.
 
@@ -49,6 +49,7 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 {
   "mandateKey": "av-2026",
   "uploadId": "0f9c1f2e-4d3b-4a1e-9f2c-7b8e5d4a3c21",
+  "clientReference": "LIEF-2026-0815",
   "comment": "Nachlieferung Perimeter Nord",
   "partialDelivery": false,
   "precursorDeliveryId": 42,
@@ -60,7 +61,9 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 
 `metadata` trägt die Werte der zusätzlichen Felder, die das Mandat vorsieht. Es ist ein Objekt mit der Id des Felds als Schlüssel. Das Wertformat hängt vom Typ des Felds ab: Text und Datum (`2026-11-04`) sind Strings, eine Textliste ist ein Array von Strings, eine Auswahl nennt die Id der gewählten Option, eine Ganzzahl und eine Dezimalzahl sind JSON-Zahlen. Eine Ganzzahl steht ohne Dezimalpunkt und ohne Exponent (`12`, nicht `12.0`). Als nicht ausgefüllt gilt ein fehlender Schlüssel, `null`, ein leerer oder nur aus Leerzeichen bestehender String und ein leeres Array oder eines aus lauter solchen Strings. Ob ein Feld Pflicht ist, legt das Mandat fest. Eine unbekannte Id weist geopilot ab. Fehler stehen im Feld `errors` der Antwort `400`, unter dem Schlüssel `metadata.<id>`.
 
-Die Felder gehören damit zum Vertrag des Clients. Wird die Id eines Felds oder einer Option geändert, ein Feld oder eine Option entfernt, der Typ eines Felds geändert oder ein Feld zur Pflicht gemacht, bricht ein Client, der die Änderung nicht mitmacht. Geprüft wird immer gegen das Mandat im Moment der Prüfung, auch bei der automatischen Deklaration eines bereits angenommenen Versuchs. Erfüllen seine Werte die Felder, die das Mandat in diesem Moment hat, nicht mehr, scheitert die Deklaration: Der Versuch endet als `failed`, `messages` nennt die betroffenen Felder, und der Client muss die Lieferung neu einreichen.
+Die Felder gehören damit zum Vertrag des Clients. Wird die Id eines Felds oder einer Option geändert, ein Feld oder eine Option entfernt, der Typ eines Felds geändert oder ein Feld zur Pflicht gemacht, bricht ein Client, der die Änderung nicht mitmacht. Geprüft wird immer gegen das Mandat im Moment der Prüfung, auch wenn geopilot die Lieferung eines bereits angenommenen Versuchs selbst erstellt. Erfüllen seine Werte die Felder, die das Mandat in diesem Moment hat, nicht mehr, wird die Lieferung abgewiesen: Der Versuch endet als `failed`, `messages` nennt die betroffenen Felder, und der Client muss die Lieferung neu einreichen.
+
+`clientReference` ist optional: die eigene Kennung des Clients für die Lieferung, etwa seine Lieferungsnummer. Der Client schickt bei jedem Versuch derselben Lieferung dieselbe Kennung mit, ob er nach `failed` dieselben Daten oder nach `rejected` korrigierte schickt. Vergeben muss sie der Client, weil ein gescheiterter Versuch oft gar keine Id von geopilot erhält, etwa bei `503` oder einem Timeout vor der Antwort. geopilot hält die Kennung im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) fest, gibt sie im Statusdokument zurück und fasst in der Übersicht der Verarbeitungen die Versuche mit derselben Kennung, vom selben Absender und für dasselbe Mandat zusammen. Leerzeichen und Zeilenumbrüche am Anfang und am Ende fallen weg, danach wird exakt verglichen, Gross- und Kleinschreibung eingeschlossen; eine Kennung nur aus solchen Zeichen gilt als keine. Die Kennung darf höchstens 128 Zeichen lang sein und keine Steuer- oder unsichtbaren Formatzeichen enthalten, die zwei gleich aussehende Kennungen zu zwei Lieferungen machen würden; sonst antwortet geopilot mit `400`. Darüber hinaus prüft geopilot sie nicht, auch nicht gegen frühere Versuche.
 
 ### Variante mit Dateien im Request
 
@@ -70,6 +73,7 @@ Ein Aufruf genügt. Die Formularfelder heissen wie die JSON-Felder oben, ohne `u
 curl -X POST https://geopilot.example.ch/api/v1/submission/multipart \
   -H "Authorization: Bearer $TOKEN" \
   -F "mandateKey=av-2026" \
+  -F "clientReference=LIEF-2026-0815" \
   -F "comment=Nachlieferung Perimeter Nord" \
   -F 'metadata={"project_number":"2026-117"}' \
   -F "file=@lieferung.xtf"
@@ -92,6 +96,7 @@ Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpun
   "id": "3f7a2b91-8c4d-4e5f-a1b2-c3d4e5f60718",
   "state": "rejected",
   "mandateKey": "av-2026",
+  "clientReference": "LIEF-2026-0815",
   "deliveryId": null,
   "messages": [
     {
@@ -127,6 +132,8 @@ Ein fertiger Lauf bleibt kurz auf `processing`, bis die Lieferung geschrieben is
 
 `messages` sammelt, was die Schritte gemeldet haben, je mit Schritt und Gewicht (`info`, `warning`, `error`). Die Texte sind mehrsprachig, wie überall in geopilot.
 
+`clientReference` ist die Kennung der Lieferung, die der Versuch trug, oder `null`, wenn er keine trug.
+
 ## Was der Lauf zum Herunterladen anbietet
 
 Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in `downloads`, je mit dem Schritt, der es erzeugt hat. Was das ist, entscheidet die Pipeline-Definition: bei der mitgelieferten XTF-Validierung ist es das Validierungsprotokoll, eine andere Pipeline kann dort einen Bericht oder umgewandelte Daten anbieten. geopilot weiss nur, dass die Datei zum Herunterladen markiert wurde.
@@ -146,7 +153,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | Code | Wann |
 | --- | --- |
 | `202` | Der Versuch ist angenommen und läuft. |
-| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, oder die Lieferangaben verletzen die Regeln des Mandats (dann als `ValidationProblemDetails` je Feld). |
+| `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, die `clientReference` ist zu lang oder enthält Steuer- oder unsichtbare Formatzeichen, oder die Lieferangaben verletzen die Regeln des Mandats (die beiden letzten als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |

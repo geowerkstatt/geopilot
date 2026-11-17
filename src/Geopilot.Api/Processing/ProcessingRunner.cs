@@ -16,7 +16,7 @@ namespace Geopilot.Api.Processing;
 /// JSON in the dedicated visualization store, as soon as that step finishes via <see cref="IPipeline.OnStepCompleted"/>,
 /// so they are available while later steps still run and regardless of whether the run ultimately succeeds. Delivery
 /// payload files (<see cref="OutputAction.Delivery"/>) are staged once, only when the run finished successfully and
-/// delivery is allowed; declaring the delivery promotes them into the asset store. They populate
+/// delivery is allowed; creating the delivery promotes them into the asset store. They populate
 /// <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/> and
 /// <see cref="IPipelineStep.DeliveryFiles"/> respectively. However a run ends, the runner reports its outcome to
 /// <see cref="JobLifecycle"/>, which carries out what follows for the job.
@@ -105,12 +105,12 @@ public class ProcessingRunner : BackgroundService
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
-                // Stage the delivery payload only when the run is deliverable and somebody can declare it, by the
-                // same rules the declaration applies to the job (DeliveryDeclarationService). The job only turns
-                // deliverable once RunFinishedAsync below sets its state, so a declaration never promotes a partial
+                // Stage the delivery payload only when the run is deliverable and somebody may deliver it, by the
+                // same rules the creation applies to the job (DeliveryCreationService). The job only turns
+                // deliverable once RunFinishedAsync below sets its state, so a creation never promotes a partial
                 // staging. It goes to the staging store, not the asset store: the asset directory holds deliveries
-                // only, and declaring one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
-                if (pipeline.State.IsDeliverable() && workItem.IsDeclarable)
+                // only, and creating one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
+                if (pipeline.State.IsDeliverable() && workItem.MayDeliver)
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
                 outcome = new RunOutcome.Completed(pipeline.State);
@@ -130,6 +130,10 @@ public class ProcessingRunner : BackgroundService
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
                 outcome = new RunOutcome.ShutDown();
             }
+            catch (Exception) when (StepThrew(pipeline))
+            {
+                outcome = new RunOutcome.Completed(ProcessingState.Failed);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
@@ -137,12 +141,20 @@ public class ProcessingRunner : BackgroundService
             }
 
             // On the shutdown token, not the linked one: the job timeout bounds the run, and what follows starts
-            // once the run is over, so a nearly exhausted timeout must not cut the declaration short. It never
+            // once the run is over, so a nearly exhausted timeout must not cut the creation short. It never
             // throws, which matters here: an exception escaping the body of a Parallel.ForEachAsync stops the
             // queue from draining and, by default, the host.
             await lifecycle.RunFinishedAsync(pipeline, outcome, cancellationToken);
         });
     }
+
+    /// <summary>
+    /// Whether a step ended the run by throwing. Such a step has logged the exception and keeps it as its error
+    /// message, so the run failed in that step rather than crashed. A step failed by a condition has no error message,
+    /// so an exception thrown while persisting its downloads still counts as a crash.
+    /// </summary>
+    private static bool StepThrew(IPipeline pipeline)
+        => pipeline.Steps.Any(step => step.State == StepState.Error && step.ErrorMessage is not null);
 
     /// <summary>
     /// Persists a single step's outputs the moment it finishes, via <see cref="IPipeline.OnStepCompleted"/>,
@@ -199,7 +211,7 @@ public class ProcessingRunner : BackgroundService
 
     /// <summary>
     /// Stages the delivery payload files (<see cref="OutputAction.Delivery"/>) of every completed step in the
-    /// staging store, from where declaring the delivery promotes them into the asset store, and records them on
+    /// staging store, from where creating the delivery promotes them into the asset store, and records them on
     /// <see cref="IPipelineStep.DeliveryFiles"/>. Only called for a successfully
     /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). A delivery file keeps its original name,
     /// without the step prefix downloads carry, because the names of a delivery are often agreed with the data

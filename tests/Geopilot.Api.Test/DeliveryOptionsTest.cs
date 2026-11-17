@@ -16,17 +16,17 @@ public class DeliveryOptionsTest
     [DataRow("0 0 * * *", "2026-03-29T10:00:00Z", "2026-03-29T22:00:00Z", DisplayName = "Day of the switch to summer time")]
     [DataRow("0 0 * * *", "2026-10-24T10:00:00Z", "2026-10-24T22:00:00Z", DisplayName = "Day before the switch to winter time")]
     [DataRow("0 0 * * *", "2026-10-25T10:00:00Z", "2026-10-25T23:00:00Z", DisplayName = "Day of the switch to winter time")]
-    public void GetDeleteWindowEndReadsIntervalInLocalTime(string interval, string declaredAt, string expectedEnd)
+    public void GetDeleteWindowEndReadsIntervalInLocalTime(string interval, string deliveredAt, string expectedEnd)
     {
         var options = new DeliveryOptions { UploaderDeleteEnabled = true, DeleteRestrictInterval = interval, TimeZone = Zurich };
 
-        Assert.AreEqual(ParseUtc(expectedEnd), options.GetDeleteWindowEnd(ParseUtc(declaredAt)));
+        Assert.AreEqual(ParseUtc(expectedEnd), options.GetDeleteWindowEnd(ParseUtc(deliveredAt)));
     }
 
     [TestMethod]
     [DataRow("2026-01-15T10:00:00Z", "2026-01-15T12:00:00Z", DisplayName = "Duration ends first")]
     [DataRow("2026-01-15T22:00:00Z", "2026-01-15T23:00:00Z", DisplayName = "Interval ends first")]
-    public void GetDeleteWindowEndTakesTheEarlierBound(string declaredAt, string expectedEnd)
+    public void GetDeleteWindowEndTakesTheEarlierBound(string deliveredAt, string expectedEnd)
     {
         var options = new DeliveryOptions
         {
@@ -36,7 +36,7 @@ public class DeliveryOptionsTest
             TimeZone = Zurich,
         };
 
-        Assert.AreEqual(ParseUtc(expectedEnd), options.GetDeleteWindowEnd(ParseUtc(declaredAt)));
+        Assert.AreEqual(ParseUtc(expectedEnd), options.GetDeleteWindowEnd(ParseUtc(deliveredAt)));
     }
 
     [TestMethod]
@@ -48,7 +48,7 @@ public class DeliveryOptionsTest
     }
 
     [TestMethod]
-    public void GetDeleteWindowEndIsTheDeclarationWithoutUploaderDeletion()
+    public void GetDeleteWindowEndIsTheDeliveryWithoutUploaderDeletion()
     {
         var options = new DeliveryOptions { UploaderDeleteEnabled = false, DeleteDuration = TimeSpan.FromHours(2), DeleteRestrictInterval = "0 0 * * *" };
 
@@ -67,9 +67,9 @@ public class DeliveryOptionsTest
     public void GetDeleteWindowEndReadsUnspecifiedKindAsUtc()
     {
         var options = new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(1) };
-        var declaredAt = DateTime.SpecifyKind(new DateTime(2026, 7, 15, 10, 0, 0), DateTimeKind.Unspecified);
+        var deliveredAt = DateTime.SpecifyKind(new DateTime(2026, 7, 15, 10, 0, 0), DateTimeKind.Unspecified);
 
-        var windowEnd = options.GetDeleteWindowEnd(declaredAt);
+        var windowEnd = options.GetDeleteWindowEnd(deliveredAt);
 
         Assert.AreEqual(ParseUtc("2026-07-15T11:00:00Z"), windowEnd);
         Assert.AreEqual(DateTimeKind.Utc, windowEnd?.Kind);

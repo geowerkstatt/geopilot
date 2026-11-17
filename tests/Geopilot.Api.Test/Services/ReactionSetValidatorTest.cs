@@ -51,7 +51,7 @@ public class ReactionSetValidatorTest
             .Setup(factory => factory.ValidateMandateValues(It.IsAny<string>(), It.IsAny<IReadOnlyDictionary<string, Parameterization>>()))
             .Returns([]);
 
-        // Without uploader deletion the window closes with the declaration.
+        // Without uploader deletion the window closes when the delivery is created.
         deliveryOptions = new DeliveryOptions { UploaderDeleteEnabled = false };
     }
 

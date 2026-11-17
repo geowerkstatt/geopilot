@@ -83,7 +83,7 @@ public class AssetHandler : IAssetHandler
         if (job.Pipeline == null)
             return assets;
 
-        // The declaration is what turns the staged payload into assets: one rename of the job directory,
+        // Creating the delivery is what turns the staged payload into assets: one rename of the job directory,
         // before anything is read from the asset store.
         assetFileStore.PromoteStagedFiles(job.Id);
 

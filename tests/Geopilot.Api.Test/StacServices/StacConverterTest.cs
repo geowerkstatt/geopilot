@@ -47,7 +47,7 @@ public class StacConverterTest
         {
             Id = 1,
             Date = new DateTime(2023, 11, 6, 10, 45, 18),
-            DeclaringUser = new User()
+            DeliveredByUser = new User()
             {
                 Id = 2,
             },

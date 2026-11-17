@@ -33,7 +33,7 @@ Nicht jeder Fall ist eindeutig. Der Autor begründet seine Wahl in der Spec, wer
 
 Dateiname `specs/<Issue>-<kurzname>.md`, zum Beispiel `specs/1195-protokoll.md`.
 
-Die Spec ergänzt das Issue, sie wiederholt es nicht: Problem, Lösung und Akzeptanzkriterien stehen dort. Hierher gehört, was das Issue offen lässt, und nur so viel, wie das Review braucht. Weicht die Spec vom Issue ab, sagt sie das. Abschnitte ohne Inhalt fallen weg, eine Spec mit `waived` hat oft keine zehn Zeilen. Ausführliche Umsetzungspläne einer KI gehören nicht hierher.
+Die Spec steht für sich: Akzeptanzkriterien, Abgrenzung und die betroffene Konfiguration nennt sie selbst, statt aufs Issue zu verweisen. Weicht sie vom Issue ab, sagt sie das. Kurz bleibt sie trotzdem und enthält nur so viel, wie das Review braucht. Abschnitte ohne Inhalt fallen weg, eine Spec mit `waived` hat oft keine zehn Zeilen. Ausführliche Umsetzungspläne einer KI gehören nicht hierher.
 
 Das Repo ist öffentlich. Für Specs gelten dieselben Regeln wie für Issues: keine Namen von Kunden oder Personen.
 
@@ -42,9 +42,11 @@ Das Repo ist öffentlich. Für Specs gelten dieselben Regeln wie für Issues: ke
 
 Review: waived. <Welches Kriterium zutrifft, oder warum keines.>
 
+Abhängig von: #<Issue oder PR>. <Was zuerst gemergt sein muss und warum. Ohne Abhängigkeit fällt die Zeile weg.>
+
 ## Umsetzung
 
-<Entscheide, die das Issue offen lässt: Ansatz, betroffene Stellen, Reihenfolge.>
+<Entscheide: Ansatz, betroffene Stellen und Konfiguration, Reihenfolge innerhalb des Tickets.>
 
 ## Nicht im Umfang
 
@@ -52,5 +54,5 @@ Review: waived. <Welches Kriterium zutrifft, oder warum keines.>
 
 ## Prüfung
 
-<Woran sich zeigt, dass es funktioniert: Tests, Smoke-Test, Akzeptanzkriterien des Issues.>
+<Woran sich zeigt, dass es funktioniert: Tests, Smoke-Test, Akzeptanzkriterien.>
 ```

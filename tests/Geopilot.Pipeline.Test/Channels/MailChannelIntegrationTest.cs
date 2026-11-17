@@ -92,10 +92,10 @@ public class MailChannelIntegrationTest
         Id = 42,
         JobId = Guid.NewGuid(),
         ReactionId = "info_mail",
-        DeclaredAt = DateTimeOffset.UtcNow,
+        DeliveredAt = DateTimeOffset.UtcNow,
         Comment = "Bitte prüfen & ablegen",
         Mandate = new MandateInfo { Id = 7, Name = new Dictionary<string, string> { ["de"] = "Mandat A" } },
-        Declarer = new DeclarerInfo { Kind = DeclarerKind.User, Name = "Lieferant", Email = "lieferant@example.com" },
+        Supplier = new SupplierInfo { Kind = SupplierKind.User, Name = "Lieferant", Email = "lieferant@example.com" },
     };
 
     // The mail is stored once the server accepted it, but the list of Mailpit may lag behind for a moment.
