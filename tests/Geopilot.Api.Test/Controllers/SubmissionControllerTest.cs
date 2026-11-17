@@ -548,12 +548,12 @@ public class SubmissionControllerTest
     [DataRow(ProcessingState.DeliveryRestriction, false, null, SubmissionState.Rejected, DisplayName = "The data did not pass")]
     [DataRow(ProcessingState.Failed, false, null, SubmissionState.Failed, DisplayName = "Run failed")]
     [DataRow(ProcessingState.Cancelled, false, null, SubmissionState.Failed, DisplayName = "Run cancelled")]
-    [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Delivery rejected after a run that passed")]
+    [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Delivery failed after a run that passed")]
     [DataRow(ProcessingState.Success, true, "the database went away", SubmissionState.Delivered, DisplayName = "Created by hand after geopilot could not")]
-    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? deliveryRejection, SubmissionState expected)
+    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? deliveryFailure, SubmissionState expected)
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered, deliveryRejection, jobState);
+        var jobId = SetupAttempt(delivered, deliveryFailure, jobState);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -568,37 +568,37 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
-    public async Task SaysWhyTheDeliveryWasRejected()
+    public async Task SaysWhyTheDeliveryFailed()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: false, deliveryRejection: "the database went away", ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: "the database went away", ProcessingState.Success);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         var message = response.Messages.SingleOrDefault(m => m.Step == "delivery");
-        Assert.IsNotNull(message, "A rejected delivery is the one thing no pipeline step reports, so the attempt has to.");
+        Assert.IsNotNull(message, "A failed delivery is the one thing no pipeline step reports, so the attempt has to.");
         Assert.AreEqual(SubmissionMessageSeverity.Error, message.Severity);
         Assert.AreEqual("the database went away", message.Text["en"]);
     }
 
     [TestMethod]
-    public async Task DropsTheRejectionOnceTheCallerCreatedTheDeliveryItself()
+    public async Task DropsTheFailureOnceTheCallerCreatedTheDeliveryItself()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, deliveryRejection: "the database went away", ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: true, deliveryFailure: "the database went away", ProcessingState.Success);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
-        Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts its rejection.");
+        Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts its failure.");
     }
 
     [TestMethod]
     public async Task StaysDeliveredOnceItsDeliveryIsDeleted()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, deliveryRejection: null, ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: true, deliveryFailure: null, ProcessingState.Success);
         var delivery = context.Deliveries.Single(d => d.JobId == jobId);
         delivery.Deleted = true;
         context.SaveChanges();
@@ -619,7 +619,7 @@ public class SubmissionControllerTest
     public async Task ReportsWhatAStepSaidWithItsOwnSeverity(StepState stepState, SubmissionMessageSeverity expected)
     {
         var controller = CreateController(withUrlHelper: true);
-        var jobId = SetupAttempt(delivered: false, deliveryRejection: null, ProcessingState.Running, BuildStep(stepState));
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Running, BuildStep(stepState));
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -641,7 +641,7 @@ public class SubmissionControllerTest
         downloadStoreMock.Setup(s => s.OpenFile(It.IsAny<Guid>(), "validation_errorLog.log")).Returns(new MemoryStream(Encoding.UTF8.GetBytes("log")));
 
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = SetupAttempt(delivered: false, deliveryRejection: null, ProcessingState.Success, BuildStep(StepState.Error));
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
 
         var result = await controller.GetDownload(jobId, "validation_errorLog.log");
 
@@ -683,7 +683,7 @@ public class SubmissionControllerTest
         return jobId;
     }
 
-    private Guid SetupAttempt(bool delivered, string? deliveryRejection, ProcessingState jobState, Mock<IPipelineStep>? step = null)
+    private Guid SetupAttempt(bool delivered, string? deliveryFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
     {
         var jobId = Guid.NewGuid();
         if (delivered)
@@ -701,7 +701,7 @@ public class SubmissionControllerTest
             pipeline = pipelineMock.Object;
         }
 
-        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeliveryRejection = deliveryRejection };
+        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeliveryFailure = deliveryFailure };
         processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(job);
         return jobId;
     }

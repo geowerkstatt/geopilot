@@ -56,7 +56,7 @@
   ],
   "clientKind": "apiClient",
   "clientReference": "SMOKE-TEST-01",
-  "deliveryRejection": null,
+  "deliveryFailure": null,
   "failureReason": null,
   "files": [
     {

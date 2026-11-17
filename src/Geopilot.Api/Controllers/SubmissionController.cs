@@ -428,13 +428,13 @@ public class SubmissionController : ControllerBase
             downloads.AddRange(step.Downloads.Select(download => new SubmissionDownload(step.Id, download.OriginalFileName, download.Url)));
         }
 
-        // A delivery the caller created by hand after geopilot could not supersedes the rejection.
-        if (deliveryId is null && job.DeliveryRejection is not null)
+        // A delivery the caller created by hand after geopilot could not supersedes the failure.
+        if (deliveryId is null && job.DeliveryFailure is not null)
         {
             messages.Add(new SubmissionMessage(
                 "delivery",
                 SubmissionMessageSeverity.Error,
-                new Dictionary<string, string> { ["en"] = job.DeliveryRejection }));
+                new Dictionary<string, string> { ["en"] = job.DeliveryFailure }));
         }
 
         return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, job.DeliveryIntent?.Fields.ClientReference, deliveryId, messages, downloads);
@@ -445,10 +445,10 @@ public class SubmissionController : ControllerBase
         if (deliveryId is not null)
             return SubmissionState.Delivered;
 
-        // A delivery rejected after a run the pipeline allowed is not the fault of the delivered data,
-        // so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
+        // A delivery geopilot could not create after a run the pipeline allowed is not the fault of the delivered
+        // data, so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
         // messages.
-        if (job.DeliveryRejection is not null)
+        if (job.DeliveryFailure is not null)
             return SubmissionState.Failed;
 
         return job.State switch

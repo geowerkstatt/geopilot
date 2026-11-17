@@ -212,9 +212,9 @@ export const ProcessingRunDetail: FC = () => {
           {run.clientReference && <SummaryField label="clientReference">{run.clientReference}</SummaryField>}
           <SummaryField label="delivery">
             <ProcessingRunDeliveryLabel outcome={run.outcome} linkDelivery />
-            {run.outcome.kind === PipelineRunOutcomeKind.DeliveryRejected && (
-              <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeliveryRejection">
-                {run.deliveryRejection}
+            {run.outcome.kind === PipelineRunOutcomeKind.DeliveryFailed && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }} data-cy="processingRunDeliveryFailure">
+                {run.deliveryFailure}
               </Typography>
             )}
             {/* Runs recorded before the protocol kept the permission can only guess why there is no delivery. */}

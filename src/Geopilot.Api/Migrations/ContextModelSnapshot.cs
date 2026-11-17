@@ -342,7 +342,7 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("DeliveryRejection")
+                    b.Property<string>("DeliveryFailure")
                         .HasColumnType("text");
 
                     b.Property<string>("FailureReason")

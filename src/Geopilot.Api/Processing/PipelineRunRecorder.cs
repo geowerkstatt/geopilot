@@ -268,7 +268,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordDeliveryRejectedAsync(Guid jobId, string reason)
+    public async Task RecordDeliveryFailedAsync(Guid jobId, string reason)
     {
         try
         {
@@ -279,7 +279,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                 return;
             }
 
-            run.DeliveryRejection = reason;
+            run.DeliveryFailure = reason;
             await context.SaveChangesAsync();
         }
         catch (Exception ex)

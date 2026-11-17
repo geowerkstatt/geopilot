@@ -33,8 +33,8 @@ internal static class PipelineRunOutcomes
 
         if (run.TerminalState is ProcessingState.Success or ProcessingState.Warning)
         {
-            if (run.DeliveryRejection is not null)
-                return Outcome(PipelineRunOutcomeKind.DeliveryRejected);
+            if (run.DeliveryFailure is not null)
+                return Outcome(PipelineRunOutcomeKind.DeliveryFailed);
 
             // A run recorded before the protocol kept the permission has none; only an anonymous one surely was not.
             var permitted = run.PermissionToDeliver is { } permission

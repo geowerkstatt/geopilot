@@ -33,9 +33,9 @@ public enum PipelineRunOutcomeKind
     NotPermitted,
 
     /// <summary>
-    /// The run allowed a delivery and was to be delivered on its client's behalf, but the delivery was rejected.
+    /// The run allowed a delivery and was to be delivered on its client's behalf, but geopilot could not create it.
     /// </summary>
-    DeliveryRejected,
+    DeliveryFailed,
 
     /// <summary>
     /// The job of the run is still running.

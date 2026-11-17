@@ -387,16 +387,16 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
-    public async Task RecordDeliveryRejectedKeepsTheReason()
+    public async Task RecordDeliveryFailedKeepsTheReason()
     {
         currentHttpContext = null;
         var job = NewJob(out var upload);
         await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
 
-        await recorder.RecordDeliveryRejectedAsync(job.Id, "No assets found.");
+        await recorder.RecordDeliveryFailedAsync(job.Id, "No assets found.");
 
         var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
-        Assert.AreEqual("No assets found.", run.DeliveryRejection);
+        Assert.AreEqual("No assets found.", run.DeliveryFailure);
     }
 
     [TestMethod]
@@ -410,7 +410,7 @@ public class PipelineRunRecorderTest
         await recorder.RecordStepCompletedAsync(unknownJobId, step.Object, 0);
         await recorder.RecordRunFinishedAsync(unknownJobId, new List<IPipelineStep> { step.Object }, ProcessingState.Failed, "boom");
         await recorder.RecordPreflightFailedAsync(unknownJobId, "boom");
-        await recorder.RecordDeliveryRejectedAsync(unknownJobId, "boom");
+        await recorder.RecordDeliveryFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a run record must be skipped, not fail.");
     }

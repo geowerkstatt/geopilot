@@ -92,18 +92,18 @@ public sealed class PipelineRunControllerTest
     }
 
     [TestMethod]
-    public async Task GetReturnsWhetherTheRunWasPermittedAndWhyItsDeliveryWasRejected()
+    public async Task GetReturnsWhetherTheRunWasPermittedAndWhyItsDeliveryFailed()
     {
         var run = SeedRun();
         run.TerminalState = ProcessingState.Success;
         run.PermissionToDeliver = PermissionToDeliver.Permitted;
-        run.DeliveryRejection = "No assets found.";
+        run.DeliveryFailure = "No assets found.";
         context.SaveChanges();
 
         var response = ActionResultAssert.IsOkObjectResult<PipelineRunResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(PermissionToDeliver.Permitted, response.PermissionToDeliver);
-        Assert.AreEqual("No assets found.", response.DeliveryRejection);
+        Assert.AreEqual("No assets found.", response.DeliveryFailure);
     }
 
     [TestMethod]

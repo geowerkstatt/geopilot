@@ -209,7 +209,7 @@ internal static class DtoMapperExtensions
             run.TerminalState,
             run.TerminalAt,
             run.FailureReason,
-            run.DeliveryRejection,
+            run.DeliveryFailure,
             run.Files
                 .OrderBy(file => file.Id)
                 .Select(file => new PipelineRunFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))

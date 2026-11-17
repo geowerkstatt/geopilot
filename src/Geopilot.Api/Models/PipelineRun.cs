@@ -148,12 +148,12 @@ public class PipelineRun
     public string? FailureReason { get; set; }
 
     /// <summary>
-    /// Why the delivery of a machine delivery was rejected although the run allowed it, as the caller of the attempt
-    /// reads it. <see langword="null"/> when geopilot created it or had nothing to create, and unknown for a run
+    /// Why geopilot could not create the delivery of a machine delivery although the run allowed it, as the caller
+    /// of the attempt reads it. <see langword="null"/> when geopilot created it or had nothing to create, and unknown for a run
     /// without <see cref="PermissionToDeliver"/>. Whether a delivery exists is not kept here: the delivery itself
     /// is the record of that, reachable via <see cref="JobId"/>.
     /// </summary>
-    public string? DeliveryRejection { get; set; }
+    public string? DeliveryFailure { get; set; }
 
     /// <summary>
     /// The manifest of the uploaded files.

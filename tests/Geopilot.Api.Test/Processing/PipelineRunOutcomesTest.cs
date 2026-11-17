@@ -73,16 +73,16 @@ public class PipelineRunOutcomesTest
     [TestMethod]
     [DataRow(ProcessingState.Success)]
     [DataRow(ProcessingState.Warning)]
-    public void DeliveryRejectedWhenItsDeliveryWasRejected(ProcessingState terminalState)
+    public void DeliveryFailedWhenGeopilotCouldNotCreateIt(ProcessingState terminalState)
     {
         var run = Run(terminalState);
         run.MachineClientId = 1;
         run.PermissionToDeliver = PermissionToDeliver.Permitted;
-        run.DeliveryRejection = "The mandate no longer accepts deliveries.";
+        run.DeliveryFailure = "The mandate no longer accepts deliveries.";
 
         var outcome = PipelineRunOutcomes.Determine(run, isRunning: false, delivery: null);
 
-        Assert.AreEqual(PipelineRunOutcomeKind.DeliveryRejected, outcome.Kind);
+        Assert.AreEqual(PipelineRunOutcomeKind.DeliveryFailed, outcome.Kind);
     }
 
     [TestMethod]

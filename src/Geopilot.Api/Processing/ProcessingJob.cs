@@ -46,8 +46,8 @@ public record class ProcessingJob(
     public DeliveryIntent? DeliveryIntent { get; init; }
 
     /// <summary>
-    /// Why the delivery of its <see cref="DeliveryIntent"/> was rejected, although the run allowed it.
+    /// Why geopilot could not create the delivery of its <see cref="DeliveryIntent"/>, although the run allowed it.
     /// Whether a delivery exists is not kept here: the delivery itself is the record of that.
     /// </summary>
-    public string? DeliveryRejection { get; init; }
+    public string? DeliveryFailure { get; init; }
 }

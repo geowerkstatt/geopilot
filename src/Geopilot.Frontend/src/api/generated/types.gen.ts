@@ -923,7 +923,7 @@ export const PipelineRunOutcomeKind = {
   NotDelivered: "notDelivered",
   NotDeliverable: "notDeliverable",
   NotPermitted: "notPermitted",
-  DeliveryRejected: "deliveryRejected",
+  DeliveryFailed: "deliveryFailed",
   Running: "running",
   Unknown: "unknown",
 } as const;
@@ -1051,9 +1051,9 @@ export type PipelineRunResponse = {
    */
   failureReason?: string | null;
   /**
-   * Why the delivery of a machine delivery was rejected although the run allowed it.
+   * Why geopilot could not create the delivery of a machine delivery although the run allowed it.
    */
-  deliveryRejection?: string | null;
+  deliveryFailure?: string | null;
   /**
    * The manifest of the uploaded files.
    */

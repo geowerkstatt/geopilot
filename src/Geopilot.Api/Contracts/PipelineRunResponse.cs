@@ -25,7 +25,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="TerminalState">The state the job ended in, or <see langword="null"/> when the outcome is unknown.</param>
 /// <param name="TerminalAt">When the job reached its terminal state (UTC).</param>
 /// <param name="FailureReason">Why the run failed or was cancelled, when no step says why: the preflight failed, the job timed out, the host shut down, or persisting the downloads or staging the delivery files failed.</param>
-/// <param name="DeliveryRejection">Why the delivery of a machine delivery was rejected although the run allowed it.</param>
+/// <param name="DeliveryFailure">Why geopilot could not create the delivery of a machine delivery although the run allowed it.</param>
 /// <param name="Files">The manifest of the uploaded files.</param>
 /// <param name="Steps">The per-step records, in pipeline order.</param>
 /// <param name="ReactionEvents">What happened to the reactions of the delivery the run produced, in the order it happened.</param>
@@ -52,7 +52,7 @@ public record PipelineRunResponse(
     ProcessingState? TerminalState,
     DateTime? TerminalAt,
     string? FailureReason,
-    string? DeliveryRejection,
+    string? DeliveryFailure,
     List<PipelineRunFileResponse> Files,
     List<PipelineRunStepResponse> Steps,
     List<PipelineRunReactionEventResponse> ReactionEvents,

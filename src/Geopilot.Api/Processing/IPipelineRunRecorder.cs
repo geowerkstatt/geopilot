@@ -81,11 +81,11 @@ public interface IPipelineRunRecorder
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Records why the delivery of a machine delivery was rejected although the run allowed it. Soft.
+    /// Records why geopilot could not create the delivery of a machine delivery although the run allowed it. Soft.
     /// </summary>
-    /// <param name="jobId">The job whose delivery was rejected.</param>
-    /// <param name="reason">Why the delivery was rejected, as the caller of the attempt reads it.</param>
-    Task RecordDeliveryRejectedAsync(Guid jobId, string reason);
+    /// <param name="jobId">The job whose delivery could not be created.</param>
+    /// <param name="reason">Why creating the delivery failed, as the caller of the attempt reads it.</param>
+    Task RecordDeliveryFailedAsync(Guid jobId, string reason);
 
     /// <summary>
     /// Writes the row of an attempt of a reaction the moment an instance claims it, into the run its delivery comes

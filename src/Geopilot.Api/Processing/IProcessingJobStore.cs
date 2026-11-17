@@ -90,12 +90,12 @@ public interface IProcessingJobStore
     ProcessingJob EnqueueForProcessing(Guid jobId, IReadOnlyList<IPipelineFile> files);
 
     /// <summary>
-    /// Records why the delivery of the job's <see cref="ProcessingJob.DeliveryIntent"/> was rejected. A job
+    /// Records why geopilot could not create the delivery of the job's <see cref="ProcessingJob.DeliveryIntent"/>. A job
     /// that is gone was retired meanwhile, and nobody is left to read the reason, so it is ignored.
     /// </summary>
-    /// <param name="jobId">The job whose delivery was rejected.</param>
+    /// <param name="jobId">The job whose delivery could not be created.</param>
     /// <param name="reason">The one sentence the caller of the machine delivery gets to read.</param>
-    void RecordDeliveryRejection(Guid jobId, string reason);
+    void RecordDeliveryFailure(Guid jobId, string reason);
 
     /// <summary>
     /// Removes the job from the store. Its pipeline is left alone: whoever ends a job disposes it, exactly once.

@@ -125,8 +125,8 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public void RecordDeliveryRejection(Guid jobId, string reason)
-        => TryUpdate(jobId, job => job with { DeliveryRejection = reason });
+    public void RecordDeliveryFailure(Guid jobId, string reason)
+        => TryUpdate(jobId, job => job with { DeliveryFailure = reason });
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId) => jobs.TryRemove(jobId, out _);

@@ -282,17 +282,17 @@ public class JobLifecycleTest
         // The attempt learns of it, instead of reporting a delivery in progress until the job is retired.
         var job = jobStore.GetJob(jobId)!;
         Assert.AreEqual(ProcessingState.Success, job.State);
-        Assert.AreEqual("The delivery could not be created because of an unexpected error.", job.DeliveryRejection);
+        Assert.AreEqual("The delivery could not be created because of an unexpected error.", job.DeliveryFailure);
         var run = await ReadRunAsync(jobId);
         Assert.AreEqual(ProcessingState.Success, run.TerminalState);
-        Assert.AreEqual("The delivery could not be created because of an unexpected error.", run.DeliveryRejection);
+        Assert.AreEqual("The delivery could not be created because of an unexpected error.", run.DeliveryFailure);
         AssertUploadKept(uploadId, false);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 
     [TestMethod]
     [DynamicData(nameof(CreationResults))]
-    public async Task RunFinishedRecordsWhyTheDeliveryWasRejected(DeliveryCreationResult result, string? expectedFailure)
+    public async Task RunFinishedRecordsWhyTheDeliveryFailed(DeliveryCreationResult result, string? expectedFailure)
     {
         var (jobId, _, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
         creationService
@@ -304,8 +304,8 @@ public class JobLifecycleTest
         // A created or adopted delivery is its own record, and data that did not pass is a rejected attempt, not a
         // failed creation. Every other refusal is the one thing the caller of the attempt gets to read, and the
         // protocol keeps it beyond the job's retention.
-        Assert.AreEqual(expectedFailure, jobStore.GetJob(jobId)!.DeliveryRejection);
-        Assert.AreEqual(expectedFailure, (await ReadRunAsync(jobId)).DeliveryRejection);
+        Assert.AreEqual(expectedFailure, jobStore.GetJob(jobId)!.DeliveryFailure);
+        Assert.AreEqual(expectedFailure, (await ReadRunAsync(jobId)).DeliveryFailure);
     }
 
     [TestMethod]

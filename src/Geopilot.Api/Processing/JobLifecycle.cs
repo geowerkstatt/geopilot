@@ -220,7 +220,7 @@ public class JobLifecycle
             catch (Exception ex)
             {
                 // Otherwise the attempt would report a delivery in progress until the job is retired.
-                await RecordDeliveryRejectionAsync(jobId, "The delivery could not be created because of an unexpected error.");
+                await RecordDeliveryFailureAsync(jobId, "The delivery could not be created because of an unexpected error.");
                 logger.LogError(ex, "Creating the delivery for job <{JobId}> failed unexpectedly.", jobId);
                 return;
             }
@@ -242,21 +242,21 @@ public class JobLifecycle
                     break;
 
                 default:
-                    await RecordDeliveryRejectionAsync(jobId, DescribeDeliveryRejection(result));
+                    await RecordDeliveryFailureAsync(jobId, DescribeDeliveryFailure(result));
                     logger.LogWarning("Could not create the delivery for job <{JobId}>: {Status}.", jobId, result.Status);
                     break;
             }
         });
 
     /// <summary>
-    /// Records why the delivery was rejected: on the job, for the caller polling the attempt, and in the
+    /// Records why geopilot could not create the delivery: on the job, for the caller polling the attempt, and in the
     /// execution protocol, which keeps it beyond the job's retention. The protocol write takes a scope of its own,
     /// so it does not save along whatever the failed creation left in its database context.
     /// </summary>
-    private async Task RecordDeliveryRejectionAsync(Guid jobId, string reason)
+    private async Task RecordDeliveryFailureAsync(Guid jobId, string reason)
     {
-        jobStore.RecordDeliveryRejection(jobId, reason);
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordDeliveryRejectedAsync(jobId, reason));
+        jobStore.RecordDeliveryFailure(jobId, reason);
+        await RecordProtocolAsync(jobId, recorder => recorder.RecordDeliveryFailedAsync(jobId, reason));
     }
 
     /// <summary>
@@ -264,7 +264,7 @@ public class JobLifecycle
     /// detail in <see cref="DeliveryCreationResult.FieldErrors"/> rather than in the message, and the status
     /// alone would not say which field the caller has to correct.
     /// </summary>
-    private static string DescribeDeliveryRejection(DeliveryCreationResult result)
+    private static string DescribeDeliveryFailure(DeliveryCreationResult result)
     {
         if (result.FieldErrors is not { Count: > 0 })
             return result.Message ?? $"The delivery was refused ({result.Status}).";

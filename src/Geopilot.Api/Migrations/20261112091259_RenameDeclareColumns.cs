@@ -20,7 +20,7 @@ namespace Geopilot.Api.Migrations
             migrationBuilder.RenameColumn(
                 name: "DeclarationFailure",
                 table: "PipelineRuns",
-                newName: "DeliveryRejection");
+                newName: "DeliveryFailure");
 
             migrationBuilder.RenameColumn(
                 name: "DeclaringUserId",
@@ -68,7 +68,7 @@ namespace Geopilot.Api.Migrations
                 newName: "Declarability");
 
             migrationBuilder.RenameColumn(
-                name: "DeliveryRejection",
+                name: "DeliveryFailure",
                 table: "PipelineRuns",
                 newName: "DeclarationFailure");
 
