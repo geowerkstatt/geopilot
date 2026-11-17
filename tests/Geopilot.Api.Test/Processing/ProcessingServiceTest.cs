@@ -39,7 +39,8 @@ public class ProcessingServiceTest
             pipelineFactoryMock.Object,
             preflightQueue.Writer,
             Mock.Of<IServiceScopeFactory>(),
-            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }),
+            Options.Create(new RefMappingOptions()));
 
         processingService = new ProcessingService(
             processingJobStoreMock.Object,

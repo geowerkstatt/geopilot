@@ -117,7 +117,13 @@ public class PipelineFactory : IPipelineFactory
     }
 
     /// <inheritdoc />
-    public IPipeline CreatePipeline(string id, Guid jobId)
+    public IPipeline CreatePipeline(string id, Guid jobId) => CreatePipeline(id, jobId, PipelineJobBindings.None);
+
+    /// <inheritdoc />
+    IPipeline IPipelineFactory.CreatePipeline(string id, Guid jobId, PipelineJobBindings bindings) => CreatePipeline(id, jobId, bindings);
+
+    /// <inheritdoc cref="IPipelineFactory.CreatePipeline(string, Guid, PipelineJobBindings)" />
+    internal IPipeline CreatePipeline(string id, Guid jobId, PipelineJobBindings bindings)
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
@@ -128,7 +134,7 @@ public class PipelineFactory : IPipelineFactory
             return Geopilot.Pipeline.Pipeline.Builder()
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
-                .Steps(CreateSteps(pipelineConfig, jobPipelineDirectory, jobId))
+                .Steps(CreateSteps(pipelineConfig, jobPipelineDirectory, jobId, bindings))
                 .Logger(PipelineLogger
                     .Builder()
                     .Logger(loggerFactory.CreateLogger<Geopilot.Pipeline.Pipeline>())
@@ -275,14 +281,14 @@ public class PipelineFactory : IPipelineFactory
         return config;
     }
 
-    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
+    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId, PipelineJobBindings bindings)
     {
         return pipelineConfig.Steps
-            .Select(s => CreateStep(s, pipelineConfig.Id, pipelineTempDirectory, jobId) as IPipelineStep)
+            .Select(s => CreateStep(s, pipelineConfig.Id, pipelineTempDirectory, jobId, bindings) as IPipelineStep)
             .ToList();
     }
 
-    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineId, string pipelineTempDirectory, Guid jobId)
+    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineId, string pipelineTempDirectory, Guid jobId, PipelineJobBindings bindings)
     {
         var processBuilder = pipelineProcessFactory.Builder()
             .PipelineId(pipelineId)
@@ -290,6 +296,7 @@ public class PipelineFactory : IPipelineFactory
             .Processes(PipelineProcessConfig.Processes)
             .PipelineDirectory(pipelineTempDirectory)
             .ResourcesDirectory(resourcesDirectory)
+            .JobBindings(bindings)
             .JobId(jobId);
         var process = processBuilder.Build();
 

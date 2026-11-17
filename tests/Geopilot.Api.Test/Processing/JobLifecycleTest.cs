@@ -2,6 +2,8 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,18 +89,13 @@ public class JobLifecycleTest
             .ReturnsAsync(new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, DeliveryId: 42));
 
         services = new ServiceCollection()
+            .AddSingleton(context)
             .AddSingleton<IPipelineRunRecorder>(recorder)
             .AddSingleton<IUploadOrchestrationService>(orchestration)
             .AddSingleton(declarationService.Object)
             .BuildServiceProvider();
 
-        lifecycle = new JobLifecycle(
-            Mock.Of<ILogger<JobLifecycle>>(),
-            jobStore,
-            pipelineFactory.Object,
-            preflightQueue.Writer,
-            services.GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+        lifecycle = CreateLifecycle(refMappingEnabled: false);
 
         mandate = new Mandate { Name = TestHelpers.Localized(nameof(JobLifecycleTest)), Key = mandateKey, FileTypes = [".xtf"], PipelineId = PipelineId };
         context.Mandates.Add(mandate);
@@ -177,6 +174,33 @@ public class JobLifecycleTest
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => StartJobAsync(upload, startedBy: null, deliveryFields: Fields));
 
         AssertStartLeftNoJob(upload.Id);
+    }
+
+    [TestMethod]
+    public async Task ReadJobBindingsBindsNoRefMappingWithoutTheSwitch()
+    {
+        await AddRefMappingAsync();
+
+        var bindings = await lifecycle.ReadJobBindingsAsync(services);
+
+        Assert.IsNull(bindings.Get(typeof(IRefMappings)), "Without the switch the processes do not get bound ref mappings.");
+    }
+
+    [TestMethod]
+    public async Task ReadJobBindingsBindsEveryRefMappingEntryWithTheSwitch()
+    {
+        var entry = await AddRefMappingAsync();
+        lifecycle = CreateLifecycle(refMappingEnabled: true);
+
+        var bindings = await lifecycle.ReadJobBindingsAsync(services);
+
+        var refMappings = Assert.IsInstanceOfType<IRefMappings>(bindings.Get(typeof(IRefMappings)));
+
+        // Filtered by scope: the test database is shared with tests running in parallel.
+        var mapping = Assert.ContainsSingle(refMappings.Entries.Where(e => e.Scope == entry.Scope));
+        Assert.AreEqual(entry.Scope, mapping.Scope);
+        CollectionAssert.AreEquivalent(entry.RefDataUris, mapping.RefDataUris.ToList());
+        Assert.AreEqual(entry.Comment, mapping.Comment);
     }
 
     [TestMethod]
@@ -472,6 +496,15 @@ public class JobLifecycleTest
         return (job.Id, upload.Id, pipeline);
     }
 
+    private JobLifecycle CreateLifecycle(bool refMappingEnabled) => new(
+        Mock.Of<ILogger<JobLifecycle>>(),
+        jobStore,
+        pipelineFactory.Object,
+        preflightQueue.Writer,
+        services.GetRequiredService<IServiceScopeFactory>(),
+        Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }),
+        Options.Create(new RefMappingOptions { Enabled = refMappingEnabled }));
+
     private Task<ProcessingJob> StartJobAsync(UploadInfo upload, Declarer? startedBy = null, bool isDeclarable = true, DeliveryFields? deliveryFields = null)
         => lifecycle.StartAsync(upload, mandate, PipelineId, startedBy, isDeclarable, deliveryFields);
 
@@ -484,7 +517,8 @@ public class JobLifecycleTest
     }
 
     /// <summary>
-    /// Lets the pipeline factory hand out a pipeline mock, which learns its job id the moment it is created.
+    /// Lets the pipeline factory hand out a pipeline mock, which learns its job id the moment it is created. Set up
+    /// on the public overload: Moq cannot see the internal one with the bindings, whose default body forwards here.
     /// </summary>
     private Mock<IPipeline> SetupPipeline()
     {
@@ -524,5 +558,13 @@ public class JobLifecycleTest
         // Otherwise EF answers from what it tracks instead of what was written.
         context.ChangeTracker.Clear();
         return await context.PipelineRuns.SingleAsync(r => r.JobId == jobId);
+    }
+
+    private async Task<RefMapping> AddRefMappingAsync()
+    {
+        var entry = new RefMapping() { Scope = Guid.NewGuid().ToString(), RefDataUris = ["ilidata:dmav_LFP3_449", "ilidata:dmav_HFP3_449"], Comment = "Sauge" };
+        context.RefMappings.Add(entry);
+        await context.SaveChangesAsync();
+        return entry;
     }
 }

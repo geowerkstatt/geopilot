@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 
 namespace Geopilot.Pipeline;
 
@@ -64,6 +65,18 @@ public interface IPipelineFactory
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     IPipeline CreatePipeline(string id, Guid jobId);
+
+    /// <summary>
+    /// Creates a pipeline instance like <see cref="CreatePipeline(string, Guid)"/>, with what the host binds to the
+    /// job. Internal, so the bindings stay off the package's public surface; an implementation outside this
+    /// assembly ignores them.
+    /// </summary>
+    /// <param name="id">The id of the pipeline to be created.</param>
+    /// <param name="jobId">Job-Id for the pipeline.</param>
+    /// <param name="bindings">What the host binds to the job.</param>
+    /// <returns>A <see cref="Pipeline"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
+    internal IPipeline CreatePipeline(string id, Guid jobId, PipelineJobBindings bindings) => CreatePipeline(id, jobId);
 
     /// <summary>
     /// Validates the pipeline definition and the process configuration of every step, without constructing any

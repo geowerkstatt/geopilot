@@ -65,7 +65,7 @@ public class ProcessingJobCleanupServiceTest
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
-        lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, Mock.Of<IPipelineFactory>(), Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactoryMock.Object, optionsMock.Object);
+        lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, Mock.Of<IPipelineFactory>(), Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactoryMock.Object, optionsMock.Object, Options.Create(new RefMappingOptions()));
 
         service = new ProcessingJobCleanupService(
             jobStoreMock.Object,

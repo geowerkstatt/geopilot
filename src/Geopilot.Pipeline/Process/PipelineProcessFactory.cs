@@ -206,6 +206,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private string? pipelineDirectory;
         private string? resourcesDirectory;
         private Guid jobId;
+        private PipelineJobBindings jobBindings = PipelineJobBindings.None;
 
         /// <summary>
         /// Initializes a new instance of the PipelineProcessBuilder class with the specified plugin assemblies, load
@@ -280,6 +281,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         public IPipelineProcessBuilder ResourcesDirectory(string? resourcesDirectory)
         {
             this.resourcesDirectory = resourcesDirectory;
+            return this;
+        }
+
+        /// <inheritdoc />
+        IPipelineProcessBuilder IPipelineProcessBuilder.JobBindings(PipelineJobBindings jobBindings)
+        {
+            this.jobBindings = jobBindings;
             return this;
         }
 
@@ -524,13 +532,14 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig, string? resourcesRoot)
         {
             // Framework-provided dependencies are always satisfiable by Build (logger, file
-            // manager, optional container runner). Skipping them here is how we avoid invoking
-            // their constructors at startup.
+            // manager, optional container runner), and so is what the host binds per job.
+            // Skipping them here is how we avoid invoking their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
                 parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
                 parameterInfo.ParameterType == typeof(IIli2GpkgClient) ||
                 parameterInfo.ParameterType == typeof(IIlivalidatorClient) ||
-                parameterInfo.ParameterType == typeof(IXtfDiffClient))
+                parameterInfo.ParameterType == typeof(IXtfDiffClient) ||
+                PipelineJobBindings.IsBindingType(parameterInfo.ParameterType))
             {
                 return;
             }
@@ -591,6 +600,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IXtfDiffClient))
             {
                 return new XtfDiffClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<XtfDiffClient>());
+            }
+            else if (PipelineJobBindings.IsBindingType(parameterInfo.ParameterType))
+            {
+                return jobBindings.Get(parameterInfo.ParameterType);
             }
             else if (ConstructorBinding.TryGetConfiguredValue(parameterInfo, processConfig, "Process", out var convertedValue))
             {

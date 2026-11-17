@@ -67,6 +67,15 @@ public interface IPipelineProcessBuilder
     IPipelineProcessBuilder ResourcesDirectory(string? resourcesDirectory);
 
     /// <summary>
+    /// Sets what the host binds to the job, which <see cref="Build"/> hands to the constructor parameters of a
+    /// binding type. Internal, so the bindings stay off the package's public surface; an implementation outside
+    /// this assembly ignores them.
+    /// </summary>
+    /// <param name="jobBindings">The bindings of the job.</param>
+    /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
+    internal IPipelineProcessBuilder JobBindings(PipelineJobBindings jobBindings) => this;
+
+    /// <summary>
     /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check
     /// cross-step references (<c>${step_output(stepId.output)}</c> in inputs and <c>[stepId.Property]</c> in
     /// conditions). Typically built once per pipeline by the factory. When not supplied, cross-step
