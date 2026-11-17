@@ -30,6 +30,7 @@ internal class XtfValidatorProcess
     private readonly IlivalidatorArgs validatorArgs;
     private readonly IPipelineFile? modelRepository;
     private readonly IPipelineFile? refMappingFile;
+    private readonly IRefMappings? refMappings;
     private readonly IIlivalidatorClient ilivalidatorClient;
     private readonly IPipelineFileManager pipelineFileManager;
     private readonly ILogger logger;
@@ -45,9 +46,11 @@ internal class XtfValidatorProcess
     /// <param name="toolVersion">Optional version of ilivalidator to run, selected from the versions the wrapper deployment offers. Without it the deployment default runs.</param>
     /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. The wrapper unpacks it into its own subfolder, which <paramref name="modelDirs"/> reaches through <c>%ITF_DIR/repository</c>.</param>
     /// <param name="refMappingFile">Optional mapping that names the reference data, given as the path of a file the deployment ships and sent along with every validation in place of <paramref name="refMapping"/>; the wrapper rejects a validation with both. The reference data it names resolve through the <paramref name="modelDirs"/>.</param>
+    /// <param name="refMappings">The mapping the admin portal maintains, bound by the host to the job: <see langword="null"/> where the installation does not maintain it, otherwise sent along with every validation as a mapping file, unless it has no entries. Excludes <paramref name="refMapping"/> and <paramref name="refMappingFile"/>.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
+    /// <exception cref="InvalidOperationException">The host binds a mapping and the step configures one as well.</exception>
     public XtfValidatorProcess(
         string? validationProfile,
         string? refMapping,
@@ -57,12 +60,22 @@ internal class XtfValidatorProcess
         string? toolVersion,
         IPipelineFile? modelRepository,
         IPipelineFile? refMappingFile,
+        IRefMappings? refMappings,
         IIlivalidatorClient ilivalidatorClient,
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
     {
+        // Depends on whether the host binds a mapping, not on its entries, so the first entry an admin adds cannot
+        // break a pipeline that validated before.
+        if (refMappings is not null && (!string.IsNullOrWhiteSpace(refMapping) || refMappingFile is not null))
+        {
+            throw new InvalidOperationException(
+                "The reference data mapping is maintained in the admin portal (RefMapping:Enabled), so the step must not configure refMapping or refMappingFile. Remove both from the pipeline definition.");
+        }
+
         this.modelRepository = modelRepository;
         this.refMappingFile = refMappingFile;
+        this.refMappings = refMappings;
         this.validatorArgs = new IlivalidatorArgs
         {
             ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
@@ -124,7 +137,8 @@ internal class XtfValidatorProcess
             logger.LogInformation($"Forwarding {referenceDataFiles.Length} delivered reference data file(s) to the validation.");
         }
 
-        var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, refMappingFile, referenceDataFiles, cancellationToken);
+        var mappingFile = refMappings is null ? refMappingFile : await WriteBoundRefMappingAsync(refMappings, cancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, mappingFile, referenceDataFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
@@ -139,5 +153,23 @@ internal class XtfValidatorProcess
             ErrorLog = errorLog,
             XtfLog = xtfLog,
         };
+    }
+
+    private async Task<IPipelineFile?> WriteBoundRefMappingAsync(IRefMappings refMappings, CancellationToken cancellationToken)
+    {
+        if (refMappings.Entries.Count == 0)
+        {
+            logger.LogInformation("The reference data mapping has no entries, so none is sent.");
+            return null;
+        }
+
+        var mappingFile = pipelineFileManager.GeneratePipelineFile("refMapping", "xtf");
+        await using (var stream = mappingFile.OpenWriteFileStream())
+        {
+            await RefMappingXtfWriter.WriteAsync(refMappings.Entries, stream, cancellationToken);
+        }
+
+        logger.LogInformation($"Sending the reference data mapping of the admin portal with {refMappings.Entries.Count} entries.");
+        return mappingFile;
     }
 }

@@ -4,12 +4,15 @@ using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Xml.Linq;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
 [TestClass]
 public class XtfValidatorProcessTest
 {
+    private sealed record RefMappings(IReadOnlyList<RefMappingEntry> Entries) : IRefMappings;
+
     private Mock<IIlivalidatorClient> ilivalidatorClientMock;
     private IlivalidatorArgs? capturedArgs;
     private IPipelineFile? capturedTransferFile;
@@ -392,12 +395,67 @@ public class XtfValidatorProcessTest
         Assert.HasCount(0, capturedModelFiles);
     }
 
+    [TestMethod]
+    public void ConstructorThrowsWhenTheStepConfiguresARefMappingNextToTheBoundOne()
+    {
+        // Otherwise it would stay open which mapping applies. Also with an empty binding, so the first entry an
+        // admin adds cannot break a pipeline that validated before.
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMapping: "ilidata:DMAV_RefData_Mapping", refMappings: new RefMappings([])));
+
+        Assert.Contains("refMapping", exception.Message);
+    }
+
+    [TestMethod]
+    public void ConstructorThrowsWhenTheStepConfiguresARefMappingFileNextToTheBoundOne()
+    {
+        var mapping = new PipelineFile(Path.Combine("TestData", "Ilitools", "refmapping.xtf"), "refmapping.xtf");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMappingFile: mapping, refMappings: new RefMappings([])));
+
+        Assert.Contains("refMappingFile", exception.Message);
+    }
+
+    [TestMethod]
+    public async Task SendsNoRefMappingFileWhenTheBoundMappingIsEmpty()
+    {
+        var process = CreateProcess(null, null, success: true, refMappings: new RefMappings([]));
+
+        await process.RunAsync(CreateTransferFile(), [], [], scope: "449", CancellationToken.None);
+
+        Assert.IsNull(capturedRefMappingFile, "A mapping without entries would only make the wrapper reject older tool versions.");
+        Assert.IsNull(capturedArgs?.RefMapping);
+    }
+
+    [TestMethod]
+    public async Task SendsTheBoundMappingAsRefMappingFile()
+    {
+        var process = CreateProcess(null, null, success: true, refMappings: new RefMappings(
+        [
+            new RefMappingEntry("449", ["ilidata:dmav_Gemeinden95_V1_0", "ilidata:dmav_LFP3_449"], "Sauge"),
+            new RefMappingEntry("BE", ["ilidata:dmav_LFP2_BE"], null),
+        ]));
+
+        await process.RunAsync(CreateTransferFile(), [], [], scope: "449", CancellationToken.None);
+
+        Assert.IsNotNull(capturedRefMappingFile);
+        Assert.IsNull(capturedArgs?.RefMapping, "A mapping file must not come with a mapping reference.");
+
+        XNamespace ns = "http://www.interlis.ch/xtf/2.4/IliVRefData_V1_0";
+        var xtf = XDocument.Load(await capturedRefMappingFile.GetLocalPathAsync());
+        var objects = xtf.Descendants(ns + "RefData").ToList();
+        Assert.HasCount(2, objects, "One object per entry.");
+        Assert.AreEqual("449", objects[0].Element(ns + "scope")?.Value);
+        CollectionAssert.AreEqual(new[] { "ilidata:dmav_Gemeinden95_V1_0", "ilidata:dmav_LFP3_449" }, objects[0].Elements(ns + "refdata").Select(e => e.Value).ToList());
+        Assert.AreEqual("Sauge", objects[0].Element(ns + "comment")?.Value);
+        Assert.IsNull(objects[1].Element(ns + "comment"), "A missing comment must not reach the mapping as an empty text.");
+    }
+
     private static PipelineFile CreateTransferFile()
     {
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null, string? toolVersion = null, string? refMapping = null, IPipelineFile? refMappingFile = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null, string? toolVersion = null, string? refMapping = null, IPipelineFile? refMappingFile = null, IRefMappings? refMappings = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
@@ -420,6 +478,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, refMapping, modelDirs, allObjectsAccessible, pluginIds, toolVersion, modelRepository, refMappingFile, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, refMapping, modelDirs, allObjectsAccessible, pluginIds, toolVersion, modelRepository, refMappingFile, refMappings, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }
