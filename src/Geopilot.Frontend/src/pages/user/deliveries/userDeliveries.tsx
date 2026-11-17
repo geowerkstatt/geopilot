@@ -3,7 +3,7 @@ import { Typography } from "@mui/material";
 import { DeliveryGrid } from "../../../components/grids/deliveryGrid.tsx";
 import { CenteredContent } from "../../../components/styledComponents.ts";
 
-export const UserDeliveryOverview = () => {
+export const UserDeliveries = () => {
   const { t } = useTranslation();
 
   return (

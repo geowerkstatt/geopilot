@@ -23,11 +23,11 @@ export const useDeleteDelivery = () => {
           .then(() => onDone(true))
           .catch((error: ApiError) => {
             if (error.status === 404) {
-              showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: id }), "error");
+              showAlert(t("deliveriesDeleteIdNotExistError", { id: id }), "error");
             } else if (error.status === 500) {
-              showAlert(t("deliveryOverviewDeleteIdError", { id: id }), "error");
+              showAlert(t("deliveriesDeleteIdError", { id: id }), "error");
             } else {
-              showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
+              showAlert(t("deliveriesDeleteError", { error: error }), "error");
             }
             onDone(false);
           });

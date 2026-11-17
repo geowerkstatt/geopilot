@@ -10,8 +10,8 @@ import Header from "./components/header/header";
 import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
 import { StepSwipeHandlers } from "./hooks/useStepSwipe";
 import Admin from "./pages/admin/admin";
+import { Deliveries } from "./pages/admin/deliveries/deliveries.tsx";
 import { DeliveryDetail } from "./pages/admin/deliveries/deliveryDetail.tsx";
-import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import MachineClientDetail from "./pages/admin/machineClients/machineClientDetail.tsx";
 import MachineClients from "./pages/admin/machineClients/machineClients.tsx";
 import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
@@ -29,7 +29,7 @@ import Footer from "./pages/footer/footer";
 import { Imprint } from "./pages/footer/imprint.tsx";
 import { Licenses } from "./pages/footer/licenses.tsx";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
-import { UserDeliveryOverview } from "./pages/user/deliveries/userDeliveryOverview.tsx";
+import { UserDeliveries } from "./pages/user/deliveries/userDeliveries.tsx";
 
 // Without machine delivery the administration of the clients has no server side either, so a bookmark or a
 // typed address leads back instead of onto a page that can only fail. Rendered inside CapabilitiesProvider,
@@ -85,7 +85,7 @@ const App: FC = () => {
                   {user ? (
                     <Route path="user">
                       <Route index element={<Navigate to="/user/deliveries" replace />} />
-                      <Route path="deliveries" element={<UserDeliveryOverview />} />
+                      <Route path="deliveries" element={<UserDeliveries />} />
                     </Route>
                   ) : (
                     <Route path="user/*" element={<Navigate to="/" replace />} />
@@ -99,7 +99,7 @@ const App: FC = () => {
                         </CapabilitiesProvider>
                       }>
                       <Route index element={<Navigate to="/admin/deliveries" replace />} />
-                      <Route path="deliveries" element={<DeliveryOverview />} />
+                      <Route path="deliveries" element={<Deliveries />} />
                       <Route path="deliveries/:id" element={<DeliveryDetail />} />
                       <Route path="processing-runs" element={<ProcessingRuns />} />
                       <Route path="processing-runs/:jobId" element={<ProcessingRunDetail />} />

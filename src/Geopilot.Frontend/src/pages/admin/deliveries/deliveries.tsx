@@ -1,6 +1,6 @@
 import { DeliveryGrid } from "../../../components/grids/deliveryGrid.tsx";
 
-export const DeliveryOverview = () => {
+export const Deliveries = () => {
   return (
     <DeliveryGrid
       fetchUrl="/api/v1/delivery"
