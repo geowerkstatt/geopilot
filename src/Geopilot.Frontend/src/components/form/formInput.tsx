@@ -65,8 +65,11 @@ export const FormInput: FC<FormInputProps> = ({
   error,
   dataCy,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const formContext = useFormContext();
+
+  // An error message is a translation key, or a text that is translated already because it names values.
+  const errorText = (message: string) => (i18n.exists(message) ? t(message as TranslationKey) : message);
 
   const resolvedLabel = typeof label === "string" ? t(label) : label;
 
@@ -133,7 +136,7 @@ export const FormInput: FC<FormInputProps> = ({
             onBlur={field.onBlur}
             inputRef={field.ref}
             error={!!fieldState.error}
-            helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : helperText}
+            helperText={fieldState.error?.message ? errorText(fieldState.error.message) : helperText}
           />
         )}
       />
@@ -177,7 +180,7 @@ export const FormInput: FC<FormInputProps> = ({
       rows={rows}
       minRows={minRows}
       maxRows={maxRows}
-      helperText={hasError && errorMessage ? t(errorMessage as TranslationKey) : helperText}
+      helperText={hasError && errorMessage ? errorText(errorMessage) : helperText}
       label={resolvedLabel}
       {...register(fieldName!, {
         required: required || false,
