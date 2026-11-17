@@ -35,17 +35,18 @@ interface LookShapeProps {
   state: DiffState;
   color: string;
   rim: string;
+  /** Unique per legend, so the hatching of a deleted area refers to its own pattern. */
+  hatchId: string;
 }
 
 /** One state of a geometry in the look the map draws it in. */
-const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim }) => {
+const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatchId }) => {
   const stroke = {
+    filled: { stroke: color, strokeWidth: 2.5 },
     crisp: { stroke: color, strokeWidth: 2.5 },
-    dotted: { stroke: color, strokeWidth: 3.5, strokeDasharray: "0.1 6", strokeLinecap: "round" as const },
     ghost: { stroke: color, strokeOpacity: 0.4, strokeWidth: 9, strokeLinecap: "round" as const },
-    dashed: { stroke: color, strokeWidth: 3, strokeDasharray: "8 6" },
+    crossed: { stroke: color, strokeWidth: 3.5, strokeDasharray: "0.1 6", strokeLinecap: "round" as const },
   }[look];
-  const fillOpacity = { crisp: 0.25, dotted: 0.25, ghost: 0.08, dashed: 0.1 }[look];
   switch (geometry) {
     case "point":
       if (look === "ghost")
@@ -61,40 +62,44 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim }) =>
             strokeWidth="3"
           />
         );
-      if (look === "dashed")
-        return (
-          <circle
-            cx="22"
-            cy="14"
-            r="7"
-            fill={color}
-            fillOpacity={0.15}
-            stroke={color}
-            strokeWidth="2.5"
-            strokeDasharray="3 3"
-          />
-        );
+      if (look === "crossed")
+        return <path d="M17 9 L27 19 M27 9 L17 19" stroke={color} strokeWidth="3" strokeLinecap="round" />;
       return <circle cx="22" cy="14" r="5" fill={color} stroke={rim} strokeWidth="1.5" />;
     case "line":
       return <polyline points={LINES[state]} fill="none" {...stroke} />;
-    case "area":
+    case "area": {
+      const area = { ...AREAS[state], width: 24, height: 15 };
+      if (look === "crossed")
+        return (
+          <>
+            <defs>
+              <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse">
+                <rect width="6" height="6" fill={color} fillOpacity={0.08} />
+                <circle cx="3" cy="3" r="1.25" fill={color} />
+              </pattern>
+            </defs>
+            <rect {...area} fill={`url(#${hatchId})`} {...stroke} />
+          </>
+        );
+      const fillOpacity = { filled: 0.5, crisp: 0.25, ghost: 0.08 }[look];
       return (
         <rect
-          {...AREAS[state]}
-          width="24"
-          height="15"
+          {...area}
           fill={color}
           fillOpacity={fillOpacity}
           {...stroke}
           strokeWidth={look === "ghost" ? 7 : stroke.strokeWidth}
         />
       );
+    }
   }
 };
 
 const DiffMapLegend: FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+  // An id from useId may hold characters that are not safe inside the url() of a fill.
+  const hatchId = `diff-hatch-${useId().replace(/[^\w-]/g, "")}`;
   const heading = (label: TranslationKey) => (
     <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center" }}>
       {t(label)}
@@ -136,6 +141,7 @@ const DiffMapLegend: FC = () => {
                     state={state}
                     color={theme.palette.map.diff[row.changeType]}
                     rim={theme.palette.map.stroke}
+                    hatchId={hatchId}
                   />
                 ))}
               </svg>

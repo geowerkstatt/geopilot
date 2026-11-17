@@ -186,6 +186,8 @@ public class PipelineRunController : ControllerBase
     };
 
     // The group key of LatestAttemptOfEachGroup, newest first; a run without reference is a delivery of its own.
+    // shortcut: loads every attempt with its steps, each time the page of a run asks; only the newest ones with their
+    // number if a client keeps sending one reference for all its deliveries.
     private async Task<List<PipelineRun>> LoadAttemptsOfDeliveryAsync(PipelineRun run, CancellationToken cancellationToken)
     {
         if (run.ClientReference is null)

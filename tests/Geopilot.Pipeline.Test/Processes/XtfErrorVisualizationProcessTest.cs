@@ -39,7 +39,7 @@ public class XtfErrorVisualizationProcessTest
             baseMapLayer.AttributionUrl);
         Assert.IsNull(baseMapLayer.Features);
         Assert.IsNotNull(baseMapLayer.LayerIds);
-        Assert.HasCount(2, baseMapLayer.LayerIds);
+        Assert.HasCount(1, baseMapLayer.LayerIds);
         var featureLayer = config.Map.Layers[1];
         Assert.IsNull(featureLayer.Wmts);
         var features = featureLayer.Features;

@@ -351,7 +351,10 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
           wmtsLayerConfig.title,
         );
         // Base map is drawn below the features.
-        if (wmtsLayer) layers.unshift(wmtsLayer);
+        if (wmtsLayer) {
+          wmtsLayer.setOpacity(wmtsLayerConfig.opacity ?? 1);
+          layers.unshift(wmtsLayer);
+        }
       }
       if (cancelled) return;
       map.setLayers(layers);

@@ -37,15 +37,16 @@ internal class XtfErrorVisualizationProcess
     /// <param name="filterBy">Fields the frontend offers as filters, in display order (<see cref="TreeField"/> names, case-insensitive). Null means no filters are offered.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    /// <param name="baseMapLayerIds">Optional override for the layers requested from the base map service, drawn in this order. Null or empty means the swisstopo national maps.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<TreeField>? groupBy = null, IReadOnlyList<TreeField>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null, IReadOnlyList<string>? baseMapLayerIds = null)
+    /// <param name="baseMapLayerIds">Optional override for the layers requested from the base map service, drawn in this order. Null or empty means the gray swisstopo national map.</param>
+    /// <param name="baseMapOpacity">Optional opacity of the base map from 0 to 1. Null means half transparent for the gray default map and opaque for configured layers.</param>
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<TreeField>? groupBy = null, IReadOnlyList<TreeField>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null, IReadOnlyList<string>? baseMapLayerIds = null, double? baseMapOpacity = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)
             : null;
         includeMap = selected?.Contains(IncludeMap) ?? true;
         includeTree = selected?.Contains(IncludeTree) ?? true;
-        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapLayerIds, baseMapAttribution, baseMapAttributionUrl);
+        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapLayerIds, baseMapAttribution, baseMapAttributionUrl, baseMapOpacity);
         this.groupBy = groupBy ?? [];
         this.filterBy = filterBy ?? [];
     }

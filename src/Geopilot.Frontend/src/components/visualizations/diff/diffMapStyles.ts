@@ -2,7 +2,8 @@ import { asArray } from "ol/color";
 import Feature, { FeatureLike } from "ol/Feature";
 import Geometry from "ol/geom/Geometry";
 import GeometryCollection from "ol/geom/GeometryCollection";
-import { Circle, Fill, Stroke, Style } from "ol/style";
+import { DEVICE_PIXEL_RATIO } from "ol/has";
+import { Circle, Fill, RegularShape, Stroke, Style } from "ol/style";
 import { StyleFunction } from "ol/style/Style";
 import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { getRank } from "../map/picking";
@@ -11,6 +12,7 @@ import {
   DiffLook,
   getLook,
   getParts,
+  hasOwnGeometryChange,
   liesOnSurfaceEdge,
   PartTypeIndex,
   resolvePartType,
@@ -38,15 +40,34 @@ export interface DiffStyleInputs {
 type Emphasis = 0 | 1 | 2;
 
 const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
+  filled: { radius: 5, width: 2.5 },
   crisp: { radius: 5, width: 2.5 },
-  dotted: { radius: 5, width: 3.5 },
   ghost: { radius: 10, width: 10 },
-  dashed: { radius: 7, width: 3 },
+  crossed: { radius: 7, width: 3.5 },
 };
+
+/** Pixels between the dots of the hatching of a deleted area. */
+const HATCH_SPACING = 6;
 
 const withAlpha = (color: string, opacity: number): string => {
   const [red, green, blue] = asArray(color);
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+};
+
+/** Dots on a faint tint, scaled to the device pixels the map renders in so they keep their size on any screen. */
+const createDotHatching = (color: string): CanvasPattern | string => {
+  const tint = withAlpha(color, 0.08);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = Math.round(HATCH_SPACING * DEVICE_PIXEL_RATIO);
+  const context = canvas.getContext("2d");
+  if (!context) return tint;
+  context.fillStyle = tint;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = color;
+  context.beginPath();
+  context.arc(canvas.width / 2, canvas.height / 2, 1.25 * DEVICE_PIXEL_RATIO, 0, 2 * Math.PI);
+  context.fill();
+  return context.createPattern(canvas, "repeat") ?? tint;
 };
 
 const blendOverWhite = (color: string, opacity: number): string => {
@@ -59,23 +80,33 @@ const getSizes = (look: DiffLook, emphasis: Emphasis) => {
   return { radius: LOOK_SIZES[look].radius + grow, width: LOOK_SIZES[look].width + grow };
 };
 
-const buildLookStyle = (look: DiffLook, color: string, rim: string, emphasis: Emphasis, zIndex: number): Style => {
+/**
+ * The style of one look. `filled` is false for an area of a changed object whose geometry stayed the same: it keeps an
+ * invisible fill, so it is still picked from inside.
+ */
+const buildLookStyle = (
+  look: DiffLook,
+  color: string,
+  rim: string,
+  emphasis: Emphasis,
+  zIndex: number,
+  filled: boolean,
+): Style => {
   const { radius, width } = getSizes(look, emphasis);
   const dot = new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) });
   switch (look) {
+    case "filled":
+      return new Style({
+        image: dot,
+        stroke: new Stroke({ color, width }),
+        fill: new Fill({ color: withAlpha(color, 0.5) }),
+        zIndex,
+      });
     case "crisp":
       return new Style({
         image: dot,
         stroke: new Stroke({ color, width }),
-        fill: new Fill({ color: withAlpha(color, 0.25) }),
-        zIndex,
-      });
-    case "dotted":
-      return new Style({
-        image: dot,
-        // A near-zero dash with round caps draws each dash as a dot.
-        stroke: new Stroke({ color, width, lineDash: [0.1, 6], lineCap: "round" }),
-        fill: new Fill({ color: withAlpha(color, 0.25) }),
+        fill: new Fill({ color: withAlpha(color, filled ? 0.25 : 0) }),
         zIndex,
       });
     case "ghost":
@@ -86,18 +117,21 @@ const buildLookStyle = (look: DiffLook, color: string, rim: string, emphasis: Em
           stroke: new Stroke({ color: withAlpha(color, 0.75), width: 3 }),
         }),
         stroke: new Stroke({ color: withAlpha(color, 0.4), width, lineCap: "round", lineJoin: "round" }),
-        fill: new Fill({ color: withAlpha(color, 0.08) }),
+        fill: new Fill({ color: withAlpha(color, filled ? 0.08 : 0) }),
         zIndex,
       });
-    case "dashed":
+    case "crossed":
       return new Style({
-        image: new Circle({
+        image: new RegularShape({
+          points: 4,
           radius,
-          fill: new Fill({ color: withAlpha(color, 0.15) }),
-          stroke: new Stroke({ color, width: 2.5, lineDash: [3, 3] }),
+          radius2: 0,
+          angle: Math.PI / 4,
+          stroke: new Stroke({ color, width: 3, lineCap: "round" }),
         }),
-        stroke: new Stroke({ color, width, lineDash: [8, 6] }),
-        fill: new Fill({ color: withAlpha(color, 0.1) }),
+        // A near-zero dash with round caps draws each dash as a dot.
+        stroke: new Stroke({ color, width, lineDash: [0.1, 6], lineCap: "round" }),
+        fill: new Fill({ color: createDotHatching(color) }),
         zIndex,
       });
   }
@@ -178,9 +212,12 @@ export const buildDiffStyleFunction = (
     const styles = drawnParts.flatMap(({ part, changeType }) => {
       const look = getLook(changeType, state);
       const zIndex = getRank(part) * 3 + emphasis;
-      const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}`, () => [
+      // Only a changed geometry fills its area. A perimeter covering a whole municipality changes along with the
+      // references to it and would otherwise cover the map.
+      const filled = changeType !== "changed" || hasOwnGeometryChange(current.partTypes, id, state, part);
+      const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}|${filled}`, () => [
         ...(emphasis === 0 ? [] : [buildUnderlayStyle(look, colors.outline, emphasis, zIndex)]),
-        buildLookStyle(look, colors[changeType], colors.rim, emphasis, zIndex),
+        buildLookStyle(look, colors[changeType], colors.rim, emphasis, zIndex, filled),
       ]);
       if (!(geometry instanceof GeometryCollection)) return styles;
       return styles.map(style => {

@@ -99,9 +99,10 @@ export const ProcessingRunDetail: FC = () => {
     let current = true;
     fetchApi<PipelineRunResponse>(`/api/v1/pipelinerun/${jobId}`, { errorMessageLabel: "processingRunLoadingError" })
       .then(run => current && setLoaded({ jobId, run }))
-      // useFetch has shown why. A run already shown stays when loading it again fails; otherwise the page says that
-      // there is no such run instead of waiting.
-      .catch(() => current && setLoaded(previous => (previous?.jobId === jobId ? previous : { jobId })));
+      // useFetch has shown why. A run already shown stays when loading it again fails, as a new object, so that the
+      // page loads it again later while reactions are open; otherwise the page says that there is no such run instead
+      // of waiting.
+      .catch(() => current && setLoaded(previous => (previous?.jobId === jobId ? { ...previous } : { jobId })));
     return () => {
       current = false;
     };

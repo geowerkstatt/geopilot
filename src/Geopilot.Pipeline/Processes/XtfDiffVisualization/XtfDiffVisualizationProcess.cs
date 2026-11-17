@@ -43,10 +43,11 @@ internal class XtfDiffVisualizationProcess
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    /// <param name="baseMapLayerIds">Optional override for the layers requested from the base map service, drawn in this order. Null or empty means the swisstopo national maps.</param>
-    public XtfDiffVisualizationProcess(string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null, IReadOnlyList<string>? baseMapLayerIds = null)
+    /// <param name="baseMapLayerIds">Optional override for the layers requested from the base map service, drawn in this order. Null or empty means the gray swisstopo national map.</param>
+    /// <param name="baseMapOpacity">Optional opacity of the base map from 0 to 1. Null means half transparent for the gray default map and opaque for configured layers.</param>
+    public XtfDiffVisualizationProcess(string? baseMapWmtsCapabilitiesUrl = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null, IReadOnlyList<string>? baseMapLayerIds = null, double? baseMapOpacity = null)
     {
-        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapLayerIds, baseMapAttribution, baseMapAttributionUrl);
+        baseMapLayer = BaseMap.CreateLayer(baseMapWmtsCapabilitiesUrl, baseMapLayerIds, baseMapAttribution, baseMapAttributionUrl, baseMapOpacity);
     }
 
     /// <summary>
