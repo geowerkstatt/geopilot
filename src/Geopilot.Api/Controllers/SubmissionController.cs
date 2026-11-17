@@ -565,8 +565,8 @@ public class SubmissionController : ControllerBase
         if (string.IsNullOrEmpty(reference))
             return null;
 
-        if (reference.Length > PipelineRun.ClientReferenceMaxLength)
-            ModelState.AddModelError(fieldName, $"Must be at most {PipelineRun.ClientReferenceMaxLength} characters.");
+        if (reference.Length > Recording.ClientReferenceMaxLength)
+            ModelState.AddModelError(fieldName, $"Must be at most {Recording.ClientReferenceMaxLength} characters.");
         else if (reference.Any(StringExtensions.IsControlOrFormat))
             ModelState.AddModelError(fieldName, "Must not contain control or invisible format characters.");
 

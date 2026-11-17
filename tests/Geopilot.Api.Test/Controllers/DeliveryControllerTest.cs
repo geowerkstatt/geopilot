@@ -33,7 +33,7 @@ public class DeliveryControllerTest
     private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private Mock<IAuthorizationService> authorizationServiceMock;
-    private Mock<IPipelineRunRecorder> recorderMock;
+    private Mock<IRecorder> recorderMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -57,7 +57,7 @@ public class DeliveryControllerTest
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
             .ReturnsAsync(AuthorizationResult.Failed());
-        recorderMock = new Mock<IPipelineRunRecorder>();
+        recorderMock = new Mock<IRecorder>();
         var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
         pipelineFactoryMock = new Mock<IPipelineFactory>();
         pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);

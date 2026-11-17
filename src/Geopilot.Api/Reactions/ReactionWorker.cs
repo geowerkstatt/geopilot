@@ -140,7 +140,7 @@ public class ReactionWorker : BackgroundService
         using var timeLimit = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         timeLimit.CancelAfter(options.TimeLimit);
 
-        var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+        var recorder = scope.ServiceProvider.GetRequiredService<IRecorder>();
         await recorder.RecordReactionAttemptStartedAsync(reaction);
         var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, timeLimit.Token, stoppingToken);
 

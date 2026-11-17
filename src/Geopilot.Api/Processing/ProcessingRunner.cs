@@ -257,12 +257,12 @@ public class ProcessingRunner : BackgroundService
     /// this additionally guards scope creation and resolution, because a protocol problem must never
     /// tear down the running pipeline.
     /// </summary>
-    private async Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record)
+    private async Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record)
     {
         try
         {
             using var scope = serviceScopeFactory.CreateScope();
-            var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+            var recorder = scope.ServiceProvider.GetRequiredService<IRecorder>();
             await record(recorder);
         }
         catch (Exception ex)
