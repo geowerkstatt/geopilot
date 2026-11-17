@@ -108,7 +108,7 @@ public class JobLifecycle
             // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
             // can crash the job.
             await scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>()
-                .RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload);
+                .RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload, bindings.ToSnapshotJson());
         }
         catch
         {

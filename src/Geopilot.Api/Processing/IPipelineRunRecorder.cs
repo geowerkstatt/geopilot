@@ -24,7 +24,8 @@ public interface IPipelineRunRecorder
     /// <param name="mandate">The mandate the job was started for.</param>
     /// <param name="declarer">The user or machine client that started the job, or <see langword="null"/> when it was started anonymously on a public mandate.</param>
     /// <param name="upload">The upload whose files the job processes.</param>
-    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Declarer? declarer, UploadInfo upload);
+    /// <param name="bindings">What the host bound to the job as JSON (see <see cref="PipelineRun.Bindings"/>), or <see langword="null"/> when it bound nothing.</param>
+    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Declarer? declarer, UploadInfo upload, string? bindings = null);
 
     /// <summary>
     /// Records the outcome of the malware scan and the per-file hashes it computed. Soft.

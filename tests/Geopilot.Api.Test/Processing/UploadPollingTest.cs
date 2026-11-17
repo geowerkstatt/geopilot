@@ -101,7 +101,8 @@ public class UploadPollingTest
                 It.Is<ProcessingJob>(job => job.Id == jobId),
                 mandate,
                 Declarer.ForUser(user.Id),
-                It.Is<UploadInfo>(upload => upload.Id == uploadId)),
+                It.Is<UploadInfo>(upload => upload.Id == uploadId),
+                It.IsAny<string?>()),
             Times.Once);
     }
 

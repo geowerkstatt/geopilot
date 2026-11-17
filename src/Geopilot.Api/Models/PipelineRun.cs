@@ -34,6 +34,14 @@ public class PipelineRun
     public string Definition { get; set; } = string.Empty;
 
     /// <summary>
+    /// What the host bound to the job when it started, as JSON: an object with one key per binding, e.g.
+    /// <c>refMapping</c> with the reference data mapping entries as every validation step of the job received them.
+    /// A key is missing where the installation does not maintain that binding; <see langword="null"/> when the host
+    /// bound nothing. Written once and never deserialized back.
+    /// </summary>
+    public string? Bindings { get; set; }
+
+    /// <summary>
     /// The application version that executed the run.
     /// </summary>
     public string AppVersion { get; set; } = string.Empty;

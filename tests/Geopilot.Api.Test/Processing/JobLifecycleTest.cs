@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
+using System.Text.Json;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -201,6 +202,39 @@ public class JobLifecycleTest
         Assert.AreEqual(entry.Scope, mapping.Scope);
         CollectionAssert.AreEquivalent(entry.RefDataUris, mapping.RefDataUris.ToList());
         Assert.AreEqual(entry.Comment, mapping.Comment);
+    }
+
+    [TestMethod]
+    public async Task StartRecordsTheBoundRefMappingInTheProtocol()
+    {
+        var entry = await AddRefMappingAsync();
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+        lifecycle = CreateLifecycle(refMappingEnabled: true);
+
+        var job = await StartJobAsync(upload);
+
+        var run = await ReadRunAsync(job.Id);
+        Assert.IsNotNull(run.Bindings, "With the switch the protocol keeps what the job was bound.");
+        using var bindings = JsonDocument.Parse(run.Bindings);
+
+        // Filtered by scope: the test database is shared with tests running in parallel.
+        var recorded = Assert.ContainsSingle(bindings.RootElement.GetProperty("refMapping").EnumerateArray()
+            .Where(e => e.GetProperty("scope").GetString() == entry.Scope));
+        CollectionAssert.AreEqual(entry.RefDataUris, recorded.GetProperty("refDataUris").EnumerateArray().Select(uri => uri.GetString()).ToList());
+        Assert.AreEqual(entry.Comment, recorded.GetProperty("comment").GetString());
+    }
+
+    [TestMethod]
+    public async Task StartRecordsNoBindingsWithoutTheSwitch()
+    {
+        await AddRefMappingAsync();
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+
+        var job = await StartJobAsync(upload);
+
+        Assert.IsNull((await ReadRunAsync(job.Id)).Bindings, "Without the switch the host binds nothing, so the protocol has no refMapping key.");
     }
 
     [TestMethod]
