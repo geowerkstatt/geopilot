@@ -330,9 +330,14 @@ Dass eine Kollision die Applikation anhält, statt dass die Basis-Konfiguration 
 
 #### Geheime Werte
 
-Einen Parameter, der einen geheimen Wert nimmt, etwa einen Token oder ein Passwort, kennzeichnet ein Prozess oder ein Kanal mit `[SecretConfigValue]` (siehe [Plugin System](pluginSystem.md#geheime-werte)). Ein solcher Parameter nimmt seinen Wert nur aus der Basis-Konfiguration, am besten aus einer Umgebungsvariable oder einem Vault. Setzt ihn die Pipeline-Definition, in `default_config` oder in `process_config_overwrites`, startet die Applikation nicht, auch wenn die Basis-Konfiguration ihn gar nicht setzt; geprüft wird jeder Prozess unter `processes`, auch einer, den kein Schritt verwendet. Geheim kann nur ein Text sein (`string`), eine Kennzeichnung an einem anderen Typ hält den Start ebenfalls an.
+Einen Parameter, der einen geheimen Wert nimmt, etwa einen Token oder ein Passwort, kennzeichnet ein Prozess oder ein Kanal mit `[SecretConfigValue]` (siehe [Plugin System](pluginSystem.md#geheime-werte)). Ein solcher Parameter nimmt seinen Wert nur aus der Basis-Konfiguration, am besten aus einer Umgebungsvariable oder einem Vault. Setzt ihn die Pipeline-Definition, startet die Applikation nicht, auch wenn die Basis-Konfiguration ihn gar nicht setzt:
 
-Wo geopilot eine Konfiguration festhält, im Definitions-Snapshot eines Laufs wie in der Konfiguration eines Zustellversuchs (siehe [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md)), steht ein gesetzter geheimer Wert nur als `**********`; der Schlüssel bleibt, damit sichtbar ist, dass ein Wert gesetzt war. Die eingebauten Prozesse haben keinen geheimen Parameter, das Passwort des [Mail-Kanals](Kanaele/mail.md) ist einer.
+- bei einem Prozess in `default_config` oder in `process_config_overwrites`. Geprüft wird jeder Prozess unter `processes`, auch einer, den kein Schritt verwendet.
+- bei einem Kanal in seiner `default_config` oder in den `channel_config_overwrites` einer Reaktion. Geprüft wird jeder Kanal, den eine Reaktion verwendet. Als Wert des Mandats lässt sich ein geheimer Parameter nicht deklarieren.
+
+Geheim kann nur ein Text sein (`string`), eine Kennzeichnung an einem anderen Typ hält den Start ebenfalls an.
+
+Wo geopilot eine Konfiguration festhält, im Definitions-Snapshot eines Laufs wie in der Konfiguration eines Zustellversuchs (siehe [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md)), steht ein gesetzter geheimer Wert nur als `**********`; der Schlüssel bleibt, damit sichtbar ist, dass ein Wert gesetzt war. Ein leerer Wert bleibt leer. Nennt ein geheimer Parameter eines Kanals eine Datei, hält das Protokoll auch keinen Hash ihres Inhalts fest. Die eingebauten Prozesse haben keinen geheimen Parameter, das Passwort des [Mail-Kanals](Kanaele/mail.md) ist einer.
 
 #### Dateien als Konfiguration
 
