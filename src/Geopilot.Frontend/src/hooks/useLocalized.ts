@@ -32,7 +32,7 @@ const resolveLanguage = (
  * Resolves the text of a multilingual string, using the language chosen by resolveLanguage and the
  * given fallback when the string carries no text.
  */
-const resolveLocalized = (
+export const resolveLocalized = (
   localizedText: LocalizedText | undefined,
   activeLanguage: string | undefined,
   fallback: string = "",

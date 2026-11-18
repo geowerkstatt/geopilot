@@ -62,7 +62,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
     // hands a field the user never touched as undefined, and throwing here would abort the submit.
     const trimmed = value?.trim();
     if (trimmed && trimmed !== mandate?.key && usedKeys?.includes(trimmed)) {
-      return "mandateKeyNotUnique";
+      return t("mandateKeyNotUnique");
     }
     return true;
   };

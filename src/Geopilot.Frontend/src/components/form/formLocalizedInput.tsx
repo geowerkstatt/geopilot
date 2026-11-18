@@ -1,5 +1,6 @@
 import { FC } from "react";
 import { FieldValues, get } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { LocalizedText } from "../../api/apiInterfaces";
 import { Language, TranslationKey } from "../../appInterfaces";
 import { FormInput } from "./formInput";
@@ -14,6 +15,13 @@ interface FormLocalizedInputProps {
   maxRows?: number;
   /** When set, the field must be filled in at least one language. */
   requireAtLeastOne?: boolean;
+  /**
+   * A further check of the text in all its languages. Every language input shows its message, so it stays in sight
+   * whichever language is active.
+   */
+  validate?: (text: LocalizedText) => string | boolean;
+  /** Field names that are checked again whenever the text changes, for checks that span several fields. */
+  deps?: string[];
   helperText?: string;
 }
 
@@ -26,13 +34,27 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
   minRows,
   maxRows,
   requireAtLeastOne,
+  validate,
+  deps,
   helperText,
 }) => {
-  const validateAtLeastOne = (_: string, formValues: FieldValues): string | boolean => {
+  const { t } = useTranslation();
+  const checksText = requireAtLeastOne || validate !== undefined;
+
+  const validateText = (_: string, formValues: FieldValues): string | boolean => {
     const entries = (get(formValues, fieldName) ?? {}) as LocalizedText;
     const anyFilled = Object.values(entries).some(entry => typeof entry === "string" && entry.trim() !== "");
-    return anyFilled || "atLeastOneLanguageRequired";
+    if (requireAtLeastOne && !anyFilled) {
+      return t("atLeastOneLanguageRequired");
+    }
+    return validate ? validate(entries) : true;
   };
+
+  // A check of the whole text runs on every language input, so a change in one language checks the others again.
+  const otherLanguages = (language: Language) =>
+    Object.values(Language)
+      .filter(other => other !== language)
+      .map(other => `${fieldName}.${other}`);
 
   return (
     <>
@@ -47,14 +69,8 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
           maxRows={maxRows}
           sx={{ display: language === activeLanguage ? "inherit" : "none" }}
           showRequiredIndicator={requireAtLeastOne}
-          validate={requireAtLeastOne ? validateAtLeastOne : undefined}
-          deps={
-            requireAtLeastOne
-              ? Object.values(Language)
-                  .filter(other => other !== language)
-                  .map(other => `${fieldName}.${other}`)
-              : undefined
-          }
+          validate={checksText ? validateText : undefined}
+          deps={checksText ? [...otherLanguages(language), ...(deps ?? [])] : deps}
           helperText={helperText}
         />
       ))}

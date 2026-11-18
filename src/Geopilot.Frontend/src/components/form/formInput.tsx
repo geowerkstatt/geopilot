@@ -33,7 +33,10 @@ export interface FormInputProps {
    * context required). It receives the current value on every change.
    */
   onChange?: (value: string) => void;
-  /** Extra validation run after the built-in checks in form-context mode. Return true when valid, or a message/false when invalid. */
+  /**
+   * Extra validation run after the built-in checks in form-context mode. Return true when valid, or the translated
+   * message to show or false when invalid.
+   */
   validate?: (value: string, formValues: FieldValues) => string | boolean;
   /** Field names that are revalidated whenever this field changes, for validations that span several fields. */
   deps?: string[];
@@ -133,7 +136,7 @@ export const FormInput: FC<FormInputProps> = ({
             onBlur={field.onBlur}
             inputRef={field.ref}
             error={!!fieldState.error}
-            helperText={fieldState.error?.message ? t(fieldState.error.message as TranslationKey) : helperText}
+            helperText={fieldState.error?.message || helperText}
           />
         )}
       />
@@ -177,7 +180,7 @@ export const FormInput: FC<FormInputProps> = ({
       rows={rows}
       minRows={minRows}
       maxRows={maxRows}
-      helperText={hasError && errorMessage ? t(errorMessage as TranslationKey) : helperText}
+      helperText={hasError && errorMessage ? errorMessage : helperText}
       label={resolvedLabel}
       {...register(fieldName!, {
         required: required || false,
