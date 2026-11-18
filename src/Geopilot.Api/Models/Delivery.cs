@@ -18,36 +18,36 @@ public class Delivery
     public Guid JobId { get; set; }
 
     /// <summary>
-    /// The date the delivery was declared.
+    /// The date the delivery was created.
     /// </summary>
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// The user that declared the delivery, or <see langword="null"/> when a machine client did.
+    /// The user that delivered, or <see langword="null"/> when a machine client did.
     /// </summary>
-    public User? DeclaringUser { get; set; }
+    public User? DeliveredByUser { get; set; }
 
     /// <summary>
-    /// The id of <see cref="DeclaringUser"/>. Exposed so a query can filter on it without joining the user.
+    /// The id of <see cref="DeliveredByUser"/>. Exposed so a query can filter on it without joining the user.
     /// </summary>
-    public int? DeclaringUserId { get; set; }
+    public int? DeliveredByUserId { get; set; }
 
     /// <summary>
-    /// The machine client that declared the delivery, or <see langword="null"/> when a user did. Exactly one
-    /// of <see cref="DeclaringUser"/> and <see cref="DeclaringClient"/> is set; the database enforces it.
+    /// The machine client that delivered, or <see langword="null"/> when a user did. Exactly one
+    /// of <see cref="DeliveredByUser"/> and <see cref="DeliveredByClient"/> is set; the database enforces it.
     /// </summary>
-    public MachineClient? DeclaringClient { get; set; }
+    public MachineClient? DeliveredByClient { get; set; }
 
     /// <summary>
-    /// The id of <see cref="DeclaringClient"/>.
+    /// The id of <see cref="DeliveredByClient"/>.
     /// </summary>
-    public int? DeclaringClientId { get; set; }
+    public int? DeliveredByClientId { get; set; }
 
     /// <summary>
-    /// The name of whoever declared the delivery, for display: the user's full name or the client's name.
+    /// The name of whoever delivered, for display: the user's full name or the client's name.
     /// </summary>
     [NotMapped]
-    public string DeclarerName => DeclaringUser?.FullName ?? DeclaringClient?.Name ?? string.Empty;
+    public string DeliveredByName => DeliveredByUser?.FullName ?? DeliveredByClient?.Name ?? string.Empty;
 
     /// <summary>
     /// The mandate the delivery fulfills.

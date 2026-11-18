@@ -45,9 +45,9 @@ describe("General app tests", () => {
 
     openTool("admin");
     cy.location().should(location => {
-      expect(location.pathname).to.eq(`/admin/delivery-overview`);
+      expect(location.pathname).to.eq(`/admin/deliveries`);
     });
-    isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
+    isSelectedNavItem("admin-deliveries-nav", "admin-navigation");
 
     cy.dataCy("loggedInUser-button").click();
     isSelectedNavItem("admin-nav", "tool-navigation");
@@ -56,11 +56,11 @@ describe("General app tests", () => {
     selectAdminNavItem("users");
     selectAdminNavItem("mandates");
     selectAdminNavItem("organisations");
-    selectAdminNavItem("delivery-overview");
+    selectAdminNavItem("deliveries");
     cy.reload();
-    isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
+    isSelectedNavItem("admin-deliveries-nav", "admin-navigation");
     cy.location().should(location => {
-      expect(location.pathname).to.eq("/admin/delivery-overview");
+      expect(location.pathname).to.eq("/admin/deliveries");
     });
   });
 

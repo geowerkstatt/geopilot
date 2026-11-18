@@ -4,7 +4,7 @@ Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, d
 
 ## Ablauf
 
-- Bei der Deklaration entsteht pro Lieferungs-Schritt und pro Benachrichtigung des Satzes eine Reaktion. Sie wartet, bis das Löschfenster der Lieferanten schliesst (siehe [Löschen von Lieferungen](../README.md#löschen-von-lieferungen)); dürfen Lieferanten nicht löschen, ist sie sofort fällig. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht.
+- Mit der Lieferung entsteht pro Lieferungs-Schritt und pro Benachrichtigung des Satzes eine Reaktion. Sie wartet, bis das Löschfenster der Lieferanten schliesst (siehe [Löschen von Lieferungen](../README.md#löschen-von-lieferungen)); dürfen Lieferanten nicht löschen, ist sie sofort fällig. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht.
 - Ein Hintergrunddienst sucht beim Start und danach alle `PollInterval` nach fälligen Reaktionen und führt sie aus, pro Instanz einen Zustellversuch nach dem anderen. Dauert ein Versuch lange, warten die übrigen so lange.
 - Gelingt ein Versuch, ist die Reaktion `Done`. Sind alle Lieferungs-Schritte einer Lieferung `Done`, ist sie weitergegeben, und erst dann erscheint sie im STAC-Katalog. Erst dann laufen auch ihre Benachrichtigungen; hat sie keine Lieferungs-Schritte, laufen sie, sobald das Löschfenster schliesst.
 - Misslingt ein Versuch, beginnt der nächste den Abstand aus `RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort. Ein Versuch, der länger als `TimeLimit` dauert, misslingt.
@@ -59,7 +59,7 @@ In der Administration zeigt die Lieferungsübersicht für jede Lieferung den zus
 
 Die Meldung erscheint in der Sprache der Oberfläche; die API liefert sie als Objekt mit einem Text pro Sprache. Was ein Server oder eine Ausnahme dazu meldet, etwa die Antwort des Mailservers, steht unübersetzt darin. Das Log schreibt die englische Fassung.
 
-Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
+Jeder Zustellversuch steht im Protokoll des Jobs, aus dem die Lieferung stammt ([Ausführungsprotokoll](Ausfuehrungsprotokoll.md)): in der Tabelle `RecordingReactionEvents` und über die API unter `GET api/v1/recording/{jobId}` als `reactionEvents`.
 
 Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWorker` und `Geopilot.Api.Reactions.ReactionStore`:
 

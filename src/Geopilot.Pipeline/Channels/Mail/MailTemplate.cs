@@ -69,10 +69,10 @@ internal sealed partial class MailTemplate
         return known.Groups["name"].Value switch
         {
             "delivery_id" => delivery.Id.ToString(CultureInfo.InvariantCulture),
-            "declared_at" => TimeZoneInfo.ConvertTime(delivery.DeclaredAt, timeZone).ToString(DateFormat, CultureInfo.InvariantCulture),
+            "delivered_at" => TimeZoneInfo.ConvertTime(delivery.DeliveredAt, timeZone).ToString(DateFormat, CultureInfo.InvariantCulture),
             "mandate_name" => Encode(delivery.Mandate.Name.GetDisplayText(language), asHtml),
             "metadata" => FillMetadata(delivery.Metadata, language, asHtml),
-            "declarer_name" => Encode(delivery.Declarer.Name, asHtml),
+            "supplier_name" => Encode(delivery.Supplier.Name, asHtml),
             "comment" => asHtml ? WebUtility.HtmlEncode(comment).ReplaceLineEndings("<br>") : comment,
             "files" => asHtml ? $"<ul>{string.Concat(fileNames.Select(name => $"<li>{WebUtility.HtmlEncode(name)}</li>"))}</ul>" : string.Join(", ", fileNames),
             _ => throw new UnreachableException($"Parse refuses the placeholder {placeholder.Value}."),
@@ -105,7 +105,7 @@ internal sealed partial class MailTemplate
     private static partial Regex PlaceholderPattern();
 
     // The placeholders a template may use; only the name of the mandate and the metadata take a language, the one tried first.
-    [GeneratedRegex(@"^(?:(?<name>delivery_id|declared_at|declarer_name|comment|files)|(?<name>mandate_name|metadata)(?::(?<language>[a-z]{2}))?)$")]
+    [GeneratedRegex(@"^(?:(?<name>delivery_id|delivered_at|supplier_name|comment|files)|(?<name>mandate_name|metadata)(?::(?<language>[a-z]{2}))?)$")]
     private static partial Regex KnownPlaceholderPattern();
 
     // Captures the text of the first title element.

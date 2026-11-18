@@ -160,7 +160,7 @@ namespace Geopilot.Api.Controllers
         public async Task GetSummaryAsMachineClientPassesNullUser()
         {
             // An active client gets the anonymous view although its organisation holds mandates: its surface
-            // is the submission, where it names its mandate by key. Whoever resolves the declarer here instead
+            // is the submission, where it names its mandate by key. Whoever resolves the supplier here instead
             // of the user changes that behaviour, and this test is where it shows.
             var uploadId = Guid.NewGuid();
             var client = new MachineClient
@@ -758,7 +758,7 @@ namespace Geopilot.Api.Controllers
             var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
             {
                 State = ProcessingState.Success,
-                IsDeclarable = true,
+                MayDeliver = true,
             };
 
             processingServiceMock
@@ -771,11 +771,11 @@ namespace Geopilot.Api.Controllers
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-            var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()));
+            var creationService = new DeliveryCreationService(new Mock<ILogger<DeliveryCreationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()));
             var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IPipelineRunRecorder>(), Mock.Of<IPipelineFactory>());
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, creationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IRecorder>(), Mock.Of<IPipelineFactory>());
             deliveryController.SetupTestUser(editUser);
-            mandateServiceMock.Setup(s => s.IsDeclarableAsync(mandateToUpdate.Id, Declarer.ForUser(editUser.Id))).ReturnsAsync(true);
+            mandateServiceMock.Setup(s => s.MayDeliverAsync(mandateToUpdate.Id, Supplier.ForUser(editUser.Id))).ReturnsAsync(true);
 
             var request = new DeliveryRequest
             {

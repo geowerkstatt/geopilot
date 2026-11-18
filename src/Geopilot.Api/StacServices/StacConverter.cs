@@ -72,7 +72,7 @@ public class StacConverter
     /// Converts a <see cref="Mandate"/> to a <see cref="StacCollection"/>.
     /// </summary>
     /// <param name="mandate">The <see cref="Mandate"/> to convert.</param>
-    /// <param name="includePersonalData">Whether the items name the declarer and carry the delivery comment.</param>
+    /// <param name="includePersonalData">Whether the items name the supplier and carry the delivery comment.</param>
     /// <returns>A STAC collection.</returns>
     public StacCollection ToStacCollection(Mandate mandate, bool includePersonalData)
     {
@@ -104,7 +104,7 @@ public class StacConverter
     /// Converts a <see cref="Delivery"/> to a <see cref="StacItem"/>.
     /// </summary>
     /// <param name="delivery">The <see cref="Delivery"/> to convert.</param>
-    /// <param name="includePersonalData">Whether the item names the declarer and carries the delivery comment;
+    /// <param name="includePersonalData">Whether the item names the supplier and carries the delivery comment;
     /// only administrators see them, the catalog of a public mandate must not publish them.</param>
     /// <returns>The STAC item.</returns>
     public StacItem ToStacItem(Delivery delivery, bool includePersonalData)
@@ -133,7 +133,7 @@ public class StacConverter
 
         if (includePersonalData)
         {
-            item.Properties.Add("Abgegeben durch", delivery.DeclarerName);
+            item.Properties.Add("Abgegeben durch", delivery.DeliveredByName);
         }
 
         if (delivery.PrecursorDelivery != null)

@@ -34,15 +34,15 @@ public class MandateService : IMandateService
     /// <inheritdoc/>
     public async Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid? uploadId)
     {
-        var declarer = user is null ? null : Declarer.ForUser(user.Id);
-        var mandates = FilterMandatesByDeclarer(context.Mandates.AsNoTracking(), declarer);
+        var supplier = user is null ? null : Supplier.ForUser(user.Id);
+        var mandates = FilterMandatesBySupplier(context.Mandates.AsNoTracking(), supplier);
         mandates = FilterMandatesByResolvablePipeline(mandates);
 
         if (uploadId.HasValue)
             mandates = FilterMandatesByUpload(mandates, uploadId.Value);
 
         // A public mandate is listed for everyone, but only offers the delivery to the members of its organisations.
-        var deliverableMandateIds = FilterDeclarableMandates(context.Mandates, declarer).Select(m => m.Id);
+        var deliverableMandateIds = FilterPermittedMandates(context.Mandates, supplier).Select(m => m.Id);
 
         return await mandates.ToSummaries(deliverableMandateIds).ToListAsync();
     }
@@ -57,24 +57,24 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateForDeclarerAsync(int mandateId, Declarer? declarer)
+    public async Task<Mandate?> GetMandateForSupplierAsync(int mandateId, Supplier? supplier)
     {
-        var mandates = FilterMandatesByDeclarer(context.Mandates.AsNoTracking(), declarer);
+        var mandates = FilterMandatesBySupplier(context.Mandates.AsNoTracking(), supplier);
         return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Declarer declarer)
+    public async Task<Mandate?> GetMandateForDeliveryAsync(int mandateId, Supplier supplier)
     {
-        return await FilterMandatesByMembership(context.Mandates.AsNoTracking(), declarer).SingleOrDefaultAsync(m => m.Id == mandateId);
+        return await FilterMandatesByMembership(context.Mandates.AsNoTracking(), supplier).SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
     /// <inheritdoc/>
-    public Task<bool> IsDeclarableAsync(int mandateId, Declarer? declarer)
-        => FilterDeclarableMandates(context.Mandates.AsNoTracking(), declarer).AnyAsync(m => m.Id == mandateId);
+    public Task<bool> MayDeliverAsync(int mandateId, Supplier? supplier)
+        => FilterPermittedMandates(context.Mandates.AsNoTracking(), supplier).AnyAsync(m => m.Id == mandateId);
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateByKeyAsync(string key, Declarer declarer)
+    public async Task<Mandate?> GetMandateByKeyAsync(string key, Supplier supplier)
     {
         // An empty key must not match: EF turns a null comparison into "every mandate without a key", which would
         // make SingleOrDefault throw as soon as a second one exists.
@@ -87,7 +87,7 @@ public class MandateService : IMandateService
         var normalizedKey = key.Trim();
 
         // Addressing a mandate by key is a delivery, so the key reaches the mandates of the caller's organisations only.
-        var mandates = FilterMandatesByMembership(context.Mandates.AsNoTracking(), declarer);
+        var mandates = FilterMandatesByMembership(context.Mandates.AsNoTracking(), supplier);
         return await mandates.SingleOrDefaultAsync(m => m.Key == normalizedKey);
     }
 
@@ -137,12 +137,12 @@ public class MandateService : IMandateService
     /// The rule that decides who may process an upload against a mandate: anyone for a public mandate, otherwise
     /// a member of one of its organisations. Delivering is narrower, see <see cref="FilterMandatesByMembership"/>.
     /// </summary>
-    private static IQueryable<Mandate> FilterMandatesByDeclarer(IQueryable<Mandate> mandates, Declarer? declarer)
+    private static IQueryable<Mandate> FilterMandatesBySupplier(IQueryable<Mandate> mandates, Supplier? supplier)
     {
-        if (declarer is null)
+        if (supplier is null)
             return mandates.Where(m => m.IsPublic);
 
-        var memberMandateIds = FilterMandatesByMembership(mandates, declarer).Select(m => m.Id);
+        var memberMandateIds = FilterMandatesByMembership(mandates, supplier).Select(m => m.Id);
         return mandates.Where(m => m.IsPublic || memberMandateIds.Contains(m.Id));
     }
 
@@ -150,24 +150,24 @@ public class MandateService : IMandateService
     /// The rule that decides who may deliver to a mandate: a member of one of its organisations, whether that
     /// member is a person or a machine client. Being public does not open a mandate for deliveries.
     /// </summary>
-    private static IQueryable<Mandate> FilterMandatesByMembership(IQueryable<Mandate> mandates, Declarer? declarer)
+    private static IQueryable<Mandate> FilterMandatesByMembership(IQueryable<Mandate> mandates, Supplier? supplier)
     {
-        if (declarer is null)
+        if (supplier is null)
             return mandates.Where(m => false);
 
-        if (declarer.MachineClientId is int clientId)
+        if (supplier.MachineClientId is int clientId)
             return mandates.Where(m => m.Organisations.SelectMany(o => o.MachineClients).Any(c => c.Id == clientId));
 
-        var userId = declarer.UserId ?? throw new UnreachableException("A declarer that is no machine client is a user.");
+        var userId = supplier.UserId ?? throw new UnreachableException("A supplier that is no machine client is a user.");
         return mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == userId));
     }
 
     /// <summary>
-    /// The mandates a run of <paramref name="declarer"/> can become a delivery on: a member of their organisations,
-    /// on a mandate that accepts deliveries.
+    /// The mandates <paramref name="supplier"/> may deliver to: a member of their organisations, on a mandate that
+    /// accepts deliveries.
     /// </summary>
-    private static IQueryable<Mandate> FilterDeclarableMandates(IQueryable<Mandate> mandates, Declarer? declarer)
-        => FilterMandatesByMembership(mandates, declarer).Where(m => m.AllowDelivery);
+    private static IQueryable<Mandate> FilterPermittedMandates(IQueryable<Mandate> mandates, Supplier? supplier)
+        => FilterMandatesByMembership(mandates, supplier).Where(m => m.AllowDelivery);
 
     private IQueryable<Mandate> FilterMandatesByResolvablePipeline(IQueryable<Mandate> mandates)
     {

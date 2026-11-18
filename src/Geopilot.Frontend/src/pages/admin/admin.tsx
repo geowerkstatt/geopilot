@@ -1,7 +1,18 @@
 import { FC, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Divider,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListSubheader,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { TranslationKey } from "../../appInterfaces";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useCapabilities } from "../../components/capabilities/capabilitiesInterface.ts";
@@ -52,20 +63,30 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const drawerContent = (isPermanent: boolean) => (
     <div>
       <Box sx={{ overflow: "auto" }}>
-        <List>
-          <ListItem key={"deliveryOverview"} disablePadding>
+        <List subheader={<ListSubheader>{t("overviews")}</ListSubheader>}>
+          <ListItem key={"deliveries"} disablePadding>
             <ListItemButton
               component={RouterLink}
-              to="/admin/delivery-overview"
-              selected={isActive("delivery-overview")}
-              onClick={handleNavClick("/admin/delivery-overview")}
-              data-cy={isPermanent ? "admin-delivery-overview-nav" : undefined}>
-              <ListItemText primary={t("deliveryOverview")} />
+              to="/admin/deliveries"
+              selected={isActive("deliveries")}
+              onClick={handleNavClick("/admin/deliveries")}
+              data-cy={isPermanent ? "admin-deliveries-nav" : undefined}>
+              <ListItemText primary={t("deliveries")} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={"recordings"} disablePadding>
+            <ListItemButton
+              component={RouterLink}
+              to="/admin/recordings"
+              selected={isActive("recordings")}
+              onClick={handleNavClick("/admin/recordings")}
+              data-cy={isPermanent ? "admin-recordings-nav" : undefined}>
+              <ListItemText primary={t("recordings")} />
             </ListItemButton>
           </ListItem>
         </List>
         <Divider />
-        <List>
+        <List subheader={<ListSubheader>{t("management")}</ListSubheader>}>
           {adminPages.map(({ path, label }) => (
             <ListItem key={path} disablePadding>
               <ListItemButton

@@ -61,6 +61,10 @@
     a date as 'yyyy-MM-dd', a selection as the id of the option and a list of texts as an array. Left out
     when not given; the mandate decides which fields there are and which of them are required.
 
+.PARAMETER ClientReference
+    Your own identifier of the delivery, such as your delivery number. Give the same one with every attempt of the
+    same delivery, so geopilot shows the attempts together. Left out when not given.
+
 .PARAMETER PollSeconds
     Seconds between two status requests.
 
@@ -93,6 +97,7 @@ param(
     [nullable[bool]]$PartialDelivery,
     [nullable[int]]$PrecursorDeliveryId,
     [hashtable]$Metadata,
+    [string]$ClientReference,
     [int]$PollSeconds = 5,
     [int]$TimeoutMinutes = 30,
     [switch]$SkipCertificateCheck
@@ -271,6 +276,7 @@ if ($Comment) { $request.comment = $Comment }
 if ($null -ne $PartialDelivery) { $request.partialDelivery = $PartialDelivery }
 if ($null -ne $PrecursorDeliveryId) { $request.precursorDeliveryId = $PrecursorDeliveryId }
 if ($null -ne $Metadata) { $request.metadata = $Metadata }
+if ($ClientReference) { $request.clientReference = $ClientReference }
 
 $submission = Invoke-Submission ($request | ConvertTo-Json)
 Write-Host "Accepted as attempt $($submission.Response.id); status at $($submission.StatusUrl)"

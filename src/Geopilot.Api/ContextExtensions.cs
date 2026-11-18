@@ -36,24 +36,24 @@ internal static class ContextExtensions
     }
 
     /// <summary>
-    /// Resolves the provided principal to whoever it declares deliveries as: the machine client registered
+    /// Resolves the provided principal to whoever it delivers as: the machine client registered
     /// under its subject, or failing that the user with that subject. The client comes first because a
     /// registered client is never a user, however the subject got a user row before it was registered.
     /// </summary>
     /// <exception cref="InvalidOperationException">The subject is neither a machine client nor a user. The
-    /// <see cref="Authorization.GeopilotPolicies.Declarer"/> policy rules that out before an action runs.</exception>
-    public static async Task<Declarer> GetDeclarerAsync(this Context context, ClaimsPrincipal principal)
+    /// <see cref="Authorization.GeopilotPolicies.Supplier"/> policy rules that out before an action runs.</exception>
+    public static async Task<Supplier> GetSupplierAsync(this Context context, ClaimsPrincipal principal)
     {
-        return await context.GetDeclarerOrDefaultAsync(principal)
+        return await context.GetSupplierOrDefaultAsync(principal)
             ?? throw new InvalidOperationException($"Subject <{GetSubject(principal)}> is neither an active machine client nor an active user.");
     }
 
     /// <summary>
-    /// Resolves the provided principal like <see cref="GetDeclarerAsync"/>, but answers <see langword="null"/>
+    /// Resolves the provided principal like <see cref="GetSupplierAsync"/>, but answers <see langword="null"/>
     /// for a subject that is neither an active machine client nor an active user, for the anonymous endpoints,
     /// where such a caller is simply nobody in particular.
     /// </summary>
-    public static async Task<Declarer?> GetDeclarerOrDefaultAsync(this Context context, ClaimsPrincipal principal)
+    public static async Task<Supplier?> GetSupplierOrDefaultAsync(this Context context, ClaimsPrincipal principal)
     {
         var subjectId = GetSubject(principal);
 
@@ -64,14 +64,14 @@ internal static class ContextExtensions
             .Select(c => new { c.Id, c.State })
             .SingleOrDefaultAsync();
         if (client is not null)
-            return client.State == MachineClientState.Active ? Declarer.ForClient(client.Id) : null;
+            return client.State == MachineClientState.Active ? Supplier.ForClient(client.Id) : null;
 
         var userId = await context.Users
             .Where(u => u.AuthIdentifier == subjectId && u.State == UserState.Active)
             .Select(u => (int?)u.Id)
             .SingleOrDefaultAsync();
         if (userId is not null)
-            return Declarer.ForUser(userId.Value);
+            return Supplier.ForUser(userId.Value);
 
         return null;
     }

@@ -9,7 +9,7 @@ public class ProcessingOptions
 {
     /// <summary>
     /// The duration after the end of a job's run after which the in-memory job entry and its remaining files
-    /// (working directory, delivery files staged but never declared) are retired. A job that has not finished
+    /// (working directory, delivery files staged but never delivered) are retired. A job that has not finished
     /// counts from its creation.
     /// </summary>
     public TimeSpan JobRetention { get; set; }
@@ -29,7 +29,7 @@ public class ProcessingOptions
     public TimeSpan VisualizationRetention { get; set; }
 
     /// <summary>
-    /// The duration after which execution protocol records (PipelineRun and children) are purged.
+    /// The duration after which execution protocol records (Recording and children) are purged.
     /// Deliberately independent of <see cref="JobRetention"/> and much longer: the protocol is the audit
     /// record and must outlive the jobs it describes. Unset or non-positive disables purging entirely,
     /// so a missing key can never silently erase the protocol.

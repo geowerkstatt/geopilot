@@ -72,7 +72,7 @@ public class MetadataStorageTest
         {
             JobId = Guid.NewGuid(),
             Mandate = mandate,
-            DeclaringClient = client,
+            DeliveredByClient = client,
             Metadata =
             [
                 new DeliveredMetadataField("responsible", TestHelpers.Localized("Zuständig"), MetadataFieldType.Selection, FieldEvaluationType.Required, options, JsonSerializer.SerializeToElement("canton")),

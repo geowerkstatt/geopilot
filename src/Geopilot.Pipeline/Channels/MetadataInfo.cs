@@ -3,7 +3,7 @@
 namespace Geopilot.Pipeline.Channels;
 
 /// <summary>
-/// A metadata field the declarer filled in, as a channel sees it. Exactly one of <see cref="Texts"/>,
+/// A metadata field the supplier filled in, as a channel sees it. Exactly one of <see cref="Texts"/>,
 /// <see cref="Option"/>, <see cref="Number"/> and <see cref="Date"/> carries the value.
 /// </summary>
 internal sealed record MetadataInfo

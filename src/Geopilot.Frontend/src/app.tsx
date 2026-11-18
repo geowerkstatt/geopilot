@@ -10,14 +10,16 @@ import Header from "./components/header/header";
 import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
 import { StepSwipeHandlers } from "./hooks/useStepSwipe";
 import Admin from "./pages/admin/admin";
+import { Deliveries } from "./pages/admin/deliveries/deliveries.tsx";
 import { DeliveryDetail } from "./pages/admin/deliveries/deliveryDetail.tsx";
-import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import MachineClientDetail from "./pages/admin/machineClients/machineClientDetail.tsx";
 import MachineClients from "./pages/admin/machineClients/machineClients.tsx";
 import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
 import Mandates from "./pages/admin/mandates/mandates.tsx";
 import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
 import Organisations from "./pages/admin/organisations/organisations.tsx";
+import { RecordingDetail } from "./pages/admin/recordings/recordingDetail.tsx";
+import { Recordings } from "./pages/admin/recordings/recordings.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
@@ -27,7 +29,7 @@ import Footer from "./pages/footer/footer";
 import { Imprint } from "./pages/footer/imprint.tsx";
 import { Licenses } from "./pages/footer/licenses.tsx";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
-import { UserDeliveryOverview } from "./pages/user/deliveries/userDeliveryOverview.tsx";
+import { UserDeliveries } from "./pages/user/deliveries/userDeliveries.tsx";
 
 // Without machine delivery the administration of the clients has no server side either, so a bookmark or a
 // typed address leads back instead of onto a page that can only fail. Rendered inside CapabilitiesProvider,
@@ -83,7 +85,7 @@ const App: FC = () => {
                   {user ? (
                     <Route path="user">
                       <Route index element={<Navigate to="/user/deliveries" replace />} />
-                      <Route path="deliveries" element={<UserDeliveryOverview />} />
+                      <Route path="deliveries" element={<UserDeliveries />} />
                     </Route>
                   ) : (
                     <Route path="user/*" element={<Navigate to="/" replace />} />
@@ -96,9 +98,11 @@ const App: FC = () => {
                           <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
                         </CapabilitiesProvider>
                       }>
-                      <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
-                      <Route path="delivery-overview" element={<DeliveryOverview />} />
-                      <Route path="delivery-overview/:id" element={<DeliveryDetail />} />
+                      <Route index element={<Navigate to="/admin/deliveries" replace />} />
+                      <Route path="deliveries" element={<Deliveries />} />
+                      <Route path="deliveries/:id" element={<DeliveryDetail />} />
+                      <Route path="recordings" element={<Recordings />} />
+                      <Route path="recordings/:jobId" element={<RecordingDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />
