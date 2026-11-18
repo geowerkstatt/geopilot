@@ -95,7 +95,7 @@ export const RecordingSteps: FC<RecordingStepsProps> = ({ run }) => {
           // A skipped step has times too, but they only span the check of its skip conditions.
           const duration = step.state !== StepState.Skipped && formatDuration(step.startedAt, step.finishedAt);
           return (
-            <Accordion key={step.stepId} defaultExpanded disableGutters data-cy={`recordingStep-${step.stepId}`}>
+            <Accordion key={step.stepId} disableGutters data-cy={`recordingStep-${step.stepId}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack
                   direction="row"

@@ -53,9 +53,12 @@ export const ReactionEventSummary: FC<ReactionEventSummaryProps> = ({ reactionEv
       <Box component="span" sx={{ display: "inline-flex", justifyContent: "center", width: px2rem(20), flexShrink: 0 }}>
         {shownState && <ReactionStateIcon state={shownState} />}
       </Box>
+      {/* Named first like a step in the run, then what happened and of what kind. */}
       <Typography sx={{ flex: "1 1 0" }}>
-        {t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}{" "}
         <StepTitle id={reactionEvent.reactionId} displayName={reactionEvent.reactionDisplayName ?? undefined} />{" "}
+        <Typography component="span" sx={{ marginLeft: 0.5 }}>
+          {t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}
+        </Typography>{" "}
         <Typography component="span" variant="body2" sx={{ color: "text.secondary", marginLeft: 0.5 }}>
           {t(reactionKindKey[reactionEvent.reactionKind])}
         </Typography>

@@ -80,6 +80,9 @@ describe("Recording", () => {
       "contain",
       "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess",
     );
+
+    // Closed until asked, as the steps of the run and the reactions.
+    cy.dataCy("pipelineSnapshotStep-validation").find("[aria-expanded]").should("have.attr", "aria-expanded", "false");
   });
 
   it("marks a run that a machine client started", () => {
@@ -196,18 +199,18 @@ describe("Recording", () => {
       .then(entries => entries.toArray().map(entry => entry.dataset.cy))
       .should(ids => expect(new Set(ids).size, "distinct entries").to.equal(6));
 
-    // The header tells how the event ended, what happened to which reaction, by its name with its id beside, and of what
-    // kind, without opening it, also to a screen reader and in copied text, which need the words apart. A reaction the
-    // definition no longer has shows its id.
+    // The header names the reaction first, by its name with its id beside as a step is named, then what happened and of
+    // what kind, without opening it, also to a screen reader and in copied text, which need the words apart. A reaction
+    // the definition no longer has shows its id.
     cy.dataCy("reactionEvent-1").should("contain", "Done after 1 s");
     cy.dataCy("reactionEvent-1")
       .find("[aria-expanded]")
       .invoke("text")
-      .should("contain", "attempt 1 Mail to the recipients info notification");
+      .should("contain", "Mail to the recipients info attempt 1 notification");
     cy.dataCy("reactionEvent-0")
       .find("[aria-expanded]")
       .invoke("text")
-      .should("contain", "attempt 1 ablage forwarding");
+      .should("contain", "ablage attempt 1 forwarding");
     cy.dataCy("reactionEvent-4").should("contain", "Failed after 30 s").and("not.contain", "Pending");
     cy.dataCy("reactionEvent-5").should("contain", "7 s");
     cy.dataCy("reactionEvent-2").should("contain", "retry requested").find("[aria-expanded]").should("not.exist");
@@ -440,6 +443,11 @@ describe("Recording", () => {
         );
       });
       cy.visit(`/admin/recordings/${jobId}`);
+    });
+
+    it("opens no step until asked, as the reactions", () => {
+      cy.dataCy("recordingStep-preflight").find("[aria-expanded]").should("have.attr", "aria-expanded", "false");
+      cy.dataCy("recordingStep-validation").find("[aria-expanded]").should("have.attr", "aria-expanded", "false");
     });
 
     it("shows the hash of the preparation for a delivered file", () => {

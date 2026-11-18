@@ -137,7 +137,7 @@ export const PipelineSnapshot: FC<PipelineSnapshotProps> = ({ jobId, pipelineId 
       ) : (
         <Box>
           {buildSnapshotSteps(snapshot).map((step, index) => (
-            <Accordion key={step.id} defaultExpanded disableGutters data-cy={`pipelineSnapshotStep-${step.id}`}>
+            <Accordion key={step.id} disableGutters data-cy={`pipelineSnapshotStep-${step.id}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Stack direction="row" sx={{ alignItems: "center" }}>
                   <StepIcon step={index + 1} state={DeliveryStepState.Enabled} variant="outlined" />
