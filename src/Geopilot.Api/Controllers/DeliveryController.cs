@@ -33,17 +33,17 @@ public class DeliveryController : ControllerBase
     private readonly IOptions<DeliveryOptions> deliveryOptions;
     private readonly IAuthorizationService authorizationService;
     private readonly ReactionStore reactionStore;
-    private readonly IPipelineRunRecorder pipelineRunRecorder;
+    private readonly IRecorder recorder;
     private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryCreationService deliveryCreationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryCreationService deliveryCreationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IRecorder recorder, IPipelineFactory pipelineFactory)
     {
         this.authorizationService = authorizationService;
         this.reactionStore = reactionStore;
-        this.pipelineRunRecorder = pipelineRunRecorder;
+        this.recorder = recorder;
         this.pipelineFactory = pipelineFactory;
         this.logger = logger;
         this.context = context;
@@ -124,7 +124,7 @@ public class DeliveryController : ControllerBase
         if (HttpContext.RequestAborted.IsCancellationRequested)
             return;
 
-        await pipelineRunRecorder.RecordDeliveryFailedAsync(jobId, reason);
+        await recorder.RecordDeliveryFailedAsync(jobId, reason);
     }
 
     /// <summary>
@@ -337,7 +337,7 @@ public class DeliveryController : ControllerBase
         if (reset is null)
             return Conflict($"The reaction of delivery <{deliveryId}> has not failed.");
 
-        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
+        await recorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
         logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.ReactionId, deliveryId);
         return NoContent();
     }
@@ -500,7 +500,7 @@ public class DeliveryController : ControllerBase
             // shortcut: does not wait for a running attempt. Its report is refused, and what its channel has written
             // already stays at the target (ADR 0015, Nachtrag: Löschen während einer laufenden Reaktion).
             var reactions = await reactionStore.MarkDeletedAsync(context, deliveryId, CancellationToken.None);
-            await pipelineRunRecorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
+            await recorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
         }
         catch (Exception ex)
         {

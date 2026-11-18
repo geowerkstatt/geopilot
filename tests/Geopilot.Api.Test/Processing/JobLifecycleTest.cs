@@ -28,7 +28,7 @@ public class JobLifecycleTest
     private ProcessingJobStore jobStore;
     private Mock<IPipelineFactory> pipelineFactory;
     private Channel<PreflightRequest> preflightQueue;
-    private PipelineRunRecorder recorder;
+    private Recorder recorder;
     private ServiceProvider services;
     private Mandate mandate;
     private Supplier supplier;
@@ -75,7 +75,7 @@ public class JobLifecycleTest
         preflightQueue = Channel.CreateUnbounded<PreflightRequest>();
         pipelineFactory = new Mock<IPipelineFactory>();
         pipelineFactory.Setup(f => f.GetDefinitionSnapshotJson(It.IsAny<string>())).Returns("{}");
-        recorder = new PipelineRunRecorder(context, pipelineFactory.Object, uploadStorage, Mock.Of<IHttpContextAccessor>(), Mock.Of<ILogger<PipelineRunRecorder>>());
+        recorder = new Recorder(context, pipelineFactory.Object, uploadStorage, Mock.Of<IHttpContextAccessor>(), Mock.Of<ILogger<Recorder>>());
 
         var orchestration = new UploadOrchestrationService(
             uploadStorage, Mock.Of<IUploadScanService>(), jobStore, uploadStore, AssemblyInitialize.TestDirectoryProvider, Options.Create(new UploadOptions()), Mock.Of<ILogger<UploadOrchestrationService>>());
@@ -87,7 +87,7 @@ public class JobLifecycleTest
             .ReturnsAsync(new DeliveryCreationResult(DeliveryCreationStatus.Created, DeliveryId: 42));
 
         services = new ServiceCollection()
-            .AddSingleton<IPipelineRunRecorder>(recorder)
+            .AddSingleton<IRecorder>(recorder)
             .AddSingleton<IUploadOrchestrationService>(orchestration)
             .AddSingleton(creationService.Object)
             .BuildServiceProvider();
@@ -519,10 +519,10 @@ public class JobLifecycleTest
         Assert.AreEqual(kept, Directory.Exists(Path.Combine(uploadRoot, uploadId.ToString())), "uploaded files");
     }
 
-    private async Task<PipelineRun> ReadRunAsync(Guid jobId)
+    private async Task<Recording> ReadRunAsync(Guid jobId)
     {
         // Otherwise EF answers from what it tracks instead of what was written.
         context.ChangeTracker.Clear();
-        return await context.PipelineRuns.SingleAsync(r => r.JobId == jobId);
+        return await context.Recordings.SingleAsync(r => r.JobId == jobId);
     }
 }

@@ -51,7 +51,7 @@ public class SubmissionRequest
     /// control or invisible format characters; white space at either end is dropped, and nothing but white space
     /// counts as none. Never checked against earlier attempts.
     /// </summary>
-    [MaxLength(PipelineRun.ClientReferenceMaxLength)]
+    [MaxLength(Recording.ClientReferenceMaxLength)]
     public string? ClientReference
     {
         get => clientReference;

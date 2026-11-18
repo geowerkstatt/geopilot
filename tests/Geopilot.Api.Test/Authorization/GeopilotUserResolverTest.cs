@@ -116,7 +116,7 @@ public class GeopilotUserResolverTest
         // its rows outlive the job they belong to, so a test that started one leaves the users undeletable.
         context.Assets.RemoveRange(context.Assets);
         context.Deliveries.RemoveRange(context.Deliveries);
-        context.PipelineRuns.RemoveRange(context.PipelineRuns);
+        context.Recordings.RemoveRange(context.Recordings);
         context.Users.RemoveRange(context.Users);
         context.SaveChanges();
 
