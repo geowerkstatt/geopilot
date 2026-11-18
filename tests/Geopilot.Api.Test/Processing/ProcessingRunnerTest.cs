@@ -27,7 +27,7 @@ public class ProcessingRunnerTest
     private PhysicalAssetStagingFileStore stagingStore;
     private PhysicalVisualizationFileStore visualizationStore;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
-    private Mock<IPipelineRunRecorder> runRecorderMock;
+    private Mock<IRecorder> runRecorderMock;
     private Mock<IDeliveryCreationService> creationServiceMock;
     private IServiceScopeFactory scopeFactory;
 
@@ -41,7 +41,7 @@ public class ProcessingRunnerTest
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
-        runRecorderMock = new Mock<IPipelineRunRecorder>();
+        runRecorderMock = new Mock<IRecorder>();
         creationServiceMock = new Mock<IDeliveryCreationService>();
 
         var serviceProvider = new Mock<IServiceProvider>();
@@ -50,7 +50,7 @@ public class ProcessingRunnerTest
         serviceProvider.Setup(p => p.GetService(typeof(IAssetStagingFileStore))).Returns(stagingStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
         serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
-        serviceProvider.Setup(p => p.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IRecorder))).Returns(runRecorderMock.Object);
         serviceProvider.Setup(p => p.GetService(typeof(IDeliveryCreationService))).Returns(creationServiceMock.Object);
 
         var scope = new Mock<IServiceScope>();

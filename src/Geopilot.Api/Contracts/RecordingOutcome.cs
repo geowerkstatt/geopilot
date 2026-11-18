@@ -1,0 +1,66 @@
+﻿using Geopilot.PipelineCore.Pipeline;
+
+namespace Geopilot.Api.Contracts;
+
+/// <summary>
+/// What became of a recorded job.
+/// </summary>
+public enum RecordingOutcomeKind
+{
+    /// <summary>
+    /// A delivery was created for the run.
+    /// </summary>
+    Delivered,
+
+    /// <summary>
+    /// A delivery was created for the run and deleted afterwards.
+    /// </summary>
+    DeliveredAndDeleted,
+
+    /// <summary>
+    /// The run allowed a delivery and whoever started it may deliver, but nobody tried to deliver it.
+    /// </summary>
+    NotDelivered,
+
+    /// <summary>
+    /// The run did not allow a delivery.
+    /// </summary>
+    NotDeliverable,
+
+    /// <summary>
+    /// The run allowed a delivery, but whoever started it may not deliver.
+    /// </summary>
+    NotPermitted,
+
+    /// <summary>
+    /// The run allowed a delivery and whoever started it may deliver, but geopilot refused or could not create the
+    /// delivery, on the web or for a machine delivery.
+    /// </summary>
+    DeliveryFailed,
+
+    /// <summary>
+    /// The job of the run is still running.
+    /// </summary>
+    Running,
+
+    /// <summary>
+    /// The run has no terminal state and its job is gone: its instance stopped while it ran.
+    /// </summary>
+    Unknown,
+}
+
+/// <summary>
+/// What became of a recorded job, derived from its recording, its delivery and whether the job still runs.
+/// </summary>
+/// <param name="Kind">What became of the run.</param>
+/// <param name="DeliveryId">The delivery created for the run, deleted or not.</param>
+/// <param name="BlockingSteps">For a run that did not allow a delivery: every step that restricted the delivery, failed or was cancelled, in pipeline order. A restriction does not stop the pipeline, so there can be several; none when the run failed outside the steps.</param>
+/// <param name="PreflightFailed">Whether the run failed in the preflight, before any step started.</param>
+public record RecordingOutcome(RecordingOutcomeKind Kind, int? DeliveryId, List<RecordingBlockingStep> BlockingSteps, bool PreflightFailed);
+
+/// <summary>
+/// A step that kept the pipeline from allowing a delivery.
+/// </summary>
+/// <param name="StepId">The step id from the pipeline definition.</param>
+/// <param name="DisplayName">The step's localized display name.</param>
+public record RecordingBlockingStep(string StepId, LocalizedText DisplayName);

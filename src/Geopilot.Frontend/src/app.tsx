@@ -18,8 +18,8 @@ import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
 import Mandates from "./pages/admin/mandates/mandates.tsx";
 import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
 import Organisations from "./pages/admin/organisations/organisations.tsx";
-import { ProcessingRunDetail } from "./pages/admin/processingRuns/processingRunDetail.tsx";
-import { ProcessingRuns } from "./pages/admin/processingRuns/processingRuns.tsx";
+import { RecordingDetail } from "./pages/admin/recordings/recordingDetail.tsx";
+import { Recordings } from "./pages/admin/recordings/recordings.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
@@ -101,8 +101,8 @@ const App: FC = () => {
                       <Route index element={<Navigate to="/admin/deliveries" replace />} />
                       <Route path="deliveries" element={<Deliveries />} />
                       <Route path="deliveries/:id" element={<DeliveryDetail />} />
-                      <Route path="processing-runs" element={<ProcessingRuns />} />
-                      <Route path="processing-runs/:jobId" element={<ProcessingRunDetail />} />
+                      <Route path="recordings" element={<Recordings />} />
+                      <Route path="recordings/:jobId" element={<RecordingDetail />} />
                       <Route path="users" element={<Users />} />
                       <Route path="users/:id" element={<UserDetail />} />
                       <Route path="mandates" element={<Mandates />} />

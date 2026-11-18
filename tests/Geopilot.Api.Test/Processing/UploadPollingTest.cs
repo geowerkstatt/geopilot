@@ -28,7 +28,7 @@ public class UploadPollingTest
     private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
-    private Mock<IPipelineRunRecorder> runRecorderMock;
+    private Mock<IRecorder> runRecorderMock;
     private Context context;
 
     [TestInitialize]
@@ -45,13 +45,13 @@ public class UploadPollingTest
         uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
-        runRecorderMock = new Mock<IPipelineRunRecorder>();
+        runRecorderMock = new Mock<IRecorder>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStore))).Returns(uploadStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IRecorder))).Returns(runRecorderMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStorage))).Returns(uploadStorageMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineFactory))).Returns(pipelineFactoryMock.Object);

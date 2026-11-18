@@ -66,7 +66,7 @@ public class JobLifecycle
     /// was created then.</exception>
     /// <remarks>
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
-    /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
+    /// and without the record nothing could account for it (see <see cref="IRecorder"/>).
     /// </remarks>
     public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Supplier? supplier, bool mayDeliver, DeliveryFields? deliveryFields)
     {
@@ -95,7 +95,7 @@ public class JobLifecycle
             // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
             // can crash the job.
             using var scope = serviceScopeFactory.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>()
+            await scope.ServiceProvider.GetRequiredService<IRecorder>()
                 .RecordJobStartedAsync(jobWithPipeline, mandate, supplier, upload);
         }
         catch
@@ -220,7 +220,7 @@ public class JobLifecycle
             catch (Exception ex)
             {
                 // Otherwise the attempt would report a delivery in progress until the job is retired.
-                await RecordDeliveryFailureAsync(jobId, "The delivery could not be created because of an unexpected error.");
+                await RecordDeliveryFailureAsync(jobId, DeliveryCreationResult.UnexpectedFailureDescription);
                 logger.LogError(ex, "Creating the delivery for job <{JobId}> failed unexpectedly.", jobId);
                 return;
             }
@@ -242,7 +242,7 @@ public class JobLifecycle
                     break;
 
                 default:
-                    await RecordDeliveryFailureAsync(jobId, DescribeDeliveryFailure(result));
+                    await RecordDeliveryFailureAsync(jobId, result.DescribeFailure());
                     logger.LogWarning("Could not create the delivery for job <{JobId}>: {Status}.", jobId, result.Status);
                     break;
             }
@@ -260,25 +260,11 @@ public class JobLifecycle
     }
 
     /// <summary>
-    /// Turns a refused creation into the one sentence the caller gets to read. Violated field rules carry their
-    /// detail in <see cref="DeliveryCreationResult.FieldErrors"/> rather than in the message, and the status
-    /// alone would not say which field the caller has to correct.
-    /// </summary>
-    private static string DescribeDeliveryFailure(DeliveryCreationResult result)
-    {
-        if (result.FieldErrors is not { Count: > 0 })
-            return result.Message ?? $"The delivery was refused ({result.Status}).";
-
-        var violations = result.FieldErrors.Select(error => $"{error.Key}: {string.Join(" ", error.Value)}");
-        return $"The delivery details do not satisfy the mandate. {string.Join(" ", violations)}";
-    }
-
-    /// <summary>
     /// Runs one protocol write. The recorder swallows its own write failures; the guard additionally covers
     /// resolving it.
     /// </summary>
-    private Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record) =>
-        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IPipelineRunRecorder>()));
+    private Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record) =>
+        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IRecorder>()));
 
     /// <summary>
     /// Carries out one consequence against a fresh scope, because the services behind it depend on the scoped

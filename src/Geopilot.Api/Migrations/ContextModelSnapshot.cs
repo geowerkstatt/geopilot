@@ -318,7 +318,7 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("Organisations");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.Recording", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -409,13 +409,13 @@ namespace Geopilot.Api.Migrations
 
                     b.HasIndex("StartedAt", "Id");
 
-                    b.ToTable("PipelineRuns", t =>
+                    b.ToTable("Recordings", t =>
                         {
-                            t.HasCheckConstraint("CK_PipelineRuns_StartedBy", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_Recordings_StartedBy", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)");
                         });
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunArtifact", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingArtifact", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -438,17 +438,17 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PipelineRunStepId")
+                    b.Property<int>("RecordingStepId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunStepId");
+                    b.HasIndex("RecordingStepId");
 
-                    b.ToTable("PipelineRunArtifacts");
+                    b.ToTable("RecordingArtifacts");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunCondition", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingCondition", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -477,17 +477,17 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PipelineRunStepId")
+                    b.Property<int>("RecordingStepId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunStepId");
+                    b.HasIndex("RecordingStepId");
 
-                    b.ToTable("PipelineRunConditions");
+                    b.ToTable("RecordingConditions");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunFile", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingFile", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -502,7 +502,7 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PipelineRunId")
+                    b.Property<int>("RecordingId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Sha256")
@@ -514,12 +514,12 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunId");
+                    b.HasIndex("RecordingId");
 
-                    b.ToTable("PipelineRunFiles");
+                    b.ToTable("RecordingFiles");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingInput", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -545,7 +545,7 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PipelineRunStepId")
+                    b.Property<int>("RecordingStepId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Reference")
@@ -562,12 +562,12 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunStepId");
+                    b.HasIndex("RecordingStepId");
 
-                    b.ToTable("PipelineRunInputs");
+                    b.ToTable("RecordingInputs");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingReactionEvent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -598,9 +598,6 @@ namespace Geopilot.Api.Migrations
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PipelineRunId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ReactionId")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -610,6 +607,9 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("RecordingId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("State")
                         .HasColumnType("text");
 
@@ -618,14 +618,14 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunId");
+                    b.HasIndex("RecordingId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PipelineRunReactionEvents");
+                    b.ToTable("RecordingReactionEvents");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunStep", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingStep", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -649,9 +649,6 @@ namespace Geopilot.Api.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PipelineRunId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ProcessAssemblyName")
                         .HasColumnType("text");
 
@@ -661,6 +658,9 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("ProcessImplementation")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("RecordingId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -678,10 +678,10 @@ namespace Geopilot.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PipelineRunId", "StepId")
+                    b.HasIndex("RecordingId", "StepId")
                         .IsUnique();
 
-                    b.ToTable("PipelineRunSteps");
+                    b.ToTable("RecordingSteps");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
@@ -832,7 +832,7 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Delivery");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.Recording", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.MachineClient", "MachineClient")
                         .WithMany()
@@ -856,53 +856,53 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunArtifact", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingArtifact", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRunStep", "Step")
+                    b.HasOne("Geopilot.Api.Models.RecordingStep", "Step")
                         .WithMany("Artifacts")
-                        .HasForeignKey("PipelineRunStepId")
+                        .HasForeignKey("RecordingStepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Step");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunCondition", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingCondition", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRunStep", "Step")
+                    b.HasOne("Geopilot.Api.Models.RecordingStep", "Step")
                         .WithMany("Conditions")
-                        .HasForeignKey("PipelineRunStepId")
+                        .HasForeignKey("RecordingStepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Step");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunFile", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingFile", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRun", "PipelineRun")
+                    b.HasOne("Geopilot.Api.Models.Recording", "Recording")
                         .WithMany("Files")
-                        .HasForeignKey("PipelineRunId")
+                        .HasForeignKey("RecordingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("PipelineRun");
+                    b.Navigation("Recording");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunInput", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingInput", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRunStep", null)
+                    b.HasOne("Geopilot.Api.Models.RecordingStep", null)
                         .WithMany("Inputs")
-                        .HasForeignKey("PipelineRunStepId")
+                        .HasForeignKey("RecordingStepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunReactionEvent", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingReactionEvent", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRun", null)
+                    b.HasOne("Geopilot.Api.Models.Recording", null)
                         .WithMany("ReactionEvents")
-                        .HasForeignKey("PipelineRunId")
+                        .HasForeignKey("RecordingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -912,15 +912,15 @@ namespace Geopilot.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunStep", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingStep", b =>
                 {
-                    b.HasOne("Geopilot.Api.Models.PipelineRun", "PipelineRun")
+                    b.HasOne("Geopilot.Api.Models.Recording", "Recording")
                         .WithMany("Steps")
-                        .HasForeignKey("PipelineRunId")
+                        .HasForeignKey("RecordingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("PipelineRun");
+                    b.Navigation("Recording");
                 });
 
             modelBuilder.Entity("MachineClientOrganisation", b =>
@@ -998,7 +998,7 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Deliveries");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRun", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.Recording", b =>
                 {
                     b.Navigation("Files");
 
@@ -1007,7 +1007,7 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Steps");
                 });
 
-            modelBuilder.Entity("Geopilot.Api.Models.PipelineRunStep", b =>
+            modelBuilder.Entity("Geopilot.Api.Models.RecordingStep", b =>
                 {
                     b.Navigation("Artifacts");
 
