@@ -1,4 +1,5 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -92,7 +93,7 @@ internal sealed class MailChannel : IDeliveryChannel
         [BaseConfigValue] int port,
         [BaseConfigValue] string sender,
         [BaseConfigValue] string? username,
-        [BaseConfigValue] string? password,
+        [SecretConfigValue] string? password,
         [BaseConfigValue] MailEncryption? encryption,
         [ResourceFile] string template,
         [MandateValue] IReadOnlyList<string>? to,

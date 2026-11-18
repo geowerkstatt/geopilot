@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test.Channels;
@@ -12,6 +13,7 @@ public class DeliveryChannelFactoryTest
     private const string SwitchChannel = "Geopilot.Pipeline.Test.Channels.SwitchChannel";
     private const string TemplateChannel = "Geopilot.Pipeline.Test.Channels.TemplateChannel";
     private const string RefusingChannel = "Geopilot.Pipeline.Test.Channels.RefusingChannel";
+    private const string MaskedChannel = "Geopilot.Pipeline.Test.Channels.MaskedChannel";
 
     private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
@@ -366,6 +368,108 @@ public class DeliveryChannelFactoryTest
         Assert.IsEmpty(factory.Validate(RefusingChannel, new Parameterization { ["mode"] = "refuse", ["folder"] = "fest" }, []));
     }
 
+    [TestMethod]
+    public void ValidateRejectsASecretTheDefinitionSets()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate(MaskedChannel, new Parameterization { ["password"] = "in the definition" }, []));
+        Assert.Contains("'password' is marked [SecretConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs)", error);
+    }
+
+    [TestMethod]
+    public void ValidateRejectsThePasswordOfAMailInTheDefinition()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Channels.Mail.MailChannel", new Parameterization { ["password"] = "in the definition" }, []));
+        Assert.Contains("'password' is marked [SecretConfigValue]", error);
+    }
+
+    [TestMethod]
+    public void ValidateRejectsASecretMarkedAsMandateValue()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.SecretMandateChannel", null, []));
+        Assert.Contains("'token' is marked [SecretConfigValue] and [MandateValue]", error);
+    }
+
+    [TestMethod]
+    public void ValidateRejectsASecretThatTakesNoText()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.SecretNumberChannel", null, []));
+        Assert.Contains("'pin' is marked [SecretConfigValue] but takes <Int32?>", error);
+    }
+
+    [TestMethod]
+    public void DescribeConfigNamesTheOriginOfEveryValue()
+    {
+        var password = $"password-{Guid.NewGuid()}";
+        var factory = new DeliveryChannelFactory(
+            new Dictionary<string, Parameterization> { [MaskedChannel] = new Parameterization { ["host"] = "smtp.example.com", ["password"] = password } },
+            CreateResourcesDirectory());
+
+        // The snapshot of a reaction and the values of a mandate are read back from JSON.
+        var config = factory.DescribeConfig(
+            MaskedChannel,
+            new Parameterization { ["template"] = JsonSerializer.SerializeToElement("vorlagen/info.html") },
+            new Parameterization { ["folder"] = JsonSerializer.SerializeToElement("mandate-a") });
+
+        CollectionAssert.AreEquivalent(new[] { "host", "password", "template", "folder" }, config.Keys.ToArray());
+        Assert.AreEqual(new RecordedConfigValue("smtp.example.com", ConfigOrigin.Base), config["host"]);
+        Assert.AreEqual(new RecordedConfigValue("**********", ConfigOrigin.Base), config["password"]);
+        Assert.AreEqual(ConfigOrigin.Definition, config["template"].Origin);
+        Assert.AreEqual("\"vorlagen/info.html\"", JsonSerializer.Serialize(config["template"].Value));
+
+        // The SHA-256 of "<title>Neue Lieferung</title>", the content of the file.
+        Assert.AreEqual("3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581", config["template"].Sha256);
+        Assert.AreEqual(ConfigOrigin.Mandate, config["folder"].Origin);
+        Assert.AreEqual("\"mandate-a\"", JsonSerializer.Serialize(config["folder"].Value));
+    }
+
+    [TestMethod]
+    public void DescribeConfigPrefersTheBaseConfigurationOverTheDefinition()
+    {
+        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization> { [MaskedChannel] = new Parameterization { ["host"] = "base.example.com" } });
+
+        var config = factory.DescribeConfig(MaskedChannel, new Parameterization { ["host"] = "definition.example.com" }, null);
+
+        Assert.AreEqual(new RecordedConfigValue("base.example.com", ConfigOrigin.Base), config["host"]);
+    }
+
+    [TestMethod]
+    public void DescribeConfigTakesNothingButMandateValuesFromTheMandate()
+    {
+        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization>());
+
+        var config = factory.DescribeConfig(MaskedChannel, null, new Parameterization { ["host"] = "mandate.example.com", ["port"] = 25 });
+
+        Assert.IsEmpty(config);
+    }
+
+    [TestMethod]
+    [DataRow("vorlagen/fehlt.html", DisplayName = "Missing file")]
+    [DataRow("../info.html", DisplayName = "Outside the resources directory")]
+    public void DescribeConfigKeepsThePathOfAFileItCannotHash(string path)
+    {
+        var factory = new DeliveryChannelFactory(null, CreateResourcesDirectory());
+
+        var config = factory.DescribeConfig(MaskedChannel, new Parameterization { ["template"] = path }, null);
+
+        Assert.AreEqual(new RecordedConfigValue(path, ConfigOrigin.Definition, null), config["template"]);
+    }
+
+    [TestMethod]
+    public void DescribeConfigRefusesAnUnknownChannel()
+    {
+        var factory = new DeliveryChannelFactory(null);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => factory.DescribeConfig("Geopilot.Pipeline.Test.Channels.UnknownChannel", null, null));
+    }
+
     /// <summary>
     /// A resources root holding <c>vorlagen/info.html</c>, plus <c>info.html</c> one level above it so that a path leaving
     /// the root fails on the confinement and not on a missing file.
@@ -428,6 +532,43 @@ internal sealed class SecretChannel : IDeliveryChannel
     public SecretChannel([BaseConfigValue] string password)
     {
         _ = password;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
+}
+
+internal sealed class MaskedChannel : IDeliveryChannel
+{
+    public MaskedChannel(string host, [SecretConfigValue] string? password, [ResourceFile] string? template, [MandateValue] string? folder, int? port)
+    {
+        _ = host;
+        _ = password;
+        _ = template;
+        _ = folder;
+        _ = port;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
+}
+
+internal sealed class SecretMandateChannel : IDeliveryChannel
+{
+    public SecretMandateChannel([SecretConfigValue][MandateValue] string? token)
+    {
+        _ = token;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
+}
+
+internal sealed class SecretNumberChannel : IDeliveryChannel
+{
+    public SecretNumberChannel([SecretConfigValue] int? pin)
+    {
+        _ = pin;
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
