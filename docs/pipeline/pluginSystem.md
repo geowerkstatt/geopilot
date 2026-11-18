@@ -117,6 +117,30 @@ public class MyProcessResult
 
 ```
 
+## Geheime Werte
+
+Braucht ein Prozessor einen Token, ein Passwort oder einen anderen geheimen Wert, kennzeichnet er den Konstruktor-Parameter mit `[SecretConfigValue]` aus dem Namespace `Geopilot.PipelineCore.Pipeline.Process` (ab PipelineCore 2.0):
+
+```csharp
+public MyServiceProcess(string serviceUrl, [SecretConfigValue] string apiToken, ILogger logger)
+{
+    // Says what is wrong without naming the value: the message of an exception is kept in the protocol.
+    if (apiToken.Length < 32)
+        throw new ArgumentException("The API token is too short.", nameof(apiToken));
+
+    this.serviceUrl = serviceUrl;
+    this.apiToken = apiToken;
+    this.logger = logger;
+}
+```
+
+Für einen so gekennzeichneten Parameter gilt:
+
+- Er nimmt nur Text (`string` oder `string?`), an einem anderen Typ startet die Applikation nicht.
+- Sein Wert kommt nur aus der Basis-Konfiguration unter `Pipeline:ProcessConfigs`, am besten aus einer Umgebungsvariable oder einem Vault. Setzt ihn die Pipeline-Definition, startet die Applikation nicht (siehe [Geheime Werte](Pipelines.md#geheime-werte)).
+- Im Definitions-Snapshot des Ausführungsprotokolls steht ein gesetzter Wert nur als `**********`.
+- geopilot maskiert nur die Konfiguration. Der Prozessor selbst nennt den Wert nirgends: nicht in einer Ausnahme, deren Meldung im Ausführungsprotokoll steht, nicht im Log und nicht in einem Output.
+
 ## Lokalisierte Status-Nachrichten
 
 Ein Prozessor kann eine lokalisierte Status-Nachricht zurückgeben, die in der Benutzeroberfläche angezeigt wird. Dazu wird eine Result-Property über `output_actions` mit der Aktion `StatusMessage` (siehe [Pipelines](Pipelines.md)) getaggt. Der Wert eines solchen Outputs ist vom Typ `LocalizedText` (ab PipelineCore 1.3), einem unveränderlichen lokalisierten Text mit dem Sprachcode als Key:
