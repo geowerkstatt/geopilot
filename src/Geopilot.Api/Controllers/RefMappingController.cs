@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -73,6 +74,7 @@ public partial class RefMappingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The entry was created successfully.", typeof(RefMapping), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The entry could not be created due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create an entry.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "Another entry already has the scope.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(RefMapping refMapping, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(refMapping);
@@ -82,7 +84,16 @@ public partial class RefMappingController : ControllerBase
 
         refMapping.Id = 0;
         context.RefMappings.Add(refMapping);
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsScopeConflict(e))
+        {
+            logger.LogInformation("Rejected reference data mapping entry because its scope is already in use.");
+            return ScopeConflict(refMapping.Scope);
+        }
+
         logger.LogInformation("Created reference data mapping entry <{RefMappingId}>.", refMapping.Id);
 
         var location = new Uri(string.Create(CultureInfo.InvariantCulture, $"/api/v1/refmapping/{refMapping.Id}"), UriKind.Relative);
@@ -99,6 +110,7 @@ public partial class RefMappingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The entry could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to update the entry.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The entry could not be found.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "Another entry already has the scope.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(RefMapping refMapping, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(refMapping);
@@ -113,7 +125,16 @@ public partial class RefMappingController : ControllerBase
         existing.Scope = refMapping.Scope;
         existing.RefDataUris = refMapping.RefDataUris;
         existing.Comment = refMapping.Comment;
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsScopeConflict(e))
+        {
+            logger.LogInformation("Rejected update of reference data mapping entry <{RefMappingId}> because its scope is already in use.", existing.Id);
+            return ScopeConflict(refMapping.Scope);
+        }
+
         logger.LogInformation("Updated reference data mapping entry <{RefMappingId}>.", existing.Id);
 
         return Ok(existing);
@@ -165,6 +186,13 @@ public partial class RefMappingController : ControllerBase
         refMapping.Scope = scope;
         return null;
     }
+
+    private ObjectResult ScopeConflict(string scope)
+        => Problem($"The scope <{scope}> already has an entry.", statusCode: StatusCodes.Status409Conflict);
+
+    private static bool IsScopeConflict(DbUpdateException exception)
+        => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException
+            && string.Equals(postgresException.ConstraintName, Context.RefMappingScopeIndexName, StringComparison.Ordinal);
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

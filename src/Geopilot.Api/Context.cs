@@ -20,6 +20,12 @@ public class Context : DbContext
     public const string MandateKeyIndexName = "IX_Mandates_Key";
 
     /// <summary>
+    /// Name of the unique index over <see cref="RefMapping.Scope"/>, shared for the same reason as
+    /// <see cref="MandateKeyIndexName"/>.
+    /// </summary>
+    public const string RefMappingScopeIndexName = "IX_RefMappings_Scope";
+
+    /// <summary>
     /// Name of the unique index over <see cref="Delivery.JobId"/>. A violation of this index is how the
     /// declaration learns that another caller declared the same job first, so the name is shared instead of
     /// repeated as a literal.
@@ -262,7 +268,8 @@ public class Context : DbContext
 
         modelBuilder.Entity<RefMapping>()
             .HasIndex(r => r.Scope)
-            .IsUnique();
+            .IsUnique()
+            .HasDatabaseName(RefMappingScopeIndexName);
 
         // The snapshot holds dictionaries, so the comparer compares the JSON, as for the reaction set values of a mandate.
         var reactionSnapshotConverter = new ValueConverter<ReactionSnapshot, string>(

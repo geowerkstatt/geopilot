@@ -2586,7 +2586,13 @@ export type PostApiV1RefMappingErrors = {
    * The current user is not authorized to create an entry.
    */
   401: unknown;
+  /**
+   * Another entry already has the scope.
+   */
+  409: ProblemDetails;
 };
+
+export type PostApiV1RefMappingError = PostApiV1RefMappingErrors[keyof PostApiV1RefMappingErrors];
 
 export type PostApiV1RefMappingResponses = {
   /**
@@ -2620,7 +2626,13 @@ export type PutApiV1RefMappingErrors = {
    * The entry could not be found.
    */
   404: unknown;
+  /**
+   * Another entry already has the scope.
+   */
+  409: ProblemDetails;
 };
+
+export type PutApiV1RefMappingError = PutApiV1RefMappingErrors[keyof PutApiV1RefMappingErrors];
 
 export type PutApiV1RefMappingResponses = {
   /**

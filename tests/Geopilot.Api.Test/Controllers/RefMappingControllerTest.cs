@@ -71,6 +71,27 @@ public class RefMappingControllerTest
     }
 
     [TestMethod]
+    public async Task CreateWithDuplicateScopeReturnsConflict()
+    {
+        await CreateAsync(NewEntry());
+
+        var result = await controller.Create(NewEntry(), CancellationToken.None);
+
+        ActionResultAssert.IsConflict(result, "351");
+    }
+
+    [TestMethod]
+    public async Task EditToDuplicateScopeReturnsConflict()
+    {
+        await CreateAsync(NewEntry());
+        var other = await CreateAsync(new RefMapping { Scope = "512", RefDataUris = ["ilidata:dmav_LFP3_512"] });
+
+        var result = await controller.Edit(NewEntry(other.Id), CancellationToken.None);
+
+        ActionResultAssert.IsConflict(result, "351");
+    }
+
+    [TestMethod]
     public async Task EditReturnsNotFoundForAnUnknownEntry()
     {
         ActionResultAssert.IsNotFound(await controller.Edit(NewEntry(int.MaxValue), CancellationToken.None));
