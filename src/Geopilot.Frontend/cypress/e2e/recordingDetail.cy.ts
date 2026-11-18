@@ -1,4 +1,5 @@
 import {
+  ConfigOrigin,
   InputKind,
   InputOrigin,
   ProcessingState,
@@ -117,6 +118,51 @@ describe("Recording", () => {
       attempted = true;
     });
     cy.contains("td", "Delivered to the target.", { timeout: 20000 }).should("be.visible");
+  });
+
+  it("opens an attempt to show the configuration its channel ran with", () => {
+    const mailAttempt = {
+      ...transferAttempt,
+      reactionId: "info",
+      reactionKind: ReactionKind.Notification,
+      implementation: "Geopilot.Pipeline.Channels.Mail.MailChannel",
+      occurredAt: "2026-11-06T15:06:00Z",
+      finishedAt: "2026-11-06T15:06:01Z",
+      appVersion: "3.2.17",
+      config: {
+        host: { value: "smtp.example.com", origin: ConfigOrigin.Base },
+        password: { value: "**********", origin: ConfigOrigin.Base },
+        template: {
+          value: "mail/info.html",
+          origin: ConfigOrigin.Definition,
+          sha256: "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581",
+        },
+        to: { value: ["empfang@example.com", "kopie@example.com"], origin: ConfigOrigin.Mandate },
+      },
+    };
+    cy.fixture("recording.json").then(run => {
+      cy.intercept(
+        { method: "GET", pathname: `/api/v1/recording/${jobId}` },
+        { ...run, forwardingState: ReactionState.Done, reactionEvents: [transferAttempt, mailAttempt] },
+      );
+    });
+
+    cy.visit(`/admin/recordings/${jobId}#reactions`);
+
+    // The transfer was recorded before the protocol kept the configuration, so only the mail opens.
+    cy.dataCy("reactionEventConfigToggle").should("have.length", 1).click();
+    cy.dataCy("reactionEventConfig").should("contain", "3.2.17");
+    cy.dataCy("reactionEventConfig-password").should("contain", "**********").and("contain", "installation");
+    cy.dataCy("reactionEventConfig-template")
+      .should("contain", "mail/info.html")
+      .and("contain", "pipeline definition")
+      .and("contain", "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581");
+    cy.dataCy("reactionEventConfig-to")
+      .should("contain", "empfang@example.com, kopie@example.com")
+      .and("contain", "mandate");
+
+    cy.dataCy("reactionEventConfigToggle").click();
+    cy.dataCy("reactionEventConfig").should("not.exist");
   });
 
   it("keeps loading the run again after one of the loads failed", () => {
