@@ -39,25 +39,28 @@ export const ReactionEventConfig: FC<ReactionEventConfigProps> = ({ appVersion, 
               { label: t("inputSource"), width: "20%" },
               { label: t("sha256"), width: "30%" },
             ]}>
-            {Object.entries(config).map(([parameter, entry]) => {
-              const value = formatConfigValue(entry.value);
-              return (
-                <TableRow key={parameter} data-cy={`reactionEventConfig-${parameter}`}>
-                  <TableCell>{parameter}</TableCell>
-                  {value ? (
-                    <TableCell>
-                      <TechnicalText>{value}</TechnicalText>
-                    </TableCell>
-                  ) : (
-                    <TableCell sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                      {t(value === null ? "configValueNotSet" : "configValueEmpty")}
-                    </TableCell>
-                  )}
-                  <TableCell>{t(configOriginKey[entry.origin])}</TableCell>
-                  <TableCell>{entry.sha256 && <TechnicalText>{entry.sha256}</TechnicalText>}</TableCell>
-                </TableRow>
-              );
-            })}
+            {/* Sorted, because PostgreSQL returns a jsonb object ordered by the length of its keys. */}
+            {Object.entries(config)
+              .sort(([left], [right]) => left.localeCompare(right))
+              .map(([parameter, entry]) => {
+                const value = formatConfigValue(entry.value);
+                return (
+                  <TableRow key={parameter} data-cy={`reactionEventConfig-${parameter}`}>
+                    <TableCell>{parameter}</TableCell>
+                    {value ? (
+                      <TableCell>
+                        <TechnicalText>{value}</TechnicalText>
+                      </TableCell>
+                    ) : (
+                      <TableCell sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                        {t(value === null ? "configValueNotSet" : "configValueEmpty")}
+                      </TableCell>
+                    )}
+                    <TableCell>{t(configOriginKey[entry.origin])}</TableCell>
+                    <TableCell>{entry.sha256 && <TechnicalText>{entry.sha256}</TechnicalText>}</TableCell>
+                  </TableRow>
+                );
+              })}
           </DetailTable>
         </SummaryField>
       )}

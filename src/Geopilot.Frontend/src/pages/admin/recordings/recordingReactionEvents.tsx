@@ -1,4 +1,4 @@
-import { FC, Fragment, useState } from "react";
+import { FC, Fragment, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -40,6 +40,7 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  const detailIdPrefix = useId();
 
   const toggle = (key: string) =>
     setOpened(current => {
@@ -70,9 +71,10 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
           { label: t("state"), width: "14%" },
           { label: t("message") },
         ]}>
-        {events.map(reactionEvent => {
+        {events.map((reactionEvent, index) => {
           const key = eventKey(reactionEvent);
           const isOpen = opened.has(key);
+          const detailId = `${detailIdPrefix}-${index}`;
           return (
             <Fragment key={key}>
               <TableRow>
@@ -80,9 +82,10 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
                   {reactionEvent.appVersion && (
                     <IconButton
                       size="small"
-                      label={isOpen ? "reactionEventHideConfig" : "reactionEventShowConfig"}
+                      label="reactionEventConfiguration"
                       icon={isOpen ? <ExpandMoreIcon /> : <ChevronRightIcon />}
                       aria-expanded={isOpen}
+                      aria-controls={isOpen ? detailId : undefined}
                       onClick={() => toggle(key)}
                       data-cy="reactionEventConfigToggle"
                     />
@@ -96,7 +99,7 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
                 <TableCell>{localized(reactionEvent.message ?? undefined)}</TableCell>
               </TableRow>
               {isOpen && reactionEvent.appVersion && (
-                <TableRow>
+                <TableRow id={detailId}>
                   <TableCell colSpan={7}>
                     <ReactionEventConfig appVersion={reactionEvent.appVersion} config={reactionEvent.config} />
                   </TableCell>

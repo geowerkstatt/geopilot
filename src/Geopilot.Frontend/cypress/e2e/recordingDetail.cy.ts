@@ -129,7 +129,9 @@ describe("Recording", () => {
       occurredAt: "2026-11-06T15:06:00Z",
       finishedAt: "2026-11-06T15:06:01Z",
       appVersion: "3.2.17",
+      // In the order PostgreSQL returns a jsonb object, by the length of its keys.
       config: {
+        to: { value: ["empfang@example.com", "kopie@example.com"], origin: ConfigOrigin.Mandate },
         host: { value: "smtp.example.com", origin: ConfigOrigin.Base },
         password: { value: "**********", origin: ConfigOrigin.Base },
         template: {
@@ -137,7 +139,6 @@ describe("Recording", () => {
           origin: ConfigOrigin.Definition,
           sha256: "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581",
         },
-        to: { value: ["empfang@example.com", "kopie@example.com"], origin: ConfigOrigin.Mandate },
       },
     };
     cy.fixture("recording.json").then(run => {
@@ -149,9 +150,34 @@ describe("Recording", () => {
 
     cy.visit(`/admin/recordings/${jobId}#reactions`);
 
-    // The transfer was recorded before the protocol kept the configuration, so only the mail opens.
-    cy.dataCy("reactionEventConfigToggle").should("have.length", 1).click();
+    // A column without a heading, such as the one of the toggle, leaves no empty column header to announce.
+    cy.dataCy("summary-reactionEvents")
+      .find("thead th")
+      .each(header => expect(header.text().trim()).not.to.equal(""));
+
+    // The transfer was recorded before the protocol kept the configuration, so only the mail opens. Its toggle keeps
+    // its name and tells the state through aria-expanded, as a disclosure button does.
+    cy.dataCy("reactionEventConfigToggle").should("have.length", 1).and("have.attr", "aria-expanded", "false");
+    cy.dataCy("reactionEventConfigToggle")
+      .invoke("attr", "aria-label")
+      .then(name => {
+        cy.dataCy("reactionEventConfigToggle").click();
+        cy.dataCy("reactionEventConfigToggle")
+          .should("have.attr", "aria-expanded", "true")
+          .and("have.attr", "aria-label", name);
+      });
+    cy.dataCy("reactionEventConfigToggle")
+      .invoke("attr", "aria-controls")
+      .then(id => cy.get(`[id="${id}"]`).should("contain", "3.2.17"));
     cy.dataCy("reactionEventConfig").should("contain", "3.2.17");
+    cy.get('[data-cy^="reactionEventConfig-"]')
+      .then(rows => rows.toArray().map(row => row.dataset.cy))
+      .should("deep.equal", [
+        "reactionEventConfig-host",
+        "reactionEventConfig-password",
+        "reactionEventConfig-template",
+        "reactionEventConfig-to",
+      ]);
     cy.dataCy("reactionEventConfig-password").should("contain", "**********").and("contain", "installation");
     cy.dataCy("reactionEventConfig-template")
       .should("contain", "mail/info.html")
