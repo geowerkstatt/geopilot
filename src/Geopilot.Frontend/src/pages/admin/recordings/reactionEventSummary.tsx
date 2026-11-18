@@ -1,12 +1,13 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { ReactionEvent, ReactionKind, ReactionState, RecordingReactionEventResponse } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
+import { px2rem } from "../../../appTheme.ts";
 import { reactionStateLabelKey } from "../../../components/grids/reactionState.ts";
 import { ReactionStateIcon } from "../../../components/grids/reactionStateIcon.tsx";
 import { formatDuration } from "./recordingFormat.ts";
-import { TechnicalText } from "./technicalText.tsx";
+import { StepTitle } from "./stepTitle.tsx";
 
 interface ReactionEventSummaryProps {
   reactionEvent: RecordingReactionEventResponse;
@@ -43,15 +44,18 @@ export const ReactionEventSummary: FC<ReactionEventSummaryProps> = ({ reactionEv
   const state = shownState ? t(reactionStateLabelKey[shownState]) : undefined;
   const duration = formatDuration(reactionEvent.occurredAt, reactionEvent.finishedAt);
 
+  const ending = state && duration ? t("stepStateAfterDuration", { state, duration }) : (state ?? duration);
+
   // The spaces keep the words apart for a screen reader and in copied text.
   return (
     <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
-      {shownState && <ReactionStateIcon state={shownState} />}
+      {/* The slot keeps its width without an icon, so the titles line up. */}
+      <Box component="span" sx={{ display: "inline-flex", justifyContent: "center", width: px2rem(20), flexShrink: 0 }}>
+        {shownState && <ReactionStateIcon state={shownState} />}
+      </Box>
       <Typography sx={{ flex: "1 1 0" }}>
         {t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}{" "}
-        <Typography component="span" variant="body2" sx={{ color: "text.secondary", marginLeft: 0.5 }}>
-          <TechnicalText>{reactionEvent.reactionId}</TechnicalText>
-        </Typography>{" "}
+        <StepTitle id={reactionEvent.reactionId} displayName={reactionEvent.reactionDisplayName ?? undefined} />{" "}
         <Typography component="span" variant="body2" sx={{ color: "text.secondary", marginLeft: 0.5 }}>
           {t(reactionKindKey[reactionEvent.reactionKind])}
         </Typography>
@@ -59,9 +63,9 @@ export const ReactionEventSummary: FC<ReactionEventSummaryProps> = ({ reactionEv
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
         {new Date(reactionEvent.occurredAt).toLocaleString()}
       </Typography>
-      {state && (
+      {ending && (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          {duration ? t("stepStateAfterDuration", { state, duration }) : state}
+          {ending}
         </Typography>
       )}
     </Stack>

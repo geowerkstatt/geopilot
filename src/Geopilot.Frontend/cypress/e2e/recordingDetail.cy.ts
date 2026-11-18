@@ -117,7 +117,7 @@ describe("Recording", () => {
     cy.then(() => {
       attempted = true;
     });
-    cy.get('[data-cy="reactionEvent-ablage-1"]', { timeout: 20000 }).should("be.visible");
+    cy.get('[data-cy="reactionEvent-0"]', { timeout: 20000 }).should("be.visible");
   });
 
   it("opens an attempt to show what its channel ran with", () => {
@@ -128,6 +128,7 @@ describe("Recording", () => {
       implementation: "Geopilot.Pipeline.Channels.Mail.MailChannel",
       occurredAt: "2026-11-06T15:06:00Z",
       finishedAt: "2026-11-06T15:06:01Z",
+      reactionDisplayName: { en: "Mail to the recipients" },
       appVersion: "3.2.17",
       // In the order PostgreSQL returns a jsonb object, by the length of its keys.
       config: {
@@ -161,54 +162,74 @@ describe("Recording", () => {
       state: ReactionState.Pending,
       message: { en: "The target is not reachable." },
     };
+    // After the reset the attempts count from one again.
+    const retriedAttempt = {
+      ...transferAttempt,
+      occurredAt: "2026-11-06T15:07:30Z",
+      finishedAt: "2026-11-06T15:07:31Z",
+    };
+    // An attempt that no longer held its reaction when it reported has no state.
+    const lostAttempt = {
+      ...transferAttempt,
+      reactionId: "kopie",
+      occurredAt: "2026-11-06T15:09:00Z",
+      finishedAt: "2026-11-06T15:09:07Z",
+      state: null,
+    };
     cy.fixture("recording.json").then(run => {
       cy.intercept(
         { method: "GET", pathname: `/api/v1/recording/${jobId}` },
         {
           ...run,
           forwardingState: ReactionState.Done,
-          reactionEvents: [transferAttempt, mailAttempt, resetEvent, failedAttempt],
+          reactionEvents: [transferAttempt, mailAttempt, resetEvent, retriedAttempt, failedAttempt, lostAttempt],
         },
       );
     });
 
     cy.visit(`/admin/recordings/${jobId}#reactions`);
 
-    // The header tells what happened to which reaction and how it ended, without opening the attempt, also to a screen
-    // reader and in copied text, which need the words apart.
-    cy.dataCy("reactionEvent-info-1")
-      .should("contain", "attempt 1")
-      .and("contain", "info")
-      .and("contain", "notification")
-      .and("contain", "Done after 1 s");
-    cy.dataCy("reactionEvent-info-1")
+    // The events stand under the tabs like the steps of the run, without a heading of their own, each with its own entry,
+    // also an attempt counted from one again after a reset.
+    cy.dataCy("summary-reactionEvents").should("not.exist");
+    cy.get('[data-cy^="reactionEvent-"]')
+      .then(entries => entries.toArray().map(entry => entry.dataset.cy))
+      .should(ids => expect(new Set(ids).size, "distinct entries").to.equal(6));
+
+    // The header tells how the event ended, what happened to which reaction, by its name with its id beside, and of what
+    // kind, without opening it, also to a screen reader and in copied text, which need the words apart. A reaction the
+    // definition no longer has shows its id.
+    cy.dataCy("reactionEvent-1").should("contain", "Done after 1 s");
+    cy.dataCy("reactionEvent-1")
       .find("[aria-expanded]")
       .invoke("text")
-      .should("contain", "attempt 1 info notification");
-    cy.dataCy("reactionEvent-archiv-1").should("contain", "Failed after 30 s").and("not.contain", "Pending");
-    cy.dataCy("reactionEvent-ablage-reset")
-      .should("contain", "retry requested")
+      .should("contain", "attempt 1 Mail to the recipients info notification");
+    cy.dataCy("reactionEvent-0")
       .find("[aria-expanded]")
-      .should("not.exist");
+      .invoke("text")
+      .should("contain", "attempt 1 ablage forwarding");
+    cy.dataCy("reactionEvent-4").should("contain", "Failed after 30 s").and("not.contain", "Pending");
+    cy.dataCy("reactionEvent-5").should("contain", "7 s");
+    cy.dataCy("reactionEvent-2").should("contain", "retry requested").find("[aria-expanded]").should("not.exist");
 
     // An attempt recorded before the protocol kept version and configuration opens to its channel and message.
-    cy.dataCy("reactionEvent-ablage-1").find('[aria-expanded="false"]').click();
-    cy.dataCy("reactionEvent-ablage-1").within(() => {
+    cy.dataCy("reactionEvent-0").find('[aria-expanded="false"]').click();
+    cy.dataCy("reactionEvent-0").within(() => {
       cy.dataCy("summary-channel").should("contain", "FileDropChannel").and("not.contain", "(");
       cy.dataCy("reactionEventConfig").should("not.exist");
       cy.dataCy("summary-message").should("contain", "Delivered to the target.");
     });
 
-    cy.dataCy("reactionEvent-info-1").find('[aria-expanded="false"]').click();
-    cy.dataCy("reactionEvent-info-1").find('[aria-expanded="true"]').should("exist");
-    cy.dataCy("reactionEvent-info-1")
+    cy.dataCy("reactionEvent-1").find('[aria-expanded="false"]').click();
+    cy.dataCy("reactionEvent-1").find('[aria-expanded="true"]').should("exist");
+    cy.dataCy("reactionEvent-1")
       .find("[aria-expanded]")
       .invoke("attr", "aria-controls")
       .then(id => cy.get(`[id="${id}"]`).should("have.attr", "role", "region"));
-    cy.dataCy("reactionEvent-info-1").within(() => {
+    cy.dataCy("reactionEvent-1").within(() => {
       cy.dataCy("summary-channel")
         .should("contain", "Geopilot.Pipeline.Channels.Mail.MailChannel")
-        .and("contain", "3.2.17");
+        .and("contain", "geopilot v3.2.17");
       cy.get('[data-cy^="reactionEventConfig-"]')
         .then(rows => rows.toArray().map(row => row.dataset.cy))
         .should("deep.equal", [
@@ -282,7 +303,7 @@ describe("Recording", () => {
     });
     tickUntil(() => expect(answers.attempted, "loads after the failed one").to.be.greaterThan(0));
 
-    cy.dataCy("reactionEvent-ablage-1").should("be.visible");
+    cy.dataCy("reactionEvent-0").should("be.visible");
   });
 
   it("opens another attempt of the delivery on its own page and the same tab", () => {

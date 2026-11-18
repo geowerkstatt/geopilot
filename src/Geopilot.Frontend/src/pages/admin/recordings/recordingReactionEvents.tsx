@@ -34,60 +34,62 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
     );
   }
 
+  // Like the steps of the run, the events stand without a heading of their own above the headings of the accordions.
   return (
-    <SummaryField labelVariant="h5" label="reactionEvents">
-      <Box>
-        {events.map((reactionEvent, index) => {
-          const dataCy = `reactionEvent-${reactionEvent.reactionId}-${reactionEvent.attempt ?? reactionEvent.event}`;
-          if (reactionEvent.event !== ReactionEvent.Attempt) {
-            // Without a summary there is no button that would open nothing.
-            return (
-              <Accordion key={eventKey(reactionEvent)} expanded={false} data-cy={dataCy}>
-                <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
-                  <ReactionEventSummary reactionEvent={reactionEvent} />
-                </Box>
-              </Accordion>
-            );
-          }
-
+    <Box data-cy="reactionEvents">
+      {events.map((reactionEvent, index) => {
+        // After a reset the attempts count from one again, so only the position tells the entries apart.
+        const dataCy = `reactionEvent-${index}`;
+        if (reactionEvent.event !== ReactionEvent.Attempt) {
+          // Without a summary there is no button that would open nothing. The right padding takes the place of the
+          // expand icon of an attempt, so the times line up.
           return (
-            <Accordion key={eventKey(reactionEvent)} data-cy={dataCy}>
-              {/* With both ids the accordion names its region after the header. */}
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                id={`${idPrefix}-${index}-header`}
-                aria-controls={`${idPrefix}-${index}-content`}>
+            <Accordion key={eventKey(reactionEvent)} expanded={false} data-cy={dataCy}>
+              <Box sx={{ paddingLeft: 2, paddingRight: 5, paddingY: 1.5 }}>
                 <ReactionEventSummary reactionEvent={reactionEvent} />
-              </AccordionSummary>
-              <AccordionDetails>
-                <Stack>
-                  <SummaryField labelVariant="h5" label="channel">
-                    {reactionEvent.implementation}
-                    {reactionEvent.appVersion && (
-                      <Typography
-                        component="span"
-                        variant="body1"
-                        sx={{ color: "text.secondary", marginLeft: 1, display: "inline-block" }}>
-                        (&nbsp;v{reactionEvent.appVersion}&nbsp;)
-                      </Typography>
-                    )}
-                  </SummaryField>
-                  {reactionEvent.config && (
-                    <SummaryField labelVariant="h5" label="configuration">
-                      <ReactionEventConfig config={reactionEvent.config} />
-                    </SummaryField>
-                  )}
-                  {reactionEvent.message && (
-                    <SummaryField labelVariant="h5" label="message">
-                      {localized(reactionEvent.message)}
-                    </SummaryField>
-                  )}
-                </Stack>
-              </AccordionDetails>
+              </Box>
             </Accordion>
           );
-        })}
-      </Box>
-    </SummaryField>
+        }
+
+        return (
+          <Accordion key={eventKey(reactionEvent)} data-cy={dataCy}>
+            {/* With both ids the accordion names its region after the header. */}
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              id={`${idPrefix}-${index}-header`}
+              aria-controls={`${idPrefix}-${index}-content`}>
+              <ReactionEventSummary reactionEvent={reactionEvent} />
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack>
+                <SummaryField labelVariant="h5" label="channel">
+                  {reactionEvent.implementation}
+                  {/* The version of geopilot, not of the channel: it names the build that ran the attempt. */}
+                  {reactionEvent.appVersion && (
+                    <Typography
+                      component="span"
+                      variant="body1"
+                      sx={{ color: "text.secondary", marginLeft: 1, display: "inline-block" }}>
+                      (&nbsp;geopilot v{reactionEvent.appVersion}&nbsp;)
+                    </Typography>
+                  )}
+                </SummaryField>
+                {reactionEvent.config && (
+                  <SummaryField labelVariant="h5" label="configuration">
+                    <ReactionEventConfig config={reactionEvent.config} />
+                  </SummaryField>
+                )}
+                {reactionEvent.message && (
+                  <SummaryField labelVariant="h5" label="message">
+                    {localized(reactionEvent.message)}
+                  </SummaryField>
+                )}
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+        );
+      })}
+    </Box>
   );
 };
