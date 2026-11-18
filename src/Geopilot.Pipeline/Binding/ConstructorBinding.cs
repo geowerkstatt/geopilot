@@ -107,7 +107,7 @@ internal static class ConstructorBinding
         }
     }
 
-    private static string FormatTypeName(Type type)
+    internal static string FormatTypeName(Type type)
     {
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)

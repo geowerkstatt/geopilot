@@ -75,7 +75,8 @@ public interface IPipelineFactory
     /// <summary>
     /// Renders the definition snapshot of one pipeline as JSON: the pipeline as configured, the process
     /// catalog entries its steps reference, and the base configuration (appsettings
-    /// <c>Pipeline:ProcessConfigs</c>) effective for those implementations. The document is shaped like a
+    /// <c>Pipeline:ProcessConfigs</c>) effective for those implementations, limited to the keys that name a
+    /// constructor parameter and with secret values masked. The document is shaped like a
     /// minimal definition file restricted to that pipeline, so it records the exact basis a job executes on,
     /// unaffected by later edits to the definition file.
     /// </summary>

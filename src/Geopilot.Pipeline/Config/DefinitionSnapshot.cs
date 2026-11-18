@@ -25,7 +25,9 @@ internal sealed class DefinitionSnapshot
     /// <summary>
     /// The base configuration (appsettings <c>Pipeline:ProcessConfigs</c>) effective for the referenced
     /// implementations. Not part of the definition file, but it decides behavior (e.g. which model
-    /// repositories a validation checks against), so the snapshot has to carry it. Omitted when empty.
+    /// repositories a validation checks against), so the snapshot has to carry it. Only the keys that name a
+    /// constructor parameter, secrets masked, and nothing of an implementation whose type cannot be resolved.
+    /// Omitted when empty.
     /// </summary>
     [YamlMember(Alias = "process_configs")]
     public Dictionary<string, Parameterization>? ProcessConfigs { get; set; }
