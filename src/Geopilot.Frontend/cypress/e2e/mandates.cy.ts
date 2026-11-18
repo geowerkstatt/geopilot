@@ -962,16 +962,16 @@ describe("Mandate with metadata fields", () => {
     cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
   });
 
-  const fieldRows = () => cy.dataCy("metadataFields-table").find("tbody tr");
+  const fieldButtons = () => cy.dataCy("metadataFields-list").find('[role="button"]');
 
-  const cellTexts = (row: number) =>
-    fieldRows()
-      .eq(row)
-      .find("td")
-      .then(cells => Cypress._.map(cells, "innerText"));
+  const fieldTexts = (index: number) =>
+    fieldButtons()
+      .eq(index)
+      .find(".MuiTypography-root")
+      .then(texts => Cypress._.map(texts, "innerText"));
 
-  const openFieldDialog = (row: number) => {
-    fieldRows().eq(row).click();
+  const openFieldDialog = (index: number) => {
+    fieldButtons().eq(index).click();
     cy.dataCy("metadataFieldDialog").should("exist");
   };
 
@@ -1011,7 +1011,7 @@ describe("Mandate with metadata fields", () => {
     applyDialog();
 
     cy.dataCy("metadataFieldsNone").should("not.exist");
-    fieldRows().should("have.length", 2);
+    fieldButtons().should("have.length", 2);
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
       expect(body.metadataFields).to.deep.equal([
@@ -1035,12 +1035,12 @@ describe("Mandate with metadata fields", () => {
   it("lists the metadata fields and opens one unchanged", () => {
     openMandateWith([projectNumber, responsible]);
 
-    cellTexts(0).should("deep.equal", ["Project number", "Text", "Yes", ""]);
-    cellTexts(1).should("deep.equal", ["Responsible", "Selection", "No", ""]);
+    fieldTexts(0).should("deep.equal", ["Project number", "Text", "Required"]);
+    fieldTexts(1).should("deep.equal", ["Responsible", "Selection, 2 options"]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    // A click on the row opens the field, and cancelling leaves the form as it was.
+    // A click on the field opens it, and cancelling leaves the form as it was.
     openFieldDialog(1);
     cy.dataCy("metadataFieldDialog").should("contain", "Field “responsible”");
     evaluateSelect("metadataFields.1.type", "selection");
@@ -1048,7 +1048,7 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.1.title.en", "Contact");
     cy.dataCy("cancel-button").click();
     cy.dataCy("metadataFieldDialog").should("not.exist");
-    cellTexts(1).should("deep.equal", ["Responsible", "Selection", "No", ""]);
+    fieldTexts(1).should("deep.equal", ["Responsible", "Selection, 2 options"]);
     cy.dataCy("save-button").should("be.disabled");
 
     // Applying changes the form, and resetting it brings the loaded field back.
@@ -1056,10 +1056,10 @@ describe("Mandate with metadata fields", () => {
     evaluateCheckbox("metadataFields.0.evaluation", true);
     toggleCheckbox("metadataFields.0.evaluation");
     applyDialog();
-    cellTexts(0).should("deep.equal", ["Project number", "Text", "No", ""]);
+    fieldTexts(0).should("deep.equal", ["Project number", "Text"]);
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("reset-button").should("be.enabled").click();
-    cellTexts(0).should("deep.equal", ["Project number", "Text", "Yes", ""]);
+    fieldTexts(0).should("deep.equal", ["Project number", "Text", "Required"]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
   });
@@ -1068,7 +1068,8 @@ describe("Mandate with metadata fields", () => {
     openMandateWith([projectNumber, responsible]);
 
     cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
-    cy.dataCy("editMetadataField-button").eq(1).should("have.attr", "aria-label", "Edit field 2").click();
+    // A field is a button named by its title and type, which the keyboard opens as well.
+    fieldButtons().eq(1).should("contain", "Responsible").focus().type("{enter}");
     cy.dataCy("metadataFieldDialog")
       .find('[role="dialog"]')
       .invoke("attr", "aria-labelledby")
@@ -1167,7 +1168,7 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.1.id", "contact");
     hasError("metadataFields.1.id", false);
     applyDialog();
-    fieldRows().should("have.length", 2);
+    fieldButtons().should("have.length", 2);
 
     // An option id only has to be unique within its field. Removing the duplicate checks the remaining ids again.
     openFieldDialog(0);
@@ -1207,7 +1208,7 @@ describe("Mandate with metadata fields", () => {
     hasError("metadataFields.2.title.fr", false);
     hasError("metadataFields.2.title.de", false);
     applyDialog();
-    fieldRows().should("have.length", 3);
+    fieldButtons().should("have.length", 3);
   });
 
   it("refuses two options of a field with the same title", () => {
@@ -1243,7 +1244,7 @@ describe("Mandate with metadata fields", () => {
     openFieldDialog(0);
     cy.dataCy("delete-button").click();
     cy.dataCy("metadataFieldDialog").should("not.exist");
-    fieldRows().should("have.length", 1).and("contain", "Responsible");
+    fieldButtons().should("have.length", 1).and("contain", "Responsible");
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
       expect(body.metadataFields.map(field => field.id)).to.deep.equal(["responsible"]);

@@ -3,12 +3,10 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { Stack, TableCell, TableRow, Typography } from "@mui/material";
+import { List, ListItem, ListItemButton, Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
-import { FieldEvaluationType, MetadataField } from "../../../api/generated";
-import { px2rem } from "../../../appTheme.ts";
-import { Button, IconButton } from "../../../components/buttons.tsx";
-import { DetailTable } from "../../../components/detailTable.tsx";
+import { FieldEvaluationType, MetadataField, MetadataFieldType } from "../../../api/generated";
+import { Button } from "../../../components/buttons.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import MetadataFieldDialog from "./metadataFieldDialog.tsx";
 import { metadataFieldTypeLabels, newMetadataField } from "./metadataFieldModel.ts";
@@ -18,8 +16,8 @@ interface MandateMetadataFieldsProps {
 }
 
 /**
- * The additional fields a deliverer fills in for the mandate, in the order the delivery form shows them, each edited
- * in a dialog. A new field goes to the end.
+ * The additional fields a deliverer fills in for the mandate, in the order the delivery form shows them. Each field is
+ * a button that opens its dialog, two side by side in the half widths of the form columns. A new field goes to the end.
  */
 const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
   const { t } = useTranslation();
@@ -38,6 +36,11 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
   useEffect(() => {
     setValue("metadataFields", mandate?.metadataFields ?? []);
   }, [mandate, setValue]);
+
+  const typeText = (field: MetadataField) =>
+    field.type === MetadataFieldType.Selection
+      ? `${t(metadataFieldTypeLabels[field.type])}, ${t("metadataFieldOptionCount", { count: field.options?.length ?? 0 })}`
+      : t(metadataFieldTypeLabels[field.type]);
 
   const applyField = (index: number, field: MetadataField) => {
     if (index < fields.length) {
@@ -62,32 +65,37 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
         <Button startIcon={<AddIcon />} label={"addMetadataField"} onClick={() => setEditedIndex(fields.length)} />
       </Stack>
       {fields.length > 0 ? (
-        <DetailTable
-          dataCy="metadataFields-table"
-          columns={[
-            { label: t("metadataFieldTitle") },
-            { label: t("metadataFieldType"), width: "25%" },
-            { label: t("metadataFieldRequired"), width: "15%" },
-            { label: "", width: px2rem(56) },
-          ]}>
+        <List
+          disablePadding
+          data-cy="metadataFields-list"
+          sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           {fields.map((field, index) => (
-            // The row opens the dialog for the mouse; the pencil stays the control for the keyboard.
-            <TableRow key={field.key} onClick={() => setEditedIndex(index)} sx={{ cursor: "pointer" }}>
-              <TableCell>{localized(field.title)}</TableCell>
-              <TableCell>{t(metadataFieldTypeLabels[field.type])}</TableCell>
-              <TableCell>{field.evaluation === FieldEvaluationType.Required ? t("yes") : t("no")}</TableCell>
-              <TableCell sx={{ paddingY: 0 }}>
-                <IconButton
-                  icon={<EditOutlinedIcon />}
-                  label={"editMetadataField"}
-                  labelValues={{ position: index + 1 }}
-                  size="small"
-                  onClick={() => setEditedIndex(index)}
-                />
-              </TableCell>
-            </TableRow>
+            <ListItem key={field.key} disablePadding>
+              <ListItemButton
+                onClick={() => setEditedIndex(index)}
+                sx={theme => ({
+                  gap: 2,
+                  border: `1px solid ${theme.palette.primary.light}`,
+                  borderRadius: theme.radius.default,
+                })}>
+                <Typography noWrap sx={{ minWidth: 0 }}>
+                  {localized(field.title)}
+                </Typography>
+                <Typography variant="body2" noWrap sx={{ flexShrink: 0, color: "text.secondary" }}>
+                  {typeText(field)}
+                </Typography>
+                <Stack direction="row" sx={{ marginLeft: "auto", flexShrink: 0, alignItems: "center" }}>
+                  {field.evaluation === FieldEvaluationType.Required && (
+                    <Typography variant="body2" noWrap sx={{ color: "text.secondary" }}>
+                      {t("metadataFieldRequired")}
+                    </Typography>
+                  )}
+                  <EditOutlinedIcon color="primary" />
+                </Stack>
+              </ListItemButton>
+            </ListItem>
           ))}
-        </DetailTable>
+        </List>
       ) : (
         <Typography data-cy="metadataFieldsNone">{t("metadataFieldsNone")}</Typography>
       )}
