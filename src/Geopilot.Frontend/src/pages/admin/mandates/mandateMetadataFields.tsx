@@ -19,8 +19,7 @@ interface MandateMetadataFieldsProps {
 
 /**
  * The additional fields a deliverer fills in for the mandate, in the order the delivery form shows them, each edited
- * in a dialog. A new field goes to the end. Whether the titles differ is checked by the server alone; its message
- * shows when saving fails.
+ * in a dialog. A new field goes to the end.
  */
 const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
   const { t } = useTranslation();
@@ -66,7 +65,6 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
         <DetailTable
           dataCy="metadataFields-table"
           columns={[
-            { label: t("id"), width: "25%" },
             { label: t("metadataFieldTitle") },
             { label: t("metadataFieldType"), width: "25%" },
             { label: t("metadataFieldRequired"), width: "15%" },
@@ -75,7 +73,6 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
           {fields.map((field, index) => (
             // The row opens the dialog for the mouse; the pencil stays the control for the keyboard.
             <TableRow key={field.key} onClick={() => setEditedIndex(index)} sx={{ cursor: "pointer" }}>
-              <TableCell>{field.id}</TableCell>
               <TableCell>{localized(field.title)}</TableCell>
               <TableCell>{t(metadataFieldTypeLabels[field.type])}</TableCell>
               <TableCell>{field.evaluation === FieldEvaluationType.Required ? t("yes") : t("no")}</TableCell>

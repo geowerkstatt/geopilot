@@ -1035,8 +1035,8 @@ describe("Mandate with metadata fields", () => {
   it("lists the metadata fields and opens one unchanged", () => {
     openMandateWith([projectNumber, responsible]);
 
-    cellTexts(0).should("deep.equal", ["project_number", "Project number", "Text", "Yes", ""]);
-    cellTexts(1).should("deep.equal", ["responsible", "Responsible", "Selection", "No", ""]);
+    cellTexts(0).should("deep.equal", ["Project number", "Text", "Yes", ""]);
+    cellTexts(1).should("deep.equal", ["Responsible", "Selection", "No", ""]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
@@ -1048,7 +1048,7 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.1.title.en", "Contact");
     cy.dataCy("cancel-button").click();
     cy.dataCy("metadataFieldDialog").should("not.exist");
-    cellTexts(1).should("deep.equal", ["responsible", "Responsible", "Selection", "No", ""]);
+    cellTexts(1).should("deep.equal", ["Responsible", "Selection", "No", ""]);
     cy.dataCy("save-button").should("be.disabled");
 
     // Applying changes the form, and resetting it brings the loaded field back.
@@ -1056,10 +1056,10 @@ describe("Mandate with metadata fields", () => {
     evaluateCheckbox("metadataFields.0.evaluation", true);
     toggleCheckbox("metadataFields.0.evaluation");
     applyDialog();
-    cellTexts(0).should("deep.equal", ["project_number", "Project number", "Text", "No", ""]);
+    cellTexts(0).should("deep.equal", ["Project number", "Text", "No", ""]);
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("reset-button").should("be.enabled").click();
-    cellTexts(0).should("deep.equal", ["project_number", "Project number", "Text", "Yes", ""]);
+    cellTexts(0).should("deep.equal", ["Project number", "Text", "Yes", ""]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
   });
@@ -1246,7 +1246,7 @@ describe("Mandate with metadata fields", () => {
     openFieldDialog(0);
     cy.dataCy("delete-button").click();
     cy.dataCy("metadataFieldDialog").should("not.exist");
-    fieldRows().should("have.length", 1).and("contain", "responsible");
+    fieldRows().should("have.length", 1).and("contain", "Responsible");
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
       expect(body.metadataFields.map(field => field.id)).to.deep.equal(["responsible"]);
