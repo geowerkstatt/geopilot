@@ -14,6 +14,7 @@ public class DeliveryChannelFactoryTest
     private const string TemplateChannel = "Geopilot.Pipeline.Test.Channels.TemplateChannel";
     private const string RefusingChannel = "Geopilot.Pipeline.Test.Channels.RefusingChannel";
     private const string MaskedChannel = "Geopilot.Pipeline.Test.Channels.MaskedChannel";
+    private const string OptionalTemplateChannel = "Geopilot.Pipeline.Test.Channels.OptionalTemplateChannel";
 
     private static readonly Dictionary<string, Parameterization> BaseConfigs = new()
     {
@@ -169,8 +170,8 @@ public class DeliveryChannelFactoryTest
     {
         var factory = new DeliveryChannelFactory(null);
 
-        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.SecretChannel", new Parameterization { ["password"] = "in the definition" }, []));
-        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.SecretChannel>: the parameter 'password' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition.", error);
+        var error = Assert.ContainsSingle(factory.Validate("Geopilot.Pipeline.Test.Channels.BaseOnlyChannel", new Parameterization { ["password"] = "in the definition" }, []));
+        Assert.AreEqual("Channel <Geopilot.Pipeline.Test.Channels.BaseOnlyChannel>: the parameter 'password' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition.", error);
     }
 
     [TestMethod]
@@ -474,6 +475,35 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
+    public void CreateAndDescribeConfigTakeAFileFromWhereItsPathIsSet()
+    {
+        // A configured null names no file, so the next place with a path gives it, as when binding a file always did.
+        var factory = new DeliveryChannelFactory(
+            new Dictionary<string, Parameterization> { [OptionalTemplateChannel] = new Parameterization { ["template"] = null } },
+            CreateResourcesDirectory());
+        var definition = new Parameterization { ["template"] = "vorlagen/info.html" };
+
+        var channel = factory.Create(OptionalTemplateChannel, definition, null);
+        var config = factory.DescribeConfig(OptionalTemplateChannel, definition, null);
+
+        Assert.AreEqual("<title>Neue Lieferung</title>", Assert.IsInstanceOfType<OptionalTemplateChannel>(channel).Template);
+        Assert.AreEqual(ConfigOrigin.Definition, config["template"].Origin);
+    }
+
+    [TestMethod]
+    public void DescribeConfigDoesNotHashASecretFile()
+    {
+        // A hash of a short secret can be guessed back, so a secret file shows neither its path nor its hash.
+        var factory = new DeliveryChannelFactory(
+            new Dictionary<string, Parameterization> { ["Geopilot.Pipeline.Test.Channels.SecretFileChannel"] = new Parameterization { ["key"] = "vorlagen/info.html" } },
+            CreateResourcesDirectory());
+
+        var config = factory.DescribeConfig("Geopilot.Pipeline.Test.Channels.SecretFileChannel", null, null);
+
+        Assert.AreEqual(new RecordedConfigValue("**********", ConfigOrigin.Base), config["key"]);
+    }
+
+    [TestMethod]
     public void DescribeConfigRefusesAnUnknownChannel()
     {
         var factory = new DeliveryChannelFactory(null);
@@ -538,9 +568,9 @@ internal sealed class NoChannel
 {
 }
 
-internal sealed class SecretChannel : IDeliveryChannel
+internal sealed class BaseOnlyChannel : IDeliveryChannel
 {
-    public SecretChannel([BaseConfigValue] string password)
+    public BaseOnlyChannel([BaseConfigValue] string password)
     {
         _ = password;
     }
@@ -558,6 +588,30 @@ internal sealed class MaskedChannel : IDeliveryChannel
         _ = template;
         _ = folder;
         _ = port;
+    }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
+}
+
+internal sealed class OptionalTemplateChannel : IDeliveryChannel
+{
+    public OptionalTemplateChannel([ResourceFile] string? template)
+    {
+        Template = template;
+    }
+
+    public string? Template { get; }
+
+    public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)
+        => Task.FromResult(ChannelResult.Success(LocalizedText.Empty));
+}
+
+internal sealed class SecretFileChannel : IDeliveryChannel
+{
+    public SecretFileChannel([SecretConfigValue][ResourceFile] string? key)
+    {
+        _ = key;
     }
 
     public Task<ChannelResult> DeliverAsync(DeliveryInfo delivery, IReadOnlyList<IDeliveryFile> files, CancellationToken cancellationToken)

@@ -47,13 +47,12 @@ internal sealed class DeliveryChannelFactory
     /// <summary>
     /// Checks a reaction: the implementation is a channel with one public constructor, every key of the definition is a
     /// parameter not marked as base configuration value or secret, a secret takes a text and is no mandate value, every
-    /// declared mandate key a parameter marked as mandate value
-    /// that the definition does not set, every parameter marked as mandate value takes a text, a list of texts or a
-    /// switch, every value converts to its parameter, every file lies below the resources directory and goes to a
-    /// parameter that takes text, and, with a base configuration, every parameter that needs a value gets one. When all
-    /// that holds and the channel needs no value from the mandate, it is built once and discarded, so what its
-    /// constructor refuses shows as well. A key the base configuration pins is the concern of the definition
-    /// validation.
+    /// declared mandate key a parameter marked as mandate value that the definition does not set, every parameter
+    /// marked as mandate value takes a text, a list of texts or a switch, every value converts to its parameter, every
+    /// file lies below the resources directory and goes to a parameter that takes text, and, with a base configuration,
+    /// every parameter that needs a value gets one. When all that holds and the channel needs no value from the
+    /// mandate, it is built once and discarded, so what its constructor refuses shows as well. A key the base
+    /// configuration pins is the concern of the definition validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
@@ -196,7 +195,9 @@ internal sealed class DeliveryChannelFactory
                 continue;
 
             var value = source.Values[name];
-            var sha256 = parameter.IsDefined(typeof(ResourceFileAttribute)) ? HashResourceFile(value) : null;
+
+            // The hash of a short secret could be guessed back, so a secret file keeps it to itself.
+            var sha256 = parameter.IsDefined(typeof(ResourceFileAttribute)) && !SecretConfigValues.IsSecret(parameter) ? HashResourceFile(value) : null;
             described[name] = new RecordedConfigValue(SecretConfigValues.ForProtocol(parameter, value), source.Origin, sha256);
         }
 
@@ -246,17 +247,23 @@ internal sealed class DeliveryChannelFactory
     /// </summary>
     private static (ConfigOrigin Origin, Parameterization Values)? FindSource(ParameterInfo parameter, Parameterization baseConfig, Parameterization definition, Parameterization mandate)
     {
-        if (ConstructorBinding.TryGetRawValue(parameter, baseConfig, out _))
+        if (Sets(baseConfig, parameter))
             return (ConfigOrigin.Base, baseConfig);
 
-        if (ConstructorBinding.TryGetRawValue(parameter, definition, out _))
+        if (Sets(definition, parameter))
             return (ConfigOrigin.Definition, definition);
 
-        if (IsMandateValue(parameter) && ConstructorBinding.TryGetRawValue(parameter, mandate, out _))
+        if (IsMandateValue(parameter) && Sets(mandate, parameter))
             return (ConfigOrigin.Mandate, mandate);
 
         return null;
     }
+
+    // A resource file needs a path, so a configured null names none; any other value counts as binding reads it.
+    private static bool Sets(Parameterization values, ParameterInfo parameter)
+        => parameter.IsDefined(typeof(ResourceFileAttribute))
+            ? values.TryGetValue(parameter.Name ?? string.Empty, out var path) && path is not null
+            : ConstructorBinding.TryGetRawValue(parameter, values, out _);
 
     private object? Bind(ParameterInfo parameter, Parameterization baseConfig, Parameterization definition, Parameterization mandate)
     {
