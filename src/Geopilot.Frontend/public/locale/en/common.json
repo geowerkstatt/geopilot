@@ -235,6 +235,7 @@
   "refMappingDeleteIdError": "An error occurred while deleting the reference data with the ID {{id}}.",
   "refMappingDeleteIdNotExistError": "The reference data with the ID {{id}} does not exist and therefore cannot be deleted.",
   "refMappingLoadingError": "An error occurred while loading the reference data: {{error}}",
+  "refMappingRequiresIlidata": "Reference data needs to start with \"ilidata:\"",
   "refMappingSaveError": "An error occurred while saving the reference data: {{error}}",
   "removeFile": "Remove file",
   "removeMetadataField": "Remove field {{position}}",

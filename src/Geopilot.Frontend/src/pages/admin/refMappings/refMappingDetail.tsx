@@ -21,7 +21,10 @@ const newRefMapping: RefMapping = {
   comment: "",
 };
 
-const parseEntry = (input: string) => input.trim() || undefined;
+const parseRefDataUri = (input: string) => {
+  const value = input.trim() || undefined;
+  return value?.startsWith("ilidata:") ? value : undefined;
+};
 
 export const RefMappingDetail = () => {
   const { t } = useTranslation();
@@ -106,8 +109,8 @@ export const RefMappingDetail = () => {
             label={"refData"}
             required
             selected={refMapping?.refDataUris}
-            parse={parseEntry}
-            errorMessage="entryRequiresText"
+            parse={parseRefDataUri}
+            errorMessage="refMappingRequiresIlidata"
           />
         </FormContainer>
         <FormContainer>

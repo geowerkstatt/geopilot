@@ -235,6 +235,7 @@
   "refMappingDeleteIdError": "Beim Löschen der Referenzdaten mit ID {{id}} ist ein Fehler aufgetreten.",
   "refMappingDeleteIdNotExistError": "Die Referenzdaten mit der ID {{id}} existieren nicht und können daher nicht gelöscht werden.",
   "refMappingLoadingError": "Beim Laden der Referenzdaten ist ein Fehler aufgetreten: {{error}}",
+  "refMappingRequiresIlidata": "Referenzdaten müssen mit \"ilidata:\" beginnen",
   "refMappingSaveError": "Beim Speichern der Referenzdaten ist ein Fehler aufgetreten: {{error}}",
   "removeFile": "Datei entfernen",
   "removeMetadataField": "Feld {{position}} entfernen",

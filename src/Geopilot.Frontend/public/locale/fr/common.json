@@ -235,6 +235,7 @@
   "refMappingDeleteIdError": "Une erreur s'est produite lors de la suppression des données de référence avec l'ID {{id}}.",
   "refMappingDeleteIdNotExistError": "Les données de référence avec l'ID {{id}} n'existent pas et ne peuvent donc pas être supprimées.",
   "refMappingLoadingError": "Une erreur s'est produite lors du chargement des données de référence: {{error}}",
+  "refMappingRequiresIlidata": "Les données de référence doivent commencer par \" ilidata: \"",
   "refMappingSaveError": "Une erreur s'est produite lors de l'enregistrement des données de référence: {{error}}",
   "removeFile": "Supprimer le fichier",
   "removeMetadataField": "Supprimer le champ {{position}}",
