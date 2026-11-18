@@ -31,18 +31,20 @@ const titleFieldNames = (listName: string, count: number) =>
  * Keeps a fixed duplicate id or title from leaving its error behind, which would keep applying blocked. Each id and
  * title input names the ids or titles of the other entries as deps, so changing one checks them all. A removal moves
  * the entries after it up, and they take their new names only when they render, so they are checked again after that
- * render.
+ * render. The removed entry takes the focus along with its delete button, so the id of the entry now in its place, or
+ * of the new last entry, gets it.
  */
 export const useDuplicateRecheck = (listName: string, count: number, remove: (index: number) => void) => {
-  const { trigger } = useFormContext();
-  const removed = useRef(false);
+  const { setFocus, trigger } = useFormContext();
+  const removedIndex = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (removed.current) {
-      removed.current = false;
+    if (removedIndex.current !== undefined) {
+      setFocus(`${listName}.${Math.min(removedIndex.current, count - 1)}.id`);
+      removedIndex.current = undefined;
       trigger([...idFieldNames(listName, count), ...titleFieldNames(listName, count).flat()]);
     }
-  }, [count, listName, trigger]);
+  }, [count, listName, setFocus, trigger]);
 
   return {
     otherIds: (index: number) => idFieldNames(listName, count).filter((_, other) => other !== index),
@@ -51,7 +53,7 @@ export const useDuplicateRecheck = (listName: string, count: number, remove: (in
         .filter((_, other) => other !== index)
         .flat(),
     removeEntry: (index: number) => {
-      removed.current = true;
+      removedIndex.current = index;
       remove(index);
     },
   };

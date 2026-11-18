@@ -1005,7 +1005,7 @@ describe("Mandate with metadata fields", () => {
     // A selection starts with the inputs of its first option, which cannot be removed while it is the only one.
     setSelect("metadataFields.1.type", 2, 6);
     cy.dataCy("metadataFields.1.type-formSelect").find(".MuiFormHelperText-root").should("not.exist");
-    cy.dataCy("removeMetadataFieldOption-button").should("not.exist");
+    cy.dataCy("removeMetadataFieldOption-button").should("be.disabled");
     setInput("metadataFields.1.options.0.id", "canton");
     setInput("metadataFields.1.options.0.title.de", "Kanton");
     applyDialog();
@@ -1070,8 +1070,15 @@ describe("Mandate with metadata fields", () => {
     openMandateWith([projectNumber, responsible]);
 
     cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
-    // A field is a button named by its title and type, which the keyboard opens as well.
-    fieldButtons().eq(1).should("contain", "Responsible").focus().type("{enter}");
+    // A field is a button named by its title and type that opens a dialog, from the keyboard as well. Its title shows
+    // in full on hover, where the button cuts it off.
+    fieldButtons().eq(1).find(".MuiTypography-root").first().should("have.attr", "title", "Responsible");
+    fieldButtons()
+      .eq(1)
+      .should("contain", "Responsible")
+      .and("have.attr", "aria-haspopup", "dialog")
+      .focus()
+      .type("{enter}");
     cy.dataCy("metadataFieldDialog")
       .find('[role="dialog"]')
       .invoke("attr", "aria-labelledby")
@@ -1085,6 +1092,10 @@ describe("Mandate with metadata fields", () => {
     );
     cy.get('[role="group"][aria-label="Option 2"]').dataCy("metadataFields.1.options.1.id-formInput").should("exist");
     cy.dataCy("removeMetadataFieldOption-button").eq(1).should("have.attr", "aria-label", "Remove option 2 of field 2");
+
+    // Removing the last option hands the focus to the option before it.
+    cy.dataCy("removeMetadataFieldOption-button").eq(1).click();
+    cy.dataCy("metadataFields.1.options.0.id-formInput").find("input").should("have.focus").and("have.value", "canton");
   });
 
   it("switches the language of the titles apart from the general data", () => {

@@ -95,14 +95,13 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
                   helperText={t("atLeastOneLanguageRequired")}
                 />
                 {/* A selection needs at least one option. */}
-                {fields.length > 1 && (
-                  <IconButton
-                    icon={<DeleteOutlinedIcon />}
-                    label={"removeMetadataFieldOption"}
-                    labelValues={{ option: optionIndex + 1, field: fieldIndex + 1 }}
-                    onClick={() => removeOption(optionIndex)}
-                  />
-                )}
+                <IconButton
+                  icon={<DeleteOutlinedIcon />}
+                  label={"removeMetadataFieldOption"}
+                  labelValues={{ option: optionIndex + 1, field: fieldIndex + 1 }}
+                  disabled={fields.length === 1}
+                  onClick={() => removeOption(optionIndex)}
+                />
               </FormColumnHalfWidth>
             </FormContainer>
           </Fragment>

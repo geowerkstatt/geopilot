@@ -72,13 +72,14 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
           {fields.map((field, index) => (
             <ListItem key={field.key} disablePadding>
               <ListItemButton
+                aria-haspopup="dialog"
                 onClick={() => setEditedIndex(index)}
                 sx={theme => ({
                   gap: 2,
                   border: `1px solid ${theme.palette.primary.light}`,
                   borderRadius: theme.radius.default,
                 })}>
-                <Typography noWrap sx={{ minWidth: 0 }}>
+                <Typography noWrap title={localized(field.title)} sx={{ minWidth: 0 }}>
                   {localized(field.title)}
                 </Typography>
                 <Typography variant="body2" noWrap sx={{ flexShrink: 0, color: "text.secondary" }}>
