@@ -96,6 +96,7 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
+        AssertNoDeliveryFailureRecorded();
     }
 
     [TestMethod]
@@ -121,6 +122,7 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
+        AssertNoDeliveryFailureRecorded();
     }
 
     [TestMethod]
@@ -141,6 +143,9 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
         Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
+
+        // The job may have expired after its run allowed a delivery; whether it did, only the protocol knows.
+        AssertDeliveryFailureRecorded(guid, $"No job information available for job with id <{guid}>");
     }
 
     [TestMethod]
@@ -163,6 +168,7 @@ public class DeliveryControllerTest
 
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
+        AssertDeliveryFailureRecorded(guid, $"Mandate with id <{addedMandate.Entity.Id}> not found.");
     }
 
     [TestMethod]
@@ -311,6 +317,7 @@ public class DeliveryControllerTest
         Assert.IsNotNull(second);
         Assert.AreEqual(StatusCodes.Status409Conflict, second.StatusCode, "A job that was already delivered must not be delivered a second time.");
         Assert.AreEqual(deliveriesCount, context.Deliveries.Count(), "The rejected request must not have created a delivery.");
+        AssertNoDeliveryFailureRecorded();
     }
 
     [TestMethod]
@@ -535,7 +542,79 @@ public class DeliveryControllerTest
 
         var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
         Assert.AreEqual(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
+        AssertDeliveryFailureRecorded(jobId, $"No assets found for job with id <{jobId}>.");
     }
+
+    [TestMethod]
+    public async Task CreateRecordsThatTheFilesCouldNotBeStored()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateRecordsThatTheFilesCouldNotBeStored)), AllowDelivery = true });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(mandate.Id);
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("The disk is full."));
+
+        var result = await deliveryController.Create(new DeliveryRequest { JobId = jobId });
+
+        var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
+        AssertDeliveryFailureRecorded(jobId, $"Error while persisting assets for job with id <{jobId}>.");
+    }
+
+    [TestMethod]
+    public async Task CreateRecordsAnUnexpectedErrorAndRethrowsIt()
+    {
+        deliveryController.SetupTestUser(context.Users.First());
+        var jobId = Guid.NewGuid();
+        var failure = new InvalidOperationException("The job store went away.");
+        processingServiceMock.Setup(s => s.GetJob(jobId)).Throws(failure);
+
+        var thrown = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => deliveryController.Create(new DeliveryRequest { JobId = jobId }));
+
+        Assert.AreSame(failure, thrown, "The error must reach the error handling of the host as before.");
+        AssertDeliveryFailureRecorded(jobId, "The delivery could not be created because of an unexpected error.");
+    }
+
+    [TestMethod]
+    public async Task CreateRecordsNothingForARequestTheBrowserAborted()
+    {
+        // Not through SetupMandateWithUserOrganisation: the aborted creation stops before it asks about the membership.
+        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateRecordsNothingForARequestTheBrowserAborted)), AllowDelivery = true });
+        var httpContextMock = deliveryController.SetupTestUser(user);
+        httpContextMock.SetupGet(c => c.RequestAborted).Returns(new CancellationToken(canceled: true));
+        var jobId = SetupProcessingJob(mandate.Id);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => deliveryController.Create(new DeliveryRequest { JobId = jobId }));
+
+        AssertNoDeliveryFailureRecorded();
+    }
+
+    [TestMethod]
+    public async Task CreateRecordsNothingWhenTheBrowserAbortsWhileTheFilesAreStored()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateRecordsNothingWhenTheBrowserAbortsWhileTheFilesAreStored)), AllowDelivery = true });
+        var httpContextMock = deliveryController.SetupTestUser(user);
+        using var aborted = new CancellationTokenSource();
+        httpContextMock.SetupGet(c => c.RequestAborted).Returns(aborted.Token);
+        var jobId = SetupProcessingJob(mandate.Id);
+
+        // Storing the files reports the abort as a failure of its own.
+        assetHandlerMock
+            .Setup(a => a.RecordJobAssetsAsync(jobId, aborted.Token))
+            .Callback(() => aborted.Cancel())
+            .ThrowsAsync(new OperationCanceledException(aborted.Token));
+
+        var result = await deliveryController.Create(new DeliveryRequest { JobId = jobId });
+
+        var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
+        AssertNoDeliveryFailureRecorded();
+    }
+
+    private void AssertDeliveryFailureRecorded(Guid jobId, string reason)
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(jobId, reason), Times.Once());
+
+    private void AssertNoDeliveryFailureRecorded()
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never());
 
     private void SetupJobPersistence(Guid jobId)
     {
@@ -1131,6 +1210,7 @@ public class DeliveryControllerTest
         var problem = Assert.IsInstanceOfType<ValidationProblemDetails>((result as ObjectResult)?.Value);
         Assert.IsTrue(problem.Errors.ContainsKey("metadata.project_number"));
         Assert.IsFalse(context.Deliveries.Any(d => d.JobId == jobId));
+        AssertDeliveryFailureRecorded(jobId, "The delivery details do not satisfy the mandate. metadata.project_number: The metadata field <project_number> is required for this mandate.");
     }
 
     [TestMethod]

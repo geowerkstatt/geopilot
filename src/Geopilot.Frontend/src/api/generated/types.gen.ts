@@ -1186,7 +1186,7 @@ export type RecordingResponse = {
    */
   failureReason?: string | null;
   /**
-   * Why geopilot could not create the delivery of a machine delivery although the run allowed it.
+   * Why geopilot last refused or could not create the delivery although the run allowed it, on the web or for a machine delivery.
    */
   deliveryFailure?: string | null;
   /**

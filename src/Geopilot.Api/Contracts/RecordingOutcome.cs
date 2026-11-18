@@ -18,7 +18,7 @@ public enum RecordingOutcomeKind
     DeliveredAndDeleted,
 
     /// <summary>
-    /// The run allowed a delivery and whoever started it may deliver, but none was created.
+    /// The run allowed a delivery and whoever started it may deliver, but nobody tried to deliver it.
     /// </summary>
     NotDelivered,
 
@@ -33,7 +33,8 @@ public enum RecordingOutcomeKind
     NotPermitted,
 
     /// <summary>
-    /// The run allowed a delivery and was to be delivered on its client's behalf, but geopilot could not create it.
+    /// The run allowed a delivery and whoever started it may deliver, but geopilot refused or could not create the
+    /// delivery, on the web or for a machine delivery.
     /// </summary>
     DeliveryFailed,
 

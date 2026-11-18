@@ -387,16 +387,56 @@ public class RecorderTest
     }
 
     [TestMethod]
-    public async Task RecordDeliveryFailedKeepsTheReason()
+    [DataRow(null, DisplayName = "Machine delivery, created before the outcome is recorded")]
+    [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Warning)]
+    public async Task RecordDeliveryFailedKeepsTheReasonOfARunThatAllowedADelivery(ProcessingState? terminalState)
     {
-        currentHttpContext = null;
-        var job = NewJob(out var upload);
-        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        var job = await StartRunAsync(PermissionToDeliver.Permitted, terminalState);
 
         await recorder.RecordDeliveryFailedAsync(job.Id, "No assets found.");
 
-        var run = await context.Recordings.SingleAsync(r => r.JobId == job.Id);
-        Assert.AreEqual("No assets found.", run.DeliveryFailure);
+        Assert.AreEqual("No assets found.", await ReadDeliveryFailureAsync(job.Id));
+    }
+
+    [TestMethod]
+    [DataRow(PermissionToDeliver.Permitted, ProcessingState.Failed)]
+    [DataRow(PermissionToDeliver.Permitted, ProcessingState.DeliveryRestriction)]
+    [DataRow(PermissionToDeliver.Permitted, ProcessingState.Cancelled)]
+    [DataRow(PermissionToDeliver.NotPermitted, ProcessingState.Success)]
+    [DataRow(null, ProcessingState.Success, DisplayName = "Recorded before the protocol kept the permission")]
+    public async Task RecordDeliveryFailedLeavesARunThatAllowedNoDeliveryAlone(PermissionToDeliver? permission, ProcessingState terminalState)
+    {
+        // A request for an expired job is refused without anybody knowing whether its run allowed a delivery.
+        var job = await StartRunAsync(permission, terminalState);
+
+        await recorder.RecordDeliveryFailedAsync(job.Id, $"No job information available for job with id <{job.Id}>");
+
+        Assert.IsNull(await ReadDeliveryFailureAsync(job.Id));
+    }
+
+    [TestMethod]
+    public async Task RecordDeliveryFailedReplacesAnEarlierReason()
+    {
+        var job = await StartRunAsync(PermissionToDeliver.Permitted, ProcessingState.Success);
+        await recorder.RecordDeliveryFailedAsync(job.Id, $"Mandate with id <{mandate.Id}> not found.");
+
+        await recorder.RecordDeliveryFailedAsync(job.Id, "No assets found.");
+
+        Assert.AreEqual("No assets found.", await ReadDeliveryFailureAsync(job.Id));
+    }
+
+    [TestMethod]
+    public async Task RecordDeliveryFailedSavesNothingAFailedCreationLeftInTheContext()
+    {
+        // On the web the recorder shares the context of the request, where a delivery whose save failed stays attached.
+        var job = await StartRunAsync(PermissionToDeliver.Permitted, ProcessingState.Success);
+        context.Deliveries.Add(new Delivery { JobId = job.Id, Mandate = mandate, DeliveredByUser = user });
+
+        await recorder.RecordDeliveryFailedAsync(job.Id, "The delivery could not be created because of an unexpected error.");
+
+        Assert.IsFalse(await context.Deliveries.IgnoreQueryFilters().AnyAsync(d => d.JobId == job.Id));
+        Assert.AreEqual("The delivery could not be created because of an unexpected error.", await ReadDeliveryFailureAsync(job.Id));
     }
 
     [TestMethod]
@@ -599,6 +639,23 @@ public class RecorderTest
         await context.SaveChangesAsync();
         return (await context.Recordings.SingleAsync(r => r.JobId == job.Id), delivery);
     }
+
+    // Writes the recording of a started run, then gives it the permission and the outcome under test.
+    private async Task<ProcessingJob> StartRunAsync(PermissionToDeliver? permission, ProcessingState? terminalState)
+    {
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        await context.Recordings
+            .Where(r => r.JobId == job.Id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(r => r.PermissionToDeliver, permission)
+                .SetProperty(r => r.TerminalState, terminalState));
+        return job;
+    }
+
+    // Read past the change tracker, which still holds the recording as it was started.
+    private Task<string?> ReadDeliveryFailureAsync(Guid jobId)
+        => context.Recordings.Where(r => r.JobId == jobId).Select(r => r.DeliveryFailure).SingleAsync();
 
     private async Task<ClientKind> ClassifyAsync(HttpContext? httpContext)
     {

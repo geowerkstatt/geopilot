@@ -272,15 +272,17 @@ public class Recorder : IRecorder
     {
         try
         {
-            var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
-            if (run is null)
-            {
-                LogRunMissing(jobId);
-                return;
-            }
+            // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The recording
+            // tells whether the run allowed a delivery, which nobody checked for an expired job; a machine delivery is
+            // created before the outcome is recorded, hence a missing terminal state (#1200).
+            var updated = await context.Recordings
+                .Where(r => r.JobId == jobId
+                    && r.PermissionToDeliver == PermissionToDeliver.Permitted
+                    && (r.TerminalState == null || r.TerminalState == ProcessingState.Success || r.TerminalState == ProcessingState.Warning))
+                .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.DeliveryFailure, reason));
 
-            run.DeliveryFailure = reason;
-            await context.SaveChangesAsync();
+            if (updated == 0)
+                logger.LogDebug("No recording of a run that allowed a delivery exists for job <{JobId}>; skipping the delivery failure.", jobId);
         }
         catch (Exception ex)
         {
