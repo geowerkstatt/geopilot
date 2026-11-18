@@ -33,17 +33,17 @@ public class DeliveryController : ControllerBase
     private readonly IOptions<DeliveryOptions> deliveryOptions;
     private readonly IAuthorizationService authorizationService;
     private readonly ReactionStore reactionStore;
-    private readonly IPipelineRunRecorder pipelineRunRecorder;
+    private readonly IRecorder recorder;
     private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryCreationService deliveryCreationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IPipelineRunRecorder pipelineRunRecorder, IPipelineFactory pipelineFactory)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryCreationService deliveryCreationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions, IAuthorizationService authorizationService, ReactionStore reactionStore, IRecorder recorder, IPipelineFactory pipelineFactory)
     {
         this.authorizationService = authorizationService;
         this.reactionStore = reactionStore;
-        this.pipelineRunRecorder = pipelineRunRecorder;
+        this.recorder = recorder;
         this.pipelineFactory = pipelineFactory;
         this.logger = logger;
         this.context = context;
@@ -74,10 +74,22 @@ public class DeliveryController : ControllerBase
 
         var user = await context.GetUserByPrincipalAsync(User);
         var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
-        var result = await deliveryCreationService.CreateAsync(request.JobId, fields, Supplier.ForUser(user.Id), HttpContext.RequestAborted);
+        DeliveryCreationResult result;
+        try
+        {
+            result = await deliveryCreationService.CreateAsync(request.JobId, fields, Supplier.ForUser(user.Id), HttpContext.RequestAborted);
+        }
+        catch (Exception)
+        {
+            await RecordDeliveryFailureAsync(request.JobId, DeliveryCreationResult.UnexpectedFailureDescription);
+            throw;
+        }
 
         if (result is not { Status: DeliveryCreationStatus.Created, DeliveryId: int deliveryId })
         {
+            if (IsRefusalToRecord(result.Status))
+                await RecordDeliveryFailureAsync(request.JobId, result.DescribeFailure());
+
             return MapCreationFailure(result);
         }
 
@@ -90,6 +102,29 @@ public class DeliveryController : ControllerBase
             UriKind.Relative);
 
         return Created(location, resultDelivery);
+    }
+
+    /// <summary>
+    /// The refusals that can meet a run whose data allow a delivery its starter may make. The others say that the run
+    /// does not allow one (or not yet), or that it was delivered already, which the protocol shows without a reason.
+    /// </summary>
+    private static bool IsRefusalToRecord(DeliveryCreationStatus status) => status
+        is DeliveryCreationStatus.JobNotFound
+        or DeliveryCreationStatus.MandateNotDeliverable
+        or DeliveryCreationStatus.FieldRulesViolated
+        or DeliveryCreationStatus.AssetRecordingFailed
+        or DeliveryCreationStatus.NoAssets;
+
+    /// <summary>
+    /// Keeps in the execution protocol why the delivery was not created, as for a machine delivery, because otherwise
+    /// only the browser learns of it. A request the browser aborted was not refused, so it leaves nothing.
+    /// </summary>
+    private async Task RecordDeliveryFailureAsync(Guid jobId, string reason)
+    {
+        if (HttpContext.RequestAborted.IsCancellationRequested)
+            return;
+
+        await recorder.RecordDeliveryFailedAsync(jobId, reason);
     }
 
     /// <summary>
@@ -302,7 +337,7 @@ public class DeliveryController : ControllerBase
         if (reset is null)
             return Conflict($"The reaction of delivery <{deliveryId}> has not failed.");
 
-        await pipelineRunRecorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
+        await recorder.RecordReactionsResetAsync(deliveryId, [reset], user.Id);
         logger.LogInformation("User <{UserId}> reset the failed reaction {ReactionId} of delivery <{DeliveryId}>.", user.AuthIdentifier, reset.ReactionId, deliveryId);
         return NoContent();
     }
@@ -465,7 +500,7 @@ public class DeliveryController : ControllerBase
             // shortcut: does not wait for a running attempt. Its report is refused, and what its channel has written
             // already stays at the target (ADR 0015, Nachtrag: Löschen während einer laufenden Reaktion).
             var reactions = await reactionStore.MarkDeletedAsync(context, deliveryId, CancellationToken.None);
-            await pipelineRunRecorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
+            await recorder.RecordDeliveryDeletedAsync(deliveryId, reactions, userId);
         }
         catch (Exception ex)
         {

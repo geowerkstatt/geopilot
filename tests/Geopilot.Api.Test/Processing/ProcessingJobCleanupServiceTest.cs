@@ -125,21 +125,21 @@ public class ProcessingJobCleanupServiceTest
     {
         var expired = NewRunRecord(DateTime.UtcNow.AddDays(-ProtocolRetentionDays - 1));
         var kept = NewRunRecord(DateTime.UtcNow.AddDays(-1));
-        context.PipelineRuns.AddRange(expired, kept);
+        context.Recordings.AddRange(expired, kept);
         await context.SaveChangesAsync();
 
         await service.RunCleanupAsync();
 
-        Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == expired.JobId), "a run past the protocol retention must be purged.");
-        Assert.IsFalse(await context.PipelineRunSteps.AnyAsync(s => s.StepId == "step-of-" + expired.JobId), "children must go with their run.");
-        Assert.IsTrue(await context.PipelineRuns.AnyAsync(r => r.JobId == kept.JobId), "a run within the protocol retention must survive.");
+        Assert.IsFalse(await context.Recordings.AnyAsync(r => r.JobId == expired.JobId), "a run past the protocol retention must be purged.");
+        Assert.IsFalse(await context.RecordingSteps.AnyAsync(s => s.StepId == "step-of-" + expired.JobId), "children must go with their run.");
+        Assert.IsTrue(await context.Recordings.AnyAsync(r => r.JobId == kept.JobId), "a run within the protocol retention must survive.");
     }
 
     [TestMethod]
     public async Task RunCleanupKeepsProtocolForeverWhenRetentionIsUnset()
     {
         var ancient = NewRunRecord(DateTime.UtcNow.AddYears(-50));
-        context.PipelineRuns.Add(ancient);
+        context.Recordings.Add(ancient);
         await context.SaveChangesAsync();
 
         var optionsWithoutProtocolRetention = new Mock<IOptions<ProcessingOptions>>();
@@ -171,14 +171,14 @@ public class ProcessingJobCleanupServiceTest
         await serviceWithoutRetention.RunCleanupAsync();
 
         Assert.IsTrue(
-            await context.PipelineRuns.AnyAsync(r => r.JobId == ancient.JobId),
+            await context.Recordings.AnyAsync(r => r.JobId == ancient.JobId),
             "an unset protocol retention must disable purging, so a missing key can never erase the protocol.");
     }
 
-    private static PipelineRun NewRunRecord(DateTime startedAt)
+    private static Recording NewRunRecord(DateTime startedAt)
     {
         var jobId = Guid.NewGuid();
-        return new PipelineRun
+        return new Recording
         {
             JobId = jobId,
             PipelineId = "pipe_a",
@@ -188,7 +188,7 @@ public class ProcessingJobCleanupServiceTest
             UploadStorageLocation = "file:///tmp/uploads",
             UploadInitiatedAt = startedAt,
             StartedAt = startedAt,
-            Steps = new List<PipelineRunStep>
+            Steps = new List<RecordingStep>
             {
                 new()
                 {

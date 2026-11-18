@@ -35,7 +35,7 @@ Dateiname `specs/<Issue>-<kurzname>.md`, zum Beispiel `specs/1195-protokoll.md`.
 
 Die Spec steht für sich: Akzeptanzkriterien, Abgrenzung und die betroffene Konfiguration nennt sie selbst, statt aufs Issue zu verweisen. Weicht sie vom Issue ab, sagt sie das. Kurz bleibt sie trotzdem und enthält nur so viel, wie das Review braucht. Abschnitte ohne Inhalt fallen weg, eine Spec mit `waived` hat oft keine zehn Zeilen. Ausführliche Umsetzungspläne einer KI gehören nicht hierher.
 
-Das Repo ist öffentlich. Für Specs gelten dieselben Regeln wie für Issues: keine Namen von Kunden oder Personen.
+Das Repo ist öffentlich. Für Specs gelten dieselben Regeln wie für Issues: keine Namen von Kunden oder Personen. Liegt ein Ticket nicht hier, etwa weil es eine Sicherheitslücke beschreibt, liegt seine Spec im selben Repo wie das Ticket.
 
 ```markdown
 # <Titel des Issues> (#<Issue>)
