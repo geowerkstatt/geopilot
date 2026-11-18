@@ -17,7 +17,9 @@ export const CapabilitiesProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     fetchApi<CapabilitiesResponse>("/api/v1/capabilities")
       .then(setCapabilities)
-      .catch(() => setCapabilities({ machineDeliveryEnabled: false, reactionSetsEnabled: false, refMappingEnabled: false }));
+      .catch(() =>
+        setCapabilities({ machineDeliveryEnabled: false, reactionSetsEnabled: false, refMappingEnabled: false }),
+      );
   }, [fetchApi]);
 
   if (!capabilities) {

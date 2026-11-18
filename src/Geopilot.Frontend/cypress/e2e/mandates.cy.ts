@@ -738,7 +738,11 @@ describe("Mandate with a reaction set", () => {
   const stubCapabilities = (reactionSetsEnabled: boolean) =>
     cy.intercept("GET", "/api/v1/capabilities", {
       statusCode: 200,
-      body: { machineDeliveryEnabled: false, reactionSetsEnabled, refMappingEnabled: false } satisfies CapabilitiesResponse,
+      body: {
+        machineDeliveryEnabled: false,
+        reactionSetsEnabled,
+        refMappingEnabled: false,
+      } satisfies CapabilitiesResponse,
     });
 
   const savedMandate = () =>
