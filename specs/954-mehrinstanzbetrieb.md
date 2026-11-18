@@ -10,7 +10,7 @@ Persistiert wird ein Lesemodell, nicht die Ausführung. Ein Job läuft auf der I
 
 Akzeptanzkriterien:
 
-- Jede Instanz beantwortet die Statusabfrage, Status und Downloads eines maschinellen Versuchs und die Deklaration einer Lieferung, auch für Jobs, die auf einer anderen Instanz laufen oder liefen.
+- Jede Instanz beantwortet für jeden Job, ob im Browser oder maschinell gestartet, Statusabfrage, Downloads, Visualisierungen und Deklaration, auch wenn er auf einer anderen Instanz läuft oder lief; einen maschinellen Versuch auch unter `api/v1/submission`.
 - Ein Upload lässt sich auf jeder Instanz starten, wo immer er initiiert wurde, und pro Upload läuft über alle Instanzen höchstens ein Job.
 - Kein Cleanup löscht etwas, weil der Speicher der eigenen Instanz es nicht kennt. Uploads überstehen einen Neustart.
 - Ein Lauf, der vor einem Neustart endete, bleibt danach abfragbar.
@@ -18,11 +18,11 @@ Akzeptanzkriterien:
 
 ## Umsetzung
 
-Zwei PRs, beide wie bisher mit einer Instanz ausgerollt; erst danach dürfen es zwei sein. Der erste steht für sich, der zweite braucht ihn für die Sperre pro Upload. Die Namen folgen `main`; kommt #1195 vorher, gelten `Recordings` und `Recording…`.
+Zwei PRs, beide wie bisher mit einer Instanz ausgerollt; erst danach dürfen es zwei sein. Der erste steht für sich, der zweite braucht ihn für die Sperre pro Upload.
 
 ### PR 1: Upload-Sessions in der Datenbank
 
-Der `UploadStore` im Speicher wird durch eine Tabelle ersetzt: eine Zeile pro Session (Upload-Id, Zeitpunkt der Initiierung) und ihre angemeldeten Dateien als Kindtabelle (Name, Storage-Key, angemeldete Grösse, Content-Type), gebaut wie `PipelineRunFiles`. Die Initiierung (`POST api/v2/upload` und die Multipart-Route der maschinellen Lieferung) schreibt die Session, die Freigabe des Uploads und der Sweep löschen sie. Alle heutigen Leser lesen dort: Jobstart, Preflight, `RegisterJobFiles`, die Mandatsübersicht mit ihrem Filter nach Dateiendungen, der Direct-Upload-Endpunkt und die Prüfung von `Upload:MaxActiveJobs`.
+Der `UploadStore` im Speicher wird durch eine Tabelle ersetzt: eine Zeile pro Session (Upload-Id, Zeitpunkt der Initiierung) und ihre angemeldeten Dateien als Kindtabelle (Name, Storage-Key, angemeldete Grösse, Content-Type), gebaut wie `RecordingFiles`. Die Initiierung (`POST api/v2/upload` und die Multipart-Route der maschinellen Lieferung) schreibt die Session, die Freigabe des Uploads und der Sweep löschen sie. Alle heutigen Leser lesen dort: Jobstart, Preflight, `RegisterJobFiles`, die Mandatsübersicht mit ihrem Filter nach Dateiendungen, der Direct-Upload-Endpunkt und die Prüfung von `Upload:MaxActiveJobs`.
 
 `MaxActiveJobs` gilt damit für alle Instanzen zusammen statt pro Prozess. Zwei Initiierungen an der Grenze können sie um eins überschreiten; das steht als `shortcut:` im Code.
 
@@ -30,12 +30,12 @@ Der Upload-Sweep fragt die Tabelle statt des Speichers. Ein Präfix ohne Session
 
 ### PR 2: Das Protokoll als Lesepfad
 
-**Neue Spalten an `PipelineRuns`**, alle nullable:
+**Neue Spalten an `Recordings`**, alle nullable:
 
 - `QueuedAt`: wann der Preflight bestanden war und der Job auf einen Platz zu warten begann. Ohne sie unterscheidet das Protokoll «Preflight läuft» nicht von «wartet», denn ohne ClamAV bleibt der Scan-Status `NotScanned`.
 - `HeartbeatAt`: siehe Lebendigkeit.
 - `PipelineDisplayName` (`LocalizedText` als `jsonb`): der Name der Pipeline in der Statusantwort. Heute kommt er aus der lebenden Pipeline, im Snapshot steckt er nur im JSON.
-- `SubmissionMandateKey`: der Schlüssel, mit dem ein maschineller Versuch sein Mandat adressierte, gesetzt genau dann, wenn der Start eine Lieferabsicht trug. Daran erkennt der Status-Endpunkt der maschinellen Lieferung einen Versuch, und er gibt den Wert zurück. Den übrigen Ausgang eines Versuchs, den das Issue als zwei neue Felder vorsah, liefern seit #1141 und #1189 schon `Deliveries.JobId` und `DeclarationFailure`. Die Lieferangaben (Vorgänger, Teillieferung, Kommentar, Metadaten) bleiben im Speicher am Job: Nur die Instanz, die am Ende deklariert, braucht sie, und ein Freitext gehört nicht in einen Datensatz mit zehn Jahren Aufbewahrung.
+- `SubmissionMandateKey`: der Schlüssel, mit dem ein maschineller Versuch sein Mandat adressierte, gesetzt genau dann, wenn der Start eine Lieferabsicht trug. Daran erkennt der Status-Endpunkt der maschinellen Lieferung einen Versuch, und er gibt den Wert zurück, so, wie er beim Start lautete. Das Mandat allein genügt dafür nicht: Es steht an jedem Lauf, auch an einem aus dem Browser, und einen Versuch kann auch eine Person mit Benutzer-Token starten, also sagt es auch `MachineClientId` nicht. Den übrigen Ausgang eines Versuchs, den das Issue als zwei neue Felder vorsah, liefern seit #1141 und #1189 schon `Deliveries.JobId` und `DeclarationFailure`. Die Lieferangaben (Vorgänger, Teillieferung, Kommentar, Metadaten) bleiben im Speicher am Job: Nur die Instanz, die am Ende deklariert, braucht sie, und ein Freitext gehört nicht in einen Datensatz mit zehn Jahren Aufbewahrung.
 
 Dazu ein partieller Index auf `UploadId` für Läufe ohne Terminal-Status, für die Sperre pro Upload.
 
@@ -64,7 +64,7 @@ Alle antworten nur innerhalb des heutigen Fensters: solange der Lauf lebt, und w
 
 **Ein aktiver Job pro Upload.** Der Start sperrt die Zeile der Upload-Session (`SELECT ... FOR UPDATE`) in derselben Transaktion wie den harten Startsatz und lehnt mit `JobAlreadyActiveException` ab (409 wie heute), wenn für den Upload ein lebender Lauf existiert. Ein toter Lauf hält seinen Upload nicht fest. Die Prüfung im Speicher in `ProcessingJobStore.CreateJob` fällt weg.
 
-**Cleanup.** `ProcessingJobCleanupService` entscheidet nach dem Lauf in der Datenbank statt nach dem Speicher. Als Ende eines abgeschlossenen Laufs gilt `TerminalAt`, eines toten `HeartbeatAt`, ohne Heartbeat `StartedAt`. Download- und Visualisierungsverzeichnisse gehen nach ihrer Retention ab diesem Ende, die übrigen Verzeichnisse eines Jobs nach `JobRetention` wie heute. Ein lebender Lauf behält alles, ein hängender wird wie heute nur gemeldet. Ein Verzeichnis ohne Lauf ist verwaist, ausser der Job steht im Speicher der eigenen Instanz: Das Arbeitsverzeichnis entsteht schon, wenn die Pipeline gebaut wird, also bevor der Startsatz committet ist. Über Liefer- und Staging-Verzeichnisse entscheiden nur die Lieferungen des Jobs, nach der Regel aus #947: Ein Lieferverzeichnis ohne Lieferung bleibt und wird gemeldet, denn nach dem Restore einer älteren Datenbank fehlen ihr spätere Lieferungen samt ihren Läufen. Jobs im eigenen Speicher nimmt jede Instanz weiterhin selbst heraus.
+**Cleanup.** `ProcessingJobCleanupService` entscheidet nach dem Lauf in der Datenbank statt nach dem Speicher. Als Ende eines abgeschlossenen Laufs gilt `TerminalAt`, eines toten `HeartbeatAt`, ohne Heartbeat `StartedAt`. Download- und Visualisierungsverzeichnisse gehen nach ihrer Retention ab diesem Ende, die übrigen Verzeichnisse eines Jobs nach `JobRetention` wie heute. Ein lebender Lauf behält alles, ein hängender wird wie heute nur gemeldet. Ein Verzeichnis ohne Lauf ist verwaist. Einzige Ausnahme ist das Arbeitsverzeichnis der Pipeline, das lokal auf der Instanz liegt: Es entsteht schon, wenn die Pipeline gebaut wird, also bevor der Startsatz committet ist, deshalb zählt dafür auch der Speicher der eigenen Instanz. Über Liefer- und Staging-Verzeichnisse entscheiden nur die Lieferungen des Jobs, nach der Regel aus #947: Ein Lieferverzeichnis ohne Lieferung bleibt und wird gemeldet, denn nach dem Restore einer älteren Datenbank fehlen ihr spätere Lieferungen samt ihren Läufen. Jobs im eigenen Speicher nimmt jede Instanz weiterhin selbst heraus.
 
 **Was im Speicher bleibt.** `ProcessingJobStore` hält, was zur Ausführung gehört: die lebende Pipeline, die Warteschlange, die Lieferabsicht mit den Lieferangaben. Seine Bemerkung zur Annahme genau einer Instanz wird ersetzt.
 
