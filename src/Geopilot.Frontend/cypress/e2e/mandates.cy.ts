@@ -1040,12 +1040,14 @@ describe("Mandate with metadata fields", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    // A click on the field opens it, and cancelling leaves the form as it was.
+    // A click on the field opens it, a click beside the dialog keeps it open, and cancelling leaves the form as it was.
     openFieldDialog(1);
     cy.dataCy("metadataFieldDialog").should("contain", "Field “responsible”");
     evaluateSelect("metadataFields.1.type", "selection");
     evaluateInput("metadataFields.1.options.1.id", "municipality");
     setInput("metadataFields.1.title.en", "Contact");
+    cy.get(".MuiDialog-container").click("topLeft");
+    evaluateInput("metadataFields.1.title.en", "Contact");
     cy.dataCy("cancel-button").click();
     cy.dataCy("metadataFieldDialog").should("not.exist");
     fieldTexts(1).should("deep.equal", ["Responsible", "Selection, 2 options"]);

@@ -77,7 +77,7 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
                   label={"id"}
                   required={true}
                   value={option.id}
-                  validate={id => validateMetadataId(id, getValues(optionsName))}
+                  validate={id => validateMetadataId(t, id, getValues(optionsName))}
                   deps={otherIds(optionIndex)}
                 />
               </FormColumnHalfWidth>

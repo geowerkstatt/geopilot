@@ -33,7 +33,10 @@ export interface FormInputProps {
    * context required). It receives the current value on every change.
    */
   onChange?: (value: string) => void;
-  /** Extra validation run after the built-in checks in form-context mode. Return true when valid, or a message/false when invalid. */
+  /**
+   * Extra validation run after the built-in checks in form-context mode. Return true when valid, or the translated
+   * message to show or false when invalid.
+   */
   validate?: (value: string, formValues: FieldValues) => string | boolean;
   /** Field names that are revalidated whenever this field changes, for validations that span several fields. */
   deps?: string[];
@@ -65,11 +68,8 @@ export const FormInput: FC<FormInputProps> = ({
   error,
   dataCy,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const formContext = useFormContext();
-
-  // An error message is a translation key, or a text that is translated already because it names values.
-  const errorText = (message: string) => (i18n.exists(message) ? t(message as TranslationKey) : message);
 
   const resolvedLabel = typeof label === "string" ? t(label) : label;
 
@@ -136,7 +136,7 @@ export const FormInput: FC<FormInputProps> = ({
             onBlur={field.onBlur}
             inputRef={field.ref}
             error={!!fieldState.error}
-            helperText={fieldState.error?.message ? errorText(fieldState.error.message) : helperText}
+            helperText={fieldState.error?.message || helperText}
           />
         )}
       />
@@ -180,7 +180,7 @@ export const FormInput: FC<FormInputProps> = ({
       rows={rows}
       minRows={minRows}
       maxRows={maxRows}
-      helperText={hasError && errorMessage ? errorText(errorMessage) : helperText}
+      helperText={hasError && errorMessage ? errorMessage : helperText}
       label={resolvedLabel}
       {...register(fieldName!, {
         required: required || false,

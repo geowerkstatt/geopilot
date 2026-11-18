@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
+import { TFunction } from "i18next";
 import { Language } from "../../../appInterfaces.ts";
 
 // The rule of the server. An id is a path segment in the delivery form: react-hook-form reads a leading digit as an
@@ -7,11 +8,15 @@ import { Language } from "../../../appInterfaces.ts";
 const metadataIdPattern = /^(?!(?:constructor|prototype)$)[a-z][a-z0-9_]{0,63}$/;
 
 /** Checks the id of a metadata field or option against the pattern and against its siblings, the entry included. */
-export const validateMetadataId = (id: string, siblings: { id: string }[] | null | undefined): string | boolean => {
+export const validateMetadataId = (
+  t: TFunction,
+  id: string,
+  siblings: { id: string }[] | null | undefined,
+): string | boolean => {
   if (!metadataIdPattern.test(id)) {
-    return "metadataIdInvalid";
+    return t("metadataIdInvalid");
   }
-  return (siblings ?? []).filter(sibling => sibling.id === id).length < 2 || "metadataIdDuplicate";
+  return (siblings ?? []).filter(sibling => sibling.id === id).length < 2 || t("metadataIdDuplicate");
 };
 
 export const idFieldNames = (listName: string, count: number) =>

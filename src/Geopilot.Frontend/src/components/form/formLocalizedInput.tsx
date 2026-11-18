@@ -1,5 +1,6 @@
 import { FC } from "react";
 import { FieldValues, get } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { LocalizedText } from "../../api/apiInterfaces";
 import { Language, TranslationKey } from "../../appInterfaces";
 import { FormInput } from "./formInput";
@@ -37,13 +38,14 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
   deps,
   helperText,
 }) => {
+  const { t } = useTranslation();
   const checksText = requireAtLeastOne || validate !== undefined;
 
   const validateText = (_: string, formValues: FieldValues): string | boolean => {
     const entries = (get(formValues, fieldName) ?? {}) as LocalizedText;
     const anyFilled = Object.values(entries).some(entry => typeof entry === "string" && entry.trim() !== "");
     if (requireAtLeastOne && !anyFilled) {
-      return "atLeastOneLanguageRequired";
+      return t("atLeastOneLanguageRequired");
     }
     return validate ? validate(entries) : true;
   };

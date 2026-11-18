@@ -99,7 +99,7 @@ const MetadataFieldDialog: FC<MetadataFieldDialogProps> = ({ fields, index, isNe
     <FormProvider {...methods}>
       <Dialog
         open
-        onClose={onClose}
+        onClose={(_, reason) => reason !== "backdropClick" && onClose()}
         maxWidth="md"
         fullWidth
         aria-labelledby="metadataFieldDialog-title"
@@ -124,7 +124,7 @@ const MetadataFieldDialog: FC<MetadataFieldDialogProps> = ({ fields, index, isNe
                 label={"id"}
                 required={true}
                 value={field.id}
-                validate={id => validateMetadataId(id, getValues("metadataFields"))}
+                validate={id => validateMetadataId(t, id, getValues("metadataFields"))}
                 deps={idFieldNames("metadataFields", fields.length).filter((_, other) => other !== index)}
               />
               <FormLocalizedInput
