@@ -74,10 +74,22 @@ public class DeliveryController : ControllerBase
 
         var user = await context.GetUserByPrincipalAsync(User);
         var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
-        var result = await deliveryCreationService.CreateAsync(request.JobId, fields, Supplier.ForUser(user.Id), HttpContext.RequestAborted);
+        DeliveryCreationResult result;
+        try
+        {
+            result = await deliveryCreationService.CreateAsync(request.JobId, fields, Supplier.ForUser(user.Id), HttpContext.RequestAborted);
+        }
+        catch (Exception)
+        {
+            await RecordDeliveryFailureAsync(request.JobId, DeliveryCreationResult.UnexpectedFailureDescription);
+            throw;
+        }
 
         if (result is not { Status: DeliveryCreationStatus.Created, DeliveryId: int deliveryId })
         {
+            if (IsRefusalToRecord(result.Status))
+                await RecordDeliveryFailureAsync(request.JobId, result.DescribeFailure());
+
             return MapCreationFailure(result);
         }
 
@@ -90,6 +102,29 @@ public class DeliveryController : ControllerBase
             UriKind.Relative);
 
         return Created(location, resultDelivery);
+    }
+
+    /// <summary>
+    /// The refusals that can meet a run whose data allow a delivery its starter may make. The others say that the run
+    /// does not allow one (or not yet), or that it was delivered already, which the protocol shows without a reason.
+    /// </summary>
+    private static bool IsRefusalToRecord(DeliveryCreationStatus status) => status
+        is DeliveryCreationStatus.JobNotFound
+        or DeliveryCreationStatus.MandateNotDeliverable
+        or DeliveryCreationStatus.FieldRulesViolated
+        or DeliveryCreationStatus.AssetRecordingFailed
+        or DeliveryCreationStatus.NoAssets;
+
+    /// <summary>
+    /// Keeps in the execution protocol why the delivery was not created, as for a machine delivery, because otherwise
+    /// only the browser learns of it. A request the browser aborted was not refused, so it leaves nothing.
+    /// </summary>
+    private async Task RecordDeliveryFailureAsync(Guid jobId, string reason)
+    {
+        if (HttpContext.RequestAborted.IsCancellationRequested)
+            return;
+
+        await pipelineRunRecorder.RecordDeliveryFailedAsync(jobId, reason);
     }
 
     /// <summary>

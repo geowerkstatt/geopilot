@@ -148,10 +148,10 @@ public class PipelineRun
     public string? FailureReason { get; set; }
 
     /// <summary>
-    /// Why geopilot could not create the delivery of a machine delivery although the run allowed it, as the caller
-    /// of the attempt reads it. <see langword="null"/> when geopilot created it or had nothing to create, and unknown for a run
-    /// without <see cref="PermissionToDeliver"/>. Whether a delivery exists is not kept here: the delivery itself
-    /// is the record of that, reachable via <see cref="JobId"/>.
+    /// Why geopilot last refused or could not create the delivery although the run allowed it, on the web or for a
+    /// machine delivery. It stays when a later attempt creates the delivery. <see langword="null"/> when no attempt
+    /// failed other than on a delivery that existed already, and unknown for a run without <see cref="PermissionToDeliver"/>.
+    /// Whether a delivery exists is not kept here: the delivery itself is the record of that, reachable via <see cref="JobId"/>.
     /// </summary>
     public string? DeliveryFailure { get; set; }
 

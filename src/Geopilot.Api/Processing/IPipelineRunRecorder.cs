@@ -81,10 +81,12 @@ public interface IPipelineRunRecorder
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Records why geopilot could not create the delivery of a machine delivery although the run allowed it. Soft.
+    /// Records why geopilot refused or could not create the delivery of a run, on the web or for a machine delivery,
+    /// replacing an earlier reason. Only a run whose starter may deliver and whose data allow a delivery, or whose
+    /// outcome is not recorded yet, keeps it. Soft.
     /// </summary>
     /// <param name="jobId">The job whose delivery could not be created.</param>
-    /// <param name="reason">Why creating the delivery failed, as the caller of the attempt reads it.</param>
+    /// <param name="reason">Why creating the delivery failed, in fixed messages: never a value of the delivery fields.</param>
     Task RecordDeliveryFailedAsync(Guid jobId, string reason);
 
     /// <summary>

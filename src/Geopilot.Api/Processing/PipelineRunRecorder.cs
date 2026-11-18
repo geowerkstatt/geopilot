@@ -272,15 +272,17 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     {
         try
         {
-            var run = await context.PipelineRuns.SingleOrDefaultAsync(r => r.JobId == jobId);
-            if (run is null)
-            {
-                LogRunMissing(jobId);
-                return;
-            }
+            // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The run
+            // tells whether it allowed a delivery, which nobody checked for an expired job; a machine delivery is
+            // created before the outcome is recorded, hence a missing terminal state (#1200).
+            var updated = await context.PipelineRuns
+                .Where(r => r.JobId == jobId
+                    && r.PermissionToDeliver == PermissionToDeliver.Permitted
+                    && (r.TerminalState == null || r.TerminalState == ProcessingState.Success || r.TerminalState == ProcessingState.Warning))
+                .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.DeliveryFailure, reason));
 
-            run.DeliveryFailure = reason;
-            await context.SaveChangesAsync();
+            if (updated == 0)
+                logger.LogDebug("Job <{JobId}> has no run that allowed a delivery; the protocol keeps no delivery failure for it.", jobId);
         }
         catch (Exception ex)
         {

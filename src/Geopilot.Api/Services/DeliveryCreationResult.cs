@@ -14,7 +14,28 @@ public record DeliveryCreationResult(
     DeliveryCreationStatus Status,
     int? DeliveryId = null,
     string? Message = null,
-    IReadOnlyDictionary<string, string[]>? FieldErrors = null);
+    IReadOnlyDictionary<string, string[]>? FieldErrors = null)
+{
+    /// <summary>
+    /// Why no delivery was created when creating it threw, as the execution protocol keeps it beside the reasons of
+    /// <see cref="DescribeFailure"/>.
+    /// </summary>
+    public const string UnexpectedFailureDescription = "The delivery could not be created because of an unexpected error.";
+
+    /// <summary>
+    /// Turns a refused creation into the one sentence the execution protocol keeps, and the caller of a machine delivery
+    /// attempt reads. Violated field rules carry their detail in <see cref="FieldErrors"/> rather than in the message,
+    /// and the status alone would not say which field has to be corrected.
+    /// </summary>
+    public string DescribeFailure()
+    {
+        if (FieldErrors is not { Count: > 0 })
+            return Message ?? $"The delivery was refused ({Status}).";
+
+        var violations = FieldErrors.Select(error => $"{error.Key}: {string.Join(" ", error.Value)}");
+        return $"The delivery details do not satisfy the mandate. {string.Join(" ", violations)}";
+    }
+}
 
 /// <summary>
 /// The possible outcomes of creating a delivery.
