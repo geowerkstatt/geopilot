@@ -157,6 +157,28 @@ public class SecretConfigValueTest
     }
 
     [TestMethod]
+    public void GetDefinitionSnapshotJsonLeavesEmptySecretUnmasked()
+    {
+        // The options binder hands an empty setting, such as an unset environment variable in compose, over as "".
+        var yaml = $"""
+            processes:
+              - id: used
+                implementation: {TokenProcess}
+            {Pipeline("used")}
+            """;
+        using var processFactory = CreateProcessFactory();
+        var baseConfigs = new Dictionary<string, Parameterization>
+        {
+            [TokenProcess] = new Parameterization { { "host", "smtp.example.com" }, { "token", string.Empty } },
+        };
+
+        var json = CreateFactory(yaml, processFactory, baseConfigs).GetDefinitionSnapshotJson("secret_pipeline");
+
+        using var document = JsonDocument.Parse(json);
+        Assert.AreEqual(string.Empty, document.RootElement.GetProperty("process_configs").GetProperty(TokenProcess).GetProperty("token").GetString(), json);
+    }
+
+    [TestMethod]
     public void GetDefinitionSnapshotJsonDropsBaseConfigOfUnresolvableImplementation()
     {
         const string unknownProcess = "Geopilot.Pipeline.Test.Processes.UnknownProcess";

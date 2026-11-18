@@ -50,6 +50,14 @@ internal static class SecretConfigValues
             ? $"{subject} <{implementation}>: the parameter '{parameter.Name}' is marked [SecretConfigValue] but takes <{ConstructorBinding.FormatTypeName(parameter.ParameterType)}>. A secret is a text (string)."
             : null;
 
-    // A null read back from JSON, such as from the snapshot of a delivery reaction, is not set either.
-    private static bool IsSet(object? value) => value is not (null or JsonElement { ValueKind: JsonValueKind.Null });
+    // An empty text is no value either: the options binder turns an empty setting into "", and showing it reveals
+    // nothing. A value read back from JSON, such as from the snapshot of a delivery reaction, counts the same way.
+    private static bool IsSet(object? value) => value switch
+    {
+        null => false,
+        string text => text.Length > 0,
+        JsonElement { ValueKind: JsonValueKind.Null } => false,
+        JsonElement { ValueKind: JsonValueKind.String } element => element.GetString() is { Length: > 0 },
+        _ => true,
+    };
 }

@@ -431,6 +431,17 @@ public class DeliveryChannelFactoryTest
     }
 
     [TestMethod]
+    public void DescribeConfigLeavesAnEmptySecretUnmasked()
+    {
+        // A mail relay without login: the options binder hands the empty password over as "", which claims no value.
+        var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization> { [MaskedChannel] = new Parameterization { ["host"] = "smtp.example.com", ["password"] = string.Empty } });
+
+        var config = factory.DescribeConfig(MaskedChannel, null, null);
+
+        Assert.AreEqual(new RecordedConfigValue(string.Empty, ConfigOrigin.Base), config["password"]);
+    }
+
+    [TestMethod]
     public void DescribeConfigPrefersTheBaseConfigurationOverTheDefinition()
     {
         var factory = new DeliveryChannelFactory(new Dictionary<string, Parameterization> { [MaskedChannel] = new Parameterization { ["host"] = "base.example.com" } });

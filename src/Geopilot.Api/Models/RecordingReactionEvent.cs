@@ -6,8 +6,9 @@ namespace Geopilot.Api.Models;
 /// <summary>
 /// Something that happened to a reaction of the delivery a run produced: an attempt through its channel, a reset or
 /// the deletion of the delivery. Kept in the protocol of the run, so how a delivery was forwarded stays answerable
-/// after its reactions are gone. Holds no personal data of the supplier. An attempt keeps the configuration its channel
-/// ran with, values of the mandate such as the recipients of a mail included, and its message can name its target.
+/// after its reactions are gone. An attempt keeps the configuration its channel ran with, values of the mandate such
+/// as the recipients of a mail included, and its message can name its target. Personal data of the supplier appears
+/// only where a mail server refused the supplier's address, in the message.
 /// </summary>
 public class RecordingReactionEvent
 {
