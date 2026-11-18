@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Contracts;
@@ -179,6 +180,8 @@ public record RecordingArtifactResponse(
 /// <param name="State">The state of the reaction afterwards, or <see langword="null"/> when the attempt no longer held its reaction once it reported.</param>
 /// <param name="Message">What the channel reported, or why the attempt failed.</param>
 /// <param name="UserId">The user who caused the event, such as the one who deleted the delivery, or <see langword="null"/> when the application did.</param>
+/// <param name="AppVersion">For an attempt the version of the application that ran it, or <see langword="null"/> for an attempt recorded before the protocol kept it.</param>
+/// <param name="Config">For an attempt the configuration its channel ran with, per parameter, or <see langword="null"/> when the channel is unknown or the attempt was recorded before the protocol kept it.</param>
 public record RecordingReactionEventResponse(
     int DeliveryId,
     string ReactionId,
@@ -190,4 +193,17 @@ public record RecordingReactionEventResponse(
     DateTime? FinishedAt,
     ReactionState? State,
     LocalizedText? Message,
-    int? UserId);
+    int? UserId,
+    string? AppVersion,
+    Dictionary<string, RecordingConfigValueResponse>? Config);
+
+/// <summary>
+/// The value of one channel parameter as an attempt ran with it.
+/// </summary>
+/// <param name="Value">The value as configured, not converted: a text, a number, a switch or a list. A secret that is set reads <c>**********</c>, a resource file is the path below the resources directory.</param>
+/// <param name="Origin">Where the value came from: the base configuration of the installation, the pipeline definition or the mandate.</param>
+/// <param name="Sha256">For a resource file the SHA-256 of its content when the attempt started, as lowercase hex; <see langword="null"/> when the file is missing or lies outside the resources directory, and for any other parameter.</param>
+public record RecordingConfigValueResponse(
+    object? Value,
+    ConfigOrigin Origin,
+    string? Sha256);

@@ -1,12 +1,13 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Channels;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Models;
 
 /// <summary>
 /// Something that happened to a reaction of the delivery a run produced: an attempt through its channel, a reset or
 /// the deletion of the delivery. Kept in the protocol of the run, so how a delivery was forwarded stays answerable
-/// after its reactions are gone. Holds no personal data of the supplier; the message of an attempt can name its
-/// target and with it a value of the mandate, such as the subfolder of a file drop.
+/// after its reactions are gone. Holds no personal data of the supplier. An attempt keeps the configuration its channel
+/// ran with, values of the mandate such as the recipients of a mail included, and its message can name its target.
 /// </summary>
 public class RecordingReactionEvent
 {
@@ -79,4 +80,17 @@ public class RecordingReactionEvent
     /// application did.
     /// </summary>
     public int? UserId { get; set; }
+
+    /// <summary>
+    /// The version of the application whose instance ran the attempt, since an update can come between two attempts.
+    /// <see langword="null"/> for a reset, a deletion and an attempt recorded before the protocol kept it.
+    /// </summary>
+    public string? AppVersion { get; set; }
+
+    /// <summary>
+    /// The configuration the channel of the attempt ran with: per parameter its value as configured, where it came
+    /// from and, for a resource file, the hash of its content. A secret reads <c>**********</c>. <see langword="null"/>
+    /// for a reset, a deletion, an attempt recorded before the protocol kept it and one whose channel is unknown.
+    /// </summary>
+    public Dictionary<string, RecordedConfigValue>? Config { get; set; }
 }

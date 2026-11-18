@@ -2,9 +2,11 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers;
 
@@ -89,6 +91,33 @@ public sealed class RecordingControllerTest
         Assert.AreEqual(TestHelpers.Localized("The target is not reachable."), first.Message);
         Assert.IsNotNull(first.FinishedAt);
         Assert.IsNull(first.UserId);
+    }
+
+    [TestMethod]
+    public async Task GetReturnsTheVersionAndTheConfigOfAnAttempt()
+    {
+        var run = SeedRun(run =>
+        {
+            var attempt = run.ReactionEvents.Single(reactionEvent => reactionEvent.Attempt == 1);
+            attempt.AppVersion = "3.2.0";
+            attempt.Config = new Dictionary<string, RecordedConfigValue>
+            {
+                ["password"] = new("**********", ConfigOrigin.Base),
+                ["template"] = new("mail/info.html", ConfigOrigin.Definition, "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581"),
+            };
+        });
+
+        var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
+
+        var first = response.ReactionEvents[0];
+        Assert.AreEqual("3.2.0", first.AppVersion);
+        Assert.IsNotNull(first.Config);
+        Assert.AreEqual("\"**********\"", JsonSerializer.Serialize(first.Config["password"].Value));
+        Assert.AreEqual(ConfigOrigin.Base, first.Config["password"].Origin);
+        Assert.AreEqual(ConfigOrigin.Definition, first.Config["template"].Origin);
+        Assert.AreEqual("3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581", first.Config["template"].Sha256);
+        Assert.IsNull(response.ReactionEvents[1].AppVersion, "an attempt recorded before the protocol kept its version.");
+        Assert.IsNull(response.ReactionEvents[1].Config);
     }
 
     [TestMethod]

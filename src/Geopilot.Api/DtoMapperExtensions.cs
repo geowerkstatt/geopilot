@@ -232,7 +232,9 @@ internal static class DtoMapperExtensions
                     reactionEvent.FinishedAt,
                     reactionEvent.State,
                     reactionEvent.Message,
-                    reactionEvent.UserId))
+                    reactionEvent.UserId,
+                    reactionEvent.AppVersion,
+                    reactionEvent.Config?.ToDictionary(entry => entry.Key, entry => new RecordingConfigValueResponse(entry.Value.Value, entry.Value.Origin, entry.Value.Sha256))))
                 .ToList(),
             run.ToStarter(),
             run.ToMandateReference(),
