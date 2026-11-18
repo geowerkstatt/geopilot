@@ -152,28 +152,59 @@ describe("Recording", () => {
       message: null,
       userId: 7,
     };
+    // A failed attempt with another one to follow leaves its reaction pending.
+    const failedAttempt = {
+      ...transferAttempt,
+      reactionId: "archiv",
+      occurredAt: "2026-11-06T15:08:00Z",
+      finishedAt: "2026-11-06T15:08:30Z",
+      state: ReactionState.Pending,
+      message: { en: "The target is not reachable." },
+    };
     cy.fixture("recording.json").then(run => {
       cy.intercept(
         { method: "GET", pathname: `/api/v1/recording/${jobId}` },
-        { ...run, forwardingState: ReactionState.Done, reactionEvents: [transferAttempt, mailAttempt, resetEvent] },
+        {
+          ...run,
+          forwardingState: ReactionState.Done,
+          reactionEvents: [transferAttempt, mailAttempt, resetEvent, failedAttempt],
+        },
       );
     });
 
     cy.visit(`/admin/recordings/${jobId}#reactions`);
 
-    // The header tells what happened to which reaction and how it ended, without opening the attempt.
+    // The header tells what happened to which reaction and how it ended, without opening the attempt, also to a screen
+    // reader and in copied text, which need the words apart.
     cy.dataCy("reactionEvent-info-1")
       .should("contain", "attempt 1")
       .and("contain", "info")
       .and("contain", "notification")
       .and("contain", "Done after 1 s");
+    cy.dataCy("reactionEvent-info-1")
+      .find("[aria-expanded]")
+      .invoke("text")
+      .should("contain", "attempt 1 info notification");
+    cy.dataCy("reactionEvent-archiv-1").should("contain", "Failed after 30 s").and("not.contain", "Pending");
     cy.dataCy("reactionEvent-ablage-reset")
       .should("contain", "retry requested")
       .find("[aria-expanded]")
       .should("not.exist");
 
+    // An attempt recorded before the protocol kept version and configuration opens to its channel and message.
+    cy.dataCy("reactionEvent-ablage-1").find('[aria-expanded="false"]').click();
+    cy.dataCy("reactionEvent-ablage-1").within(() => {
+      cy.dataCy("summary-channel").should("contain", "FileDropChannel").and("not.contain", "(");
+      cy.dataCy("reactionEventConfig").should("not.exist");
+      cy.dataCy("summary-message").should("contain", "Delivered to the target.");
+    });
+
     cy.dataCy("reactionEvent-info-1").find('[aria-expanded="false"]').click();
     cy.dataCy("reactionEvent-info-1").find('[aria-expanded="true"]').should("exist");
+    cy.dataCy("reactionEvent-info-1")
+      .find("[aria-expanded]")
+      .invoke("attr", "aria-controls")
+      .then(id => cy.get(`[id="${id}"]`).should("have.attr", "role", "region"));
     cy.dataCy("reactionEvent-info-1").within(() => {
       cy.dataCy("summary-channel")
         .should("contain", "Geopilot.Pipeline.Channels.Mail.MailChannel")

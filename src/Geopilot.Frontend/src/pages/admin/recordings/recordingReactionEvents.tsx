@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useId } from "react";
 import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
@@ -24,6 +24,7 @@ const eventKey = (reactionEvent: RecordingReactionEventResponse) =>
 export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ events }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
+  const idPrefix = useId();
 
   if (events.length === 0) {
     return (
@@ -36,7 +37,7 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
   return (
     <SummaryField labelVariant="h5" label="reactionEvents">
       <Box>
-        {events.map(reactionEvent => {
+        {events.map((reactionEvent, index) => {
           const dataCy = `reactionEvent-${reactionEvent.reactionId}-${reactionEvent.attempt ?? reactionEvent.event}`;
           if (reactionEvent.event !== ReactionEvent.Attempt) {
             // Without a summary there is no button that would open nothing.
@@ -51,7 +52,11 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
 
           return (
             <Accordion key={eventKey(reactionEvent)} data-cy={dataCy}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              {/* With both ids the accordion names its region after the header. */}
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                id={`${idPrefix}-${index}-header`}
+                aria-controls={`${idPrefix}-${index}-content`}>
                 <ReactionEventSummary reactionEvent={reactionEvent} />
               </AccordionSummary>
               <AccordionDetails>
