@@ -4,9 +4,9 @@ Review: required. Es ändert, wann geopilot gelieferte Daten löscht, und die Re
 
 ## Ziel
 
-Gelieferte Daten verschwinden nicht, weil die Datenbank sie nicht kennt. Heute löscht das erste Cleanup nach dem Restore einer älteren Datenbank, also beim Start, die Lieferverzeichnisse (`Storage:AssetsDirectory/<jobId>`) aller Lieferungen, die nach der Sicherung deklariert wurden, mit einem Trace-Eintrag pro Verzeichnis: `ProcessingJobCleanupService` hält jedes Verzeichnis eines Jobs, den sein Speicher nicht kennt und der keine Lieferung hat, für verwaist.
+Das Cleanup löscht kein Lieferverzeichnis mehr, nur weil die Datenbank seine Lieferung nicht kennt. Heute tut es genau das nach dem Restore einer älteren Datenbank: Der erste Lauf, also der beim Start, löscht die Lieferverzeichnisse (`Storage:AssetsDirectory/<jobId>`) aller Lieferungen, die nach der Sicherung deklariert wurden. Im Log steht dazu nur ein Trace-Eintrag pro Verzeichnis. `ProcessingJobCleanupService` hält jedes Verzeichnis eines Jobs für verwaist, den sein Speicher nicht kennt und der keine Lieferung hat.
 
-Den Teil des Issues zur Single-Instance-Annahme und seine Akzeptanzkriterien liefert #954. Dessen Spec stellt den Upload-Sweep auf die Upload-Sessions in der Datenbank und das Job-Cleanup auf Lauf und Heartbeat. Der rein altersbasierte Weg aus dem Issue, gedacht als Sofortmassnahme, falls #954 sich verzögert, entfällt: Beide Tickets liegen in derselben Etappe. Diese Spec deckt, was keiner der beiden Wege löst, den Restore aus dem Architektur-Review 2026-11 (Befund 3.1b).
+Der Text des Issues beschreibt ursprünglich den Fall mehrerer Instanzen. Den löst #954, diese Spec nur den Restore.
 
 Akzeptanzkriterien:
 
@@ -19,7 +19,7 @@ Akzeptanzkriterien:
 
 Grundlage ist eine Regel: Ein Lieferverzeichnis gehört zu einer Lieferung in der Datenbank. Was ihr nicht folgt, löscht geopilot nicht, es meldet es.
 
-**Deklaration: erst speichern, dann umbenennen.** Heute benennt die Deklaration das Staging-Verzeichnis zuerst in das Lieferverzeichnis um, hasht die Dateien dort und speichert danach die Lieferung (#997). Neu hasht sie im Staging, speichert die Lieferung und benennt erst dann um. So entsteht ein Lieferverzeichnis nur mit seiner Lieferung:
+**Deklaration: erst speichern, dann umbenennen.** Heute benennt die Deklaration das Staging-Verzeichnis (`Storage:AssetsDirectory/staging/<jobId>`, im Code `AssetStagingDirectory`) zuerst in das Lieferverzeichnis um, hasht die Dateien dort und speichert danach die Lieferung. Neu hasht sie im Staging, speichert die Lieferung und benennt erst dann um. So entsteht ein Lieferverzeichnis nur mit seiner Lieferung:
 
 - Scheitert die Deklaration vor dem Speichern, bleibt alles im Staging. Es verfällt mit dem Job, und ein zweiter Versuch findet es dort.
 - Deklarieren zwei Aufrufer denselben Job gleichzeitig, benennt nur der um, dessen Lieferung gespeichert wurde. Der andere bekommt `AlreadyDeclared` und rührt keine Datei an. Liest er noch, während der erste umbenennt, scheitert entweder sein Lesen oder das Umbenennen; das Umbenennen holt dann das Cleanup nach.
@@ -40,8 +40,6 @@ Ein Staging-Verzeichnis mit aktiver Lieferung schiebt jeder Lauf an seinen Platz
 
 **Meldung.** Jeder Lauf, der erste beim Start, schreibt nach dem Verschieben eine Warnung je Richtung, wenn es Abweichungen gibt: Lieferverzeichnisse ohne Lieferung, und aktive Lieferungen, deren Verzeichnis fehlt (die Platte ist älter als die Datenbank). Die Warnung nennt die Zahl und die ersten Job-Ids, gekürzt, damit ein Restore mit tausenden Abweichungen das Log nicht flutet. Eine Abweichung wird gemeldet, bis ein Betreiber sie behebt; was mit den Dateien geschieht, entscheidet er. Weil ein Lieferverzeichnis erst nach dem Speichern entsteht, meldet eine laufende Deklaration nichts.
 
-**#954.** Dessen Spec ersetzt im Cleanup den Speicher durch die Datenbank. Für Liefer- und Staging-Verzeichnisse gilt dort die Tabelle oben, nicht die Regel, dass ein Verzeichnis ohne Lauf verwaist ist; seine Spec sagt das.
-
 **Doku.**
 
 - README, Betrieb: Lieferverzeichnisse löscht geopilot nur für gelöschte Lieferungen. Was die beiden Warnungen bedeuten und dass nach einem Restore der Abgleich von Hand geschieht.
@@ -49,10 +47,9 @@ Ein Staging-Verzeichnis mit aktiver Lieferung schiebt jeder Lauf an seinen Platz
 
 ## Nicht im Umfang
 
-- Die Cleanup-Regeln für mehrere Instanzen und nach einem Neustart: #954.
 - Uploads, Downloads, Visualisierungen und Arbeitsverzeichnisse nach einem Restore, ebenso das Staging eines Jobs ohne Lieferung. Sie sind flüchtig, und ihren Job kennt nach dem Restore niemand mehr.
 - Ein Werkzeug, das Verzeichnisse und Lieferungen nach einem Restore wieder zusammenführt.
-- Eine Frist, nach der gemeldete Verzeichnisse doch verschwinden: Ein Restore, den niemand rechtzeitig bemerkt, kostete sonst die Lieferungen trotzdem.
+- Eine Frist, nach der gemeldete Verzeichnisse doch gelöscht werden: Ein Restore, den niemand rechtzeitig bemerkt, kostete sonst die Lieferungen trotzdem.
 
 ## Prüfung
 
