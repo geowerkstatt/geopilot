@@ -176,7 +176,12 @@ const MetadataFieldDialog: FC<MetadataFieldDialogProps> = ({ fields, index, isNe
             <Button variant="outlined" color="error" label={"delete"} onClick={onRemove} sx={{ marginRight: "auto" }} />
           )}
           <Button label={"cancel"} onClick={onClose} />
-          <Button variant="contained" label={"apply"} onClick={() => apply()} />
+          <Button
+            variant="contained"
+            label={"apply"}
+            disabled={Object.keys(errors).length > 0}
+            onClick={() => apply()}
+          />
         </DialogActions>
       </Dialog>
     </FormProvider>

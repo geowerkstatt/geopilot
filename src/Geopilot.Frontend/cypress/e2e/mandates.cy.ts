@@ -1143,11 +1143,11 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.0.title.en", "Abc");
     setInput("metadataFields.0.id", "1abc");
     hasError("metadataFields.0.id");
-    cy.dataCy("apply-button").click();
-    cy.dataCy("metadataFieldDialog").should("exist");
+    cy.dataCy("apply-button").should("be.disabled");
 
     retype("metadataFields.0.id", "abc1");
     hasError("metadataFields.0.id", false);
+    cy.dataCy("apply-button").should("be.enabled");
 
     // react-hook-form refuses the word as a path segment, so the delivery form could not hold its value.
     retype("metadataFields.0.id", "constructor");
@@ -1163,8 +1163,7 @@ describe("Mandate with metadata fields", () => {
     setInput("metadataFields.1.title.en", "Contact");
     setInput("metadataFields.1.id", "responsible");
     hasError("metadataFields.1.id");
-    cy.dataCy("apply-button").click();
-    cy.dataCy("metadataFieldDialog").should("exist");
+    cy.dataCy("apply-button").should("be.disabled");
     setInput("metadataFields.1.id", "contact");
     hasError("metadataFields.1.id", false);
     applyDialog();
@@ -1197,8 +1196,7 @@ describe("Mandate with metadata fields", () => {
     cy.dataCy("metadataFieldDialog-language-tab-fr").click();
     setInput("metadataFields.2.title.fr", "Responsible");
     message("metadataFields.2.title.fr").should("have.text", conflict);
-    cy.dataCy("apply-button").click();
-    cy.dataCy("metadataFieldDialog").should("exist");
+    cy.dataCy("apply-button").should("be.disabled");
 
     // Every language shows the conflict until the title is changed.
     cy.dataCy("metadataFieldDialog-language-tab-de").click();
@@ -1226,8 +1224,7 @@ describe("Mandate with metadata fields", () => {
       "have.text",
       "In EN, the title reads the same as for option 1.",
     );
-    cy.dataCy("apply-button").click();
-    cy.dataCy("metadataFieldDialog").should("exist");
+    cy.dataCy("apply-button").should("be.disabled");
 
     retype("metadataFields.0.options.1.title.en", "Municipality");
     hasError("metadataFields.0.options.0.title.en", false);
