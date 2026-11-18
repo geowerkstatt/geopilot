@@ -1,55 +1,29 @@
-import { FC, Fragment, useId, useState } from "react";
+import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { TableCell, TableRow, Typography } from "@mui/material";
-import { ReactionEvent, ReactionKind, RecordingReactionEventResponse } from "../../../api/generated";
-import { TranslationKey } from "../../../appInterfaces";
-import { px2rem } from "../../../appTheme.ts";
-import { IconButton } from "../../../components/buttons.tsx";
-import { DetailTable } from "../../../components/detailTable.tsx";
-import { ReactionStateLabel } from "../../../components/grids/reactionStateLabel.tsx";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
+import { ReactionEvent, RecordingReactionEventResponse } from "../../../api/generated";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
 import { ReactionEventConfig } from "./reactionEventConfig.tsx";
+import { ReactionEventSummary } from "./reactionEventSummary.tsx";
 
 interface RecordingReactionEventsProps {
   events: RecordingReactionEventResponse[];
 }
-
-const reactionKindKey: Record<ReactionKind, TranslationKey> = {
-  [ReactionKind.Transfer]: "reactionKindTransfer",
-  [ReactionKind.Notification]: "reactionKindNotification",
-};
-
-const reactionEventKey: Record<ReactionEvent, TranslationKey> = {
-  [ReactionEvent.Attempt]: "reactionEventAttempt",
-  [ReactionEvent.Reset]: "reactionEventReset",
-  [ReactionEvent.Deletion]: "reactionEventDeletion",
-};
 
 // The events carry no id; these values tell them apart, also once a later load adds events.
 const eventKey = (reactionEvent: RecordingReactionEventResponse) =>
   [reactionEvent.reactionId, reactionEvent.event, reactionEvent.attempt, reactionEvent.occurredAt].join("|");
 
 /**
- * What happened to the reactions of the delivery a run produced, in the order it happened. An attempt recorded with
- * the version that ran it opens to show that version and the configuration of its channel.
+ * What happened to the reactions of the delivery a run produced, in the order it happened, one entry per event as the
+ * steps of the run are shown. An attempt opens to show its channel, the configuration it ran with and its message. A
+ * reset or a deletion ran nothing, so it shows its header only.
  */
 export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ events }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
-  const detailIdPrefix = useId();
-
-  const toggle = (key: string) =>
-    setOpened(current => {
-      const next = new Set(current);
-      if (!next.delete(key)) {
-        next.add(key);
-      }
-      return next;
-    });
 
   if (events.length === 0) {
     return (
@@ -61,54 +35,54 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
 
   return (
     <SummaryField labelVariant="h5" label="reactionEvents">
-      <DetailTable
-        columns={[
-          { label: "", width: px2rem(48) },
-          { label: t("time"), width: "18%" },
-          { label: t("reaction"), width: "16%" },
-          { label: t("kind"), width: "12%" },
-          { label: t("event"), width: "16%" },
-          { label: t("state"), width: "14%" },
-          { label: t("message") },
-        ]}>
-        {events.map((reactionEvent, index) => {
-          const key = eventKey(reactionEvent);
-          const isOpen = opened.has(key);
-          const detailId = `${detailIdPrefix}-${index}`;
+      <Box>
+        {events.map(reactionEvent => {
+          const dataCy = `reactionEvent-${reactionEvent.reactionId}-${reactionEvent.attempt ?? reactionEvent.event}`;
+          if (reactionEvent.event !== ReactionEvent.Attempt) {
+            // Without a summary there is no button that would open nothing.
+            return (
+              <Accordion key={eventKey(reactionEvent)} expanded={false} data-cy={dataCy}>
+                <Box sx={{ paddingX: 2, paddingY: 1.5 }}>
+                  <ReactionEventSummary reactionEvent={reactionEvent} />
+                </Box>
+              </Accordion>
+            );
+          }
+
           return (
-            <Fragment key={key}>
-              <TableRow>
-                <TableCell>
-                  {reactionEvent.appVersion && (
-                    <IconButton
-                      size="small"
-                      label="reactionEventConfiguration"
-                      icon={isOpen ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-                      aria-expanded={isOpen}
-                      aria-controls={isOpen ? detailId : undefined}
-                      onClick={() => toggle(key)}
-                      data-cy="reactionEventConfigToggle"
-                    />
+            <Accordion key={eventKey(reactionEvent)} data-cy={dataCy}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <ReactionEventSummary reactionEvent={reactionEvent} />
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack>
+                  <SummaryField labelVariant="h5" label="channel">
+                    {reactionEvent.implementation}
+                    {reactionEvent.appVersion && (
+                      <Typography
+                        component="span"
+                        variant="body1"
+                        sx={{ color: "text.secondary", marginLeft: 1, display: "inline-block" }}>
+                        (&nbsp;v{reactionEvent.appVersion}&nbsp;)
+                      </Typography>
+                    )}
+                  </SummaryField>
+                  {reactionEvent.config && (
+                    <SummaryField labelVariant="h5" label="configuration">
+                      <ReactionEventConfig config={reactionEvent.config} />
+                    </SummaryField>
                   )}
-                </TableCell>
-                <TableCell>{new Date(reactionEvent.occurredAt).toLocaleString()}</TableCell>
-                <TableCell>{reactionEvent.reactionId}</TableCell>
-                <TableCell>{t(reactionKindKey[reactionEvent.reactionKind])}</TableCell>
-                <TableCell>{t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}</TableCell>
-                <TableCell>{reactionEvent.state && <ReactionStateLabel state={reactionEvent.state} />}</TableCell>
-                <TableCell>{localized(reactionEvent.message ?? undefined)}</TableCell>
-              </TableRow>
-              {isOpen && reactionEvent.appVersion && (
-                <TableRow id={detailId}>
-                  <TableCell colSpan={7}>
-                    <ReactionEventConfig appVersion={reactionEvent.appVersion} config={reactionEvent.config} />
-                  </TableCell>
-                </TableRow>
-              )}
-            </Fragment>
+                  {reactionEvent.message && (
+                    <SummaryField labelVariant="h5" label="message">
+                      {localized(reactionEvent.message)}
+                    </SummaryField>
+                  )}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
           );
         })}
-      </DetailTable>
+      </Box>
     </SummaryField>
   );
 };

@@ -117,10 +117,10 @@ describe("Recording", () => {
     cy.then(() => {
       attempted = true;
     });
-    cy.contains("td", "Delivered to the target.", { timeout: 20000 }).should("be.visible");
+    cy.get('[data-cy="reactionEvent-ablage-1"]', { timeout: 20000 }).should("be.visible");
   });
 
-  it("opens an attempt to show the configuration its channel ran with", () => {
+  it("opens an attempt to show what its channel ran with", () => {
     const mailAttempt = {
       ...transferAttempt,
       reactionId: "info",
@@ -141,54 +141,61 @@ describe("Recording", () => {
         },
       },
     };
+    // A reset is no attempt: nothing ran, so there is nothing to open.
+    const resetEvent = {
+      ...transferAttempt,
+      event: ReactionEvent.Reset,
+      attempt: null,
+      occurredAt: "2026-11-06T15:07:00Z",
+      finishedAt: null,
+      state: ReactionState.Pending,
+      message: null,
+      userId: 7,
+    };
     cy.fixture("recording.json").then(run => {
       cy.intercept(
         { method: "GET", pathname: `/api/v1/recording/${jobId}` },
-        { ...run, forwardingState: ReactionState.Done, reactionEvents: [transferAttempt, mailAttempt] },
+        { ...run, forwardingState: ReactionState.Done, reactionEvents: [transferAttempt, mailAttempt, resetEvent] },
       );
     });
 
     cy.visit(`/admin/recordings/${jobId}#reactions`);
 
-    // A column without a heading, such as the one of the toggle, leaves no empty column header to announce.
-    cy.dataCy("summary-reactionEvents")
-      .find("thead th")
-      .each(header => expect(header.text().trim()).not.to.equal(""));
+    // The header tells what happened to which reaction and how it ended, without opening the attempt.
+    cy.dataCy("reactionEvent-info-1")
+      .should("contain", "attempt 1")
+      .and("contain", "info")
+      .and("contain", "notification")
+      .and("contain", "Done after 1 s");
+    cy.dataCy("reactionEvent-ablage-reset")
+      .should("contain", "retry requested")
+      .find("[aria-expanded]")
+      .should("not.exist");
 
-    // The transfer was recorded before the protocol kept the configuration, so only the mail opens. Its toggle keeps
-    // its name and tells the state through aria-expanded, as a disclosure button does.
-    cy.dataCy("reactionEventConfigToggle").should("have.length", 1).and("have.attr", "aria-expanded", "false");
-    cy.dataCy("reactionEventConfigToggle")
-      .invoke("attr", "aria-label")
-      .then(name => {
-        cy.dataCy("reactionEventConfigToggle").click();
-        cy.dataCy("reactionEventConfigToggle")
-          .should("have.attr", "aria-expanded", "true")
-          .and("have.attr", "aria-label", name);
-      });
-    cy.dataCy("reactionEventConfigToggle")
-      .invoke("attr", "aria-controls")
-      .then(id => cy.get(`[id="${id}"]`).should("contain", "3.2.17"));
-    cy.dataCy("reactionEventConfig").should("contain", "3.2.17");
-    cy.get('[data-cy^="reactionEventConfig-"]')
-      .then(rows => rows.toArray().map(row => row.dataset.cy))
-      .should("deep.equal", [
-        "reactionEventConfig-host",
-        "reactionEventConfig-password",
-        "reactionEventConfig-template",
-        "reactionEventConfig-to",
-      ]);
-    cy.dataCy("reactionEventConfig-password").should("contain", "**********").and("contain", "installation");
-    cy.dataCy("reactionEventConfig-template")
-      .should("contain", "mail/info.html")
-      .and("contain", "pipeline definition")
-      .and("contain", "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581");
-    cy.dataCy("reactionEventConfig-to")
-      .should("contain", "empfang@example.com, kopie@example.com")
-      .and("contain", "mandate");
-
-    cy.dataCy("reactionEventConfigToggle").click();
-    cy.dataCy("reactionEventConfig").should("not.exist");
+    cy.dataCy("reactionEvent-info-1").find('[aria-expanded="false"]').click();
+    cy.dataCy("reactionEvent-info-1").find('[aria-expanded="true"]').should("exist");
+    cy.dataCy("reactionEvent-info-1").within(() => {
+      cy.dataCy("summary-channel")
+        .should("contain", "Geopilot.Pipeline.Channels.Mail.MailChannel")
+        .and("contain", "3.2.17");
+      cy.get('[data-cy^="reactionEventConfig-"]')
+        .then(rows => rows.toArray().map(row => row.dataset.cy))
+        .should("deep.equal", [
+          "reactionEventConfig-host",
+          "reactionEventConfig-password",
+          "reactionEventConfig-template",
+          "reactionEventConfig-to",
+        ]);
+      cy.dataCy("reactionEventConfig-password").should("contain", "**********").and("contain", "installation");
+      cy.dataCy("reactionEventConfig-template")
+        .should("contain", "mail/info.html")
+        .and("contain", "pipeline definition")
+        .and("contain", "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581");
+      cy.dataCy("reactionEventConfig-to")
+        .should("contain", "empfang@example.com, kopie@example.com")
+        .and("contain", "mandate");
+      cy.dataCy("summary-message").should("contain", "Delivered to the target.");
+    });
   });
 
   it("keeps loading the run again after one of the loads failed", () => {
@@ -244,7 +251,7 @@ describe("Recording", () => {
     });
     tickUntil(() => expect(answers.attempted, "loads after the failed one").to.be.greaterThan(0));
 
-    cy.contains("td", "Delivered to the target.").should("be.visible");
+    cy.dataCy("reactionEvent-ablage-1").should("be.visible");
   });
 
   it("opens another attempt of the delivery on its own page and the same tab", () => {
