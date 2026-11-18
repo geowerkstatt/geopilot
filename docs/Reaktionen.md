@@ -59,7 +59,7 @@ In der Administration zeigt die Lieferungsübersicht für jede Lieferung den zus
 
 Die Meldung erscheint in der Sprache der Oberfläche; die API liefert sie als Objekt mit einem Text pro Sprache. Was ein Server oder eine Ausnahme dazu meldet, etwa die Antwort des Mailservers, steht unübersetzt darin. Das Log schreibt die englische Fassung.
 
-Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
+Jeder Zustellversuch steht im Protokoll des Jobs, aus dem die Lieferung stammt ([Ausführungsprotokoll](Ausfuehrungsprotokoll.md)): in der Tabelle `RecordingReactionEvents` und über die API unter `GET api/v1/recording/{jobId}` als `reactionEvents`.
 
 Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWorker` und `Geopilot.Api.Reactions.ReactionStore`:
 

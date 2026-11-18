@@ -32,7 +32,7 @@ public class ReactionWorkerTest
     private DeliveryReactionOptions reactionOptions;
     private PipelineOptions pipelineOptions;
     private Mock<ILogger<ReactionWorker>> loggerMock;
-    private Mock<IPipelineRunRecorder> recorderMock;
+    private Mock<IRecorder> recorderMock;
     private User user;
     private Delivery delivery;
 
@@ -49,7 +49,7 @@ public class ReactionWorkerTest
         reactionOptions = new DeliveryReactionOptions { RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)] };
         pipelineOptions = new PipelineOptions { Definition = "pipeline.yaml" };
         loggerMock = new Mock<ILogger<ReactionWorker>>();
-        recorderMock = new Mock<IPipelineRunRecorder>();
+        recorderMock = new Mock<IRecorder>();
 
         user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString(), FullName = "Erika Muster", Email = "erika.muster@example.com" }).Entity;
         delivery = AddDelivery(deliveredByUser: user);
@@ -438,7 +438,7 @@ public class ReactionWorkerTest
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(provider => provider.GetService(typeof(Context))).Returns(context);
         serviceProviderMock.Setup(provider => provider.GetService(typeof(IAssetFileStore))).Returns(assetStore);
-        serviceProviderMock.Setup(provider => provider.GetService(typeof(IPipelineRunRecorder))).Returns(recorderMock.Object);
+        serviceProviderMock.Setup(provider => provider.GetService(typeof(IRecorder))).Returns(recorderMock.Object);
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(scope => scope.ServiceProvider).Returns(serviceProviderMock.Object);
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();

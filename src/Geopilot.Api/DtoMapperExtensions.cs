@@ -187,12 +187,12 @@ internal static class DtoMapperExtensions
     }
 
     /// <summary>
-    /// Maps a <see cref="PipelineRun"/> including its children to a <see cref="PipelineRunResponse"/>.
+    /// Maps a <see cref="Recording"/> including its children to a <see cref="RecordingResponse"/>.
     /// The definition snapshot is deliberately not part of the response; it is served by its own endpoint.
     /// </summary>
-    public static PipelineRunResponse ToResponse(this PipelineRun run, PipelineRunOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState, List<PipelineRunSummaryResponse> attempts)
+    public static RecordingResponse ToResponse(this Recording run, RecordingOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState, List<RecordingSummaryResponse> attempts)
     {
-        return new PipelineRunResponse(
+        return new RecordingResponse(
             run.JobId,
             run.PipelineId,
             run.AppVersion,
@@ -212,7 +212,7 @@ internal static class DtoMapperExtensions
             run.DeliveryFailure,
             run.Files
                 .OrderBy(file => file.Id)
-                .Select(file => new PipelineRunFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))
+                .Select(file => new RecordingFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))
                 .ToList(),
             run.Steps
                 .OrderBy(step => step.Order)
@@ -221,7 +221,7 @@ internal static class DtoMapperExtensions
             run.ReactionEvents
                 .OrderBy(reactionEvent => reactionEvent.OccurredAt)
                 .ThenBy(reactionEvent => reactionEvent.Id)
-                .Select(reactionEvent => new PipelineRunReactionEventResponse(
+                .Select(reactionEvent => new RecordingReactionEventResponse(
                     reactionEvent.DeliveryId,
                     reactionEvent.ReactionId,
                     reactionEvent.ReactionKind,
@@ -243,32 +243,32 @@ internal static class DtoMapperExtensions
     }
 
     /// <summary>
-    /// Names who started the <paramref name="run"/>, from its loaded <see cref="PipelineRun.User"/> or
-    /// <see cref="PipelineRun.MachineClient"/>; <see langword="null"/> when it was started without signing in.
+    /// Names who started the <paramref name="run"/>, from its loaded <see cref="Recording.User"/> or
+    /// <see cref="Recording.MachineClient"/>; <see langword="null"/> when it was started without signing in.
     /// </summary>
-    internal static PipelineRunStarter? ToStarter(this PipelineRun run)
+    internal static RecordingStarter? ToStarter(this Recording run)
     {
         if (run.User is not null)
-            return new PipelineRunStarter(run.User.Id, null, run.User.FullName);
+            return new RecordingStarter(run.User.Id, null, run.User.FullName);
 
         if (run.MachineClient is not null)
-            return new PipelineRunStarter(null, run.MachineClient.Id, run.MachineClient.Name);
+            return new RecordingStarter(null, run.MachineClient.Id, run.MachineClient.Name);
 
         return null;
     }
 
     /// <summary>
-    /// Points at the loaded <see cref="PipelineRun.Mandate"/> of the <paramref name="run"/>, if any.
+    /// Points at the loaded <see cref="Recording.Mandate"/> of the <paramref name="run"/>, if any.
     /// </summary>
-    internal static MandateReference? ToMandateReference(this PipelineRun run) =>
+    internal static MandateReference? ToMandateReference(this Recording run) =>
         run.Mandate is null ? null : new MandateReference(run.Mandate.Id, run.Mandate.Name);
 
     private static Dictionary<string, string?>? DeserializeEvaluatedValues(string? evaluatedValues) =>
         evaluatedValues is null ? null : JsonSerializer.Deserialize<Dictionary<string, string?>>(evaluatedValues);
 
-    private static PipelineRunStepResponse ToResponse(this PipelineRunStep step)
+    private static RecordingStepResponse ToResponse(this RecordingStep step)
     {
-        return new PipelineRunStepResponse(
+        return new RecordingStepResponse(
             step.StepId,
             step.DisplayName,
             step.ProcessImplementation,
@@ -282,7 +282,7 @@ internal static class DtoMapperExtensions
             step.ConditionMessage,
             step.Inputs
                 .OrderBy(input => input.Id)
-                .Select(input => new PipelineRunInputResponse(
+                .Select(input => new RecordingInputResponse(
                     input.Parameter,
                     input.Origin,
                     input.Reference,
@@ -295,7 +295,7 @@ internal static class DtoMapperExtensions
                 .ToList(),
             step.Conditions
                 .OrderBy(condition => condition.Id)
-                .Select(condition => new PipelineRunConditionResponse(
+                .Select(condition => new RecordingConditionResponse(
                     condition.ConditionId,
                     condition.Phase,
                     condition.Kind,
@@ -305,7 +305,7 @@ internal static class DtoMapperExtensions
                 .ToList(),
             step.Artifacts
                 .OrderBy(artifact => artifact.Id)
-                .Select(artifact => new PipelineRunArtifactResponse(
+                .Select(artifact => new RecordingArtifactResponse(
                     artifact.Kind,
                     artifact.OriginalFileName,
                     artifact.PersistedFileName,

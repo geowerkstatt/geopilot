@@ -66,7 +66,7 @@ public class JobLifecycle
     /// was created then.</exception>
     /// <remarks>
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
-    /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
+    /// and without the record nothing could account for it (see <see cref="IRecorder"/>).
     /// </remarks>
     public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Supplier? supplier, bool mayDeliver, DeliveryFields? deliveryFields)
     {
@@ -95,7 +95,7 @@ public class JobLifecycle
             // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
             // can crash the job.
             using var scope = serviceScopeFactory.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>()
+            await scope.ServiceProvider.GetRequiredService<IRecorder>()
                 .RecordJobStartedAsync(jobWithPipeline, mandate, supplier, upload);
         }
         catch
@@ -277,8 +277,8 @@ public class JobLifecycle
     /// Runs one protocol write. The recorder swallows its own write failures; the guard additionally covers
     /// resolving it.
     /// </summary>
-    private Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record) =>
-        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IPipelineRunRecorder>()));
+    private Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record) =>
+        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IRecorder>()));
 
     /// <summary>
     /// Carries out one consequence against a fresh scope, because the services behind it depend on the scoped

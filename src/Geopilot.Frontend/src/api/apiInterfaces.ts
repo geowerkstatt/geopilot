@@ -159,7 +159,7 @@ export interface TableVisualizationConfig {
 }
 
 /**
- * The definition snapshot a pipeline run executed on, as GET api/v1/pipelinerun/{jobId}/definition passes it through:
+ * The definition snapshot a job ran on, as GET api/v1/recording/{jobId}/definition passes it through:
  * shaped like a definition file, so its keys are the YAML keys. Every part is optional, as older snapshots may lack it.
  */
 export interface DefinitionSnapshot {

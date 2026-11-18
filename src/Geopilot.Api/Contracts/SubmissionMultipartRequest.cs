@@ -47,7 +47,7 @@ public class SubmissionMultipartRequest
     /// control or invisible format characters; white space at either end is dropped, and nothing but white space
     /// counts as none. Never checked against earlier attempts. Sent before the files.
     /// </summary>
-    [MaxLength(PipelineRun.ClientReferenceMaxLength)]
+    [MaxLength(Recording.ClientReferenceMaxLength)]
     public string? ClientReference { get; set; }
 
     /// <summary>

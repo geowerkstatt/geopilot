@@ -113,7 +113,7 @@ public class SubmissionHttpTest
         using var installation = new MachineDeliveryTestApp(backend: UploadBackend.Cloud);
         using var client = CreateAuthenticatedClient(installation);
         var uploadId = await InitiateUploadAsync(client);
-        var clientReference = $"  {new string('x', PipelineRun.ClientReferenceMaxLength)}  ";
+        var clientReference = $"  {new string('x', Recording.ClientReferenceMaxLength)}  ";
         using var body = JsonContent.Create(new { mandateKey = MandateKey, uploadId, clientReference });
 
         var response = await client.PostAsync("/api/v1/submission", body);
