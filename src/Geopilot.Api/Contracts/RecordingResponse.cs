@@ -171,6 +171,7 @@ public record RecordingArtifactResponse(
 /// </summary>
 /// <param name="DeliveryId">The id of the delivery the reaction belongs to.</param>
 /// <param name="ReactionId">The id of the reaction in its set.</param>
+/// <param name="ReactionDisplayName">The name of the reaction in the pipeline definition as it is now, or <see langword="null"/> when the definition no longer has the reaction.</param>
 /// <param name="ReactionKind">Whether the reaction forwards the delivery or reports on it.</param>
 /// <param name="Implementation">The channel that runs the reaction.</param>
 /// <param name="Event">What happened.</param>
@@ -185,6 +186,7 @@ public record RecordingArtifactResponse(
 public record RecordingReactionEventResponse(
     int DeliveryId,
     string ReactionId,
+    LocalizedText? ReactionDisplayName,
     ReactionKind ReactionKind,
     string Implementation,
     ReactionEvent Event,

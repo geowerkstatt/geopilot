@@ -1119,6 +1119,12 @@ export type RecordingReactionEventResponse = {
    * The id of the reaction in its set.
    */
   reactionId: string;
+  /**
+   * The name of the reaction in the pipeline definition as it is now, or null when the definition no longer has the reaction.
+   */
+  reactionDisplayName?: {
+    [key: string]: string;
+  } | null;
   reactionKind: ReactionKind;
   /**
    * The channel that runs the reaction.

@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
+using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,6 +19,7 @@ public sealed class RecordingControllerTest
 
     private Context context;
     private Mock<IProcessingService> processingServiceMock;
+    private Mock<IPipelineFactory> pipelineFactoryMock;
     private RecordingController controller;
 
     [TestInitialize]
@@ -25,7 +27,9 @@ public sealed class RecordingControllerTest
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
         processingServiceMock = new Mock<IProcessingService>();
-        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, processingServiceMock.Object);
+        pipelineFactoryMock = new Mock<IPipelineFactory>();
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
+        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, processingServiceMock.Object, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -91,6 +95,29 @@ public sealed class RecordingControllerTest
         Assert.AreEqual(TestHelpers.Localized("The target is not reachable."), first.Message);
         Assert.IsNotNull(first.FinishedAt);
         Assert.IsNull(first.UserId);
+    }
+
+    [TestMethod]
+    public async Task GetNamesEachReactionAfterTheDefinition()
+    {
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns(
+        [
+            new ReactionSetConfig
+            {
+                Id = "kanton_a",
+                DisplayName = TestHelpers.Localized("Kanton A"),
+                Transfers = [new ReactionConfig { Id = "weitergabe", DisplayName = TestHelpers.Localized("Weitergabe ins Archiv"), ChannelId = "ablage" }],
+            },
+        ]);
+
+        // The definition no longer has the reaction of the first attempt, so that one keeps its id only.
+        var run = SeedRun(run => run.ReactionEvents.Single(reactionEvent => reactionEvent.Attempt == 1).ReactionId = "entfernt");
+
+        var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
+
+        Assert.AreEqual("entfernt", response.ReactionEvents[0].ReactionId);
+        Assert.IsNull(response.ReactionEvents[0].ReactionDisplayName);
+        Assert.AreEqual(TestHelpers.Localized("Weitergabe ins Archiv"), response.ReactionEvents[1].ReactionDisplayName);
     }
 
     [TestMethod]
