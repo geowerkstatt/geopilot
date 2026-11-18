@@ -48,9 +48,7 @@ export const ReactionEventConfig: FC<ReactionEventConfigProps> = ({ appVersion, 
                   <TableRow key={parameter} data-cy={`reactionEventConfig-${parameter}`}>
                     <TableCell>{parameter}</TableCell>
                     {value ? (
-                      <TableCell>
-                        <TechnicalText>{value}</TechnicalText>
-                      </TableCell>
+                      <TableCell>{value}</TableCell>
                     ) : (
                       <TableCell sx={{ color: "text.secondary", fontStyle: "italic" }}>
                         {t(value === null ? "configValueNotSet" : "configValueEmpty")}
