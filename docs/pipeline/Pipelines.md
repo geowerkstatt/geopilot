@@ -357,6 +357,8 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
+Auch `refMappings` ist keine Konfiguration: geopilot bindet beim Start des Jobs die [Zuordnung der Referenzdaten aus dem Admin-Portal](Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal) an diesen Parameter, oder `null`, wenn `RefMapping:Enabled` aus ist. Sein Typ ist intern; ein Plugin bekommt die Zuordnung nicht.
+
 ```csharp
 public XtfValidatorProcess(
     string? validationProfile,
@@ -367,6 +369,7 @@ public XtfValidatorProcess(
     string? toolVersion,
     IPipelineFile? modelRepository,
     IPipelineFile? refMappingFile,
+    IRefMappings? refMappings,
     IIlivalidatorClient ilivalidatorClient,
     IPipelineFileManager pipelineFileManager,
     ILogger logger)
