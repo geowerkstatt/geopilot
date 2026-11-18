@@ -20,7 +20,7 @@ import {
   summarize,
   SUMMARY_PREFIXES,
 } from "./diff/diffObjects";
-import { FieldFilters, FilterBar } from "./filterBar";
+import { AttributeFilterBar, FieldFilters } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
 import { MapListLayout } from "./mapListLayout";
@@ -232,7 +232,7 @@ export const XtfDiffVisualization: FC<XtfDiffVisualizationProps> = ({ config }) 
 
   const layout = fullscreen || isPhone ? "narrow" : "wide";
   const filter = (
-    <FilterBar
+    <AttributeFilterBar
       attributes={attributes}
       searchPlaceholder="diffSearch"
       messageQuery={query}

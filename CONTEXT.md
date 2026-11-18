@@ -6,13 +6,13 @@ Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferu
 
 Alles, was geopilot zur Verarbeitung eines Uploads mit einem Mandat im Speicher hält: Zustand, Pipeline und den Verweis auf den Upload. Ein Job entsteht beim Start und lebt bis zu seinem Retirement. Pro Upload ist höchstens ein Job aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis dieser Job endet. Scheitert der Start, bleibt kein Job zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
 
-## Lauf
+## Protokoll
 
-Was das Ausführungsprotokoll zu einem Job festhält, vom Start über Preflight und die Schritte der Pipeline bis zum Ausgang. Heute gehört zu jedem Job genau ein Lauf. Anders als der Job überlebt der Lauf das Retirement und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Im Code: `PipelineRun`.
+Was das Ausführungsprotokoll zu einem Job festhält, den ganzen Weg vom Start über Preflight und die Schritte der Pipeline bis zur Lieferung und ihren Reaktionen, auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jedem Job genau ein Protokoll. Anders als der Job überlebt es das Retirement und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
 
 ## Ausgang
 
-Wie die Pipeline eines Laufs geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
+Wie die Pipeline eines Jobs geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
 
 ## Folgen
 
@@ -24,27 +24,27 @@ Das Löschen der hochgeladenen Dateien eines Jobs aus dem Upload-Speicher. Ob si
 
 ## Retirement
 
-Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetention` vergangen ist: der Eintrag im Speicher sowie seine Downloads, Visualisierungen, Arbeits- und Staging-Verzeichnisse. Deklarierte Lieferungen und der Lauf im Protokoll bleiben erhalten. Den Upload gibt das Retirement nicht frei, der ist dann schon freigegeben oder wird bis zum Ablauf seiner Session behalten. Im Code: `ProcessingJobCleanupService`, für den Job selbst `JobLifecycle.Retire`.
+Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetention` vergangen ist: der Eintrag im Speicher sowie seine Downloads, Visualisierungen, Arbeits- und Staging-Verzeichnisse. Lieferungen und sein Protokoll bleiben erhalten. Den Upload gibt das Retirement nicht frei, der ist dann schon freigegeben oder wird bis zum Ablauf seiner Session behalten. Im Code: `ProcessingJobCleanupService`, für den Job selbst `JobLifecycle.Retire`.
 
-## Deklarierbar
+## Lieferberechtigt
 
-Ob aus einem Lauf je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Lauf, den niemand deklarieren kann, staged der Runner nicht, und seine Deklaration wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.IsDeclarable`, entschieden in `MandateService.IsDeclarableAsync`.
+Ob aus einem Job je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Job, den niemand abgeben darf, staged der Runner nicht, und seine Lieferung wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.MayDeliver`, entschieden in `MandateService.MayDeliverAsync`.
 
 ## Versuch
 
-Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung deklariert oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
+Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
 ## Verantwortliche Person
 
-Eine Person, die ein Admin einem Maschinen-Client zuordnet, auf der Seite des Clients; die Seite der Person zeigt sie als «Verantwortlich für Maschinen-Clients». Sie sieht die Lieferungen des Clients unter «Meine Lieferungen», auch die vor der Zuordnung und die eines deaktivierten Clients, darf sie im Löschfenster löschen wie eigene und bekommt die Info-Mail mit `includeDeclarer`, solange sie aktiv ist. Rechte auf die Mandate des Clients bekommt sie dadurch nicht, und gemeinsame Organisationen machen niemanden verantwortlich. Im Code: `MachineClient.ResponsibleUsers`, Tabelle `MachineClientUser`.
+Eine Person, die ein Admin einem Maschinen-Client zuordnet, auf der Seite des Clients; die Seite der Person zeigt sie als «Verantwortlich für Maschinen-Clients». Sie sieht die Lieferungen des Clients unter «Meine Lieferungen», auch die vor der Zuordnung und die eines deaktivierten Clients, darf sie im Löschfenster löschen wie eigene und bekommt die Info-Mail mit `includeSupplier`, solange sie aktiv ist. Rechte auf die Mandate des Clients bekommt sie dadurch nicht, und gemeinsame Organisationen machen niemanden verantwortlich. Im Code: `MachineClient.ResponsibleUsers`, Tabelle `MachineClientUser`.
 
 ## Lieferabsicht
 
-Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst deklariert, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Scheitert die Deklaration, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, deklariert in `JobLifecycle.RunFinishedAsync`.
+Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst erstellt, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Wird die Lieferung abgewiesen, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, erstellt in `JobLifecycle.RunFinishedAsync`.
 
 ## Löschfenster
 
-Die Zeit nach der Deklaration, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`), bei einem Maschinen-Client eine verantwortliche Person. Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.
+Die Zeit nach der Abgabe, in der ein Lieferant seine Lieferung noch selbst löschen darf (`Delivery:UploaderDeleteEnabled`), bei einem Maschinen-Client eine verantwortliche Person. Es schliesst nach `Delivery:DeleteDuration` oder beim nächsten Zeitpunkt aus `Delivery:DeleteRestrictInterval`, je nachdem, was früher kommt; das Intervall gilt in der Zeitzone des Servers. Ohne beide Grenzen schliesst es nie. Admins löschen unabhängig davon. Im Code: `DeliveryOptions.GetDeleteWindowEnd`.
 
 ## Reaktion
 
@@ -68,4 +68,4 @@ Was eine Reaktion ausführt, etwa die Ablage. Die Pipeline-Definition führt die
 
 ## Info-Mail
 
-Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Satz nennt. Mit dem Schalter `includeDeclarer` geht sie auch an den Lieferanten, bei einem Maschinen-Client an seine verantwortlichen Personen, und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.
+Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Satz nennt. Mit dem Schalter `includeSupplier` geht sie auch an den Lieferanten, bei einem Maschinen-Client an seine verantwortlichen Personen, und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.

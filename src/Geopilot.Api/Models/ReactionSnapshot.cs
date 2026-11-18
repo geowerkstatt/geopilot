@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace Geopilot.Api.Models;
 
 /// <summary>
-/// What a reaction keeps from its set when the delivery is declared, stored as <see cref="DeliveryReaction.Config"/>,
-/// so a later change to the set or the mandate does not reach a delivery that is already declared. The values of the
+/// What a reaction keeps from its set when the delivery is created, stored as <see cref="DeliveryReaction.Config"/>,
+/// so a later change to the set or the mandate does not reach a delivery that already exists. The values of the
 /// pipeline definition and of the mandate stay apart, so a mandate value still only reaches a parameter the channel
 /// marks for it. The base configuration is not part of it: every attempt reads it anew, so the credentials it holds
 /// stay out of the snapshot.

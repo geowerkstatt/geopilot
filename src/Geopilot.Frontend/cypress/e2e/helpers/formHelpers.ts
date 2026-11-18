@@ -71,6 +71,20 @@ export const setInput = (fieldName: string, value: string, parent?: string) => {
 };
 
 /**
+ * Types a date into a date field, day first as every language of the app orders it.
+ * @param fieldName The name of the form element.
+ * @param date The date as yyyy-mm-dd, or with its time as yyyy-mm-ddThh:mm.
+ * @param parent (optional) The parent of the form element.
+ */
+export const setDate = (fieldName: string, date: string, parent?: string) => {
+  const [year, month, day, hours = "", minutes = ""] = date.split(/[-T:]/);
+  cy.get(createBaseSelector(parent) + `[data-cy="${fieldName}-formInput"] [role="spinbutton"]`)
+    .first()
+    .click()
+    .type(`${day}${month}${year}${hours}${minutes}`);
+};
+
+/**
  * Selects the language that the localized form inputs are edited in.
  * @param language The language code of the tab, for example "de".
  * @param parent (optional) The parent of the language tabs.

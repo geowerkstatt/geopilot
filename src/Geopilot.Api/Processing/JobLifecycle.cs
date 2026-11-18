@@ -64,21 +64,21 @@ public class JobLifecycle
     /// <param name="upload">The upload whose files the job processes.</param>
     /// <param name="mandate">The mandate the upload is processed against.</param>
     /// <param name="pipelineId">The pipeline of the mandate, which the caller has checked to be set.</param>
-    /// <param name="declarer">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
-    /// <param name="isDeclarable">Whether the run can become a delivery, see <see cref="ProcessingJob.IsDeclarable"/>.</param>
-    /// <param name="deliveryFields">The delivery fields of a machine delivery, which geopilot then declares itself
+    /// <param name="supplier">Who starts the job, or <see langword="null"/> for an anonymous start.</param>
+    /// <param name="mayDeliver">Whether whoever started the run may deliver to its mandate, see <see cref="ProcessingJob.MayDeliver"/>.</param>
+    /// <param name="deliveryFields">The delivery fields of a machine delivery, which geopilot then creates itself
     /// once the run allows it (see <see cref="ProcessingJob.DeliveryIntent"/>); <see langword="null"/> for a start
-    /// whose delivery is declared by hand, if at all.</param>
+    /// whose delivery is created by hand, if at all.</param>
     /// <returns>The pending job with its pipeline attached.</returns>
     /// <exception cref="ArgumentException">If <paramref name="deliveryFields"/> come without a
-    /// <paramref name="declarer"/> to declare the delivery for.</exception>
+    /// <paramref name="supplier"/> to create the delivery for.</exception>
     /// <exception cref="JobAlreadyActiveException">If a job for the upload is still pending or running. Nothing
     /// was created then.</exception>
     /// <remarks>
     /// Whatever creating the pipeline or writing the start record throws is rethrown: accepting a job is a promise,
-    /// and without the record nothing could account for it (see <see cref="IPipelineRunRecorder"/>).
+    /// and without the record nothing could account for it (see <see cref="IRecorder"/>).
     /// </remarks>
-    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Declarer? declarer, bool isDeclarable, DeliveryFields? deliveryFields)
+    public async Task<ProcessingJob> StartAsync(UploadInfo upload, Mandate mandate, string pipelineId, Supplier? supplier, bool mayDeliver, DeliveryFields? deliveryFields)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(mandate);
@@ -88,11 +88,11 @@ public class JobLifecycle
         var deliveryIntent = deliveryFields is null
             ? null
             : new DeliveryIntent(
-                declarer ?? throw new ArgumentException("A delivery can only be declared for a known declarer.", nameof(declarer)),
+                supplier ?? throw new ArgumentException("A delivery can only be created for a known supplier.", nameof(supplier)),
                 mandate.Key ?? string.Empty,
                 deliveryFields);
 
-        var job = jobStore.CreateJob(upload.Id, isDeclarable, deliveryIntent);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver, deliveryIntent);
         IPipeline? pipeline = null;
         ProcessingJob jobWithPipeline;
         try
@@ -107,8 +107,8 @@ public class JobLifecycle
 
             // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
             // can crash the job.
-            await scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>()
-                .RecordJobStartedAsync(jobWithPipeline, mandate, declarer, upload, bindings.ToSnapshotJson());
+            await scope.ServiceProvider.GetRequiredService<IRecorder>()
+                .RecordJobStartedAsync(jobWithPipeline, mandate, supplier, upload, bindings.ToSnapshotJson());
         }
         catch
         {
@@ -164,7 +164,7 @@ public class JobLifecycle
             logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
 
         if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
-            await DeclareDeliveryAsync(jobId, deliveryIntent, cancellationToken);
+            await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
 
         // During a shutdown a slow database must not use up the time the host grants for stopping.
         // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
@@ -235,81 +235,67 @@ public class JobLifecycle
     public void Retire(Guid jobId) => jobStore.RemoveJob(jobId);
 
     /// <summary>
-    /// Declares the delivery of a job whose start carried a <see cref="DeliveryIntent"/>, on the caller's behalf.
+    /// Creates the delivery of a job whose start carried a <see cref="DeliveryIntent"/>, on the caller's behalf.
     /// Nothing else answers that caller, who polls the attempt, so a refusal or an error is recorded on the job and in
     /// the execution protocol instead of only being logged.
     /// </summary>
-    private Task DeclareDeliveryAsync(Guid jobId, DeliveryIntent deliveryIntent, CancellationToken cancellationToken) =>
-        CarryOutAsync(jobId, "declare the delivery", LogLevel.Warning, async services =>
+    private Task CreateDeliveryAsync(Guid jobId, DeliveryIntent deliveryIntent, CancellationToken cancellationToken) =>
+        CarryOutAsync(jobId, "create the delivery", LogLevel.Warning, async services =>
         {
-            DeliveryDeclarationResult result;
+            DeliveryCreationResult result;
             try
             {
-                result = await services.GetRequiredService<IDeliveryDeclarationService>()
-                    .DeclareAsync(jobId, deliveryIntent.Fields, deliveryIntent.Declarer, cancellationToken);
+                result = await services.GetRequiredService<IDeliveryCreationService>()
+                    .CreateAsync(jobId, deliveryIntent.Fields, deliveryIntent.Supplier, cancellationToken);
             }
             catch (Exception ex)
             {
                 // Otherwise the attempt would report a delivery in progress until the job is retired.
-                await RecordDeclarationFailureAsync(jobId, "The delivery could not be declared because of an unexpected error.");
-                logger.LogError(ex, "Declaring the delivery for job <{JobId}> failed unexpectedly.", jobId);
+                await RecordDeliveryFailureAsync(jobId, DeliveryCreationResult.UnexpectedFailureDescription);
+                logger.LogError(ex, "Creating the delivery for job <{JobId}> failed unexpectedly.", jobId);
                 return;
             }
 
             switch (result.Status)
             {
-                case DeliveryDeclarationStatus.Created:
-                    logger.LogInformation("Declared delivery <{DeliveryId}> for job <{JobId}>.", result.DeliveryId, jobId);
+                case DeliveryCreationStatus.Created:
+                    logger.LogInformation("Created delivery <{DeliveryId}> for job <{JobId}>.", result.DeliveryId, jobId);
                     break;
 
-                case DeliveryDeclarationStatus.AlreadyDeclared:
+                case DeliveryCreationStatus.AlreadyDelivered:
                     logger.LogInformation("Job <{JobId}> was already delivered as <{DeliveryId}>, so the attempt adopts it.", jobId, result.DeliveryId);
                     break;
 
-                case DeliveryDeclarationStatus.JobNotDeliverable:
+                case DeliveryCreationStatus.JobNotDeliverable:
                     // Data that did not pass: the run's own state already says so, and the attempt reports it as
-                    // rejected rather than as a failed declaration.
-                    logger.LogInformation("Job <{JobId}> did not allow a delivery, so none was declared.", jobId);
+                    // rejected rather than as a failed creation.
+                    logger.LogInformation("Job <{JobId}> did not allow a delivery, so none was created.", jobId);
                     break;
 
                 default:
-                    await RecordDeclarationFailureAsync(jobId, DescribeDeclarationFailure(result));
-                    logger.LogWarning("Could not declare the delivery for job <{JobId}>: {Status}.", jobId, result.Status);
+                    await RecordDeliveryFailureAsync(jobId, result.DescribeFailure());
+                    logger.LogWarning("Could not create the delivery for job <{JobId}>: {Status}.", jobId, result.Status);
                     break;
             }
         });
 
     /// <summary>
-    /// Records why the delivery could not be declared: on the job, for the caller polling the attempt, and in the
+    /// Records why geopilot could not create the delivery: on the job, for the caller polling the attempt, and in the
     /// execution protocol, which keeps it beyond the job's retention. The protocol write takes a scope of its own,
-    /// so it does not save along whatever the failed declaration left in its database context.
+    /// so it does not save along whatever the failed creation left in its database context.
     /// </summary>
-    private async Task RecordDeclarationFailureAsync(Guid jobId, string reason)
+    private async Task RecordDeliveryFailureAsync(Guid jobId, string reason)
     {
-        jobStore.RecordDeclarationFailure(jobId, reason);
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordDeclarationFailedAsync(jobId, reason));
-    }
-
-    /// <summary>
-    /// Turns a refused declaration into the one sentence the caller gets to read. Violated field rules carry their
-    /// detail in <see cref="DeliveryDeclarationResult.FieldErrors"/> rather than in the message, and the status
-    /// alone would not say which field the caller has to correct.
-    /// </summary>
-    private static string DescribeDeclarationFailure(DeliveryDeclarationResult result)
-    {
-        if (result.FieldErrors is not { Count: > 0 })
-            return result.Message ?? $"The delivery was refused ({result.Status}).";
-
-        var violations = result.FieldErrors.Select(error => $"{error.Key}: {string.Join(" ", error.Value)}");
-        return $"The delivery details do not satisfy the mandate. {string.Join(" ", violations)}";
+        jobStore.RecordDeliveryFailure(jobId, reason);
+        await RecordProtocolAsync(jobId, recorder => recorder.RecordDeliveryFailedAsync(jobId, reason));
     }
 
     /// <summary>
     /// Runs one protocol write. The recorder swallows its own write failures; the guard additionally covers
     /// resolving it.
     /// </summary>
-    private Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record) =>
-        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IPipelineRunRecorder>()));
+    private Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record) =>
+        CarryOutAsync(jobId, "write the execution protocol", LogLevel.Warning, services => record(services.GetRequiredService<IRecorder>()));
 
     /// <summary>
     /// Carries out one consequence against a fresh scope, because the services behind it depend on the scoped

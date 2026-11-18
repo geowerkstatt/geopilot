@@ -147,3 +147,7 @@ export const isSelectedNavItem = (item: string, parent?: string) => {
 export const getGridRowThatContains = (grid: string, text: string) => {
   return cy.dataCy(grid).find(".MuiDataGrid-row").contains(text).parents(".MuiDataGrid-row");
 };
+
+export const getTableRowThatContains = (table: string, text: string) => {
+  return cy.dataCy(table).find("tbody tr").contains(text).parents("tr");
+};

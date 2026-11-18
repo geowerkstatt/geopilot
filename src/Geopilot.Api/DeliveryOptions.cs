@@ -47,26 +47,26 @@ public class DeliveryOptions : IValidatableObject
     internal TimeZoneInfo TimeZone { get; init; } = TimeZoneInfo.Local;
 
     /// <summary>
-    /// Gets when an uploader can no longer delete a delivery declared at <paramref name="declaredAt"/>, in UTC.
-    /// Without uploader deletion that is the declaration itself, and <see langword="null"/> means the window never closes.
+    /// Gets when an uploader can no longer delete a delivery created at <paramref name="deliveredAt"/>, in UTC.
+    /// Without uploader deletion that is the creation itself, and <see langword="null"/> means the window never closes.
     /// </summary>
-    /// <param name="declaredAt">When the delivery was declared; a value without <see cref="DateTimeKind"/> counts as UTC.</param>
-    public DateTime? GetDeleteWindowEnd(DateTime declaredAt)
+    /// <param name="deliveredAt">When the delivery was created; a value without <see cref="DateTimeKind"/> counts as UTC.</param>
+    public DateTime? GetDeleteWindowEnd(DateTime deliveredAt)
     {
-        var declaredAtUtc = declaredAt.Kind switch
+        var deliveredAtUtc = deliveredAt.Kind switch
         {
-            DateTimeKind.Utc => declaredAt,
-            DateTimeKind.Local => declaredAt.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(declaredAt, DateTimeKind.Utc),
+            DateTimeKind.Utc => deliveredAt,
+            DateTimeKind.Local => deliveredAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(deliveredAt, DateTimeKind.Utc),
         };
 
         if (!UploaderDeleteEnabled)
         {
-            return declaredAtUtc;
+            return deliveredAtUtc;
         }
 
-        var durationEnd = declaredAtUtc + DeleteDuration;
-        var intervalEnd = DeleteRestrictIntervalExpression?.GetNextOccurrence(declaredAtUtc, TimeZone);
+        var durationEnd = deliveredAtUtc + DeleteDuration;
+        var intervalEnd = DeleteRestrictIntervalExpression?.GetNextOccurrence(deliveredAtUtc, TimeZone);
 
         // Min skips null: the earlier bound wins, and without any bound the window stays open.
         return new[] { durationEnd, intervalEnd }.Min();

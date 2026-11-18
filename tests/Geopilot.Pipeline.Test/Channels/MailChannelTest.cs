@@ -15,17 +15,17 @@ public class MailChannelTest
         Id = 42,
         JobId = Guid.NewGuid(),
         ReactionId = "info_mail",
-        DeclaredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
+        DeliveredAt = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero),
         Mandate = new MandateInfo { Id = 7, Name = new Dictionary<string, string> { ["de"] = "Mandat A" } },
-        Declarer = new DeclarerInfo { Kind = DeclarerKind.User, Name = "Lieferant", Email = "lieferant@example.com" },
+        Supplier = new SupplierInfo { Kind = SupplierKind.User, Name = "Lieferant", Email = "lieferant@example.com" },
     };
 
-    private static readonly DeclarerInfo MachineClient = new() { Kind = DeclarerKind.MachineClient, Name = "Fachschale" };
+    private static readonly SupplierInfo MachineClient = new() { Kind = SupplierKind.MachineClient, Name = "Fachschale" };
 
     [TestMethod]
-    public void BuildMessageAddressesTheRecipientsAndTheDeclarer()
+    public void BuildMessageAddressesTheRecipientsAndTheSupplier()
     {
-        var channel = Channel(to: ["empfang@example.com"], cc: ["kopie@example.com"], bcc: ["archiv@example.com"], includeDeclarer: true);
+        var channel = Channel(to: ["empfang@example.com"], cc: ["kopie@example.com"], bcc: ["archiv@example.com"], includeSupplier: true);
 
         using var message = channel.BuildMessage(Delivery, ["daten.xtf"]);
 
@@ -53,10 +53,10 @@ public class MailChannelTest
     [TestMethod]
     public void BuildMessageAddressesTheUsersResponsibleForAMachineClient()
     {
-        var channel = Channel(to: ["empfang@example.com"], includeDeclarer: true);
-        var declarer = MachineClient with { ResponsibleUsers = [new("Betrieb Fachschale", "betrieb@example.com"), new("Ohne Domain", "betrieb")] };
+        var channel = Channel(to: ["empfang@example.com"], includeSupplier: true);
+        var supplier = MachineClient with { ResponsibleUsers = [new("Betrieb Fachschale", "betrieb@example.com"), new("Ohne Domain", "betrieb")] };
 
-        using var message = channel.BuildMessage(Delivery with { Declarer = declarer }, []);
+        using var message = channel.BuildMessage(Delivery with { Supplier = supplier }, []);
 
         CollectionAssert.AreEqual(new[] { "empfang@example.com", "betrieb@example.com" }, message.To.Mailboxes.Select(mailbox => mailbox.Address).ToList());
         Assert.AreEqual("Betrieb Fachschale", message.To.Mailboxes.Last().Name);
@@ -65,12 +65,12 @@ public class MailChannelTest
     [TestMethod]
     public void BuildMessageNamesEveryAddressOnce()
     {
-        // The declarer is in To already, and Cc and Bcc repeat addresses in another case.
+        // The supplier is in To already, and Cc and Bcc repeat addresses in another case.
         var channel = Channel(
             to: ["empfang@example.com", "Lieferant@Example.com"],
             cc: ["EMPFANG@example.com", "kopie@example.com"],
             bcc: ["kopie@example.com", "archiv@example.com", "Archiv@example.com"],
-            includeDeclarer: true);
+            includeSupplier: true);
 
         using var message = channel.BuildMessage(Delivery, []);
 
@@ -82,11 +82,11 @@ public class MailChannelTest
     [TestMethod]
     [DataRow(false, DisplayName = "Switch off")]
     [DataRow(true, DisplayName = "Machine client without responsible users")]
-    public void BuildMessageLeavesOutTheDeclarer(bool includeDeclarer)
+    public void BuildMessageLeavesOutTheSupplier(bool includeSupplier)
     {
-        var channel = Channel(to: ["empfang@example.com"], includeDeclarer: includeDeclarer);
+        var channel = Channel(to: ["empfang@example.com"], includeSupplier: includeSupplier);
 
-        using var message = channel.BuildMessage(includeDeclarer ? Delivery with { Declarer = MachineClient } : Delivery, []);
+        using var message = channel.BuildMessage(includeSupplier ? Delivery with { Supplier = MachineClient } : Delivery, []);
 
         Assert.AreEqual("empfang@example.com", message.To.Mailboxes.Single().Address);
     }
@@ -95,9 +95,9 @@ public class MailChannelTest
     public async Task DeliverAsyncSendsNothingWithoutARecipient()
     {
         // Nothing listens on the port: the channel must not even connect.
-        var channel = Channel(includeDeclarer: true, port: 9);
+        var channel = Channel(includeSupplier: true, port: 9);
 
-        var result = await channel.DeliverAsync(Delivery with { Declarer = MachineClient }, [], CancellationToken.None);
+        var result = await channel.DeliverAsync(Delivery with { Supplier = MachineClient }, [], CancellationToken.None);
 
         Assert.IsTrue(result.Delivered);
         Assert.AreEqual("The mail has no recipient, so none was sent.", result.Message["en"]);
@@ -125,7 +125,7 @@ public class MailChannelTest
             new Dictionary<string, Parameterization> { [Implementation] = new() { ["host"] = "mail.example.com", ["port"] = "587", ["sender"] = "geopilot@geopilot.example" } },
             resources);
 
-        var error = Assert.ContainsSingle(factory.Validate(Implementation, new Parameterization { ["template"] = "info.html" }, ["to", "includeDeclarer"]));
+        var error = Assert.ContainsSingle(factory.Validate(Implementation, new Parameterization { ["template"] = "info.html" }, ["to", "includeSupplier"]));
 
         Assert.AreEqual($"Channel <{Implementation}>: The template has no <title> with text, which the mail takes as its subject. (Parameter 'template')", error);
     }
@@ -134,10 +134,10 @@ public class MailChannelTest
         IReadOnlyList<string>? to = null,
         IReadOnlyList<string>? cc = null,
         IReadOnlyList<string>? bcc = null,
-        bool? includeDeclarer = null,
+        bool? includeSupplier = null,
         string? username = null,
         string? password = null,
         MailEncryption encryption = MailEncryption.StartTls,
         int port = 587)
-        => new("mail.example.com", port, "geopilot@geopilot.example", username, password, encryption, Template, to, cc, bcc, includeDeclarer);
+        => new("mail.example.com", port, "geopilot@geopilot.example", username, password, encryption, Template, to, cc, bcc, includeSupplier);
 }

@@ -15,7 +15,7 @@ export default defineConfig({
       },
     },
     transforms: {
-      // The frontend never writes the entities that carry read-only members (Delivery.declarerName), so one type
+      // The frontend never writes the entities that carry read-only members (Delivery.deliveredByName), so one type
       // per schema is enough; the default would emit a *Writable twin for every schema that references one.
       readWrite: false,
     },

@@ -32,7 +32,7 @@ public class SubmissionControllerTest
     private Mock<IUploadOrchestrationService> orchestrationMock;
     private Context context;
     private User user;
-    private Declarer declarer;
+    private Supplier supplier;
     private Mandate mandate;
     private Guid uploadId;
     private string uploadRoot;
@@ -55,7 +55,7 @@ public class SubmissionControllerTest
             EvaluatePartial = FieldEvaluationType.NotEvaluated,
             EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
         });
-        declarer = Declarer.ForUser(user.Id);
+        supplier = Supplier.ForUser(user.Id);
     }
 
     [TestCleanup]
@@ -85,7 +85,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Supplier>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -101,7 +101,7 @@ public class SubmissionControllerTest
         var result = await controller.Create(NewRequest(), CancellationToken.None);
 
         Assert.IsInstanceOfType(result, expected);
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Supplier>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -147,7 +147,7 @@ public class SubmissionControllerTest
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A violated field rule must be reported per field.");
         Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.Comment)));
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Supplier>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -157,11 +157,11 @@ public class SubmissionControllerTest
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
 
-        // The delivery fields are what makes the job an attempt that geopilot declares itself.
+        // The delivery fields are what makes the job an attempt whose delivery geopilot creates itself.
         var jobId = Guid.NewGuid();
         var fields = new DeliveryFields(null, null, null);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, fields))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, supplier, fields))
             .ReturnsAsync(NewAttemptJob(jobId, uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
@@ -174,13 +174,67 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task PassesTheTrimmedClientReferenceToTheJob()
+    {
+        var controller = CreateController(withUrlHelper: true);
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+
+        // Strict: a reference that reached the job untrimmed would match no setup.
+        var jobId = Guid.NewGuid();
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, supplier, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == "AV-2026-0042")))
+            .ReturnsAsync(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
+
+        var result = await controller.Create(NewRequest("  AV-2026-0042  "), CancellationToken.None);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<AcceptedResult>(result).Value);
+        Assert.AreEqual("AV-2026-0042", response.ClientReference, "The status echoes the reference the attempt carries.");
+    }
+
+    [TestMethod]
+    public async Task TakesAClientReferenceOfOnlySpacesAsNone()
+    {
+        var controller = CreateController(withUrlHelper: true);
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, supplier, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == null)))
+            .ReturnsAsync(NewAttemptJob(Guid.NewGuid(), uploadId));
+
+        var result = await controller.Create(NewRequest("   "), CancellationToken.None);
+
+        Assert.IsInstanceOfType<AcceptedResult>(result, "Spaces alone are no reference: the attempt stands on its own, not in a group of empty references.");
+    }
+
+    [TestMethod]
+    [DataRow("AV\u00072026", DisplayName = "Control character")]
+    [DataRow("AV\u200B2026", DisplayName = "Zero-width space")]
+    [DataRow("AV\u202E2026", DisplayName = "Bidi override")]
+    [DataRow("AV\u20282026", DisplayName = "Line separator")]
+    public async Task RefusesAClientReferenceWithAnInvisibleCharacter(string clientReference)
+    {
+        // An invisible character would make two references that look the same form two deliveries.
+        var controller = CreateController();
+        SetupMandateLookup();
+        SetupDeliverability(MandateDeliverability.Deliverable);
+
+        var result = await controller.Create(NewRequest(clientReference), CancellationToken.None);
+
+        var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
+        Assert.IsNotNull(problem, "A reference the protocol cannot keep must be reported like a violated field rule.");
+        Assert.IsTrue(problem.Errors.ContainsKey(nameof(SubmissionRequest.ClientReference)));
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Supplier>(), It.IsAny<DeliveryFields?>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task RefusesAnUploadAnEarlierAttemptIsStillProcessing()
     {
         var controller = CreateController();
         SetupMandateLookup();
         SetupDeliverability(MandateDeliverability.Deliverable);
         processingServiceMock
-            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
+            .Setup(p => p.StartJobAsync(uploadId, mandate.Id, supplier, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new JobAlreadyActiveException(uploadId));
 
         var result = await controller.Create(NewRequest(), CancellationToken.None);
@@ -204,7 +258,7 @@ public class SubmissionControllerTest
     {
         var controller = CreateController(UploadBackend.Direct);
         mandateServiceMock
-            .Setup(m => m.GetMandateByKeyAsync("NOSUCHKEY", declarer))
+            .Setup(m => m.GetMandateByKeyAsync("NOSUCHKEY", supplier))
             .ReturnsAsync(default(Mandate?));
         SetMultipartBody(controller, "NOSUCHKEY", [("data.xtf", "content")]);
 
@@ -226,8 +280,8 @@ public class SubmissionControllerTest
 
         var jobId = Guid.NewGuid();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsNotNull<DeliveryFields?>()))
-            .ReturnsAsync((Guid upload, int mandateId, Declarer declaring, DeliveryFields? fields) => NewAttemptJob(jobId, upload));
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, supplier, It.IsNotNull<DeliveryFields?>()))
+            .ReturnsAsync((Guid upload, int mandateId, Supplier supplier, DeliveryFields? fields) => NewAttemptJob(jobId, upload));
 
         SetMultipartBody(controller, MandateKey, [("data.xtf", "transfer content")]);
 
@@ -341,6 +395,55 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
+    public async Task RefusesAClientReferenceLongerThanTheProtocolKeeps()
+    {
+        var controller = CreateController(UploadBackend.Direct);
+        SetupDirectMandate();
+        SetMultipartBody(controller, MandateKey, [("data.xtf", "content")], fieldsBeforeTheFiles: [("clientReference", new string('x', 129))]);
+
+        var result = await controller.CreateWithFiles(CancellationToken.None);
+
+        var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
+        Assert.IsNotNull(problem);
+        Assert.IsTrue(problem.Errors.ContainsKey("clientReference"));
+        Assert.IsEmpty(
+            Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories),
+            "The reference is a field like the others, so it is checked before any file is written.");
+    }
+
+    [TestMethod]
+    public async Task PassesTheClientReferenceOfTheFormToTheJob()
+    {
+        var controller = CreateController(UploadBackend.Direct, withUrlHelper: true);
+        SetupDirectMandate();
+
+        // The longest reference the protocol keeps; strict, so any other value would match no setup.
+        var reference = new string('x', 128);
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, supplier, It.Is<DeliveryFields?>(fields => fields != null && fields.ClientReference == reference)))
+            .ReturnsAsync((Guid upload, int mandateId, Supplier supplier, DeliveryFields? fields)
+                => NewAttemptJob(Guid.NewGuid(), upload, clientReference: fields?.ClientReference));
+        SetMultipartBody(controller, MandateKey, [("data.xtf", "content")], fieldsBeforeTheFiles: [("clientReference", reference)]);
+
+        var result = await controller.CreateWithFiles(CancellationToken.None);
+
+        Assert.IsInstanceOfType<AcceptedResult>(result);
+    }
+
+    [TestMethod]
+    public async Task EchoesTheClientReferenceInTheStatus()
+    {
+        var controller = CreateController();
+        var jobId = Guid.NewGuid();
+        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
+
+        var result = await controller.GetSubmissionStatus(jobId);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.AreEqual("AV-2026-0042", response.ClientReference);
+    }
+
+    [TestMethod]
     public async Task HidesAnAttemptOfAnotherCaller()
     {
         var controller = CreateController();
@@ -393,7 +496,7 @@ public class SubmissionControllerTest
         Assert.IsInstanceOfType<BadRequestObjectResult>(
             result,
             "The fields are checked before the first file, so a later one would be dropped without the caller noticing.");
-        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Declarer>(), It.IsAny<DeliveryFields?>()), Times.Never);
+        processingServiceMock.Verify(p => p.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<Supplier>(), It.IsAny<DeliveryFields?>()), Times.Never);
     }
 
     [TestMethod]
@@ -424,7 +527,7 @@ public class SubmissionControllerTest
         var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         processingServiceMock
-            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, declarer, It.IsAny<DeliveryFields?>()))
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, supplier, It.IsAny<DeliveryFields?>()))
             .ThrowsAsync(new InvalidOperationException("The pipeline could not be built."));
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -445,12 +548,12 @@ public class SubmissionControllerTest
     [DataRow(ProcessingState.DeliveryRestriction, false, null, SubmissionState.Rejected, DisplayName = "The data did not pass")]
     [DataRow(ProcessingState.Failed, false, null, SubmissionState.Failed, DisplayName = "Run failed")]
     [DataRow(ProcessingState.Cancelled, false, null, SubmissionState.Failed, DisplayName = "Run cancelled")]
-    [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Declaration failed after a run that passed")]
-    [DataRow(ProcessingState.Success, true, "the database went away", SubmissionState.Delivered, DisplayName = "Declared by hand after geopilot could not")]
-    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? declarationFailure, SubmissionState expected)
+    [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Delivery failed after a run that passed")]
+    [DataRow(ProcessingState.Success, true, "the database went away", SubmissionState.Delivered, DisplayName = "Created by hand after geopilot could not")]
+    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? deliveryFailure, SubmissionState expected)
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered, declarationFailure, jobState);
+        var jobId = SetupAttempt(delivered, deliveryFailure, jobState);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -465,37 +568,37 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
-    public async Task SaysWhyADeclarationFailed()
+    public async Task SaysWhyTheDeliveryFailed()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: false, declarationFailure: "the database went away", ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: "the database went away", ProcessingState.Success);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         var message = response.Messages.SingleOrDefault(m => m.Step == "delivery");
-        Assert.IsNotNull(message, "A failed declaration is the one thing no pipeline step reports, so the attempt has to.");
+        Assert.IsNotNull(message, "A failed delivery is the one thing no pipeline step reports, so the attempt has to.");
         Assert.AreEqual(SubmissionMessageSeverity.Error, message.Severity);
         Assert.AreEqual("the database went away", message.Text["en"]);
     }
 
     [TestMethod]
-    public async Task DropsTheFailureOnceTheCallerDeclaredTheDeliveryItself()
+    public async Task DropsTheFailureOnceTheCallerCreatedTheDeliveryItself()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, declarationFailure: "the database went away", ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: true, deliveryFailure: "the database went away", ProcessingState.Success);
 
         var result = await controller.GetSubmissionStatus(jobId);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
-        Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts the failure to declare it.");
+        Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts its failure.");
     }
 
     [TestMethod]
     public async Task StaysDeliveredOnceItsDeliveryIsDeleted()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, declarationFailure: null, ProcessingState.Success);
+        var jobId = SetupAttempt(delivered: true, deliveryFailure: null, ProcessingState.Success);
         var delivery = context.Deliveries.Single(d => d.JobId == jobId);
         delivery.Deleted = true;
         context.SaveChanges();
@@ -516,7 +619,7 @@ public class SubmissionControllerTest
     public async Task ReportsWhatAStepSaidWithItsOwnSeverity(StepState stepState, SubmissionMessageSeverity expected)
     {
         var controller = CreateController(withUrlHelper: true);
-        var jobId = SetupAttempt(delivered: false, declarationFailure: null, ProcessingState.Running, BuildStep(stepState));
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Running, BuildStep(stepState));
 
         var result = await controller.GetSubmissionStatus(jobId);
 
@@ -538,7 +641,7 @@ public class SubmissionControllerTest
         downloadStoreMock.Setup(s => s.OpenFile(It.IsAny<Guid>(), "validation_errorLog.log")).Returns(new MemoryStream(Encoding.UTF8.GetBytes("log")));
 
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = SetupAttempt(delivered: false, declarationFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
+        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
 
         var result = await controller.GetDownload(jobId, "validation_errorLog.log");
 
@@ -566,26 +669,26 @@ public class SubmissionControllerTest
     /// <summary>
     /// The job of an attempt, as the start returns it for a machine delivery.
     /// </summary>
-    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Declarer? startedBy = null)
+    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Supplier? startedBy = null, string? clientReference = null)
         => new(jobId, attemptUploadId, mandate.Id, DateTime.UtcNow)
         {
-            IsDeclarable = true,
-            DeliveryIntent = new DeliveryIntent(startedBy ?? declarer, MandateKey, new DeliveryFields(null, null, null)),
+            MayDeliver = true,
+            DeliveryIntent = new DeliveryIntent(startedBy ?? supplier, MandateKey, new DeliveryFields(null, null, null, ClientReference: clientReference)),
         };
 
     private Guid SetupAttemptOfAnotherCaller()
     {
         var jobId = Guid.NewGuid();
-        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, Declarer.ForUser(user.Id + 1)));
+        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, Supplier.ForUser(user.Id + 1)));
         return jobId;
     }
 
-    private Guid SetupAttempt(bool delivered, string? declarationFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
+    private Guid SetupAttempt(bool delivered, string? deliveryFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
     {
         var jobId = Guid.NewGuid();
         if (delivered)
         {
-            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
             context.SaveChanges();
         }
 
@@ -598,7 +701,7 @@ public class SubmissionControllerTest
             pipeline = pipelineMock.Object;
         }
 
-        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeclarationFailure = declarationFailure };
+        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeliveryFailure = deliveryFailure };
         processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(job);
         return jobId;
     }
@@ -614,13 +717,21 @@ public class SubmissionControllerTest
         SubmissionController controller,
         string mandateKey,
         (string FileName, string Content)[] files,
-        (string Name, string Value)? fieldAfterTheFiles = null)
+        (string Name, string Value)? fieldAfterTheFiles = null,
+        (string Name, string Value)[]? fieldsBeforeTheFiles = null)
     {
         const string boundary = "geopilot-test-boundary";
         var builder = new StringBuilder();
         builder.Append(CultureInfo.InvariantCulture, $"--{boundary}\r\n");
         builder.Append("Content-Disposition: form-data; name=\"mandateKey\"\r\n\r\n");
         builder.Append(CultureInfo.InvariantCulture, $"{mandateKey}\r\n");
+
+        foreach (var (name, value) in fieldsBeforeTheFiles ?? [])
+        {
+            builder.Append(CultureInfo.InvariantCulture, $"--{boundary}\r\n");
+            builder.Append(CultureInfo.InvariantCulture, $"Content-Disposition: form-data; name=\"{name}\"\r\n\r\n");
+            builder.Append(CultureInfo.InvariantCulture, $"{value}\r\n");
+        }
 
         foreach (var (fileName, content) in files)
         {
@@ -649,11 +760,12 @@ public class SubmissionControllerTest
             ? new DirectUploadStorage(Options.Create(new UploadDirectOptions { Directory = uploadRoot }), Mock.Of<ILogger<DirectUploadStorage>>())
             : Mock.Of<IUploadStorage>();
 
-    private SubmissionRequest NewRequest() => new() { MandateKey = MandateKey, UploadId = uploadId };
+    private SubmissionRequest NewRequest(string? clientReference = null)
+        => new() { MandateKey = MandateKey, UploadId = uploadId, ClientReference = clientReference };
 
     private void SetupMandateLookup(bool found = true)
         => mandateServiceMock
-            .Setup(m => m.GetMandateByKeyAsync(MandateKey, declarer))
+            .Setup(m => m.GetMandateByKeyAsync(MandateKey, supplier))
             .ReturnsAsync(found ? mandate : null);
 
     private void SetupDeliverability(MandateDeliverability deliverability)

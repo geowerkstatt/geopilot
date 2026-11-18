@@ -19,20 +19,20 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void CreateJob()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: true);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: true);
 
         Assert.IsNotNull(job);
         Assert.AreNotEqual(Guid.Empty, job.Id);
         Assert.IsNull(job.Pipeline);
         Assert.AreEqual(ProcessingState.Pending, job.State);
-        Assert.IsTrue(job.IsDeclarable);
+        Assert.IsTrue(job.MayDeliver);
     }
 
     [TestMethod]
     public void CreateJobSetsUtcCreatedAt()
     {
         var before = DateTime.UtcNow;
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         var after = DateTime.UtcNow;
 
         Assert.AreEqual(DateTimeKind.Utc, job.CreatedAt.Kind);
@@ -43,9 +43,9 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void CreateJobAcceptsAnotherUploadWhileOneIsActive()
     {
-        store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        store.CreateJob(Guid.NewGuid(), mayDeliver: false);
 
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
 
         Assert.AreEqual(ProcessingState.Pending, job.State);
     }
@@ -60,7 +60,7 @@ public class ProcessingJobStoreTest
         {
             try
             {
-                store.CreateJob(uploadId, isDeclarable: false);
+                store.CreateJob(uploadId, mayDeliver: false);
                 Interlocked.Increment(ref admitted);
             }
             catch (JobAlreadyActiveException)
@@ -76,7 +76,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void GetJob()
     {
-        var created = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var created = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         var fetched = store.GetJob(created.Id);
 
         Assert.IsNotNull(fetched);
@@ -92,7 +92,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AttachPipeline()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
 
         var pipeline = new Mock<IPipeline>().Object;
         var mandateId = 123;
@@ -118,7 +118,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AttachPipelineThrowsIfPipelineAlreadyAssociated()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         var pipeline = new Mock<IPipeline>().Object;
         store.AttachPipeline(job.Id, pipeline, 0);
 
@@ -128,7 +128,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AttachPipelineThrowsIfJobFailed()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         store.TryMarkAsFailed(job.Id);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 0));
@@ -137,9 +137,9 @@ public class ProcessingJobStoreTest
     [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
-    public void EnqueueForProcessingQueuesPipelineWithFiles(bool isDeclarable)
+    public void EnqueueForProcessingQueuesPipelineWithFiles(bool mayDeliver)
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver);
         var pipeline = new Mock<IPipeline>().Object;
         store.AttachPipeline(job.Id, pipeline, 1);
 
@@ -156,13 +156,13 @@ public class ProcessingJobStoreTest
         Assert.HasCount(1, read);
         Assert.AreSame(pipeline, read[0].Pipeline);
         Assert.AreSame(files, read[0].Files);
-        Assert.AreEqual(isDeclarable, read[0].IsDeclarable);
+        Assert.AreEqual(mayDeliver, read[0].MayDeliver);
     }
 
     [TestMethod]
     public void EnqueueForProcessingThrowsIfNoPipelineAttached()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>()));
     }
@@ -170,7 +170,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void EnqueueForProcessingThrowsIfNotPending()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
@@ -180,7 +180,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void TryMarkAsFailedReturnsFalseIfAlreadyTerminal()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         Assert.IsTrue(store.TryPipelineFinished(job.Id, ProcessingState.Success));
@@ -198,7 +198,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void TryPipelineFinishedReturnsFalseIfNotRunning()
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
 
         Assert.IsFalse(store.TryPipelineFinished(job.Id, ProcessingState.Success));
         Assert.AreEqual(ProcessingState.Pending, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
@@ -209,7 +209,7 @@ public class ProcessingJobStoreTest
     [DataRow(ProcessingState.Running)]
     public void TryPipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
     {
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 

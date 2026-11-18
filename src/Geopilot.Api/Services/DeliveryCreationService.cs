@@ -1,0 +1,220 @@
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using System.Text.Json;
+
+namespace Geopilot.Api.Services;
+
+/// <inheritdoc cref="IDeliveryCreationService"/>
+public class DeliveryCreationService : IDeliveryCreationService
+{
+    private readonly ILogger<DeliveryCreationService> logger;
+    private readonly Context context;
+    private readonly IProcessingService processingService;
+    private readonly IMandateService mandateService;
+    private readonly IAssetHandler assetHandler;
+    private readonly IPipelineFactory pipelineFactory;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DeliveryCreationService"/> class.
+    /// </summary>
+    public DeliveryCreationService(
+        ILogger<DeliveryCreationService> logger,
+        Context context,
+        IProcessingService processingService,
+        IMandateService mandateService,
+        IAssetHandler assetHandler,
+        IPipelineFactory pipelineFactory,
+        IOptions<DeliveryOptions> deliveryOptions)
+    {
+        this.logger = logger;
+        this.context = context;
+        this.processingService = processingService;
+        this.mandateService = mandateService;
+        this.assetHandler = assetHandler;
+        this.pipelineFactory = pipelineFactory;
+        this.deliveryOptions = deliveryOptions;
+    }
+
+    /// <inheritdoc/>
+    public async Task<DeliveryCreationResult> CreateAsync(Guid jobId, DeliveryFields fields, Supplier supplier, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        ArgumentNullException.ThrowIfNull(supplier);
+
+        var job = processingService.GetJob(jobId);
+        if (job == null)
+        {
+            logger.LogTrace("No job information available for job with id <{JobId}>.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
+        }
+
+        if (!job.State.IsDeliverable())
+        {
+            logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
+        }
+
+        // Whether anybody may deliver the run was decided when it started: a run started anonymously, by a non-member
+        // or on a mandate that takes no deliveries stays closed to delivery, whoever asks now.
+        if (!job.MayDeliver)
+        {
+            logger.LogTrace("Job with id <{JobId}> cannot be delivered by anybody.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.JobNotPermitted, Message: $"Job with id <{jobId}> cannot become a delivery: whoever started it may not deliver to its mandate, or the mandate takes no deliveries.");
+        }
+
+        if (job.MandateId == null)
+        {
+            logger.LogTrace("Job with id <{JobId}> cannot be used to make a delivery.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.JobWithoutMandate, Message: $"Job with id <{jobId}> cannot be used to make a delivery.");
+        }
+
+        // A job yields at most one delivery. Without this guard a client that lets geopilot create the delivery
+        // and then creates it again through the API would deliver the same job twice, and it also makes a repeated
+        // creation from the background safe.
+        var existingDeliveryId = await FindDeliveryOfJobAsync(jobId, cancellationToken);
+        if (existingDeliveryId is not null)
+        {
+            // The existing delivery comes back with the refusal, so a caller that ends up here can point at the
+            // delivery it already has instead of treating the job as undelivered.
+            logger.LogInformation("Job with id <{JobId}> was already delivered.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.AlreadyDelivered, existingDeliveryId, $"Job with id <{jobId}> was already delivered.");
+        }
+
+        // Loaded here rather than passed in: the creation also runs outside a request, where an entity from
+        // the request would belong to a context that no longer exists. Exactly one of the two is set.
+        var user = supplier.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
+        var client = supplier.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
+
+        var mandate = await mandateService.MayDeliverAsync(job.MandateId.Value, supplier)
+            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
+            : null;
+
+        if (mandate is null)
+        {
+            logger.LogTrace("Mandate with id <{MandateId}> not found.", job.MandateId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.MandateNotDeliverable, Message: $"Mandate with id <{job.MandateId}> not found.");
+        }
+
+        var precursorDelivery = mandate.Deliveries.SingleOrDefault(d => d.Id == fields.PrecursorDeliveryId);
+        var fieldErrors = DeliveryFieldValidator.Validate(mandate, fields, precursorDelivery);
+        if (fieldErrors.Count > 0)
+        {
+            return new DeliveryCreationResult(DeliveryCreationStatus.FieldRulesViolated, FieldErrors: fieldErrors);
+        }
+
+        var delivery = new Delivery
+        {
+            JobId = jobId,
+            Mandate = mandate,
+            DeliveredByUser = user,
+            DeliveredByClient = client,
+            PrecursorDelivery = precursorDelivery,
+            Partial = fields.PartialDelivery,
+            Comment = fields.Comment?.Trim() ?? string.Empty,
+            Metadata = MetadataFieldValidator.CheckValues(mandate.MetadataFields, fields.Metadata).Snapshot.ToList(),
+            Assets = new List<Asset>(),
+        };
+
+        try
+        {
+            delivery.Assets.AddRange(await assetHandler.RecordJobAssetsAsync(jobId, cancellationToken));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while persisting assets for job with id <{JobId}>.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.AssetRecordingFailed, Message: $"Error while persisting assets for job with id <{jobId}>.");
+        }
+
+        if (delivery.Assets.Count == 0)
+        {
+            logger.LogWarning("No assets found for job with id <{JobId}>.", jobId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.NoAssets, Message: $"No assets found for job with id <{jobId}>.");
+        }
+
+        var reactions = CreateReactions(delivery, mandate);
+        var entityEntry = context.Deliveries.Add(delivery);
+        context.DeliveryReactions.AddRange(reactions);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsJobConflict(e))
+        {
+            // Another caller created a delivery for the same job between the check above and this write. The unique
+            // index is what actually keeps a job to one delivery; the check only spares the common case a failed insert.
+            foreach (var reaction in reactions)
+            {
+                context.Entry(reaction).State = EntityState.Detached;
+            }
+
+            context.Entry(delivery).State = EntityState.Detached;
+            logger.LogInformation("Job with id <{JobId}> was delivered by another caller while this delivery was being written.", jobId);
+            return new DeliveryCreationResult(
+                DeliveryCreationStatus.AlreadyDelivered,
+                await FindDeliveryOfJobAsync(jobId, cancellationToken),
+                $"Job with id <{jobId}> was already delivered.");
+        }
+
+        logger.LogInformation("Delivery for job with id <{JobId}> created.", jobId);
+        return new DeliveryCreationResult(DeliveryCreationStatus.Created, entityEntry.Entity.Id);
+    }
+
+    /// <summary>
+    /// Creates the transfers and the notifications of the set the mandate chose. They wait until the uploader can no
+    /// longer delete the delivery, and keep the configuration of the set and the values of the mandate as they are at
+    /// creation.
+    /// </summary>
+    private List<DeliveryReaction> CreateReactions(Delivery delivery, Mandate mandate)
+    {
+        if (mandate.ReactionSetId is null)
+            return [];
+
+        // The start refuses a mandate with a set while the window never closes, so the window always ends.
+        var holdEnd = deliveryOptions.Value.GetDeleteWindowEnd(delivery.Date)
+            ?? throw new InvalidOperationException($"Mandate <{mandate.Id}> chose a reaction set while the delete window never closes.");
+        var mandateValues = mandate.ReactionSetValues ?? [];
+        var declaredReactions = pipelineFactory.ReactionSets.FirstOrDefault(set => set.Id == mandate.ReactionSetId)?.AllReactions().ToList() ?? [];
+
+        DeliveryReaction Create((string ReactionId, string Implementation, Parameterization Config) reaction, ReactionKind kind) => new()
+        {
+            Delivery = delivery,
+            ReactionId = reaction.ReactionId,
+            Kind = kind,
+            Implementation = reaction.Implementation,
+            Config = new ReactionSnapshot(
+                reaction.Config,
+                DeclaredValues(mandateValues.GetValueOrDefault(reaction.ReactionId), declaredReactions.FirstOrDefault(declared => declared.Id == reaction.ReactionId))),
+            State = ReactionState.Pending,
+            NextAttemptAt = holdEnd,
+        };
+
+        return pipelineFactory.ResolveTransfers(mandate.ReactionSetId).Select(transfer => Create(transfer, ReactionKind.Transfer))
+            .Concat(pipelineFactory.ResolveNotifications(mandate.ReactionSetId).Select(notification => Create(notification, ReactionKind.Notification)))
+            .ToList();
+    }
+
+    // Only what the set still declares: a key it dropped after the mandate was saved must not reach the channel.
+    private static Dictionary<string, JsonElement> DeclaredValues(Dictionary<string, JsonElement>? values, ReactionConfig? reaction)
+    {
+        var keys = (reaction?.MandateConfig ?? []).Select(entry => entry.Key).ToHashSet(StringComparer.Ordinal);
+        return (values ?? []).Where(entry => keys.Contains(entry.Key)).ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
+    }
+
+    private static bool IsJobConflict(DbUpdateException exception)
+        => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException
+            && string.Equals(postgresException.ConstraintName, Context.DeliveryJobIndexName, StringComparison.Ordinal);
+
+    private Task<int?> FindDeliveryOfJobAsync(Guid jobId, CancellationToken cancellationToken)
+        => context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.JobId == jobId)
+            .Select(d => (int?)d.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+}
