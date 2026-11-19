@@ -28,7 +28,7 @@ jobs:
         uses: ./.github/actions/setup-dev-certs
 
       - name: Start db and api's
-        run: docker compose -f docker-compose.yml -f docker-compose.cypress.yml up --wait
+        run: docker compose up --wait
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
