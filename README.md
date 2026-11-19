@@ -338,7 +338,7 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 }
 ```
 
-**Cloud mit S3:** Ohne `BucketName`, `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht. Die Schlüssel gehören in Umgebungsvariablen oder einen Vault. Mit `AllowedOrigins` muss der Provider CORS-Regeln auf dem Bucket unterstützen.
+**Cloud mit S3:** Ohne `BucketName`, `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht. Die Schlüssel gehören in Umgebungsvariablen oder einen Vault. Mit `AllowedOrigins` muss der Provider CORS-Regeln auf dem Bucket unterstützen. Ohne `ForcePathStyle` steht der Bucket im Hostnamen der Upload-URL (`https://uploads.s3.example.com/...`). `BlobEndpoint` braucht dann diesen Host, sonst blockiert die CSP den Upload im Browser.
 
 ```json5
 "Upload": {
