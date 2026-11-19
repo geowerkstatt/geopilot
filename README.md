@@ -99,6 +99,7 @@ volumes:
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
+| http://localhost:8333  | SeaweedFS S3 Storage (in docker-compose)      | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
@@ -291,7 +292,7 @@ Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen 
 
 ## Cloud Upload
 
-Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage, möglich ist auch ein S3-kompatibler Storage. In der Entwicklung läuft [SeaweedFS](https://github.com/seaweedfs/seaweedfs) als S3-Storage und [Azurite](https://github.com/Azure/Azurite) als Emulator für Azure. Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
@@ -301,27 +302,28 @@ Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal m
 
 ### Entwicklung
 
-Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
+SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung gehen die Uploads nach SeaweedFS (S3) auf `http://localhost:8333`. Azurite braucht es für die Tests von Azure. Für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Im Container `geopilot` dafür `UPLOAD_PROVIDER=AzureBlob` und `UPLOAD_BLOB_ENDPOINT=https://localhost:10000` zusammen setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
 
 ```bash
-docker compose up -d azurite clamav
+docker compose up -d seaweedfs azurite clamav
 ```
 
 ### Konfiguration
 
 `Upload:Backend` wählt, wohin hochgeladene Dateien geschrieben werden:
 
-- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Azure-Blob-kompatiblen Object Storage. Die API sieht die Datei-Bytes nie.
+- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Object Storage. Die API sieht die Datei-Bytes nie. `Upload:Cloud:Provider` ist `AzureBlob` (Standard) oder `S3`.
 - **`Direct`:** Die Dateien laufen über einen Upload-Endpunkt der API in ein lokales Verzeichnis. Für Installationen ohne Object Storage.
 
 Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) gelten in beiden Modi und werden direkt unter `Upload` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt. Es wird nur die Sektion des gewählten Backends gelesen und validiert.
 
-**Cloud:** Ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+**Cloud mit Azure:** Ohne `BucketName` und `ConnectionString` startet die Applikation nicht.
 
 ```json5
 "Upload": {
     "Backend": "Cloud",
     "Cloud": {
+        "Provider": "AzureBlob",
         "ConnectionString": "...",
         "BucketName": "uploads",
         "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
@@ -333,6 +335,27 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
     "Enabled": true,
     "Host": "localhost",
     "Port": 3310
+}
+```
+
+**Cloud mit S3:** Ohne `BucketName`, `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht. Die Schlüssel gehören in Umgebungsvariablen oder einen Vault. Mit `AllowedOrigins` muss der Provider CORS-Regeln auf dem Bucket unterstützen. Ohne `ForcePathStyle` steht der Bucket im Hostnamen der Upload-URL (`https://uploads.s3.example.com/...`). `BlobEndpoint` braucht dann diesen Host, sonst blockiert die CSP den Upload im Browser.
+
+```json5
+"Upload": {
+    "Backend": "Cloud",
+    "Cloud": {
+        "Provider": "S3",
+        "BucketName": "uploads",
+        "BlobEndpoint": "https://s3.example.com", // Für die CSP (connect-src)
+        "AllowedOrigins": ["https://geopilot.example.com"], // CORS-Regel des Buckets, beim Start gesetzt
+        "S3": {
+            "ServiceUrl": "https://s3.example.com",
+            "Region": "...", // Gemäss Provider
+            "AccessKeyId": "...",
+            "SecretAccessKey": "...",
+            "ForcePathStyle": true // Für die meisten S3-kompatiblen Provider nötig
+        }
+    }
 }
 ```
 

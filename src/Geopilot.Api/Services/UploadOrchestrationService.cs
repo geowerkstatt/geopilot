@@ -78,7 +78,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
             var presignedUrl = await uploadStorage.GenerateUploadUrlAsync(storageKey, null, expiresIn);
 
             uploadedFiles.Add(new UploadedFileInfo(file.FileName, storageKey, file.Size));
-            fileUploadInfos.Add(new FileUploadInfo(file.FileName, presignedUrl));
+            fileUploadInfos.Add(new FileUploadInfo(file.FileName, presignedUrl, uploadStorage.UploadHeaders));
         }
 
         uploadStore.CreateUpload(uploadId, uploadedFiles.ToImmutableList());
