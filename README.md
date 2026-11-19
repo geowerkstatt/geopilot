@@ -99,6 +99,7 @@ volumes:
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
+| http://localhost:8333  | SeaweedFS S3 Storage (in docker-compose)      | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
@@ -291,7 +292,7 @@ Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen 
 
 ## Cloud Upload
 
-Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage, möglich ist auch ein S3-kompatibler Storage. In der Entwicklung läuft [SeaweedFS](https://github.com/seaweedfs/seaweedfs) als S3-Storage und [Azurite](https://github.com/Azure/Azurite) als Emulator für Azure. Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
