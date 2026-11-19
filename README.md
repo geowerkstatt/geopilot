@@ -302,7 +302,7 @@ Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal m
 
 ### Entwicklung
 
-SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung gehen die Uploads nach SeaweedFS (S3) auf `http://localhost:8333`. Azurite braucht es für die Tests von Azure. Für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
+SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung gehen die Uploads nach SeaweedFS (S3) auf `http://localhost:8333`. Azurite braucht es für die Tests von Azure. Für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Im Container `geopilot` dafür `UPLOAD_PROVIDER=AzureBlob` und `UPLOAD_BLOB_ENDPOINT=https://localhost:10000` zusammen setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
 
 ```bash
 docker compose up -d seaweedfs azurite clamav

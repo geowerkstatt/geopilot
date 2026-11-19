@@ -44,6 +44,25 @@ jobs:
         env:
           NODE_EXTRA_CA_CERTS: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
 
+      - name: Switch uploads to Azurite
+        run: docker compose up --wait geopilot
+        env:
+          UPLOAD_PROVIDER: AzureBlob
+          UPLOAD_BLOB_ENDPOINT: https://localhost:10000
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cypress run of the delivery spec against Azurite
+        uses: cypress-io/github-action@v7
+        with:
+          install: false
+          command: npx cypress run --spec cypress/e2e/delivery.cy.ts
+          wait-on: "https://localhost:5173"
+          wait-on-timeout: 120
+          working-directory: ./src/Geopilot.Frontend
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+
       - name: Upload screenshots of failed tests
         if: failure()
         uses: actions/upload-artifact@v7

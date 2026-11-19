@@ -116,9 +116,12 @@ services:
       Auth__ApiOrigin: https://localhost:5173
       Auth__Scope: "profile email openid geopilot.api"
       Auth__SwaggerAdditionalScopes: "geopilot.api"
-      Upload__Cloud__Provider: S3
+      # Uploads go to SeaweedFS. For Azurite, set UPLOAD_PROVIDER=AzureBlob and
+      # UPLOAD_BLOB_ENDPOINT=https://localhost:10000 together. Only the AzureBlob provider reads the connection string.
+      Upload__Cloud__Provider: ${UPLOAD_PROVIDER:-S3}
+      Upload__Cloud__ConnectionString: "UseDevelopmentStorage=true;DevelopmentStorageProxyUri=https://localhost"
       Upload__Cloud__BucketName: uploads
-      Upload__Cloud__BlobEndpoint: http://localhost:8333
+      Upload__Cloud__BlobEndpoint: ${UPLOAD_BLOB_ENDPOINT:-http://localhost:8333}
       Upload__Cloud__AutoCreateContainer: true
       Upload__Cloud__AllowedOrigins__0: https://localhost:5173
       Upload__Cloud__S3__ServiceUrl: http://localhost:8333
