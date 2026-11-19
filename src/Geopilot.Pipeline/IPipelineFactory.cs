@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
+using System.Collections.Immutable;
 
 namespace Geopilot.Pipeline;
 
@@ -77,6 +78,13 @@ public interface IPipelineFactory
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     internal IPipeline CreatePipeline(string id, Guid jobId, PipelineJobBindings bindings) => CreatePipeline(id, jobId);
+
+    /// <summary>
+    /// Gets the binding types used by the pipeline with the specified id.
+    /// </summary>
+    /// <param name="pipelineId">The id of the pipeline to check.</param>
+    /// <returns>The binding types used by any step in the specified pipeline.</returns>
+    internal IReadOnlySet<Type> GetUsedBindingTypes(string pipelineId) => ImmutableHashSet<Type>.Empty;
 
     /// <summary>
     /// Validates the pipeline definition and the process configuration of every step, without constructing any

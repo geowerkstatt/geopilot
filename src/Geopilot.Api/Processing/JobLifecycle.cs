@@ -98,7 +98,8 @@ public class JobLifecycle
         try
         {
             using var scope = serviceScopeFactory.CreateScope();
-            var bindings = await ReadJobBindingsAsync(scope.ServiceProvider);
+            var usedBindingTypes = pipelineFactory.GetUsedBindingTypes(pipelineId);
+            var bindings = await ReadJobBindingsAsync(scope.ServiceProvider, usedBindingTypes);
 
             // Instantiated up front (without files), so the status response can render the pipeline's steps
             // while preflight runs. The pipeline is started once preflight passes.
@@ -122,22 +123,26 @@ public class JobLifecycle
     }
 
     /// <summary>
-    /// Reads what the host binds to a job that starts now. The job keeps what was read, so an entry an administrator
-    /// changes later does not reach a job that already started.
+    /// Reads what the host binds to a job that starts now. A binding that no step receives is not read. The job
+    /// keeps what was read, so an entry changed later does not reach a job that already started.
     /// </summary>
-    internal async Task<PipelineJobBindings> ReadJobBindingsAsync(IServiceProvider services)
+    internal async Task<PipelineJobBindings> ReadJobBindingsAsync(IServiceProvider services, IReadOnlySet<Type> usedBindingTypes)
     {
-        if (!refMappingOptions.Enabled)
-            return PipelineJobBindings.None;
+        var bindings = new List<object>();
 
-        // Not disposed here: the scope owns the context, and the recorder resolves the same instance afterwards.
-        var context = services.GetRequiredService<Context>();
-        var entries = await context.RefMappings
-            .AsNoTracking()
-            .OrderBy(entry => entry.Id)
-            .Select(entry => new RefMappingEntry(entry.Scope, entry.RefDataUris, entry.Comment))
-            .ToListAsync();
-        return new PipelineJobBindings(new RefMappings(entries));
+        if (refMappingOptions.Enabled && usedBindingTypes.Contains(typeof(IRefMappings)))
+        {
+            // Not disposed here: the scope owns the context, and the recorder resolves the same instance afterwards.
+            var context = services.GetRequiredService<Context>();
+            var entries = await context.RefMappings
+                .AsNoTracking()
+                .OrderBy(entry => entry.Id)
+                .Select(entry => new RefMappingEntry(entry.Scope, entry.RefDataUris, entry.Comment))
+                .ToListAsync();
+            bindings.Add(new RefMappings(entries));
+        }
+
+        return bindings.Count == 0 ? PipelineJobBindings.None : new PipelineJobBindings(bindings);
     }
 
     /// <summary>

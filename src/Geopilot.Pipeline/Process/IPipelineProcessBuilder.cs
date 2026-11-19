@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using System.Collections.Immutable;
 
 namespace Geopilot.Pipeline.Process;
 
@@ -74,6 +75,12 @@ public interface IPipelineProcessBuilder
     /// <param name="jobBindings">The bindings of the job.</param>
     /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
     internal IPipelineProcessBuilder JobBindings(PipelineJobBindings jobBindings) => this;
+
+    /// <summary>
+    /// Gets the binding types used by the pipeline step of this builder.
+    /// </summary>
+    /// <returns>The binding types used by the current step of the pipeline.</returns>
+    internal IReadOnlySet<Type> GetBindingTypes() => ImmutableHashSet<Type>.Empty;
 
     /// <summary>
     /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check

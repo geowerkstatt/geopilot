@@ -384,6 +384,23 @@ public class PipelineFactoryTest
     }
 
     [TestMethod]
+    public void GetUsedBindingTypesWithRefMappingsReturnsType()
+    {
+        var bindingTypes = CreateRefMappingPipelineFactory().GetUsedBindingTypes("ref_mapping");
+
+        CollectionAssert.AreEquivalent(new[] { typeof(IRefMappings) }, bindingTypes.ToList());
+    }
+
+    [TestMethod]
+    public void GetUsedBindingTypesWithoutRefMappingsIsEmpty()
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        var bindingTypes = factory.GetUsedBindingTypes("xtf_diff");
+
+        Assert.IsEmpty(bindingTypes);
+    }
+
+    [TestMethod]
     public void ValidateDefinitionAcceptsAProcessTakingTheRefMapping()
     {
         var result = CreateRefMappingPipelineFactory().ValidateDefinition();

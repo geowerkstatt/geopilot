@@ -19,6 +19,17 @@ namespace Geopilot.Api.Processing;
 [TestClass]
 public class JobLifecycleTest
 {
+    public interface IPipelineFactoryDouble : IPipelineFactory
+    {
+        new IReadOnlySet<Type> GetUsedBindingTypes(string pipelineId);
+
+        /// <summary>
+        /// Implements the internal <see cref="IPipelineFactory.GetUsedBindingTypes"/> method using the public <see cref="IPipelineFactoryDouble.GetUsedBindingTypes"/>
+        /// above to enable mock setups without exposing internal members to the generated assembly of Moq.
+        /// </summary>
+        IReadOnlySet<Type> IPipelineFactory.GetUsedBindingTypes(string pipelineId) => GetUsedBindingTypes(pipelineId);
+    }
+
     private const string PipelineId = "pipe_a";
 
     // One per test: mandate keys are unique, and the tests run in parallel.
@@ -29,7 +40,7 @@ public class JobLifecycleTest
     private DirectUploadStorage uploadStorage;
     private UploadStore uploadStore;
     private ProcessingJobStore jobStore;
-    private Mock<IPipelineFactory> pipelineFactory;
+    private Mock<IPipelineFactoryDouble> pipelineFactory;
     private Channel<PreflightRequest> preflightQueue;
     private Recorder recorder;
     private ServiceProvider services;
@@ -76,7 +87,7 @@ public class JobLifecycleTest
         jobStore = new ProcessingJobStore();
 
         preflightQueue = Channel.CreateUnbounded<PreflightRequest>();
-        pipelineFactory = new Mock<IPipelineFactory>();
+        pipelineFactory = new Mock<IPipelineFactoryDouble>();
         pipelineFactory.Setup(f => f.GetDefinitionSnapshotJson(It.IsAny<string>())).Returns("{}");
         recorder = new Recorder(context, pipelineFactory.Object, uploadStorage, Mock.Of<IHttpContextAccessor>(), Mock.Of<ILogger<Recorder>>());
 
@@ -182,9 +193,20 @@ public class JobLifecycleTest
     {
         await AddRefMappingAsync();
 
-        var bindings = await lifecycle.ReadJobBindingsAsync(services);
+        var bindings = await lifecycle.ReadJobBindingsAsync(services, new HashSet<Type> { typeof(IRefMappings) });
 
         Assert.IsNull(bindings.Get(typeof(IRefMappings)), "Without the switch the processes do not get bound ref mappings.");
+    }
+
+    [TestMethod]
+    public async Task ReadJobBindingsBindsNoRefMappingWhenUnused()
+    {
+        await AddRefMappingAsync();
+        lifecycle = CreateLifecycle(refMappingEnabled: true);
+
+        var bindings = await lifecycle.ReadJobBindingsAsync(services, new HashSet<Type>());
+
+        Assert.IsNull(bindings.Get(typeof(IRefMappings)), "Without a step reading the ref mappings, no ref mappings are bound.");
     }
 
     [TestMethod]
@@ -193,7 +215,7 @@ public class JobLifecycleTest
         var entry = await AddRefMappingAsync();
         lifecycle = CreateLifecycle(refMappingEnabled: true);
 
-        var bindings = await lifecycle.ReadJobBindingsAsync(services);
+        var bindings = await lifecycle.ReadJobBindingsAsync(services, new HashSet<Type> { typeof(IRefMappings) });
 
         var refMappings = Assert.IsInstanceOfType<IRefMappings>(bindings.Get(typeof(IRefMappings)));
 
@@ -211,6 +233,7 @@ public class JobLifecycleTest
         var upload = await CreateUploadAsync();
         SetupPipeline();
         lifecycle = CreateLifecycle(refMappingEnabled: true);
+        pipelineFactory.Setup(f => f.GetUsedBindingTypes(It.IsAny<string>())).Returns(new HashSet<Type> { typeof(IRefMappings) });
 
         var job = await StartJobAsync(upload);
 

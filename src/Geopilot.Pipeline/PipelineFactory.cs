@@ -12,7 +12,7 @@ namespace Geopilot.Pipeline;
 /// <summary>
 /// Factory for creating <see cref="Pipeline"/> instances from YAML configuration.
 /// </summary>
-public class PipelineFactory : IPipelineFactory
+public sealed class PipelineFactory : IPipelineFactory
 {
     // Same naming convention and LocalizedText handling as the deserializer in Builder.Yaml, so the
     // snapshot reads like the definition it was taken from; JsonCompatible because the snapshot is
@@ -149,6 +149,28 @@ public class PipelineFactory : IPipelineFactory
         {
             throw new InvalidOperationException($"pipeline for '{id}' not found");
         }
+    }
+
+    /// <inheritdoc />
+    IReadOnlySet<Type> IPipelineFactory.GetUsedBindingTypes(string pipelineId) => GetUsedBindingTypes(pipelineId);
+
+    /// <inheritdoc cref="IPipelineFactory.GetUsedBindingTypes(string)" />
+    internal IReadOnlySet<Type> GetUsedBindingTypes(string pipelineId)
+    {
+        var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == pipelineId)
+            ?? throw new InvalidOperationException($"pipeline for '{pipelineId}' not found");
+
+        return pipelineConfig.Steps.SelectMany(step => GetStepBindingTypes(pipelineId, step)).ToHashSet();
+    }
+
+    private IReadOnlySet<Type> GetStepBindingTypes(string pipelineId, StepConfig step)
+    {
+        return pipelineProcessFactory
+            .Builder()
+            .PipelineId(pipelineId)
+            .StepConfig(step)
+            .Processes(PipelineProcessConfig.Processes)
+            .GetBindingTypes();
     }
 
     /// <inheritdoc />

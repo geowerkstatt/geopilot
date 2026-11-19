@@ -70,9 +70,9 @@ Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Sch
 
 ## Die Bindungen
 
-Manches, was die Prozessoren eines Jobs bekommen, steht nicht in der Definition, sondern wird beispielsweise im Admin-Portal gepflegt. geopilot liest es beim Start des Jobs einmal und bindet es an den Job; eine spätere Änderung erreicht einen gestarteten Job nicht mehr. Was gebunden wurde, hält die `jsonb`-Spalte `Bindings` fest, ein Objekt mit einem Schlüssel pro Bindung:
+Manches, was die Prozessoren eines Jobs bekommen, steht nicht in der Definition, sondern wird beispielsweise im Admin-Portal gepflegt. Wenn ein Prozessor der Pipeline eine Bindung entgegennimmt, liest geopilot sie beim Start des Jobs einmal und bindet sie an den Job; eine spätere Änderung erreicht einen gestarteten Job nicht mehr. Was gebunden wurde, hält die `jsonb`-Spalte `Bindings` fest, ein Objekt mit einem Schlüssel pro Bindung:
 
-- `refMapping`: die [Zuordnung der Referenzdaten](Referenzdaten.md), alle Einträge, wie sie gebunden wurden (`scope`, `refDataUris`, `comment`). Jeder Validierungsschritt des Jobs mit `refMappingFromPortal: true`, der lief, validierte mit genau diesen Einträgen; die übrigen Schritte ignorierten sie. Ist `RefMapping:Enabled` aus, fehlt der Schlüssel; ist der Schalter an, aber kein Eintrag erfasst, ist die Liste leer.
+- `refMapping`: die [Zuordnung der Referenzdaten](Referenzdaten.md), alle Einträge, wie sie gebunden wurden (`scope`, `refDataUris`, `comment`). Jeder Validierungsschritt des Jobs mit `refMappingFromPortal: true`, der lief, validierte mit genau diesen Einträgen; die übrigen Schritte ignorierten sie. Ist `RefMapping:Enabled` aus oder hat die Pipeline keinen Schritt, der diese Bindung annimmt, fehlt der Schlüssel. Ist der Schalter an, aber kein Eintrag erfasst, ist die Liste leer.
 
 Ohne Bindung ist die Spalte `NULL`.
 

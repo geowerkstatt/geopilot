@@ -291,6 +291,16 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return this;
         }
 
+        /// <inheritdoc />
+        IReadOnlySet<Type> IPipelineProcessBuilder.GetBindingTypes()
+        {
+            var (_, constructor, _) = PrepareProcessDescriptor();
+            return constructor.GetParameters()
+                .Select(p => p.ParameterType)
+                .Where(PipelineJobBindings.IsBindingType)
+                .ToHashSet();
+        }
+
         /// <summary>
         /// Validates a step's output actions against its process result type at load time: each
         /// <c>output_actions.property</c> must be a readable property of the result type, and each action
