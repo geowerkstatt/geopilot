@@ -19,25 +19,25 @@ Ein Eintrag in den Quellen von `refdata-update` allein genügt nicht, ilivalidat
 
 ## Zuordnung im Admin-Portal
 
-Mit `RefMapping:Enabled` pflegen Administratoren das Mapping im Admin-Portal unter _Referenzdaten_, statt es als Datei oder im Repository auszuliefern. Der Schalter ist in `appsettings.json` aus; ist er aus, fehlt die Seite im Portal, die API unter `api/v1/refmapping` gibt es nicht, und die Validierung verhält sich wie bisher.
+Mit `RefMapping:Enabled` pflegen Administratoren das Mapping im Admin-Portal unter _Referenzdaten_, statt es als Datei oder im Repository auszuliefern. Der Schalter ist in `appsettings.json` aus; ist er aus, fehlt die Seite im Portal, und die API unter `api/v1/refmapping` gibt es nicht.
 
 Ein Eintrag nennt einen Scope, etwa die BFS-Nummer einer Gemeinde, die Referenzdaten als Liste und optional einen Kommentar. Pro Scope gibt es höchstens einen Eintrag. Eine Referenz hat die Form `ilidata:<Id>` mit der Id aus der `ilidata.xml` des Repositorys; URLs und Pfade nimmt das Portal nicht an, weil `ilivalidator` holt, was das Mapping nennt. Ob die Id im Repository existiert, prüft das Portal nicht: Eine Referenz, die dort fehlt, fällt erst bei der Validierung auf.
 
-Was im Portal steht, bekommt jeder Validierungsschritt der Installation; wie die Validierung damit umgeht, beschreibt [XTF-Validierung](pipeline/Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal). Welche Einträge ein Job bekam, steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md#die-bindungen).
+Was im Portal steht, gilt für jeden Validierungsschritt, der `refMappingFromPortal: true` setzt; alle anderen Schritte validieren wie bisher. Wie die Validierung damit umgeht, beschreibt [XTF-Validierung](pipeline/Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal). Welche Einträge ein Job bekam, steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md#die-bindungen).
 
 ### Umstieg von der Datei
 
-Bestehende Mappings übernimmt geopilot nicht. Wer den Schalter einschaltet:
+Bestehende Mappings übernimmt geopilot nicht. Der Schalter allein ändert keine Validierung, umgestellt wird pro Schritt. Wer umsteigt:
 
-1. erfasst die Einträge des bisherigen Mappings im Portal, die Referenzen eines Scopes zusammen in einem Eintrag,
-2. entfernt `refMapping` und `refMappingFile` aus allen Validierungsschritten der Pipeline-Definition und aus der Basis-Konfiguration der Appsettings; ein Schritt, der einen davon nennt, scheitert,
+1. schaltet `RefMapping:Enabled` ein und erfasst die Einträge des bisherigen Mappings im Portal, die Referenzen eines Scopes zusammen in einem Eintrag,
+2. setzt in den Validierungsschritten, die das Portal verwenden sollen, `refMappingFromPortal: true` und entfernt dort `refMapping` und `refMappingFile`, auch aus der Basis-Konfiguration der Appsettings; ein Schritt, der beides nennt, scheitert,
 3. löscht die Datei aus dem Ressourcen-Verzeichnis, sobald keine Definition sie mehr nennt.
 
-Ohne Schalter laufen Installationen, die `refMapping` oder `refMappingFile` nennen, unverändert weiter.
+Schritte ohne `refMappingFromPortal` laufen unverändert weiter, mit und ohne Schalter. Wer den Schalter wieder ausschaltet, entfernt ebenfalls `refMappingFromPortal: true` aus allen Schritten, sonst scheitern sie.
 
 ## Lokal
 
-Das lokale `docker-compose.yml` enthält den Dienst `refdata-update` im Profil `dmav`, zusammen mit der [DMAV-Testwelt](../TestData/Dmav/README.md), und die Testwelt ist gleich aufgebaut wie ein Hosting: Die Dateien aus [`config/refdata-sources.yaml`](../config/refdata-sources.yaml) sind nicht eingecheckt, der Dienst holt sie beim Start nach `TestData/Dmav/repository/`, das der Wrapper als `%REPOSITORIES/dmav@0.1.1` anbietet. Ohne diesen Lauf fehlen sie, und die DMAV-Validierung scheitert. Das Mapping kommt lokal aus dem Admin-Portal: `RefMapping:Enabled` ist in `appsettings.Development.json` gesetzt, und der Seed legt den Eintrag der Testwelt an.
+Das lokale `docker-compose.yml` enthält den Dienst `refdata-update` im Profil `dmav`, zusammen mit der [DMAV-Testwelt](../TestData/Dmav/README.md), und die Testwelt ist gleich aufgebaut wie ein Hosting: Die Dateien aus [`config/refdata-sources.yaml`](../config/refdata-sources.yaml) sind nicht eingecheckt, der Dienst holt sie beim Start nach `TestData/Dmav/repository/`, das der Wrapper als `%REPOSITORIES/dmav@0.1.1` anbietet. Ohne diesen Lauf fehlen sie, und die DMAV-Validierung scheitert. Das Mapping kommt lokal aus dem Admin-Portal: `RefMapping:Enabled` ist in `appsettings.Development.json` gesetzt, der Seed legt den Eintrag der Testwelt an und die DMAV-Pipeline in `basicPipeline_02.yaml` verwendet ihn mit `refMappingFromPortal: true`.
 
 ```bash
 docker compose --profile dmav up -d

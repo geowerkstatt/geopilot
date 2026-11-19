@@ -347,7 +347,7 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds`, `toolVersion` und `refMappingFromPortal` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
 Zwei weitere, `modelRepository` und `refMappingFile`, sind vom Typ `IPipelineFile` und nennen je eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
@@ -357,7 +357,7 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
-Auch `refMappings` ist keine Konfiguration: geopilot bindet beim Start des Jobs die [Zuordnung der Referenzdaten aus dem Admin-Portal](Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal) an diesen Parameter, oder `null`, wenn `RefMapping:Enabled` aus ist. Sein Typ ist intern; ein Plugin bekommt die Zuordnung nicht.
+Auch `refMappings` ist keine Konfiguration: geopilot bindet beim Start des Jobs die [Zuordnung der Referenzdaten aus dem Admin-Portal](Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal) an diesen Parameter, oder `null`, wenn `RefMapping:Enabled` aus ist. Der Prozessor verwendet sie nur, wenn der Schritt `refMappingFromPortal: true` setzt. Sein Typ ist intern; ein Plugin bekommt die Zuordnung nicht.
 
 ```csharp
 public XtfValidatorProcess(
@@ -369,6 +369,7 @@ public XtfValidatorProcess(
     string? toolVersion,
     IPipelineFile? modelRepository,
     IPipelineFile? refMappingFile,
+    bool? refMappingFromPortal,
     IRefMappings? refMappings,
     IIlivalidatorClient ilivalidatorClient,
     IPipelineFileManager pipelineFileManager,

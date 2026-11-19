@@ -45,8 +45,9 @@ internal class XtfValidatorProcess
     /// <param name="pluginIds">Optional ilitools-wrapper plugins as a semicolon separated list of ids, which provide the user defined functions a model may call in its constraints. Which ids exist is a property of the wrapper deployment.</param>
     /// <param name="toolVersion">Optional version of ilivalidator to run, selected from the versions the wrapper deployment offers. Without it the deployment default runs.</param>
     /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. The wrapper unpacks it into its own subfolder, which <paramref name="modelDirs"/> reaches through <c>%ITF_DIR/repository</c>.</param>
-    /// <param name="refMappingFile">Optional mapping that names the reference data, given as the path of a file the deployment ships and sent along with every validation in place of <paramref name="refMapping"/>; the wrapper rejects a validation with both. The reference data it names resolve through the <paramref name="modelDirs"/>.</param>
-    /// <param name="refMappings">The mapping the admin portal maintains, bound by the host to the job: <see langword="null"/> where the installation does not maintain it, otherwise sent along with every validation as a mapping file, unless it has no entries. Excludes <paramref name="refMapping"/> and <paramref name="refMappingFile"/>.</param>
+    /// <param name="refMappingFile">Optional mapping that names the reference data, given as the path of a file the deployment ships and sent along with every validation in place of <paramref name="refMapping"/>; a validation with both is rejected. The reference data it names resolve through the <paramref name="modelDirs"/>.</param>
+    /// <param name="refMappingFromPortal">Whether to use the <paramref name="refMappings" /> of the admin portal bound by the host. Excludes <paramref name="refMapping"/> and <paramref name="refMappingFile"/>.</param>
+    /// <param name="refMappings">The mapping the admin portal maintains, bound by the host to the job: <see langword="null"/> where the installation does not maintain it, otherwise sent along with every validation as a mapping file, unless it has no entries.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
@@ -60,22 +61,30 @@ internal class XtfValidatorProcess
         string? toolVersion,
         IPipelineFile? modelRepository,
         IPipelineFile? refMappingFile,
+        bool? refMappingFromPortal,
         IRefMappings? refMappings,
         IIlivalidatorClient ilivalidatorClient,
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
     {
-        // Depends on whether the host binds a mapping, not on its entries, so the first entry an admin adds cannot
-        // break a pipeline that validated before.
-        if (refMappings is not null && (!string.IsNullOrWhiteSpace(refMapping) || refMappingFile is not null))
+        if (refMappingFromPortal == true && refMappings is null)
         {
             throw new InvalidOperationException(
-                "The reference data mapping is maintained in the admin portal (RefMapping:Enabled), so the step must not configure refMapping or refMappingFile. Remove both from the pipeline definition.");
+                $"The xtf validator process is configured to use the reference data mapping from the admin portal, but it is disabled (RefMapping:Enabled). Enable refmapping in geopilot or remove \"{nameof(refMappingFromPortal)}: true\" from the validation step.");
+        }
+
+        var refMappingSources = 0;
+        if (!string.IsNullOrWhiteSpace(refMapping)) refMappingSources++;
+        if (refMappingFile != null) refMappingSources++;
+        if (refMappingFromPortal == true) refMappingSources++;
+        if (refMappingSources > 1)
+        {
+            throw new InvalidOperationException($"The reference data mapping can only be configured in one of {nameof(refMapping)}, {nameof(refMappingFile)} and {nameof(refMappingFromPortal)}. Keep only the relevant refmapping source.");
         }
 
         this.modelRepository = modelRepository;
         this.refMappingFile = refMappingFile;
-        this.refMappings = refMappings;
+        this.refMappings = refMappingFromPortal == true ? refMappings : null;
         this.validatorArgs = new IlivalidatorArgs
         {
             ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
