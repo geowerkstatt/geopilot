@@ -1,7 +1,6 @@
 ﻿using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
-using Amazon.S3.Transfer;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Services;
@@ -13,7 +12,6 @@ namespace Geopilot.Api.Services;
 public sealed class S3UploadStorage : IUploadStorage, IHostedService, IDisposable
 {
     private readonly AmazonS3Client client;
-    private readonly TransferUtility transferUtility;
     private readonly UploadCloudOptions cloudOptions;
     private readonly Protocol uploadUrlProtocol;
     private readonly ILogger<S3UploadStorage> logger;
@@ -48,7 +46,6 @@ public sealed class S3UploadStorage : IUploadStorage, IHostedService, IDisposabl
                 AuthenticationRegion = s3.Region,
                 ForcePathStyle = s3.ForcePathStyle,
             });
-        transferUtility = new TransferUtility(client);
 
         StorageLocation = $"{serviceUri.GetLeftPart(UriPartial.Path).TrimEnd('/')}/{this.cloudOptions.BucketName}";
     }
@@ -99,15 +96,16 @@ public sealed class S3UploadStorage : IUploadStorage, IHostedService, IDisposabl
     public async Task DownloadAsync(string key, Stream destination, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Downloading object {Key}.", key);
-        await using var source = await transferUtility.OpenStreamAsync(cloudOptions.BucketName, key, cancellationToken);
-        await source.CopyToAsync(destination, cancellationToken);
+        using var response = await client.GetObjectAsync(cloudOptions.BucketName, key, cancellationToken);
+        await response.ResponseStream.CopyToAsync(destination, cancellationToken);
     }
 
     /// <inheritdoc/>
     public async Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Opening read stream for object {Key}.", key);
-        return await transferUtility.OpenStreamAsync(cloudOptions.BucketName, key, cancellationToken);
+        var response = await client.GetObjectAsync(cloudOptions.BucketName, key, cancellationToken);
+        return response.ResponseStream;
     }
 
     /// <inheritdoc/>
@@ -151,7 +149,6 @@ public sealed class S3UploadStorage : IUploadStorage, IHostedService, IDisposabl
     /// <inheritdoc/>
     public void Dispose()
     {
-        transferUtility.Dispose();
         client.Dispose();
     }
 
