@@ -7,6 +7,7 @@ using Npgsql;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace Geopilot.Api.Controllers;
 
@@ -177,6 +178,9 @@ public partial class RefMappingController : ControllerBase
         if (scope.Length > MaxNameLength)
             return $"Scope must not be longer than {MaxNameLength} characters.";
 
+        if (HasInvalidChar(scope) || HasInvalidChar(refMapping.Comment ?? string.Empty))
+            return "Scope and comment must not contain invalid characters.";
+
         if (refMapping.RefDataUris.Count == 0)
             return "At least one reference is required.";
 
@@ -195,6 +199,8 @@ public partial class RefMappingController : ControllerBase
             && string.Equals(postgresException.ConstraintName, Context.RefMappingScopeIndexName, StringComparison.Ordinal);
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool HasInvalidChar(string value) => !value.All(XmlConvert.IsXmlChar);
 
     [GeneratedRegex(@"^ilidata:[A-Za-z0-9._-]+\z")]
     private static partial Regex IlidataReference();

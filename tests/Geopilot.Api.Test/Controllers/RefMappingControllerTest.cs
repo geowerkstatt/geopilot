@@ -134,6 +134,7 @@ public class RefMappingControllerTest
     [TestMethod]
     [DataRow(null, "ilidata:dmav_LFP3_351", DisplayName = "null scope")]
     [DataRow(" ", "ilidata:dmav_LFP3_351", DisplayName = "blank scope")]
+    [DataRow("35\u000b1", "ilidata:dmav_LFP3_351", DisplayName = "invalid character in scope")]
     [DataRow("351", "https://example.ch/lfp3.xtf", DisplayName = "http reference")]
     [DataRow("351", "C:\\data\\lfp3.xtf", DisplayName = "local windows path")]
     [DataRow("351", "/data/lfp3.xtf", DisplayName = "local unix path")]
@@ -143,6 +144,12 @@ public class RefMappingControllerTest
     public void ValidateRefusesAnInvalidEntry(string? scope, string uri)
     {
         Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = scope!, RefDataUris = [uri] }));
+    }
+
+    [TestMethod]
+    public void ValidateRefusesAnInvalidComment()
+    {
+        Assert.IsNotNull(RefMappingController.Validate(new RefMapping { Scope = "351", RefDataUris = ["ilidata:dmav_LFP3_351"], Comment = "Invalid\u000bcomment" }));
     }
 
     [TestMethod]

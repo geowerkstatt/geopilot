@@ -366,6 +366,7 @@ public class IlivalidatorClientIntegrationTest
                 [
                     new RefMappingEntry("449", ["ilidata:dmav_Gemeinden95_V1_0", "ilidata:dmav_LFP3_449"], "Sauge\nzweite Zeile"),
                     new RefMappingEntry("BE", ["ilidata:dmav_LFP2_BE"], null),
+                    new RefMappingEntry("<xml char&", ["ilidata:escape_test"], null),
                 ],
                 stream,
                 TestContext.CancellationToken);
