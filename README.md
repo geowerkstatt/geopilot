@@ -301,7 +301,7 @@ Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal m
 
 ### Entwicklung
 
-SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung verwendet die Applikation den Provider `S3` mit SeaweedFS (`weed mini`) auf `http://localhost:8333`, einem echten S3-Server mit Signaturprüfung und CORS. Die Zugangsdaten `geopilot` / `geopilot-dev-secret` gelten nur für die Entwicklung. Azurite braucht es für die Tests des Providers `AzureBlob`; für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
+SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung gehen die Uploads nach SeaweedFS (S3) auf `http://localhost:8333`. Azurite braucht es für die Tests von Azure. Für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
 
 ```bash
 docker compose up -d seaweedfs azurite clamav
@@ -311,12 +311,12 @@ docker compose up -d seaweedfs azurite clamav
 
 `Upload:Backend` wählt, wohin hochgeladene Dateien geschrieben werden:
 
-- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Object Storage. Die API sieht die Datei-Bytes nie. `Upload:Cloud:Provider` wählt den Dienst: `AzureBlob` (Standard) oder `S3` für einen S3-kompatiblen Object Storage.
+- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Object Storage. Die API sieht die Datei-Bytes nie. `Upload:Cloud:Provider` ist `AzureBlob` (Standard) oder `S3`.
 - **`Direct`:** Die Dateien laufen über einen Upload-Endpunkt der API in ein lokales Verzeichnis. Für Installationen ohne Object Storage.
 
 Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) gelten in beiden Modi und werden direkt unter `Upload` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt. Es wird nur die Sektion des gewählten Backends gelesen und validiert.
 
-**Cloud:** Ohne `BucketName` startet die Applikation nicht, mit dem Provider `AzureBlob` auch nicht ohne `ConnectionString`.
+**Cloud mit Azure:** Ohne `BucketName` und `ConnectionString` startet die Applikation nicht.
 
 ```json5
 "Upload": {
@@ -337,7 +337,7 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 }
 ```
 
-**Cloud mit S3:** Die Verbindung steht in `Upload:Cloud:S3`. Ohne `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht; `ConnectionString` entfällt. `BucketName`, `BlobEndpoint`, `AutoCreateContainer` und `AllowedOrigins` gelten wie bei Azure. Die geheimen Werte gehören in Umgebungsvariablen oder einen Vault, nicht in die `appsettings.json`.
+**Cloud mit S3:** Ohne `BucketName`, `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht. Die Schlüssel gehören in Umgebungsvariablen oder einen Vault. Mit `AllowedOrigins` muss der Provider CORS-Regeln auf dem Bucket unterstützen.
 
 ```json5
 "Upload": {
@@ -345,14 +345,14 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
     "Cloud": {
         "Provider": "S3",
         "BucketName": "uploads",
-        "BlobEndpoint": "https://s3.example.com", // Öffentlicher S3-Endpoint, wird der CSP (connect-src) hinzugefügt
-        "AllowedOrigins": ["https://geopilot.example.com"], // Setzt die CORS-Regel des Buckets beim Start
+        "BlobEndpoint": "https://s3.example.com", // Für die CSP (connect-src)
+        "AllowedOrigins": ["https://geopilot.example.com"], // CORS-Regel des Buckets, beim Start gesetzt
         "S3": {
             "ServiceUrl": "https://s3.example.com",
-            "Region": "...", // Wert gemäss Dokumentation des Providers
+            "Region": "...", // Gemäss Provider
             "AccessKeyId": "...",
             "SecretAccessKey": "...",
-            "ForcePathStyle": true // Bucket im Pfad statt im Hostnamen, für die meisten S3-kompatiblen Provider nötig
+            "ForcePathStyle": true // Für die meisten S3-kompatiblen Provider nötig
         }
     }
 }
