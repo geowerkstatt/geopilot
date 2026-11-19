@@ -52,12 +52,29 @@ public class UploadServiceExtensionsTest
         StringAssert.Contains(exception.Message, "Upload:Cloud:ConnectionString", StringComparison.Ordinal);
     }
 
+    [TestMethod]
+    [DataRow("Upload:Backend")]
+    [DataRow("Upload:Cloud:Provider")]
+    public void UndefinedValueThrows(string key)
+    {
+        var builder = CreateBuilder(new() { [key] = "2" });
+
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(() => builder.AddUploadServices());
+        Assert.AreEqual($"Unsupported {key} '2'.", exception.Message);
+    }
+
     private static ServiceProvider BuildServices(Dictionary<string, string?> configuration)
+    {
+        var builder = CreateBuilder(configuration);
+        builder.AddUploadServices();
+        return builder.Services.BuildServiceProvider();
+    }
+
+    private static WebApplicationBuilder CreateBuilder(Dictionary<string, string?> configuration)
     {
         var builder = WebApplication.CreateBuilder();
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddInMemoryCollection(configuration);
-        builder.AddUploadServices();
-        return builder.Services.BuildServiceProvider();
+        return builder;
     }
 }
