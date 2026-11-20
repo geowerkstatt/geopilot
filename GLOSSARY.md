@@ -64,7 +64,7 @@ _Übersetzungen_: EN responsible user, FR une personne responsable, IT una perso
 
 ## Lieferabsicht
 
-Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst erstellt, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen der Verarbeitung an sie gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Wird die Lieferung abgewiesen, steht der Grund auf der Verarbeitung; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, erstellt in `JobLifecycle.RunFinishedAsync`.
+Der Wunsch, mit dem ein Versuch startet: dass geopilot die Lieferung selbst erstellt, sobald der Lauf lieferbar endet. Nur eine maschinelle Lieferung hat eine Lieferabsicht; im Web gibt der Lieferant selbst ab. Sie wird beim Anlegen der Verarbeitung an sie gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Wird die Lieferung abgewiesen, steht der Grund auf der Verarbeitung; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, gebunden in `JobLifecycle.StartAsync` und eingelöst in `JobLifecycle.RunFinishedAsync`.
 
 ## Löschfenster
 
