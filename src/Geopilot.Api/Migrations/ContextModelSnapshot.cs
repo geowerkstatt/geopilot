@@ -575,8 +575,14 @@ namespace Geopilot.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AppVersion")
+                        .HasColumnType("text");
+
                     b.Property<int?>("Attempt")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Config")
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("DeliveryId")
                         .HasColumnType("integer");

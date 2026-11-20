@@ -36,7 +36,7 @@ export const RecordingPreflightStep: FC<RecordingPreflightStepProps> = ({ run })
   };
 
   return (
-    <Accordion defaultExpanded disableGutters data-cy="recordingStep-preflight">
+    <Accordion disableGutters data-cy="recordingStep-preflight">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
           <StepIcon step={1} state={state} variant="outlined" />

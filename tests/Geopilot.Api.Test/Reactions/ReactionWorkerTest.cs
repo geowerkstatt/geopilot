@@ -1,15 +1,18 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Npgsql;
 using System.Text.Json;
 
 namespace Geopilot.Api.Reactions;
@@ -96,8 +99,8 @@ public class ReactionWorkerTest
         using var worker = CreateWorker();
         await worker.RunNextAsync(CancellationToken.None);
 
-        recorderMock.Verify(recorder => recorder.RecordReactionAttemptStartedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id && claimed.Attempts == 1)), Times.Once);
-        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id), ReactionState.Done, Delivered.Message), Times.Once);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptStartedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id && claimed.Attempts == 1), It.IsAny<IReadOnlyDictionary<string, RecordedConfigValue>?>()), Times.Once);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.Is<DeliveryReaction>(claimed => claimed.Id == reaction.Id), It.IsAny<IReadOnlyDictionary<string, RecordedConfigValue>?>(), ReactionState.Done, Delivered.Message), Times.Once);
     }
 
     [TestMethod]
@@ -280,6 +283,77 @@ public class ReactionWorkerTest
     }
 
     [TestMethod]
+    public async Task RunNextRecordsTheConfigOfTheAttempt()
+    {
+        pipelineOptions.ChannelConfigs[Probe] = new Parameterization { ["baseValue"] = "aus der Basis", ["secret"] = $"secret-{Guid.NewGuid()}" };
+        AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered)), port: "587", subfolder: "kanton-a"));
+        var started = CaptureStartedConfig();
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        var config = started();
+        Assert.IsNotNull(config);
+        Assert.AreEqual(new RecordedConfigValue("aus der Basis", ConfigOrigin.Base), config["baseValue"]);
+        Assert.AreEqual(new RecordedConfigValue("**********", ConfigOrigin.Base), config["secret"]);
+        Assert.AreEqual(ConfigOrigin.Definition, config["port"].Origin);
+        Assert.AreEqual("\"587\"", JsonSerializer.Serialize(config["port"].Value), "a value stands as configured, not converted.");
+        Assert.AreEqual(ConfigOrigin.Mandate, config["subfolder"].Origin);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), config, ReactionState.Done, Delivered.Message), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunNextRecordsTheValueTheChannelRefuses()
+    {
+        var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered)), port: "-1"));
+        var started = CaptureStartedConfig();
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        Assert.AreEqual("\"-1\"", JsonSerializer.Serialize(started()?["port"].Value));
+        var stored = await ReloadAsync(reaction);
+        Assert.AreEqual("The channel could not be created: The port <-1> is refused. (Parameter 'port')", stored.Message?["en"]);
+    }
+
+    [TestMethod]
+    public async Task RunNextRecordsNoConfigForAChannelThatCannotBeResolved()
+    {
+        AddReaction("Geopilot.Pipeline.Channels.Missing", new ReactionSnapshot(new Parameterization(), []));
+
+        using var worker = CreateWorker();
+        await worker.RunNextAsync(CancellationToken.None);
+
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptStartedAsync(It.IsAny<DeliveryReaction>(), null), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task RunNextKeepsASecretOutOfEveryProtocolTable()
+    {
+        var secret = $"secret-{Guid.NewGuid()}";
+        pipelineOptions.ChannelConfigs[Probe] = new Parameterization { ["secret"] = secret };
+        AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered)), port: "-1"), reactionId: "abgelehnt", nextAttemptAt: dbNow.AddMinutes(-2));
+        AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered))), reactionId: "zugestellt", nextAttemptAt: dbNow.AddMinutes(-1));
+        AddRecordingOf(delivery);
+        var recorder = new Recorder(context, Mock.Of<IPipelineFactory>(), Mock.Of<IUploadStorage>(), Mock.Of<IHttpContextAccessor>(), Mock.Of<ILogger<Recorder>>());
+
+        using var worker = CreateWorker(ScopeFactory(recorder));
+        await worker.RunNextAsync(CancellationToken.None);
+        await worker.RunNextAsync(CancellationToken.None);
+
+        var rows = await context.RecordingReactionEvents.AsNoTracking().Where(e => e.DeliveryId == delivery.Id).OrderBy(e => e.Id).ToListAsync();
+        CollectionAssert.AreEqual(new[] { "abgelehnt", "zugestellt" }, rows.Select(row => row.ReactionId).ToArray());
+        foreach (var row in rows)
+        {
+            Assert.IsFalse(string.IsNullOrEmpty(row.AppVersion), "the version of the instance that ran the attempt.");
+            Assert.AreEqual("\"**********\"", JsonSerializer.Serialize(row.Config?["secret"].Value));
+        }
+
+        Assert.AreEqual("\"-1\"", JsonSerializer.Serialize(rows[0].Config?["port"].Value), "the refused attempt shows the value its channel refused.");
+        Assert.AreEqual(0, await CountProtocolRowsContainingAsync(secret));
+    }
+
+    [TestMethod]
     [DataRow(true, DisplayName = "The channel honours its token")]
     [DataRow(false, DisplayName = "The channel ignores its token")]
     public async Task RunNextStopsAnAttemptAtItsTimeLimit(bool honoursToken)
@@ -306,7 +380,7 @@ public class ReactionWorkerTest
         // The lock runs from the claim, so the time limit has to as well, or a slow database could outlast the lock.
         reactionOptions.TimeLimit = TimeSpan.FromMilliseconds(200);
         recorderMock
-            .Setup(recorder => recorder.RecordReactionAttemptStartedAsync(It.IsAny<DeliveryReaction>()))
+            .Setup(recorder => recorder.RecordReactionAttemptStartedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<IReadOnlyDictionary<string, RecordedConfigValue>?>()))
             .Returns(() => Task.Delay(TimeSpan.FromMilliseconds(500)));
         var reaction = AddReaction(Probe, ProbeSnapshot(new ChannelProbe(Answer(Delivered))));
 
@@ -339,7 +413,7 @@ public class ReactionWorkerTest
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<ReactionState?>(), It.IsAny<LocalizedText>()), Times.Never);
+        recorderMock.Verify(recorder => recorder.RecordReactionAttemptFinishedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<IReadOnlyDictionary<string, RecordedConfigValue>?>(), It.IsAny<ReactionState?>(), It.IsAny<LocalizedText>()), Times.Never);
     }
 
     [TestMethod]
@@ -417,6 +491,38 @@ public class ReactionWorkerTest
         return new ReactionSnapshot(config, subfolder is null ? [] : MandateValues(subfolder));
     }
 
+    // Keeps the configuration the recorder is given at the start of an attempt.
+    private Func<IReadOnlyDictionary<string, RecordedConfigValue>?> CaptureStartedConfig()
+    {
+        IReadOnlyDictionary<string, RecordedConfigValue>? started = null;
+        recorderMock
+            .Setup(recorder => recorder.RecordReactionAttemptStartedAsync(It.IsAny<DeliveryReaction>(), It.IsAny<IReadOnlyDictionary<string, RecordedConfigValue>?>()))
+            .Callback<DeliveryReaction, IReadOnlyDictionary<string, RecordedConfigValue>?>((_, config) => started = config)
+            .Returns(Task.CompletedTask);
+        return () => started;
+    }
+
+    // The protocol of the reactions belongs to the recording of the run the delivery came from.
+    private void AddRecordingOf(Delivery of)
+    {
+        context.Recordings.Add(new Recording { JobId = of.JobId, PipelineId = "ablage", Definition = "{}", AppVersion = "1.0.0", UploadStorageLocation = "uploads", UploadInitiatedAt = dbNow, StartedAt = dbNow });
+        context.SaveChanges();
+    }
+
+    // Looks at whole rows, so a column added to a protocol table later is searched as well.
+    private async Task<int> CountProtocolRowsContainingAsync(string text)
+    {
+        var protocolTypes = new[] { typeof(Recording), typeof(RecordingFile), typeof(RecordingStep), typeof(RecordingInput), typeof(RecordingCondition), typeof(RecordingArtifact), typeof(RecordingReactionEvent) };
+        var count = 0;
+        foreach (var table in protocolTypes.Select(type => context.Model.FindEntityType(type)?.GetTableName()).OfType<string>())
+        {
+            var sql = $"SELECT count(*)::int AS \"Value\" FROM \"{table}\" t WHERE t::text LIKE @pattern";
+            count += await context.Database.SqlQueryRaw<int>(sql, new NpgsqlParameter("pattern", $"%{text}%")).SingleAsync();
+        }
+
+        return count;
+    }
+
     private ReactionWorker CreateWorker(IServiceScopeFactory? scopeFactory = null)
     {
         var options = Options.Create(reactionOptions);
@@ -433,12 +539,12 @@ public class ReactionWorkerTest
     }
 
     // Every attempt gets the context of the test, whose transaction is rolled back afterwards.
-    private IServiceScopeFactory ScopeFactory()
+    private IServiceScopeFactory ScopeFactory(IRecorder? recorder = null)
     {
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(provider => provider.GetService(typeof(Context))).Returns(context);
         serviceProviderMock.Setup(provider => provider.GetService(typeof(IAssetFileStore))).Returns(assetStore);
-        serviceProviderMock.Setup(provider => provider.GetService(typeof(IRecorder))).Returns(recorderMock.Object);
+        serviceProviderMock.Setup(provider => provider.GetService(typeof(IRecorder))).Returns(recorder ?? recorderMock.Object);
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(scope => scope.ServiceProvider).Returns(serviceProviderMock.Object);
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();

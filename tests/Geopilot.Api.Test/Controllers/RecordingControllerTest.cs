@@ -2,9 +2,12 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
+using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Text.Json;
 
 namespace Geopilot.Api.Controllers;
 
@@ -16,6 +19,7 @@ public sealed class RecordingControllerTest
 
     private Context context;
     private Mock<IProcessingService> processingServiceMock;
+    private Mock<IPipelineFactory> pipelineFactoryMock;
     private RecordingController controller;
 
     [TestInitialize]
@@ -23,7 +27,9 @@ public sealed class RecordingControllerTest
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
         processingServiceMock = new Mock<IProcessingService>();
-        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, processingServiceMock.Object);
+        pipelineFactoryMock = new Mock<IPipelineFactory>();
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
+        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, processingServiceMock.Object, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -89,6 +95,56 @@ public sealed class RecordingControllerTest
         Assert.AreEqual(TestHelpers.Localized("The target is not reachable."), first.Message);
         Assert.IsNotNull(first.FinishedAt);
         Assert.IsNull(first.UserId);
+    }
+
+    [TestMethod]
+    public async Task GetNamesEachReactionAfterTheDefinition()
+    {
+        pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns(
+        [
+            new ReactionSetConfig
+            {
+                Id = "kanton_a",
+                DisplayName = TestHelpers.Localized("Kanton A"),
+                Transfers = [new ReactionConfig { Id = "weitergabe", DisplayName = TestHelpers.Localized("Weitergabe ins Archiv"), ChannelId = "ablage" }],
+            },
+        ]);
+
+        // The definition no longer has the reaction of the first attempt, so that one keeps its id only.
+        var run = SeedRun(run => run.ReactionEvents.Single(reactionEvent => reactionEvent.Attempt == 1).ReactionId = "entfernt");
+
+        var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
+
+        Assert.AreEqual("entfernt", response.ReactionEvents[0].ReactionId);
+        Assert.IsNull(response.ReactionEvents[0].ReactionDisplayName);
+        Assert.AreEqual(TestHelpers.Localized("Weitergabe ins Archiv"), response.ReactionEvents[1].ReactionDisplayName);
+    }
+
+    [TestMethod]
+    public async Task GetReturnsTheVersionAndTheConfigOfAnAttempt()
+    {
+        var run = SeedRun(run =>
+        {
+            var attempt = run.ReactionEvents.Single(reactionEvent => reactionEvent.Attempt == 1);
+            attempt.AppVersion = "3.2.0";
+            attempt.Config = new Dictionary<string, RecordedConfigValue>
+            {
+                ["password"] = new("**********", ConfigOrigin.Base),
+                ["template"] = new("mail/info.html", ConfigOrigin.Definition, "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581"),
+            };
+        });
+
+        var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
+
+        var first = response.ReactionEvents[0];
+        Assert.AreEqual("3.2.0", first.AppVersion);
+        Assert.IsNotNull(first.Config);
+        Assert.AreEqual("\"**********\"", JsonSerializer.Serialize(first.Config["password"].Value));
+        Assert.AreEqual(ConfigOrigin.Base, first.Config["password"].Origin);
+        Assert.AreEqual(ConfigOrigin.Definition, first.Config["template"].Origin);
+        Assert.AreEqual("3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581", first.Config["template"].Sha256);
+        Assert.IsNull(response.ReactionEvents[1].AppVersion, "an attempt recorded before the protocol kept its version.");
+        Assert.IsNull(response.ReactionEvents[1].Config);
     }
 
     [TestMethod]

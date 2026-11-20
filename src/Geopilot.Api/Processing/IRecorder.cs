@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Processing;
@@ -94,16 +95,19 @@ public interface IRecorder
     /// from, so an attempt whose instance stopped shows as running. Soft.
     /// </summary>
     /// <param name="reaction">The claimed reaction.</param>
-    Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction);
+    /// <param name="config">The configuration the channel of the attempt runs with, secrets masked, or
+    /// <see langword="null"/> when the channel is unknown.</param>
+    Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config);
 
     /// <summary>
     /// Completes the row of an attempt with the state the reaction is in now and what the attempt reported, and
     /// writes the row late when its start is missing. Soft.
     /// </summary>
     /// <param name="reaction">The reaction as it was claimed for the attempt.</param>
+    /// <param name="config">The configuration the start was given, for a row written late.</param>
     /// <param name="state">The state the reaction is in now, or <see langword="null"/> when the attempt no longer held it.</param>
     /// <param name="message">What the channel reported, or why the attempt failed.</param>
-    Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, LocalizedText message);
+    Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config, ReactionState? state, LocalizedText message);
 
     /// <summary>
     /// Writes one row per reaction of a deleted delivery with the state the deletion left it in, so the protocol

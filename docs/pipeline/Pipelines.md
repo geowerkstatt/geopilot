@@ -219,6 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
+- Die Pipeline-Definition darf keinen Parameter setzen, den ein Prozess als geheim kennzeichnet, und geheim kann nur ein Text sein, siehe [Geheime Werte](#geheime-werte).
 - Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
@@ -326,6 +327,17 @@ configuration if the value has to be set per pipeline.
 Zu entfernen ist im Regelfall der Eintrag in der Pipeline-Definition, denn die Basis-Konfiguration ist bewusst nicht übersteuerbar. Soll der Wert dagegen pro Pipeline unterschiedlich sein, gehört er umgekehrt nicht in die Basis-Konfiguration. Die beiden Schichten werden typischerweise von verschiedenen Personen gepflegt (die Basis-Konfiguration im Hosting, die Definition in der gemounteten YAML), deshalb nennt die Meldung sowohl die Umgebungsvariable als auch den Pfad in der Definition.
 
 Dass eine Kollision die Applikation anhält, statt dass die Basis-Konfiguration einfach gewinnt, ist Absicht: Ein Schlüssel gehört genau einer Schicht. Betriebs- und sicherheitsrelevante Parameter (URLs, Pfade, Hosts, Tokens, Timeouts) gehören ausschliesslich in die Basis-Konfiguration, wo keine Pipeline-Definition sie erreicht; alles, was pro Pipeline oder pro Schritt variiert, gehört ausschliesslich in die Definition. Steht ein Schlüssel auf beiden Schichten, ist diese Zuordnung falsch. Würde die Basis-Konfiguration stattdessen nur mit einer Warnung gewinnen, bliebe der Schlüssel über die `default_config` weiterhin als überschreibbar deklariert, und sobald die Basis-Konfiguration einmal fehlt (neue Umgebung, aufgeräumtes Compose-File), wäre er ohne Codeänderung überschreibbar.
+
+#### Geheime Werte
+
+Einen Parameter, der einen geheimen Wert nimmt, etwa einen Token oder ein Passwort, kennzeichnet ein Prozess oder ein Kanal mit `[SecretConfigValue]` (siehe [Plugin System](pluginSystem.md#geheime-werte)). Ein solcher Parameter nimmt seinen Wert nur aus der Basis-Konfiguration, am besten aus einer Umgebungsvariable oder einem Vault. Setzt ihn die Pipeline-Definition, startet die Applikation nicht, auch wenn die Basis-Konfiguration ihn gar nicht setzt:
+
+- bei einem Prozess in `default_config` oder in `process_config_overwrites`. Geprüft wird jeder Prozess unter `processes`, auch einer, den kein Schritt verwendet.
+- bei einem Kanal in seiner `default_config` oder in den `channel_config_overwrites` einer Reaktion. Geprüft wird jeder Kanal, den eine Reaktion verwendet. Als Wert des Mandats lässt sich ein geheimer Parameter nicht deklarieren.
+
+Geheim kann nur ein Text sein (`string`), eine Kennzeichnung an einem anderen Typ hält den Start ebenfalls an.
+
+Wo geopilot eine Konfiguration festhält, im Definitions-Snapshot eines Laufs wie in der Konfiguration eines Zustellversuchs (siehe [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md)), steht ein gesetzter geheimer Wert nur als `**********`; der Schlüssel bleibt, damit sichtbar ist, dass ein Wert gesetzt war. Ein leerer Wert bleibt leer. Nennt ein geheimer Parameter eines Kanals eine Datei, hält das Protokoll auch keinen Hash ihres Inhalts fest. Die eingebauten Prozesse haben keinen geheimen Parameter, das Passwort des [Mail-Kanals](Kanaele/mail.md) ist einer.
 
 #### Dateien als Konfiguration
 
@@ -620,7 +632,7 @@ Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopi
 
 Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
 
-1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier, ebenso einen geheimen Wert wie das Passwort des Mail-Kanals (siehe [Geheime Werte](#geheime-werte)). Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nicht in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu; dafür hält das Protokoll zu jedem Zustellversuch die Konfiguration fest, mit der sein Kanal lief, geheime Werte maskiert.
 2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
 3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
 
@@ -663,6 +675,7 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 - eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
 - die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
+- ein Kanal einen geheimen Parameter hat, der keinen Text nimmt oder zugleich ein Wert des Mandats ist,
 - ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
 - der Kanal einer Reaktion seine Konfiguration abweist, etwa der Mail-Kanal ein Template ohne Titel. Dafür baut geopilot jeden Kanal einmal, der ohne Werte vom Mandat auskommt; einen, der welche braucht, prüft erst das Speichern eines Mandats,
 - ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,

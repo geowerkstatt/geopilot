@@ -2,6 +2,7 @@
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using YamlDotNet.Serialization;
@@ -160,19 +161,65 @@ public class PipelineFactory : IPipelineFactory
             .ToList();
 
         var implementations = processes.Select(process => process.Implementation).ToHashSet(StringComparer.Ordinal);
-        var processConfigs = processBaseConfigs?
-            .Where(entry => implementations.Contains(entry.Key))
-            .ToDictionary(entry => entry.Key, entry => entry.Value);
+        var processConfigs = new Dictionary<string, Parameterization>();
+        foreach (var (implementation, config) in processBaseConfigs ?? new Dictionary<string, Parameterization>())
+        {
+            // Without the constructor nothing tells which keys are secret, so the whole entry stays out.
+            if (implementations.Contains(implementation) && FindProcessConstructor(implementation) is { } constructor)
+                processConfigs[implementation] = SecretConfigValues.ForProtocol(constructor, config);
+        }
 
         var snapshot = new DefinitionSnapshot
         {
             Pipelines = new List<PipelineConfig> { pipelineConfig },
             Processes = processes,
-            ProcessConfigs = processConfigs is { Count: > 0 } ? processConfigs : null,
+            ProcessConfigs = processConfigs.Count > 0 ? processConfigs : null,
         };
 
         return SnapshotSerializer.Serialize(snapshot);
     }
+
+    /// <summary>
+    /// The constructor the configuration of a process binds to, or <see langword="null"/> when its type cannot be
+    /// resolved or has no single public constructor. Only the runtime's own process factory resolves types.
+    /// </summary>
+    private ConstructorInfo? FindProcessConstructor(string implementation)
+    {
+        var type = (pipelineProcessFactory as PipelineProcessFactory)?.GetProcessorType(implementation);
+        var constructors = type?.GetConstructors(BindingFlags.Public | BindingFlags.Instance) ?? [];
+        return constructors.Length == 1 ? constructors[0] : null;
+    }
+
+    /// <summary>
+    /// Checks the parameters marked <see cref="SecretConfigValueAttribute"/> of every process the definition declares,
+    /// also of one no step uses: such a parameter takes a text, and only the base configuration sets it, never the
+    /// <c>default_config</c> of the process or the <c>process_config_overwrites</c> of a step. A process whose
+    /// constructor cannot be resolved is left to the step validation, which reports it.
+    /// </summary>
+    private IEnumerable<string> ValidateSecretProcessParameters()
+    {
+        foreach (var process in PipelineProcessConfig.Processes)
+        {
+            var secrets = FindProcessConstructor(process.Implementation)?.GetParameters().Where(SecretConfigValues.IsSecret).ToList() ?? [];
+            foreach (var secret in secrets)
+            {
+                if (SecretConfigValues.TypeError(secret, "Process", process.Implementation) is { } typeError)
+                    yield return typeError;
+
+                if (process.DefaultConfig?.ContainsKey(secret.Name ?? string.Empty) == true)
+                    yield return SecretInDefinitionMessage(process.Implementation, secret, $"processes[id={process.Id}].default_config.{secret.Name}");
+
+                var overwritingSteps = PipelineProcessConfig.Pipelines.SelectMany(pipeline => pipeline.Steps
+                    .Where(step => step.ProcessId == process.Id && step.ProcessConfigOverwrites?.ContainsKey(secret.Name ?? string.Empty) == true)
+                    .Select(step => (PipelineId: pipeline.Id, StepId: step.Id)));
+                foreach (var (pipelineId, stepId) in overwritingSteps)
+                    yield return SecretInDefinitionMessage(process.Implementation, secret, $"pipelines[id={pipelineId}].steps[id={stepId}].process_config_overwrites.{secret.Name}");
+            }
+        }
+    }
+
+    private static string SecretInDefinitionMessage(string implementation, ParameterInfo secret, string location)
+        => $"Process <{implementation}>: the parameter '{secret.Name}' is marked [SecretConfigValue] and can only be set in the base configuration (Pipeline:ProcessConfigs), not in the pipeline definition ('{location}').";
 
     /// <inheritdoc />
     public PipelineDefinitionValidationResult ValidateDefinition()
@@ -210,6 +257,8 @@ public class PipelineFactory : IPipelineFactory
                 }
             }
         }
+
+        processErrors.UnionWith(ValidateSecretProcessParameters());
 
         var reactionErrors = ValidateReactionSets();
         if (processErrors.Count > 0 || reactionErrors.Count > 0)

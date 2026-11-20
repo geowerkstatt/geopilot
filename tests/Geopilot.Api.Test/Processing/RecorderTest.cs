@@ -2,6 +2,7 @@
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ using Moq;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text.Json;
 
 namespace Geopilot.Api.Test.Processing;
 
@@ -461,7 +463,7 @@ public class RecorderTest
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var reaction = ClaimedReaction(delivery, attempt: 2);
 
-        await recorder.RecordReactionAttemptStartedAsync(reaction);
+        await recorder.RecordReactionAttemptStartedAsync(reaction, null);
 
         var row = await context.RecordingReactionEvents.SingleAsync(e => e.RecordingId == run.Id);
         Assert.AreEqual(delivery.Id, row.DeliveryId);
@@ -485,9 +487,9 @@ public class RecorderTest
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var reaction = ClaimedReaction(delivery);
-        await recorder.RecordReactionAttemptStartedAsync(reaction);
+        await recorder.RecordReactionAttemptStartedAsync(reaction, null);
 
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, TestHelpers.Localized("What the channel reported."));
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, null, state, TestHelpers.Localized("What the channel reported."));
 
         var row = await context.RecordingReactionEvents.SingleAsync(e => e.RecordingId == run.Id);
         Assert.AreEqual(state, row.State);
@@ -501,7 +503,7 @@ public class RecorderTest
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var reaction = ClaimedReaction(delivery);
 
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, null, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
 
         var row = await context.RecordingReactionEvents.SingleAsync(e => e.RecordingId == run.Id);
         Assert.AreEqual(reaction.LastAttemptAt, row.OccurredAt);
@@ -510,14 +512,67 @@ public class RecorderTest
     }
 
     [TestMethod]
+    public async Task ReactionAttemptStartedRecordsTheVersionAndTheConfig()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var config = new Dictionary<string, RecordedConfigValue>
+        {
+            ["password"] = new("**********", ConfigOrigin.Base),
+            ["template"] = new("mail/info.html", ConfigOrigin.Definition, "3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581"),
+            ["to"] = new(JsonSerializer.SerializeToElement(new[] { "empfang@example.com" }), ConfigOrigin.Mandate),
+        };
+
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery), config);
+
+        var row = await context.RecordingReactionEvents.AsNoTracking().SingleAsync(e => e.RecordingId == run.Id);
+        Assert.IsFalse(string.IsNullOrEmpty(row.AppVersion));
+        Assert.IsNotNull(row.Config);
+        Assert.AreEqual(ConfigOrigin.Base, row.Config["password"].Origin);
+        Assert.AreEqual("\"**********\"", JsonSerializer.Serialize(row.Config["password"].Value));
+        Assert.AreEqual("3a5f8dba468cf12de017fec68004a5020ec28c25ad671f026beba8b5fb900581", row.Config["template"].Sha256);
+        Assert.AreEqual("[\"empfang@example.com\"]", JsonSerializer.Serialize(row.Config["to"].Value));
+
+        // Read with SQL too, the stored JSON names the origin in camelCase and has a hash only for a file.
+        var stored = await context.Database
+            .SqlQuery<string>($"SELECT concat_ws(',', \"Config\"->'to'->>'origin', \"Config\"->'password'->>'value', ((\"Config\"->'password') ? 'sha256')::text) AS \"Value\" FROM \"RecordingReactionEvents\" WHERE \"RecordingId\" = {run.Id}")
+            .SingleAsync();
+        Assert.AreEqual("mandate,**********,false", stored);
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptFinishedWritesTheConfigIntoARowItCreatesLate()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+        var config = new Dictionary<string, RecordedConfigValue> { ["host"] = new("smtp.example.com", ConfigOrigin.Base) };
+
+        await recorder.RecordReactionAttemptFinishedAsync(ClaimedReaction(delivery), config, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
+
+        var row = await context.RecordingReactionEvents.AsNoTracking().SingleAsync(e => e.RecordingId == run.Id);
+        Assert.IsFalse(string.IsNullOrEmpty(row.AppVersion));
+        Assert.AreEqual(ConfigOrigin.Base, row.Config?["host"].Origin);
+    }
+
+    [TestMethod]
+    public async Task ReactionAttemptOfAnUnknownChannelRecordsTheVersionWithoutConfig()
+    {
+        var (run, delivery) = await SeedRunWithDeliveryAsync();
+
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery), null);
+
+        var row = await context.RecordingReactionEvents.AsNoTracking().SingleAsync(e => e.RecordingId == run.Id);
+        Assert.IsFalse(string.IsNullOrEmpty(row.AppVersion));
+        Assert.IsNull(row.Config);
+    }
+
+    [TestMethod]
     public async Task AReactionRowThatCouldNotBeSavedDoesNotTakeTheNextOneWithIt()
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var refused = ClaimedReaction(delivery);
         refused.ReactionId = new string('x', 200);
-        await recorder.RecordReactionAttemptStartedAsync(refused);
+        await recorder.RecordReactionAttemptStartedAsync(refused, null);
 
-        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery));
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery), null);
 
         var row = await context.RecordingReactionEvents.SingleAsync(e => e.RecordingId == run.Id);
         Assert.AreEqual("weitergabe", row.ReactionId, "the row the database refused is forgotten instead of failing the next write again.");
@@ -530,7 +585,7 @@ public class RecorderTest
         delivery.Deleted = true;
         await context.SaveChangesAsync();
 
-        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery));
+        await recorder.RecordReactionAttemptStartedAsync(ClaimedReaction(delivery), null);
 
         Assert.IsTrue(await context.RecordingReactionEvents.AnyAsync(e => e.RecordingId == run.Id), "the protocol outlives the deletion of the delivery.");
     }
@@ -543,8 +598,8 @@ public class RecorderTest
         await context.SaveChangesAsync();
         var reaction = ClaimedReaction(withoutRun);
 
-        await recorder.RecordReactionAttemptStartedAsync(reaction);
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
+        await recorder.RecordReactionAttemptStartedAsync(reaction, null);
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, null, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
         await recorder.RecordDeliveryDeletedAsync(withoutRun.Id, [reaction], user.Id);
 
         Assert.IsFalse(await context.RecordingReactionEvents.AnyAsync(e => e.DeliveryId == withoutRun.Id), "soft writes without a recording must be skipped, not fail.");
@@ -562,6 +617,7 @@ public class RecorderTest
         var rows = await context.RecordingReactionEvents.Where(e => e.RecordingId == run.Id).OrderBy(e => e.Id).ToListAsync();
         Assert.HasCount(2, rows);
         Assert.IsTrue(rows.All(row => row.Event == ReactionEvent.Deletion && row.UserId == user.Id && row.Attempt is null && row.FinishedAt is null));
+        Assert.IsTrue(rows.All(row => row.AppVersion is null && row.Config is null), "only an attempt runs a channel.");
         Assert.AreEqual("ablage", rows[0].ReactionId);
         Assert.AreEqual(ReactionState.Done, rows[0].State, "a reaction done before the deletion shows the delivery was forwarded.");
         Assert.AreEqual(TestHelpers.Localized("Delivered to the target."), rows[0].Message);
@@ -583,6 +639,8 @@ public class RecorderTest
         Assert.IsNull(row.Attempt);
         Assert.IsNull(row.FinishedAt);
         Assert.IsNull(row.Message);
+        Assert.IsNull(row.AppVersion);
+        Assert.IsNull(row.Config);
     }
 
     [TestMethod]
@@ -590,13 +648,13 @@ public class RecorderTest
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();
         var beforeReset = ClaimedReaction(delivery);
-        await recorder.RecordReactionAttemptStartedAsync(beforeReset);
-        await recorder.RecordReactionAttemptFinishedAsync(beforeReset, ReactionState.Error, TestHelpers.Localized("The base directory does not exist."));
+        await recorder.RecordReactionAttemptStartedAsync(beforeReset, null);
+        await recorder.RecordReactionAttemptFinishedAsync(beforeReset, null, ReactionState.Error, TestHelpers.Localized("The base directory does not exist."));
         await recorder.RecordReactionsResetAsync(delivery.Id, [ReactionInState(delivery, "weitergabe", ReactionState.Pending)], user.Id);
         var afterReset = ClaimedReaction(delivery);
-        await recorder.RecordReactionAttemptStartedAsync(afterReset);
+        await recorder.RecordReactionAttemptStartedAsync(afterReset, null);
 
-        await recorder.RecordReactionAttemptFinishedAsync(afterReset, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
+        await recorder.RecordReactionAttemptFinishedAsync(afterReset, null, ReactionState.Done, TestHelpers.Localized("Delivered to the target."));
 
         var attempts = await context.RecordingReactionEvents
             .Where(e => e.RecordingId == run.Id && e.Event == ReactionEvent.Attempt)
