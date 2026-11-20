@@ -294,11 +294,11 @@ Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen 
 
 Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage, möglich ist auch ein S3-kompatibler Storage. In der Entwicklung läuft [SeaweedFS](https://github.com/seaweedfs/seaweedfs) als S3-Storage und [Azurite](https://github.com/Azure/Azurite) als Emulator für Azure. Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
-Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
+Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID die Verarbeitung.
 
-Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Lauf endet, bei einem lieferbaren Lauf nach dem Staging der Lieferdateien. Gestaged wird nur ein Lauf, den jemand abgeben darf: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Ein abgebrochener Lauf (Job-Timeout oder Herunterfahren) behält die Blobs bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Jobs noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Jobs starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Eine Verarbeitung startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Lauf endet, bei einem lieferbaren Lauf nach dem Staging der Lieferdateien. Gestaged wird nur ein Lauf, den jemand abgeben darf: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Ein abgebrochener Lauf (Zeitüberschreitung oder Herunterfahren) behält die Blobs bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Verarbeitungen noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Verarbeitungen starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
-`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Jobs warten, bis ein Platz frei wird. Wie viele Jobs insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jeder wartende Job seinen Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
+`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Verarbeitungen warten, bis ein Platz frei wird. Wie viele Verarbeitungen insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jede wartende Verarbeitung ihren Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
 
 ### Entwicklung
 
@@ -365,7 +365,7 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 "Upload": {
     "Backend": "Direct",
     "Direct": {
-        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Job-Arbeitsverzeichnis
+        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Arbeitsverzeichnis einer Verarbeitung
     }
 }
 ```
@@ -377,7 +377,7 @@ Für den direkten Modus gilt:
 
 - **Der Upload-Endpunkt prüft jede Anfrage gegen die Upload-Session:** er nimmt nur bei der Initiierung angemeldete Dateien an, das Schreibziel stammt aus der Session statt aus der URL, die Session läuft nach `UploadUrlExpiryMinutes` ab und der Inhalt muss der deklarierten Grösse entsprechen.
 - **Die maximale Dateigrösse kommt aus `Upload:MaxFileSizeMB`.** Der Upload-Endpunkt hebt sein Request-Limit selbst auf die deklarierte Dateigrösse; alle übrigen Endpunkte behalten die globale Obergrenze von 100 MB pro Request. Ein vorgeschalteter Reverse Proxy bringt seine eigene Grössenbeschränkung mit und muss entsprechend konfiguriert werden.
-- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor ein Job verarbeitet wird.
+- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor eine Verarbeitung beginnt.
 - **geopilot bewirtschaftet keinen Plattenschutz** für das Upload-Verzeichnis (keine Quota, kein Aufräumen bei Füllstand über die konfigurierte Bereinigung hinaus). Die Überwachung des Dateisystems gehört zur Infrastruktur der Installation.
 
 In `docker-compose` wird der direkte Modus über Umgebungsvariablen konfiguriert, das Verzeichnis als Volume gemountet:

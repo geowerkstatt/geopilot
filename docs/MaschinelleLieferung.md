@@ -85,7 +85,7 @@ Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur 
 
 ### Antwort
 
-Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpunkt und dem Statusdokument. Die Id des Versuchs ist zugleich die Id seines Verarbeitungsjobs.
+Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpunkt und dem Statusdokument. Die Id des Versuchs ist zugleich die Id seiner Verarbeitung.
 
 ## Status abfragen
 
@@ -142,11 +142,11 @@ Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in
 
 ## Lebensdauer
 
-Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie sein Verarbeitungsjob (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
+Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie seine Verarbeitung (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
 
 **Der dauerhafte Griff ist die `deliveryId`.** Die Lieferung ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient, und unter *Meine Lieferungen* jede für den Client verantwortliche Person; einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
 
-Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden `Processing:DownloadRetention` nach dem Ende des Laufs aufgeräumt, standardmässig nach einer Stunde, während der Job einen Tag bleibt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
+Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden `Processing:DownloadRetention` nach dem Ende des Laufs aufgeräumt, standardmässig nach einer Stunde, während die Verarbeitung einen Tag bleibt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
 
 ## Antworten
 

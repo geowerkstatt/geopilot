@@ -1,44 +1,46 @@
 # Begriffe
 
-Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Zeigt die Oberfläche einen Begriff, stehen bei ihm unter *Übersetzungen* die Wörter, die sie auf Englisch, Französisch und Italienisch dafür verwendet, mit dem unbestimmten Artikel für das Geschlecht; neue Texte in `src/Geopilot.Frontend/public/locale` folgen ihnen. Ein Begriff ohne Übersetzungen erscheint nicht in der Oberfläche, sein englischer Name ist der im Code. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
+Die Begriffe rund um den Lebenszyklus einer Verarbeitung und ihrer Lieferung, so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Zeigt die Oberfläche einen Begriff, stehen bei ihm unter *Übersetzungen* die Wörter, die sie auf Englisch, Französisch und Italienisch dafür verwendet, mit dem unbestimmten Artikel für das Geschlecht; neue Texte in `src/Geopilot.Frontend/public/locale` folgen ihnen. Ein Begriff ohne Übersetzungen erscheint nicht in der Oberfläche, sein englischer Name ist der im Code. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
-## Job
+## Verarbeitung
 
-Alles, was geopilot zur Verarbeitung eines Uploads mit einem Mandat im Speicher hält: Zustand, Pipeline und den Verweis auf den Upload. Ein Job entsteht beim Start und lebt bis zu seinem Retirement. Pro Upload ist höchstens ein Job aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis dieser Job endet. Scheitert der Start, bleibt kein Job zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
+Was geopilot mit einem Upload für ein Mandat tut, vom Start bis zu ihrem Retirement; die Pipeline des Mandats beschreibt sie. Im Speicher hält eine Verarbeitung ihren Zustand, ihre Pipeline und den Verweis auf den Upload. Pro Upload ist höchstens eine Verarbeitung aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis diese endet. Scheitert der Start, bleibt keine Verarbeitung zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
 
-_Übersetzungen_: EN job, FR un job, IT un job
+_Übersetzungen_: EN processing, FR un traitement, IT un'elaborazione
+
+_Vermeiden_: Job, Verarbeitungsjob, Prozessierung
 
 ## Protokoll
 
-Was das Ausführungsprotokoll zu einem Job festhält, den ganzen Weg vom Start über Preflight und die Schritte der Pipeline bis zur Lieferung und ihren Reaktionen, auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jedem Job genau ein Protokoll. Anders als der Job überlebt es das Retirement und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
+Was das Ausführungsprotokoll zu einer Verarbeitung festhält, den ganzen Weg vom Start über Preflight und die Schritte der Pipeline bis zur Lieferung und ihren Reaktionen, auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jeder Verarbeitung genau ein Protokoll. Anders als die Verarbeitung überlebt es das Retirement und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
 
 _Übersetzungen_: EN recording, FR un enregistrement, IT una registrazione
 
 ## Ausgang
 
-Wie die Pipeline eines Jobs geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
+Wie die Pipeline einer Verarbeitung geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
 
 ## Folgen
 
-Was aus einem Ausgang für den Job folgt, soweit es vom Ausgang abhängt: sein neuer Zustand und ob der Upload freigegeben wird. Was bei jedem Ausgang geschieht, etwa die Pipeline entsorgen oder das Protokoll schreiben, gehört nicht dazu. Im Code: `JobDecision`, entschieden in `JobLifecycle.Decide`.
+Was aus einem Ausgang für die Verarbeitung folgt, soweit es vom Ausgang abhängt: ihr neuer Zustand und ob der Upload freigegeben wird. Was bei jedem Ausgang geschieht, etwa die Pipeline entsorgen oder das Protokoll schreiben, gehört nicht dazu. Im Code: `JobDecision`, entschieden in `JobLifecycle.Decide`.
 
 ## Freigabe
 
-Das Löschen der hochgeladenen Dateien eines Jobs aus dem Upload-Speicher. Ob sie am Laufende geschieht, entscheidet `JobLifecycle.Decide`. Ein Upload, der nicht freigegeben wird, bleibt für einen erneuten Start liegen, bis seine Session abläuft (`Upload:CleanupAgeHours`). Im Code: `IUploadOrchestrationService.ReleaseUploadAsync`.
+Das Löschen der hochgeladenen Dateien einer Verarbeitung aus dem Upload-Speicher. Ob sie am Laufende geschieht, entscheidet `JobLifecycle.Decide`. Ein Upload, der nicht freigegeben wird, bleibt für einen erneuten Start liegen, bis seine Session abläuft (`Upload:CleanupAgeHours`). Im Code: `IUploadOrchestrationService.ReleaseUploadAsync`.
 
 ## Retirement
 
-Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetention` vergangen ist: der Eintrag im Speicher sowie seine Downloads, Visualisierungen, Arbeits- und Staging-Verzeichnisse. Lieferungen und sein Protokoll bleiben erhalten. Den Upload gibt das Retirement nicht frei, der ist dann schon freigegeben oder wird bis zum Ablauf seiner Session behalten. Im Code: `ProcessingJobCleanupService`, für den Job selbst `JobLifecycle.Retire`.
+Das Entfernen einer Verarbeitung, wenn seit dem Ende ihres Laufs `Processing:JobRetention` vergangen ist: der Eintrag im Speicher sowie ihre Downloads, Visualisierungen, Arbeits- und Staging-Verzeichnisse. Lieferungen und ihr Protokoll bleiben erhalten. Den Upload gibt das Retirement nicht frei, der ist dann schon freigegeben oder wird bis zum Ablauf seiner Session behalten. Im Code: `ProcessingJobCleanupService`, für die Verarbeitung selbst `JobLifecycle.Retire`.
 
 ## Lieferberechtigt
 
-Ob aus einem Job je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Job, den niemand abgeben darf, staged der Runner nicht, und seine Lieferung wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.MayDeliver`, entschieden in `MandateService.MayDeliverAsync`.
+Ob aus einer Verarbeitung je eine Lieferung werden kann: Wer sie startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Eine Verarbeitung, die niemand abgeben darf, staged der Runner nicht, und ihre Lieferung wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.MayDeliver`, entschieden in `MandateService.MayDeliverAsync`.
 
 _Übersetzungen_: EN permitted to deliver, FR autorisé à livrer, IT autorizzato a consegnare
 
 ## Staging
 
-Wo die Lieferdateien eines Jobs warten, bis jemand die Lieferung abgibt. Endet der Lauf lieferbar und ist der Job lieferberechtigt, kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, ohne Abgabe geht es mit dem Retirement. Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
+Wo die Lieferdateien einer Verarbeitung warten, bis jemand die Lieferung abgibt. Endet der Lauf lieferbar und ist die Verarbeitung lieferberechtigt, kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, ohne Abgabe geht es mit dem Retirement. Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
 
 ## Lieferung
 
@@ -50,7 +52,7 @@ _Vermeiden_: Deklaration, Anlieferung, Auslieferung
 
 ## Versuch
 
-Eine maschinelle Lieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
+Eine maschinelle Lieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie seine Verarbeitung, siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
 _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
@@ -62,7 +64,7 @@ _Übersetzungen_: EN responsible user, FR une personne responsable, IT una perso
 
 ## Lieferabsicht
 
-Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst erstellt, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen des Jobs an ihn gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Wird die Lieferung abgewiesen, steht der Grund auf dem Job; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, erstellt in `JobLifecycle.RunFinishedAsync`.
+Der beim Start geäusserte Wunsch, dass geopilot die Lieferung selbst erstellt, sobald der Lauf lieferbar endet. Heute hat nur ein Versuch eine Lieferabsicht. Sie wird beim Anlegen der Verarbeitung an sie gebunden, mit Lieferant und Lieferangaben, sodass kein Lauf enden kann, bevor sie bekannt ist. Wird die Lieferung abgewiesen, steht der Grund auf der Verarbeitung; gelingt sie, ist die Lieferung selbst der Beleg. Im Code: `ProcessingJob.DeliveryIntent`, erstellt in `JobLifecycle.RunFinishedAsync`.
 
 ## Löschfenster
 

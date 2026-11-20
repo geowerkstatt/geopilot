@@ -113,7 +113,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 - Bleibt kein Empfänger, endet die Reaktion ohne Versand und ohne Fehler, mit einer Meldung dazu.
 - Weist der Server einen Empfänger ab, geht die Mail an niemanden hinaus. Der Versuch scheitert mit der abgewiesenen Adresse in der Meldung und wird wiederholt wie jeder andere, zuletzt steht die Reaktion auf `Error`. Ein falscher Empfänger fällt so auf, statt still zu fehlen. Korrigiert wird er am Mandat, für die folgenden Lieferungen.
 - Jeder andere Fehler des Servers zählt gleich: Der Versuch scheitert und wird wiederholt.
-- Jeder Versuch schickt dieselbe Message-ID, gebildet aus der Job-Id der Lieferung und der Id der Reaktion. Manche Mailserver verwerfen damit eine Wiederholung. Garantiert ist das nicht: Scheitert ein Versuch, nachdem der Server die Mail angenommen hat, kann sie zweimal ankommen.
+- Jeder Versuch schickt dieselbe Message-ID, gebildet aus der Verarbeitungs-ID der Lieferung und der Id der Reaktion. Manche Mailserver verwerfen damit eine Wiederholung. Garantiert ist das nicht: Scheitert ein Versuch, nachdem der Server die Mail angenommen hat, kann sie zweimal ankommen.
 
 ## Personendaten
 

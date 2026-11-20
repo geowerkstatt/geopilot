@@ -40,7 +40,7 @@ Die Schritte können dabei verschiedene Stati durchlaufen, welche den aktuellen 
 - `Warning`: Schritt wurde ausgeführt, hat aber Probleme gemeldet (eine `warn_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter; der Schritt gilt nicht als Fehler.
 - `DeliveryRestriction`: Schritt wurde ausgeführt, schränkt aber die Datenlieferung ein (eine `restrict_delivery_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter und der Schritt gilt nicht als Fehler, die produzierten Daten dürfen aber nicht geliefert werden.
 - `Error`: Schritt ist durch eigene Verarbeitungslogik fehlgeschlagen.
-- `Cancelled`: Schritt wurde vor Abschluss von aussen abgebrochen (z.B. Job-Timeout oder Shutdown des Hosts). Wird bewusst von `Error` unterschieden, weil der Schritt nicht aufgrund eines Verarbeitungsfehlers, sondern durch eine externe Unterbrechung beendet wurde.
+- `Cancelled`: Schritt wurde vor Abschluss von aussen abgebrochen (z.B. Zeitüberschreitung der Verarbeitung oder Shutdown des Hosts). Wird bewusst von `Error` unterschieden, weil der Schritt nicht aufgrund eines Verarbeitungsfehlers, sondern durch eine externe Unterbrechung beendet wurde.
 
 #### Pipeline
 
@@ -52,7 +52,7 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 - `Warning`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `Warning` und die übrigen `Success` oder `Skipped` (kein `Error`, kein `Cancelled`, kein `DeliveryRestriction`). Ein `Warning`-Status verhindert die Datenlieferung nicht von sich aus.
 - `DeliveryRestriction`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `DeliveryRestriction` und die übrigen `Success`, `Skipped` oder `Warning` (kein `Error`, kein `Cancelled`). Die Datenlieferung ist nicht möglich. Dieser Status hat Vorrang vor `Warning`.
 - `Failed`: Ein Schritt hat mit dem Status `Error` abgeschlossen (die darauffolgenden Schritte wurden nicht mehr ausgeführt).
-- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Job-Timeout oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung.
+- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Zeitüberschreitung der Verarbeitung oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung.
 
 ### Datenfluss in der Pipeline
 
