@@ -6,6 +6,7 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
 import { Box, ButtonGroup, Link, Stack, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
+import ScaleLine from "ol/control/ScaleLine";
 import { MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { stopStepSwipePropagation } from "../../../hooks/useStepSwipe";
 import { IconButton } from "../../buttons";
@@ -41,6 +42,7 @@ export const MapVisualization = ({
   const { map, zoomToExtent, zoomBy, setFitOptions } = useMapVisualization();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [panelContainer, setPanelContainer] = useState<HTMLDivElement | null>(null);
+  const [scaleLineContainer, setScaleLineContainer] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -48,6 +50,15 @@ export const MapVisualization = ({
     map.setTarget(container);
     return () => map.setTarget(undefined);
   }, [map]);
+
+  useEffect(() => {
+    if (!map || !scaleLineContainer) return;
+    const scaleLine = new ScaleLine({ target: scaleLineContainer });
+    map.addControl(scaleLine);
+    return () => {
+      map.removeControl(scaleLine);
+    };
+  }, [map, scaleLineContainer]);
 
   const hasLeftPadding = fullscreen && reserveSpaceForFilters;
   useEffect(() => {
@@ -150,12 +161,32 @@ export const MapVisualization = ({
             </ButtonGroup>
           </Stack>
           <MapPanelContainerContext.Provider value={panelContainer}>
-            <Stack sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
-              {controls}
-              <ButtonGroup orientation="vertical">
-                {panelControls}
-                <LayerSwitcher map={map} />
-              </ButtonGroup>
+            <Stack
+              direction="row"
+              sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1, alignItems: "flex-end" }}>
+              <Box
+                ref={setScaleLineContainer}
+                sx={{
+                  px: 0.75,
+                  py: 0.25,
+                  backgroundColor: alpha(theme.palette.background.content, 0.7),
+                  borderRadius: theme.radius.default,
+                  "& .ol-scale-line-inner": {
+                    ...theme.typography.caption,
+                    lineHeight: 1.2,
+                    textAlign: "center",
+                    border: `1.5px solid ${theme.palette.text.primary}`,
+                    borderTop: "none",
+                  },
+                }}
+              />
+              <Stack sx={{ gap: 1 }}>
+                {controls}
+                <ButtonGroup orientation="vertical">
+                  {panelControls}
+                  <LayerSwitcher map={map} />
+                </ButtonGroup>
+              </Stack>
             </Stack>
             {children}
           </MapPanelContainerContext.Provider>
