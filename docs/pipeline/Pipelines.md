@@ -192,8 +192,8 @@ pipelines:
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der [Lieferung](../../GLOSSARY.md#lieferung), als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
-- `channels`: Optional. Liste von [Kanälen](../../GLOSSARY.md#kanal), welche in den [Reaktionen](../../GLOSSARY.md#reaktion) unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach der Abgabe](#reaktionen-nach-der-abgabe).
-- `reaction_sets`: Optional. [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz), die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach der Abgabe](#reaktionen-nach-der-abgabe).
+- `channels`: Optional. Liste von [Kanälen](../../GLOSSARY.md#kanal), welche in den [Reaktionen](../../GLOSSARY.md#reaktion) unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
+- `reaction_sets`: Optional. [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz), die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
 
 ## Validierungen
 
@@ -219,7 +219,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
-- Die [Kanäle](../../GLOSSARY.md#kanal) unter `channels` und die [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach der Abgabe](#prüfung-beim-start) beschrieben.
+- Die [Kanäle](../../GLOSSARY.md#kanal) unter `channels` und die [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -559,9 +559,9 @@ steps:
 
 > **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`) oder wird sie abgebrochen (Status `Cancelled`), wird die Datenlieferung automatisch verhindert, unabhängig von den `restrict_delivery_conditions`.
 
-## Reaktionen nach der Abgabe
+## Reaktionen nach dem Abschluss
 
-Ist das [Löschfenster](../../GLOSSARY.md#löschfenster) des Lieferanten vorbei, kann geopilot eine [Lieferung](../../GLOSSARY.md#lieferung) weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Sind alle [Weitergaben](../../GLOSSARY.md#weitergabe) erfolgreich, ist die Lieferung abgeschlossen; die [Benachrichtigungen](../../GLOSSARY.md#benachrichtigung) folgen danach und ändern daran nichts. Was dabei geschieht, beschreiben benannte [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets`. Jede [Reaktion](../../GLOSSARY.md#reaktion) verweist auf einen [Kanal](../../GLOSSARY.md#kanal) unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Reaktions-Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Reaktions-Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
+Ist eine [Lieferung](../../GLOSSARY.md#lieferung) abgeschlossen, also das [Löschfenster](../../GLOSSARY.md#löschfenster) des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Sind alle [Weitergaben](../../GLOSSARY.md#weitergabe) erfolgreich, ist sie weitergegeben; erst dann folgen die [Benachrichtigungen](../../GLOSSARY.md#benachrichtigung). Was dabei geschieht, beschreiben benannte [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets`. Jede [Reaktion](../../GLOSSARY.md#reaktion) verweist auf einen [Kanal](../../GLOSSARY.md#kanal) unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Reaktions-Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Reaktions-Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
 
 ```yaml
 channels:
@@ -598,7 +598,7 @@ reaction_sets:
 - `reaction_sets[X].id`: Die eindeutige Id des Reaktions-Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
 - `reaction_sets[X].display_name`: Der Name des Reaktions-Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
 - `reaction_sets[X].transfers`: Optional. Die Weitergaben des Reaktions-Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Weitergaben gilt sie das gleich nach der Abgabe.
-- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Reaktions-Satzes. Sie laufen, sobald die Lieferung abgeschlossen ist, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung abgeschlossen. Wiederholt werden sie wie die Weitergaben, und die Betriebssicht zeigt sie mit ihnen.
+- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Reaktions-Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Weitergaben, und die Betriebssicht zeigt sie mit ihnen.
 - Ein Reaktions-Satz braucht mindestens eine Reaktion, eine Weitergabe oder eine Benachrichtigung. Beide sind gleich aufgebaut:
   - `id`: Die Id der Reaktion. Sie muss über alle Reaktions-Sätze hinweg eindeutig sein, auch zwischen Weitergaben und Benachrichtigungen, und folgt denselben Regeln wie die Id des Reaktions-Satzes.
   - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa auf der Seite einer Lieferung oder im Mandat über den Werten, die sie verlangt. Auf der Seite der Lieferung steht die Id klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.

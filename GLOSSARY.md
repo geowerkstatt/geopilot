@@ -44,7 +44,7 @@ Wo die Lieferdateien einer [Verarbeitung](#verarbeitung) bis zur Abgabe der [Lie
 
 ## Lieferung
 
-Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem [Staging](#staging) und die Lieferangaben. Mit der Abgabe entsteht sie: Im Web gibt der Lieferant sie selbst ab, bei einem [Versuch](#versuch) erstellt geopilot sie aus der [Lieferabsicht](#lieferabsicht). Abgeschlossen ist sie, wenn ihr [Löschfenster](#löschfenster) verstrichen ist und alle ihre [Weitergaben](#weitergabe) erfolgreich waren; [Benachrichtigungen](#benachrichtigung) ändern daran nichts. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
+Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem [Staging](#staging) und die Lieferangaben. Mit der Abgabe entsteht sie: Im Web gibt der Lieferant sie selbst ab, bei einem [Versuch](#versuch) erstellt geopilot sie aus der [Lieferabsicht](#lieferabsicht). Abgeschlossen ist sie, sobald der Lieferant sie nicht mehr löschen darf, also nach dem [Löschfenster](#löschfenster); weitergegeben ist sie, wenn danach alle ihre [Weitergaben](#weitergabe) erfolgreich waren. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
 
 _Übersetzungen_: EN delivery, FR une livraison, IT una consegna
 
@@ -72,13 +72,13 @@ Die Zeit nach der Abgabe, in der ein Lieferant seine [Lieferung](#lieferung) noc
 
 ## Reaktion
 
-Der Einsatz eines [Kanals](#kanal) für eine [Lieferung](#lieferung), als [Weitergabe](#weitergabe) oder als [Benachrichtigung](#benachrichtigung); die Reaktionen einer Lieferung sind alle Einsätze, die der [Reaktions-Satz](#reaktions-satz) ihres Mandats vorsieht. Keine beginnt, solange der Lieferant die Lieferung noch löschen darf (ADR 0015). Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle [Zustellversuche](#zustellversuch). Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction`, geholt über `ReactionStore`.
+Der Einsatz eines [Kanals](#kanal) für eine [Lieferung](#lieferung), als [Weitergabe](#weitergabe) oder als [Benachrichtigung](#benachrichtigung); die Reaktionen einer Lieferung sind alle Einsätze, die der [Reaktions-Satz](#reaktions-satz) ihres Mandats vorsieht. Keine beginnt, bevor die Lieferung abgeschlossen ist (ADR 0015). Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle [Zustellversuche](#zustellversuch). Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction`, geholt über `ReactionStore`.
 
 _Übersetzungen_: EN reaction, FR une réaction, IT una reazione
 
 ## Weitergabe
 
-Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `transfers` einsetzt. Sie gehört zur [Lieferung](#lieferung): Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Weil Weitergaben erst nach dem [Löschfenster](#löschfenster) beginnen, ist sie damit auch abgeschlossen. Eine Lieferung ohne Weitergaben gilt dagegen schon mit der Abgabe als weitergegeben und erscheint dann im STAC-Katalog, abgeschlossen ist sie erst nach dem Löschfenster. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `transfers` einsetzt. Sie beginnt, wenn die [Lieferung](#lieferung) abgeschlossen ist, und gehört zu ihr: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
 
 _Übersetzungen_: EN forwarding, FR une transmission, IT un inoltro
 
@@ -86,7 +86,7 @@ _Vermeiden_: Lieferungs-Schritt
 
 ## Benachrichtigung
 
-Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `notifications` einsetzt, etwa eine [Info-Mail](#info-mail). Sie berichtet über eine [Lieferung](#lieferung), sobald diese abgeschlossen ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung abgeschlossen. Im Code: `ReactionKind.Notification`.
+Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `notifications` einsetzt, etwa eine [Info-Mail](#info-mail). Sie berichtet über eine [Lieferung](#lieferung), sobald diese weitergegeben ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Im Code: `ReactionKind.Notification`.
 
 _Übersetzungen_: EN notification, FR une notification, IT una notifica
 

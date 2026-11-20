@@ -1,6 +1,6 @@
 # Ablage
 
-Legt die Dateien einer [Lieferung](../../../GLOSSARY.md#lieferung) in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) sie als [Weitergabe](../../../GLOSSARY.md#weitergabe) ein (`transfers`), läuft sie nach dem [Löschfenster](../../../GLOSSARY.md#löschfenster) und bestimmt mit, ob die Lieferung als weitergegeben gilt.
+Legt die Dateien einer [Lieferung](../../../GLOSSARY.md#lieferung) in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) sie als [Weitergabe](../../../GLOSSARY.md#weitergabe) ein (`transfers`), läuft sie, sobald die Lieferung abgeschlossen ist, und bestimmt mit, ob die Lieferung als weitergegeben gilt.
 
 ## Implementierung
 

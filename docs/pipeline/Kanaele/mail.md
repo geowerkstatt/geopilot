@@ -1,6 +1,6 @@
 # Mail
 
-Schickt eine Mail über eine [Lieferung](../../../GLOSSARY.md#lieferung), etwa an die Stelle, welche sie übernimmt. Setzt ein [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) den Mail-Kanal als [Benachrichtigung](../../../GLOSSARY.md#benachrichtigung) ein (`notifications`), läuft er, sobald die Lieferung abgeschlossen ist, und ändert ihren Zustand nie. Mit dem Schalter `includeSupplier` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
+Schickt eine Mail über eine [Lieferung](../../../GLOSSARY.md#lieferung), etwa an die Stelle, welche sie übernimmt. Setzt ein [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) den Mail-Kanal als [Benachrichtigung](../../../GLOSSARY.md#benachrichtigung) ein (`notifications`), läuft er, sobald die Lieferung weitergegeben ist, und ändert ihren Zustand nie. Mit dem Schalter `includeSupplier` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
 
 ## Implementierung
 
