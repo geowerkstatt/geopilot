@@ -208,4 +208,29 @@ describe("diff map geometry", () => {
     expect(fillOf(buildPartTypeIndex([]))).to.equal("rgba(0, 0, 255, 0)");
     expect(fillOf(buildPartTypeIndex([geometryChange({ newLocation: surface })]))).to.equal("rgba(0, 0, 255, 0.25)");
   });
+
+  it("draws a deleted line dashed and outlines a deleted area solid", () => {
+    const styleOf = (wkt: string) => {
+      const feature = new Feature(readLocation(wkt));
+      feature.setId("o");
+      const inputs = {
+        current: {
+          objectTypes: new Map<string, "deleted">([["o", "deleted"]]),
+          partTypes: buildPartTypeIndex([]),
+          highlightedIds: new Set<string>(),
+          hoveredIds: new Set<string>(),
+        },
+      };
+      const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
+      const styles = buildDiffStyleFunction("old", inputs, colors)(feature, 1);
+      return Array.isArray(styles) ? styles[0] : undefined;
+    };
+    const line = styleOf("LINESTRING (0 0, 10 0)");
+    const area = styleOf("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))");
+
+    expect(line?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
+    expect(area?.getStroke()?.getLineDash()).to.equal(null);
+    // A fill keeps the area pickable from inside.
+    expect(area?.getFill()?.getColor()).to.be.instanceOf(CanvasPattern);
+  });
 });
