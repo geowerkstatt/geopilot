@@ -5,7 +5,7 @@ Dokumentation zu geopilot für Betreiber, Pipeline-Autoren und Plugin-Entwickler
 ## Betrieb
 
 - [Ausführungsprotokoll](Ausfuehrungsprotokoll.md): Der dauerhafte Prüfnachweis pro Verarbeitungsjob. Was aufgezeichnet wird, der Definitions-Snapshot, die Abfrage über API und SQL, Aufbewahrung und Datenschutz.
-- [Maschinelle Anlieferung](MaschinelleAnlieferung.md): Die Schnittstelle für automatisierte Datenlieferungen. Authentifizierung und Registrierung der Maschinen-Clients, Ablauf und Endpunkte, die beiden Formen je nach Ablage der Uploads, Statusmodell, Downloads und Lebensdauer eines Anlieferungsversuchs.
+- [Maschinelle Lieferung](MaschinelleLieferung.md): Die Schnittstelle für automatisierte Datenlieferungen. Authentifizierung und Registrierung der Maschinen-Clients, Ablauf und Endpunkte, die beiden Formen je nach Ablage der Uploads, Statusmodell, Downloads und Lebensdauer eines Versuchs.
 - [Reaktionen betreiben](Reaktionen.md): Wie geopilot abgeschlossene Lieferungen weitergibt und darüber benachrichtigt. Ablauf, Wiederholungen und Zeitlimit, Verhalten bei Neustart und Ausfall, Stand und Log-Meldungen, Zurücksetzen und was eine Installation unter IIS braucht, damit die Weitergabe pünktlich läuft.
 - [Referenzdaten aktualisieren](Referenzdaten.md): Wie die Referenzdaten einer Validierung zum Wrapper gelangen und aktuell bleiben, mit dem Image `refdata-update` neben geopilot und seinem Einsatz in der lokalen DMAV-Testwelt.
 
