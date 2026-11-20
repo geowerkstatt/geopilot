@@ -8,6 +8,7 @@ import { IconButton } from "../buttons";
 import { ScrollMarginContext } from "../scrollMargin/ScrollMarginContext";
 import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { GeopilotBox } from "../styledComponents";
+import { MAP_FOOTER_HEIGHT } from "./map/mapVisualizationContext";
 
 interface MapListLayoutProps {
   map?: ReactNode;
@@ -68,7 +69,7 @@ export const MapListLayout: FC<MapListLayoutProps> = ({
                       left: 0,
                       m: 2,
                       width: px2rem(440),
-                      maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                      maxHeight: `calc(100% - ${theme.spacing(4)} - ${MAP_FOOTER_HEIGHT})`,
                     },
                     ...(Array.isArray(panelSx) ? panelSx : [panelSx]),
                   ]}>
