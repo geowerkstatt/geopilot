@@ -4,7 +4,7 @@
 
 geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten abgeben um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
-Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md).
+Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md). Die Begriffe, wie wir sie in Issues, Specs, Reviews und im Code verwenden, stehen in [`GLOSSARY.md`](./GLOSSARY.md).
 
 ## Einrichten der Entwicklungsumgebung
 
