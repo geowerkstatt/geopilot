@@ -345,7 +345,7 @@
   "stacAccessAdminsOnly": "Administrateurs uniquement",
   "stacAccessPublic": "Public",
   "stacBrowser": "Navigateur STAC",
-  "stacItemAfterForwarding": "Disponible seulement après la transmission",
+  "stacItemAfterForwarding": "Disponible seulement une fois la livraison transmise",
   "startProcessing": "Commencer le traitement",
   "state": "État",
   "stepStateAfterDuration": "{{state}} après {{duration}}",
