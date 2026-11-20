@@ -165,6 +165,16 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                     }
                 }
 
+                foreach (var required in Options.RequiredClaims)
+                {
+                    var hasClaim = root.TryGetProperty(required.Name, out var claim) && HasValue(claim, required.Value);
+                    if (!hasClaim)
+                    {
+                        Logger.LogWarning("Introspection response does not have required claim {Claim} with the configured value.", required.Name);
+                        return AuthenticateResult.Fail($"Introspection response does not have required claim {required.Name} with the configured value.");
+                    }
+                }
+
                 subject = ReadString(root, "sub") ?? ReadString(root, "client_id");
             }
         }

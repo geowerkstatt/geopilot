@@ -397,6 +397,48 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\",\"tid\":\"tenant-a\"}")]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\",\"tid\":[\"tenant-b\",\"tenant-a\"]}")]
+    public async Task AuthenticateAsyncWithRequiredClaimReturnsSuccess(string introspectionResponse)
+    {
+        options.RequiredClaims = [new RequiredClaim { Name = "tid", Value = "tenant-a" }];
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(introspectionResponse, Encoding.UTF8, "application/json"),
+            });
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsTrue(result.Succeeded);
+    }
+
+    [TestMethod]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\"}")]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\",\"tid\":\"tenant-b\"}")]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\",\"tid\":\"TENANT-A\"}")]
+    [DataRow("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"user-1\",\"tid\":[\"tenant-b\"]}")]
+    public async Task AuthenticateAsyncWithoutRequiredClaimReturnsFailAndDoesNotCallUserInfo(string introspectionResponse)
+    {
+        options.RequiredClaims = [new RequiredClaim { Name = "tid", Value = "tenant-a" }];
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(introspectionResponse, Encoding.UTF8, "application/json"),
+            });
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.AreEqual("Introspection response does not have required claim tid with the configured value.", result.Failure?.Message);
+        userResolverMock.Verify(r => r.PrefetchUserInfoAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task AuthenticateAsyncClientSecretBasicSendsBasicHeaderAndNoSecretInBody()
     {
         options.IntrospectionAuthMethod = IntrospectionAuthMethod.ClientSecretBasic;
@@ -559,6 +601,48 @@ public class OpaqueTokenHandlerTest
         using var app = builder.Build();
         var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => app.StartAsync());
         Assert.AreEqual("Auth:IntrospectionUrl is required.", ex.Message);
+    }
+
+    [TestMethod]
+    public void AddGeopilotAuthenticationPassesRequiredClaimsWithColonsToOpaqueOptions()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Auth:AccessTokenFormat"] = "Opaque",
+            ["Auth:IntrospectionUrl"] = "https://idp.example.com/introspect",
+            ["Auth:ConfidentialClientId"] = "client-id",
+            ["Auth:ConfidentialClientSecret"] = "secret",
+            ["Auth:IntrospectionAuthMethod"] = "ClientSecretBasic",
+            ["Auth:RequiredClaims:0:Name"] = "urn:zitadel:iam:user:resourceowner:id",
+            ["Auth:RequiredClaims:0:Value"] = "123",
+        });
+
+        builder.AddGeopilotAuthentication();
+
+        using var app = builder.Build();
+        var opaqueOptions = app.Services.GetRequiredService<IOptionsMonitor<OpaqueTokenOptions>>().Get(JwtBearerDefaults.AuthenticationScheme);
+        CollectionAssert.AreEqual(
+            new[] { new RequiredClaim { Name = "urn:zitadel:iam:user:resourceowner:id", Value = "123" } },
+            opaqueOptions.RequiredClaims.ToArray());
+    }
+
+    [TestMethod]
+    [DataRow("Auth:RequiredClaims:0:Name", "tid")]
+    [DataRow("Auth:RequiredClaims:0:Value", "tenant-a")]
+    public void AddGeopilotAuthenticationWithIncompleteRequiredClaimThrows(string key, string value)
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Auth:Authority"] = "https://idp.example.com",
+            [key] = value,
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => builder.AddGeopilotAuthentication());
+        Assert.AreEqual("Every entry of Auth:RequiredClaims needs a Name and a Value.", ex.Message);
     }
 
     [TestMethod]

@@ -42,6 +42,20 @@ internal static class JwtTestTokenBuilder
         return WriteToken(claims, issuer, audience, creds, expires, notBefore);
     }
 
+    public static string CreateTokenWithClaims(string sub, params Claim[] extraClaims)
+    {
+        var (email, name) = GetUserClaims(sub);
+        Claim[] claims =
+        [
+            new Claim(JwtRegisteredClaimNames.Sub, sub),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Name, name),
+            .. extraClaims,
+        ];
+
+        return WriteToken(claims, Issuer, Audience, Credentials);
+    }
+
     /// <summary>
     /// A token as an identity provider issues it for client credentials: a subject and nothing about a person.
     /// </summary>

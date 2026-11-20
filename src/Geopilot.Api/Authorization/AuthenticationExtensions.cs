@@ -14,20 +14,21 @@ public static class AuthenticationExtensions
     /// </summary>
     /// <param name="builder">The web application builder.</param>
     /// <returns>The configured <see cref="AccessTokenFormat"/>.</returns>
-    /// <exception cref="InvalidOperationException">Auth:AccessTokenFormat is not a supported value.</exception>
+    /// <exception cref="InvalidOperationException">Auth:AccessTokenFormat is not a supported value, or an entry of Auth:RequiredClaims has no name or no value.</exception>
     public static AccessTokenFormat AddGeopilotAuthentication(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var requiredClaims = builder.ReadRequiredClaims();
         var accessTokenFormat = builder.Configuration.GetValue("Auth:AccessTokenFormat", AccessTokenFormat.Jwt);
         switch (accessTokenFormat)
         {
             case AccessTokenFormat.Jwt:
-                builder.AddJwtBearerAuthentication();
+                builder.AddJwtBearerAuthentication(requiredClaims);
                 break;
 
             case AccessTokenFormat.Opaque:
-                builder.AddOpaqueTokenAuthentication();
+                builder.AddOpaqueTokenAuthentication(requiredClaims);
                 break;
 
             default:
@@ -37,7 +38,18 @@ public static class AuthenticationExtensions
         return accessTokenFormat;
     }
 
-    private static void AddOpaqueTokenAuthentication(this WebApplicationBuilder builder)
+    private static RequiredClaim[] ReadRequiredClaims(this WebApplicationBuilder builder)
+    {
+        var requiredClaims = builder.Configuration.GetSection("Auth:RequiredClaims").Get<RequiredClaim[]>() ?? [];
+        if (requiredClaims.Any(claim => string.IsNullOrWhiteSpace(claim.Name) || string.IsNullOrWhiteSpace(claim.Value)))
+        {
+            throw new InvalidOperationException("Every entry of Auth:RequiredClaims needs a Name and a Value.");
+        }
+
+        return requiredClaims;
+    }
+
+    private static void AddOpaqueTokenAuthentication(this WebApplicationBuilder builder, IReadOnlyList<RequiredClaim> requiredClaims)
     {
         builder.Services
             .AddOptions<OpaqueTokenOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -45,6 +57,7 @@ public static class AuthenticationExtensions
             .PostConfigure(options =>
             {
                 options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+                options.RequiredClaims = requiredClaims;
             })
             .Validate(options =>
             {
@@ -65,7 +78,7 @@ public static class AuthenticationExtensions
         });
     }
 
-    private static void AddJwtBearerAuthentication(this WebApplicationBuilder builder)
+    private static void AddJwtBearerAuthentication(this WebApplicationBuilder builder, IReadOnlyList<RequiredClaim> requiredClaims)
     {
         builder.Services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -93,6 +106,19 @@ public static class AuthenticationExtensions
                     },
                     OnTokenValidated = async context =>
                     {
+                        // Before the anonymous return: an anonymous endpoint that reads the current user must see no user.
+                        foreach (var required in requiredClaims)
+                        {
+                            var hasClaim = context.Principal?.HasClaim(claim =>
+                                string.Equals(claim.Type, required.Name, StringComparison.Ordinal) &&
+                                string.Equals(claim.Value, required.Value, StringComparison.Ordinal)) == true;
+                            if (!hasClaim)
+                            {
+                                context.Fail($"Token does not have required claim {required.Name} with the configured value.");
+                                return;
+                            }
+                        }
+
                         var endpoint = context.HttpContext.GetEndpoint();
                         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
                         {
