@@ -42,7 +42,7 @@ Wo die Lieferdateien eines Jobs warten, bis jemand die Lieferung abgibt. Endet d
 
 ## Lieferung
 
-Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem Staging und die Lieferangaben. Im Web gibt der Lieferant sie selbst ab, bei einem Versuch erstellt geopilot sie aus der Lieferabsicht. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
+Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem Staging und die Lieferangaben. Im Web gibt der Lieferant sie selbst ab, bei einem Versuch erstellt geopilot sie aus der Lieferabsicht. Abgeschlossen ist sie, wenn ihr Löschfenster verstrichen ist und alle ihre Weitergaben erfolgreich waren; Benachrichtigungen ändern daran nichts. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
 
 _Übersetzungen_: EN delivery, FR une livraison, IT una consegna
 
@@ -76,7 +76,7 @@ _Übersetzungen_: EN reaction, FR une réaction, IT una reazione
 
 ## Weitergabe
 
-Eine Reaktion, deren Kanal ein Satz unter `transfers` einsetzt. Sie gehört zur Lieferung: Erst wenn alle ihre Weitergaben erfolgreich waren, ist die Lieferung weitergegeben, und erst dann zeigt sie der STAC-Katalog; ohne Weitergaben ist sie es gleich nach der Abgabe. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+Eine Reaktion, deren Kanal ein Satz unter `transfers` einsetzt. Sie gehört zur Lieferung: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Weil Weitergaben erst nach dem Löschfenster beginnen, ist sie damit auch abgeschlossen. Eine Lieferung ohne Weitergaben gilt dagegen schon mit der Abgabe als weitergegeben und erscheint dann im STAC-Katalog, abgeschlossen ist sie erst nach dem Löschfenster. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
 
 _Übersetzungen_: EN forwarding, FR une transmission, IT un inoltro
 
@@ -84,7 +84,7 @@ _Vermeiden_: Lieferungs-Schritt
 
 ## Benachrichtigung
 
-Eine Reaktion, deren Kanal ein Satz unter `notifications` einsetzt, etwa eine Info-Mail. Sie berichtet über eine Lieferung, sobald diese weitergegeben ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Im Code: `ReactionKind.Notification`.
+Eine Reaktion, deren Kanal ein Satz unter `notifications` einsetzt, etwa eine Info-Mail. Sie berichtet über eine Lieferung, sobald diese abgeschlossen ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung abgeschlossen. Im Code: `ReactionKind.Notification`.
 
 _Übersetzungen_: EN notification, FR une notification, IT una notifica
 

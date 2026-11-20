@@ -1,6 +1,6 @@
 # Reaktionen betreiben
 
-Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Satz definiert wird, steht unter [Reaktionen nach dem Abschluss](pipeline/Pipelines.md#reaktionen-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
+Nach dem Löschfenster gibt geopilot eine Lieferung mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Satz definiert wird, steht unter [Reaktionen nach der Abgabe](pipeline/Pipelines.md#reaktionen-nach-der-abgabe). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
 
 ## Ablauf
 

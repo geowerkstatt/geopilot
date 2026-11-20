@@ -73,7 +73,7 @@
   "deliveriesLoadingError": "An error occurred while loading the deliveries: {{error}}",
   "delivery": "Delivery",
   "deliveryBlocked": "Blocked by processing",
-  "deliveryCompleted": "The delivery was completed successfully.",
+  "deliveryCompleted": "The delivery was created successfully.",
   "deliveryDate": "Delivery date",
   "deliveryErrorMalformedRequest": "Invalid or corrupted delivery request. (Error 400)",
   "deliveryErrorNoValidationFound": "Validation results could not be found. (Error 404)",

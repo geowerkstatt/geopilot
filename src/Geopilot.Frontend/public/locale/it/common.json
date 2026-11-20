@@ -73,7 +73,7 @@
   "deliveriesLoadingError": "Si è verificato un errore durante il caricamento delle consegne: {{error}}",
   "delivery": "Consegna",
   "deliveryBlocked": "Bloccata dall'elaborazione",
-  "deliveryCompleted": "La consegna è stata completata con successo.",
+  "deliveryCompleted": "La consegna è stata creata con successo.",
   "deliveryDate": "Data di consegna",
   "deliveryErrorMalformedRequest": "Richiesta di consegna non valida o danneggiata. (Errore 400)",
   "deliveryErrorNoValidationFound": "I risultati della convalida non sono stati trovati. (Errore 404)",

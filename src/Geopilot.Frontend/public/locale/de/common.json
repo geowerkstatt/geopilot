@@ -73,7 +73,7 @@
   "deliveriesLoadingError": "Beim Laden der Lieferungen ist ein Fehler aufgetreten: {{error}}",
   "delivery": "Lieferung",
   "deliveryBlocked": "Blockiert durch Verarbeitung",
-  "deliveryCompleted": "Die Lieferung wurde erfolgreich abgeschlossen.",
+  "deliveryCompleted": "Die Lieferung wurde erfolgreich erstellt.",
   "deliveryDate": "Lieferdatum",
   "deliveryErrorMalformedRequest": "Ungültige oder beschädigte Anfrage für Auslieferung. (Fehler 400)",
   "deliveryErrorNoValidationFound": "Validierungsresultate konnten nicht gefunden werden. (Fehler 404)",
