@@ -1,11 +1,13 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Typography } from "@mui/material";
+import { Chip, Stack, Typography } from "@mui/material";
+import { TFunction } from "i18next";
 import { ReactionEvent, ReactionKind, ReactionState, RecordingReactionEventResponse } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
-import { px2rem } from "../../../appTheme.ts";
 import { reactionStateLabelKey } from "../../../components/grids/reactionState.ts";
 import { ReactionStateIcon } from "../../../components/grids/reactionStateIcon.tsx";
+import { StateIconFrame } from "../../../components/stateIconFrame.tsx";
+import { EntryHeader } from "./entryHeader.tsx";
 import { formatDuration } from "./recordingFormat.ts";
 import { StepTitle } from "./stepTitle.tsx";
 
@@ -18,8 +20,7 @@ const reactionKindKey: Record<ReactionKind, TranslationKey> = {
   [ReactionKind.Notification]: "reactionKindNotification",
 };
 
-const reactionEventKey: Record<ReactionEvent, TranslationKey> = {
-  [ReactionEvent.Attempt]: "reactionEventAttempt",
+const reactionEventKey: Record<Exclude<ReactionEvent, typeof ReactionEvent.Attempt>, TranslationKey> = {
   [ReactionEvent.Reset]: "reactionEventReset",
   [ReactionEvent.Deletion]: "reactionEventDeletion",
 };
@@ -33,44 +34,51 @@ const outcomeOf = (reactionEvent: RecordingReactionEventResponse) =>
     ? ReactionState.Error
     : reactionEvent.state;
 
+const formatEvent = (t: TFunction, reactionEvent: RecordingReactionEventResponse): string =>
+  reactionEvent.event === ReactionEvent.Attempt
+    ? t("reactionEventAttempt", { attempt: reactionEvent.attempt })
+    : t(reactionEventKey[reactionEvent.event]);
+
+/** When an event happened, and for an attempt how long it ran or that it still runs. */
+const formatTiming = (t: TFunction, reactionEvent: RecordingReactionEventResponse): string => {
+  const time = new Date(reactionEvent.occurredAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+  if (reactionEvent.event !== ReactionEvent.Attempt) {
+    return t("reactionEventOn", { time });
+  }
+  const duration = formatDuration(reactionEvent.occurredAt, reactionEvent.finishedAt);
+  return duration ? t("reactionAttemptTiming", { time, duration }) : t("reactionAttemptTimingRunning", { time });
+};
+
 /**
- * The header of an event of a reaction, laid out as the header of a step: how an attempt ended, or the state a reset or
- * a deletion left the reaction in, what happened to which reaction and of what kind, and when, with the time an
- * attempt took.
+ * The header of an event of a reaction, laid out as the header of a step: its outcome as an icon, which reaction of
+ * what kind, what happened, when it started and how long it ran.
  */
 export const ReactionEventSummary: FC<ReactionEventSummaryProps> = ({ reactionEvent }) => {
   const { t } = useTranslation();
   const shownState = outcomeOf(reactionEvent);
-  const state = shownState ? t(reactionStateLabelKey[shownState]) : undefined;
-  const duration = formatDuration(reactionEvent.occurredAt, reactionEvent.finishedAt);
 
-  const ending = state && duration ? t("stepStateAfterDuration", { state, duration }) : (state ?? duration);
-
-  // The spaces keep the words apart for a screen reader and in copied text.
   return (
-    <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
-      {/* The slot keeps its width without an icon, so the titles line up. */}
-      <Box component="span" sx={{ display: "inline-flex", justifyContent: "center", width: px2rem(20), flexShrink: 0 }}>
-        {shownState && <ReactionStateIcon state={shownState} />}
-      </Box>
-      {/* Named first like a step in the run, then what happened and of what kind. */}
-      <Typography sx={{ flex: "1 1 0" }}>
-        <StepTitle id={reactionEvent.reactionId} displayName={reactionEvent.reactionDisplayName ?? undefined} />{" "}
-        <Typography component="span" sx={{ marginLeft: 0.5 }}>
-          {t(reactionEventKey[reactionEvent.event], { attempt: reactionEvent.attempt })}
-        </Typography>{" "}
-        <Typography component="span" variant="body2" sx={{ color: "text.secondary", marginLeft: 0.5 }}>
-          {t(reactionKindKey[reactionEvent.reactionKind])}
-        </Typography>
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        {new Date(reactionEvent.occurredAt).toLocaleString()}
-      </Typography>
-      {ending && (
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          {ending}
-        </Typography>
-      )}
-    </Stack>
+    <EntryHeader
+      icon={
+        <StateIconFrame label={shownState ? t(reactionStateLabelKey[shownState]) : undefined}>
+          {shownState && <ReactionStateIcon state={shownState} size="medium" />}
+        </StateIconFrame>
+      }
+      title={
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Typography>
+            <StepTitle id={reactionEvent.reactionId} displayName={reactionEvent.reactionDisplayName ?? undefined} />
+          </Typography>
+          <Chip
+            size="small"
+            variant="outlined"
+            label={t(reactionKindKey[reactionEvent.reactionKind])}
+            sx={{ bgcolor: "transparent" }}
+          />
+          <Chip size="small" label={formatEvent(t, reactionEvent)} />
+        </Stack>
+      }
+      aside={formatTiming(t, reactionEvent)}
+    />
   );
 };

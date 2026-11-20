@@ -179,13 +179,30 @@ describe("Recording", () => {
       finishedAt: "2026-11-06T15:09:07Z",
       state: null,
     };
+    // The next attempt after the failed one, still under way.
+    const runningAttempt = {
+      ...failedAttempt,
+      attempt: 2,
+      occurredAt: "2026-11-06T15:10:00Z",
+      finishedAt: null,
+      state: ReactionState.Running,
+      message: null,
+    };
     cy.fixture("recording.json").then(run => {
       cy.intercept(
         { method: "GET", pathname: `/api/v1/recording/${jobId}` },
         {
           ...run,
           forwardingState: ReactionState.Done,
-          reactionEvents: [transferAttempt, mailAttempt, resetEvent, retriedAttempt, failedAttempt, lostAttempt],
+          reactionEvents: [
+            transferAttempt,
+            mailAttempt,
+            resetEvent,
+            retriedAttempt,
+            failedAttempt,
+            lostAttempt,
+            runningAttempt,
+          ],
         },
       );
     });
@@ -197,23 +214,38 @@ describe("Recording", () => {
     cy.dataCy("summary-reactionEvents").should("not.exist");
     cy.get('[data-cy^="reactionEvent-"]')
       .then(entries => entries.toArray().map(entry => entry.dataset.cy))
-      .should(ids => expect(new Set(ids).size, "distinct entries").to.equal(6));
+      .should(ids => expect(new Set(ids).size, "distinct entries").to.equal(7));
 
-    // The header names the reaction first, by its name with its id beside as a step is named, then what happened and of
-    // what kind, without opening it, also to a screen reader and in copied text, which need the words apart. A reaction
-    // the definition no longer has shows its id.
-    cy.dataCy("reactionEvent-1").should("contain", "Done after 1 s");
+    // The header names the reaction first, by its name with its id beside as a step is named, then of what kind and what
+    // happened, without opening it, each apart from the next as rendered. A reaction the definition no longer has shows
+    // its id. The outcome is an icon that names it to a screen reader. An attempt tells when it started and how long it
+    // ran, or that it still runs.
+    const shortTime = (time: string) =>
+      new Date(time).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
     cy.dataCy("reactionEvent-1")
       .find("[aria-expanded]")
-      .invoke("text")
-      .should("contain", "Mail to the recipients info attempt 1 notification");
+      .invoke("prop", "innerText")
+      .should("match", /Mail to the recipients info\s+Notification\s+Attempt 1\s+Started on/)
+      .and("contain", `Started on ${shortTime(mailAttempt.occurredAt)}, ran for 1 s`);
+    cy.dataCy("reactionEvent-1").find('[role="img"]').should("have.attr", "aria-label", "Done");
     cy.dataCy("reactionEvent-0")
       .find("[aria-expanded]")
-      .invoke("text")
-      .should("contain", "ablage attempt 1 forwarding");
-    cy.dataCy("reactionEvent-4").should("contain", "Failed after 30 s").and("not.contain", "Pending");
-    cy.dataCy("reactionEvent-5").should("contain", "7 s");
-    cy.dataCy("reactionEvent-2").should("contain", "retry requested").find("[aria-expanded]").should("not.exist");
+      .invoke("prop", "innerText")
+      .should("match", /^\s*ablage\s+Forwarding\s+Attempt 1\s+/);
+    cy.dataCy("reactionEvent-4").should("contain", "ran for 30 s").and("not.contain", "Pending");
+    cy.dataCy("reactionEvent-4").find('[role="img"]').should("have.attr", "aria-label", "Failed");
+    cy.dataCy("reactionEvent-5").should("contain", "ran for 7 s").find('[role="img"]').should("not.exist");
+    cy.dataCy("reactionEvent-6")
+      .should("contain", `Started on ${shortTime(runningAttempt.occurredAt)}, still running`)
+      .find('[role="img"]')
+      .should("have.attr", "aria-label", "Running");
+    // A reset names who caused it and when, and its icon the state it left the reaction in.
+    cy.dataCy("reactionEvent-2")
+      .should("contain", "Reset by an admin")
+      .and("contain", `On ${shortTime(resetEvent.occurredAt)}`)
+      .find('[role="img"]')
+      .should("have.attr", "aria-label", "Pending");
+    cy.dataCy("reactionEvent-2").find("[aria-expanded]").should("not.exist");
 
     // An attempt recorded before the protocol kept version and configuration opens to its channel and message.
     cy.dataCy("reactionEvent-0").find('[aria-expanded="false"]').click();
