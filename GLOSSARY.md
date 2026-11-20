@@ -70,9 +70,23 @@ Die Zeit nach der Abgabe, in der ein Lieferant seine Lieferung noch selbst lösc
 
 ## Reaktion
 
-Was auf eine Lieferung folgt, sobald sie nicht mehr zurückgezogen werden kann (ADR 0015). Ein Lieferungs-Schritt gibt sie weiter: Sind alle ihre Lieferungs-Schritte `Done` oder hat sie keine, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Eine Benachrichtigung, die begleitende Reaktion, berichtet über sie, sobald sie weitergegeben ist, und ändert ihren Zustand nie. Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction` mit `ReactionKind.Transfer` oder `ReactionKind.Notification`, geholt über `ReactionStore`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+Der Einsatz eines Kanals für eine Lieferung, als Weitergabe oder als Benachrichtigung; die Reaktionen einer Lieferung sind alle Kanäle, die ihr Satz einsetzt. Keine beginnt, bevor die Lieferung nicht mehr zurückgezogen werden kann (ADR 0015). Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction`, geholt über `ReactionStore`.
 
 _Übersetzungen_: EN reaction, FR une réaction, IT una reazione
+
+## Weitergabe
+
+Eine Reaktion, deren Kanal ein Satz unter `transfers` einsetzt. Sie gehört zur Lieferung: Erst wenn alle ihre Weitergaben erfolgreich waren, ist die Lieferung weitergegeben, und erst dann zeigt sie der STAC-Katalog; ohne Weitergaben ist sie es gleich nach der Abgabe. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+
+_Übersetzungen_: EN forwarding, FR une transmission, IT un inoltro
+
+_Vermeiden_: Lieferungs-Schritt
+
+## Benachrichtigung
+
+Eine Reaktion, deren Kanal ein Satz unter `notifications` einsetzt, etwa eine Info-Mail. Sie berichtet über eine Lieferung, sobald diese weitergegeben ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Im Code: `ReactionKind.Notification`.
+
+_Übersetzungen_: EN notification, FR une notification, IT una notifica
 
 ## Hold
 
@@ -86,13 +100,13 @@ _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
 ## Satz
 
-Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Lieferungs-Schritte unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
+Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Weitergaben unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
 
 _Übersetzungen_: EN reaction set, FR un ensemble de réactions, IT un insieme di reazioni
 
 ## Kanal
 
-Was eine Reaktion ausführt, etwa die Ablage. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
+Was eine Reaktion ausführt, etwa die Ablage. Ob ein Kanal als Weitergabe oder als Benachrichtigung dient, legt nicht er fest, sondern der Satz, der ihn einsetzt. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
 
 ## Info-Mail
 

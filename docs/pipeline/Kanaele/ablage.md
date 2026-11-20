@@ -1,6 +1,6 @@
 # Ablage
 
-Legt die Dateien einer Lieferung in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Die Ablage ist ein Lieferungs-Schritt (`transfers`): Sie läuft, sobald die Lieferung abgeschlossen ist, und bestimmt mit, ob die Lieferung als weitergegeben gilt.
+Legt die Dateien einer Lieferung in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein Satz sie als Weitergabe ein (`transfers`), läuft sie nach dem Löschfenster und bestimmt mit, ob die Lieferung als weitergegeben gilt.
 
 ## Implementierung
 
