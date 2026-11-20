@@ -1,6 +1,6 @@
 # Begriffe
 
-Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
+Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
 ## Job
 
@@ -30,9 +30,19 @@ Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetenti
 
 Ob aus einem Job je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Job, den niemand abgeben darf, staged der Runner nicht, und seine Lieferung wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.MayDeliver`, entschieden in `MandateService.MayDeliverAsync`.
 
+## Staging
+
+Wo die Lieferdateien eines Jobs warten, bis jemand die Lieferung abgibt. Endet der Lauf lieferbar und ist der Job lieferberechtigt, kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, ohne Abgabe geht es mit dem Retirement. Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
+
+## Lieferung
+
+Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem Staging und die Lieferangaben. Im Web gibt der Lieferant sie selbst ab, bei einem Versuch erstellt geopilot sie aus der Lieferabsicht. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
+
+_Vermeiden_: Deklaration, Anlieferung
+
 ## Versuch
 
-Eine maschinelle Anlieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
+Eine maschinelle Lieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Anlieferung](docs/MaschinelleAnlieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
 ## Verantwortliche Person
 
