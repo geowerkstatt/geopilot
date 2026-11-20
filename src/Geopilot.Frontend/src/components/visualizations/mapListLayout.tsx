@@ -18,7 +18,7 @@ interface MapListLayoutProps {
   setFullscreen: (fullscreen: boolean) => void;
   /** Receives the inline map, so the caller can scroll to it. */
   inlineMapRef: RefObject<HTMLDivElement | null>;
-  /** The panel that holds the filter and the list beside the map in fullscreen. */
+  /** The content of the panel that holds the filter and the list beside the map in fullscreen, inside its border. */
   panelSx?: SxProps<Theme>;
 }
 
@@ -62,19 +62,20 @@ export const MapListLayout: FC<MapListLayoutProps> = ({
               {map}
               {list && (
                 <GeopilotBox
-                  sx={[
-                    {
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      m: 2,
-                      width: px2rem(440),
-                      maxHeight: `calc(100% - ${theme.spacing(4)} - ${MAP_FOOTER_HEIGHT})`,
-                    },
-                    ...(Array.isArray(panelSx) ? panelSx : [panelSx]),
-                  ]}>
-                  {filter}
-                  {list}
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    m: 2,
+                    width: px2rem(440),
+                    maxHeight: `calc(100% - ${theme.spacing(4)} - ${MAP_FOOTER_HEIGHT})`,
+                    p: 0,
+                    overflow: "hidden",
+                  }}>
+                  <Stack sx={[{ p: 2, minHeight: 0 }, ...(Array.isArray(panelSx) ? panelSx : [panelSx])]}>
+                    {filter}
+                    {list}
+                  </Stack>
                 </GeopilotBox>
               )}
             </Box>
