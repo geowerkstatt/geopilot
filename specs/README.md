@@ -1,6 +1,6 @@
 # Specs
 
-Für jedes Ticket liegt hier vor der Umsetzung eine Spec, die sagt, wie es umgesetzt wird. Die Spec wird in einem eigenen PR reviewt, damit manuelles Review dort landet, wo es etwas bringt; dabei entscheidet sich auch, ob der Umsetzungs-PR ein manuelles Review braucht. PRs ohne Ticket, etwa von Dependabot, laufen wie bisher.
+Für jedes Ticket liegt hier vor der Umsetzung eine Spec, die sagt, wie es umgesetzt wird. Die Spec wird in einem eigenen PR reviewt, damit manuelles Review dort landet, wo es etwas bringt. Dabei entscheidet sich auch, ob der Umsetzungs-PR ein manuelles Review braucht. PRs ohne Ticket, etwa von Dependabot, laufen wie bisher.
 
 Das Issue sagt, welches Problem gelöst wird, die Spec, wie. Was im Issue steht, wiederholt die Spec nicht.
 
@@ -9,9 +9,12 @@ Das Issue sagt, welches Problem gelöst wird, die Spec, wie. Was im Issue steht,
 1. Der Autor bringt das Issue auf den Stand, den das Review braucht (siehe *Issue*), und schreibt die Spec auf einem eigenen Branch. Ob allein mit KI oder zusammen mit einem Teammitglied, überlassen wir seiner Einschätzung; eine aufwändige Spec zu zweit zu schreiben, kann sich lohnen. Auf dem Issue setzt er die Labels, die er für die Umsetzung vorschlägt (siehe *Review der Umsetzung*). Der PR braucht keine Beschreibung: Was das Review braucht, steht im Issue und in der Spec.
 2. Ein Teammitglied reviewt die Spec zusammen mit dem Issue und passt die Labels an, wo es anders entscheidet. Versteht es das Problem aus dem Issue nicht, geht zuerst das Issue an den Autor zurück. Mit dem Merge ist das Ticket Ready.
 3. Die Umsetzung zweigt von dem Branch ab, in den die Spec gemergt wurde, und geht von Issue, Parent-Issue und Spec aus, auch wenn eine KI umsetzt. Ihr PR verlinkt den Spec-PR und löscht die Spec; braucht ein Ticket mehrere PRs, löscht sie der letzte.
-4. Hat das Issue `code review`, wird der Umsetzungs-PR wie bisher reviewt. Sonst prüfen Autor und KI die Umsetzung gegen die Spec, etwa mit `geow:review-branch`, der PR sagt, was mit den Befunden geschehen ist, und bekommt das Label `author reviewed`. Ein anderes Teammitglied approved dann, ohne zu reviewen. Hat das Issue `UI review`, probiert, wer reviewt oder approved, die Änderung im GUI kurz aus.
+4. Der Umsetzungs-PR übernimmt die Labels `code review` und `UI review` vom Issue, damit dort sichtbar ist, was zu tun ist. Autor und KI prüfen die Umsetzung gegen die Spec, etwa mit `geow:review-branch`. Der PR sagt, was mit den Befunden geschehen ist. Erst wenn dieses Review abgeschlossen ist, setzt der Autor das Label `author reviewed`. Danach übernimmt ein anderes Teammitglied:
+   - Ohne weitere Labels approved es, ohne selbst zu reviewen.
+   - Mit `code review` reviewt es den PR wie bisher.
+   - Mit `UI review` probiert es die Änderung zusätzlich kurz im GUI aus.
 
-Weicht die Umsetzung von der Spec ab, sagt der PR das. Trifft dabei ein Kriterium für `code review` zu, wird er reviewt, auch wenn das Issue das Label nicht hat.
+Weicht die Umsetzung von der Spec ab, sagt der PR das. Trifft dabei ein Kriterium für `code review` zu, bekommt der PR das Label, auch wenn das Issue es nicht hat.
 
 Gelöscht wird die Spec, damit `specs/` nur zeigt, was spezifiziert und noch nicht umgesetzt ist. Eine umgesetzte Spec bliebe sonst als veralteter Stand liegen, den Mensch und KI für aktuell halten. Über ihren PR und die Git-Geschichte bleibt sie auffindbar. Wird ein Ticket ohne Umsetzung geschlossen, wird seine Spec ebenfalls gelöscht.
 
