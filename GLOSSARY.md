@@ -1,14 +1,18 @@
 # Begriffe
 
-Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
+Die Begriffe rund um den Lebenszyklus eines Verarbeitungsjobs und seiner Lieferung, so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Zeigt die Oberfläche einen Begriff, stehen bei ihm unter *Übersetzungen* die Wörter, die sie auf Englisch, Französisch und Italienisch dafür verwendet, mit dem unbestimmten Artikel für das Geschlecht; neue Texte in `src/Geopilot.Frontend/public/locale` folgen ihnen. Ein Begriff ohne Übersetzungen erscheint nicht in der Oberfläche, sein englischer Name ist der im Code. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
 ## Job
 
 Alles, was geopilot zur Verarbeitung eines Uploads mit einem Mandat im Speicher hält: Zustand, Pipeline und den Verweis auf den Upload. Ein Job entsteht beim Start und lebt bis zu seinem Retirement. Pro Upload ist höchstens ein Job aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis dieser Job endet. Scheitert der Start, bleibt kein Job zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
 
+_Übersetzungen_: EN job, FR un job, IT un job
+
 ## Protokoll
 
 Was das Ausführungsprotokoll zu einem Job festhält, den ganzen Weg vom Start über Preflight und die Schritte der Pipeline bis zur Lieferung und ihren Reaktionen, auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jedem Job genau ein Protokoll. Anders als der Job überlebt es das Retirement und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
+
+_Übersetzungen_: EN recording, FR un enregistrement, IT una registrazione
 
 ## Ausgang
 
@@ -30,6 +34,8 @@ Das Entfernen eines Jobs, wenn seit dem Ende seines Laufs `Processing:JobRetenti
 
 Ob aus einem Job je eine Lieferung werden kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Dieselbe Regel entscheidet `allowDelivery` in der Mandatsübersicht; ein öffentliches Mandat öffnet sie Nichtmitgliedern nicht. Entschieden wird einmal beim Start. Einen Job, den niemand abgeben darf, staged der Runner nicht, und seine Lieferung wird abgelehnt, wer auch immer sie verlangt. Im Code: `ProcessingJob.MayDeliver`, entschieden in `MandateService.MayDeliverAsync`.
 
+_Übersetzungen_: EN permitted to deliver, FR autorisé à livrer, IT autorizzato a consegnare
+
 ## Staging
 
 Wo die Lieferdateien eines Jobs warten, bis jemand die Lieferung abgibt. Endet der Lauf lieferbar und ist der Job lieferberechtigt, kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, ohne Abgabe geht es mit dem Retirement. Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
@@ -38,15 +44,21 @@ Wo die Lieferdateien eines Jobs warten, bis jemand die Lieferung abgibt. Endet d
 
 Was ein Lieferant nach einem lieferbaren Lauf übergibt: die Dateien aus dem Staging und die Lieferangaben. Im Web gibt der Lieferant sie selbst ab, bei einem Versuch erstellt geopilot sie aus der Lieferabsicht. Lieferant ist eine Person oder ein Maschinen-Client. Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. Im Code: `Delivery`, erstellt von `IDeliveryCreationService.CreateAsync`, der Lieferant als `Supplier`; bis zur Umbenennung hiess die Abgabe dort `DeclareAsync`.
 
-_Vermeiden_: Deklaration, Anlieferung
+_Übersetzungen_: EN delivery, FR une livraison, IT una consegna
+
+_Vermeiden_: Deklaration, Anlieferung, Auslieferung
 
 ## Versuch
 
 Eine maschinelle Lieferung aus Sicht des Aufrufers: Mandat, Lieferangaben und Daten, die er übergibt, bis die Lieferung erstellt oder abgelehnt ist. Ein Versuch lebt im Speicher und höchstens so lange wie sein Job, siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
+_Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
+
 ## Verantwortliche Person
 
 Eine Person, die ein Admin einem Maschinen-Client zuordnet, auf der Seite des Clients; die Seite der Person zeigt sie als «Verantwortlich für Maschinen-Clients». Sie sieht die Lieferungen des Clients unter «Meine Lieferungen», auch die vor der Zuordnung und die eines deaktivierten Clients, darf sie im Löschfenster löschen wie eigene und bekommt die Info-Mail mit `includeSupplier`, solange sie aktiv ist. Rechte auf die Mandate des Clients bekommt sie dadurch nicht, und gemeinsame Organisationen machen niemanden verantwortlich. Im Code: `MachineClient.ResponsibleUsers`, Tabelle `MachineClientUser`.
+
+_Übersetzungen_: EN responsible user, FR une personne responsable, IT una persona responsabile
 
 ## Lieferabsicht
 
@@ -60,17 +72,23 @@ Die Zeit nach der Abgabe, in der ein Lieferant seine Lieferung noch selbst lösc
 
 Was auf eine Lieferung folgt, sobald sie nicht mehr zurückgezogen werden kann (ADR 0015). Ein Lieferungs-Schritt gibt sie weiter: Sind alle ihre Lieferungs-Schritte `Done` oder hat sie keine, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Eine Benachrichtigung, die begleitende Reaktion, berichtet über sie, sobald sie weitergegeben ist, und ändert ihren Zustand nie. Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction` mit `ReactionKind.Transfer` oder `ReactionKind.Notification`, geholt über `ReactionStore`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
 
+_Übersetzungen_: EN reaction, FR une réaction, IT una reazione
+
 ## Hold
 
 Die Zeit, in der eine Reaktion noch nicht fällig ist, weil der Lieferant die Lieferung noch löschen darf: bis zum Ende des Löschfensters. Im Code: der erste Wert von `DeliveryReaction.NextAttemptAt`.
 
 ## Zustellversuch
 
-Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz die Reaktion holt, und hält sie bis zum Zeitlimit plus eine Minute; meldet er sich bis dahin nicht zurück, übernimmt eine andere Instanz. Nach einem misslungenen Zustellversuch startet der nächste um den Abstand aus `Delivery:Reactions:RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort; nach dem letzten steht die Reaktion auf `Error`. Läuft die App durch, steht damit fest, wann eine Reaktion spätestens endet. Ein Ausfall der App verschiebt das Ende um seine Dauer, ohne dass ein Zustellversuch verloren geht. Unterbricht ein Stopp der Anwendung einen Zustellversuch, trägt sie ihn als misslungen ein, und er zählt mit. Im Code: `DeliveryReaction.Attempts`, `ReactionStore.ClaimNextAsync`, ausgeführt von `ReactionWorker`.
+Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz die Reaktion holt, und hält sie bis zum Zeitlimit plus eine Minute; meldet er sich bis dahin nicht zurück, übernimmt eine andere Instanz. Nach einem misslungenen Zustellversuch startet der nächste um den Abstand aus `Delivery:Reactions:RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort; nach dem letzten steht die Reaktion auf `Error`. Läuft die App durch, steht damit fest, wann eine Reaktion spätestens endet. Ein Ausfall der App verschiebt das Ende um seine Dauer, ohne dass ein Zustellversuch verloren geht. Unterbricht ein Stopp der Anwendung einen Zustellversuch, trägt sie ihn als misslungen ein, und er zählt mit. In der Oberfläche heisst er kurz Versuch. Im Code: `DeliveryReaction.Attempts`, `ReactionStore.ClaimNextAsync`, ausgeführt von `ReactionWorker`.
+
+_Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
 ## Satz
 
 Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Lieferungs-Schritte unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
+
+_Übersetzungen_: EN reaction set, FR un ensemble de réactions, IT un insieme di reazioni
 
 ## Kanal
 
