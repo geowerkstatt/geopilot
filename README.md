@@ -225,6 +225,20 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 
 Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
 
+### Pflicht-Claims
+
+Mit `Auth:RequiredClaims` verlangt geopilot Claims mit einem festen Wert, etwa den Mandanten bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Geprüft wird bei JWT das Token, bei opaken Tokens die Antwort der Introspection, für Personen und Maschinen-Clients. Fehlt ein Claim oder hat er einen anderen Wert, antwortet die API mit 401 und legt keinen Benutzer an. Der Vergleich beachtet Gross- und Kleinschreibung. Ein Claim mit einer Liste passt, wenn ein Wert der Liste passt. Ohne Eintrag prüft geopilot keine weiteren Claims.
+
+Die Einträge stehen in einer Liste, weil ein Claim-Name einen Doppelpunkt enthalten kann:
+
+```json
+"RequiredClaims": [
+  { "Name": "urn:zitadel:iam:user:resourceowner:id", "Value": "123456789" }
+]
+```
+
+Als Umgebungsvariablen heissen sie `Auth__RequiredClaims__0__Name` und `Auth__RequiredClaims__0__Value`.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
