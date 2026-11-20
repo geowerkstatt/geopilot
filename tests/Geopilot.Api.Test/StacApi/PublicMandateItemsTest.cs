@@ -171,6 +171,28 @@ public class PublicMandateItemsTest
         Assert.IsTrue((await features.GetFeatureAsync(collectionId, ItemId(afterShown))).Properties.ContainsKey(PrecursorProperty));
     }
 
+    [TestMethod]
+    [DataRow(false, DisplayName = "Anonymous")]
+    [DataRow(true, DisplayName = "Administrator")]
+    public async Task ADeliveryWithoutTransfersAppearsOnlyOnceItsDeleteWindowHasClosed(bool asAdmin)
+    {
+        var deletable = ItemId(AddDelivery(DateTime.UtcNow));
+        var final = ItemId(AddDelivery(DateTime.UtcNow.AddHours(-2)));
+        using var windowApp = app.WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.Configure<DeliveryOptions>(options =>
+        {
+            options.UploaderDeleteEnabled = true;
+            options.DeleteDuration = TimeSpan.FromHours(1);
+        })));
+        using var client = CreateClient(windowApp, asAdmin);
+        var features = new FeaturesClient(client);
+
+        var listed = (await features.GetFeaturesAsync(collectionId, null, null, null)).Features.Select(f => f.Id).ToList();
+
+        CollectionAssert.Contains(listed, final);
+        CollectionAssert.DoesNotContain(listed, deletable);
+        await Assert.ThrowsExactlyAsync<StacApiException>(() => features.GetFeatureAsync(collectionId, deletable));
+    }
+
     // One delivery per forwarding state, as the item ids of those the catalog shows and of those it hides.
     private (List<string> Forwarded, List<string> Unforwarded) AddDeliveriesInEveryForwardingState()
     {
@@ -209,9 +231,11 @@ public class PublicMandateItemsTest
         return delivery;
     }
 
-    private HttpClient CreateClient(bool asAdmin)
+    private HttpClient CreateClient(bool asAdmin) => CreateClient(app, asAdmin);
+
+    private static HttpClient CreateClient(WebApplicationFactory<GeopilotApiApp> factory, bool asAdmin)
     {
-        var client = app.CreateClient();
+        var client = factory.CreateClient();
         if (asAdmin)
         {
             client.DefaultRequestHeaders.Add(GeopilotApiApp.AdminHeader, "true");

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Stac;
 using Stac.Api.Interfaces;
 using Stac.Api.WebApi.Implementations.Default;
@@ -14,16 +15,18 @@ public class StacCollectionsProvider : ICollectionsProvider
     private readonly IDbContextFactory<Context> contextFactory;
     private readonly StacConverter stacConverter;
     private readonly IHttpContextAccessor httpContextAccessor;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StacCollectionsProvider"/> class.
     /// </summary>
-    public StacCollectionsProvider(ILogger<StacCollectionsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter, IHttpContextAccessor httpContextAccessor)
+    public StacCollectionsProvider(ILogger<StacCollectionsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter, IHttpContextAccessor httpContextAccessor, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.contextFactory = contextFactory;
         this.stacConverter = stacConverter;
         this.httpContextAccessor = httpContextAccessor;
+        this.deliveryOptions = deliveryOptions;
     }
 
     private bool IsAdmin => StacAudienceFilter.IsAdmin(httpContextAccessor.HttpContext);
@@ -35,7 +38,7 @@ public class StacCollectionsProvider : ICollectionsProvider
         {
             var isAdmin = IsAdmin;
             using var db = contextFactory.CreateDbContext();
-            var mandate = db.MandatesInStac(isAdmin)
+            var mandate = db.MandatesInStac(isAdmin, deliveryOptions.Value)
                 .AsNoTracking()
                 .AsEnumerable()
                 .FirstOrDefault(m => stacConverter.GetCollectionId(m) == collectionId)
@@ -58,7 +61,7 @@ public class StacCollectionsProvider : ICollectionsProvider
 
         var isAdmin = IsAdmin;
         using var db = contextFactory.CreateDbContext();
-        var collections = db.MandatesInStac(isAdmin)
+        var collections = db.MandatesInStac(isAdmin, deliveryOptions.Value)
             .AsNoTracking()
             .ToList()
             .Select(m => stacConverter.ToStacCollection(m, isAdmin));
