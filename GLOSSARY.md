@@ -72,13 +72,13 @@ Die Zeit nach der Abgabe, in der ein Lieferant seine Lieferung noch selbst lösc
 
 ## Reaktion
 
-Der Einsatz eines Kanals für eine Lieferung, als Weitergabe oder als Benachrichtigung; die Reaktionen einer Lieferung sind alle Kanäle, die ihr Satz einsetzt. Keine beginnt, bevor die Lieferung nicht mehr zurückgezogen werden kann (ADR 0015). Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction`, geholt über `ReactionStore`.
+Der Einsatz eines Kanals für eine Lieferung, als Weitergabe oder als Benachrichtigung; die Reaktionen einer Lieferung sind alle Kanäle, die ihr Reaktions-Satz einsetzt. Keine beginnt, bevor die Lieferung nicht mehr zurückgezogen werden kann (ADR 0015). Die Reaktionen sind zugleich die Warteschlange, aus der sich die Instanzen ihre Arbeit holen. Gibt eine Reaktion auf, steht sie auf `Error`, bis ein Admin sie zurücksetzt; dann bekommt sie wieder alle Zustellversuche. Wird ihre Lieferung gelöscht, endet eine Reaktion, die noch nicht erledigt ist, als `Deleted`. Im Code: `DeliveryReaction`, geholt über `ReactionStore`.
 
 _Übersetzungen_: EN reaction, FR une réaction, IT una reazione
 
 ## Weitergabe
 
-Eine Reaktion, deren Kanal ein Satz unter `transfers` einsetzt. Sie gehört zur Lieferung: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Weil Weitergaben erst nach dem Löschfenster beginnen, ist sie damit auch abgeschlossen. Eine Lieferung ohne Weitergaben gilt dagegen schon mit der Abgabe als weitergegeben und erscheint dann im STAC-Katalog, abgeschlossen ist sie erst nach dem Löschfenster. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+Eine Reaktion, deren Kanal ein Reaktions-Satz unter `transfers` einsetzt. Sie gehört zur Lieferung: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Weil Weitergaben erst nach dem Löschfenster beginnen, ist sie damit auch abgeschlossen. Eine Lieferung ohne Weitergaben gilt dagegen schon mit der Abgabe als weitergegeben und erscheint dann im STAC-Katalog, abgeschlossen ist sie erst nach dem Löschfenster. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
 
 _Übersetzungen_: EN forwarding, FR une transmission, IT un inoltro
 
@@ -86,7 +86,7 @@ _Vermeiden_: Lieferungs-Schritt
 
 ## Benachrichtigung
 
-Eine Reaktion, deren Kanal ein Satz unter `notifications` einsetzt, etwa eine Info-Mail. Sie berichtet über eine Lieferung, sobald diese abgeschlossen ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung abgeschlossen. Im Code: `ReactionKind.Notification`.
+Eine Reaktion, deren Kanal ein Reaktions-Satz unter `notifications` einsetzt, etwa eine Info-Mail. Sie berichtet über eine Lieferung, sobald diese abgeschlossen ist, und ändert ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung abgeschlossen. Im Code: `ReactionKind.Notification`.
 
 _Übersetzungen_: EN notification, FR une notification, IT una notifica
 
@@ -100,16 +100,18 @@ Ein Durchgang einer Reaktion durch ihren Kanal. Er zählt, sobald eine Instanz d
 
 _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
-## Satz
+## Reaktions-Satz
 
-Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Weitergaben unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Satz und füllt die Werte, die der Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
+Eine benannte Zusammenstellung von Reaktionen in der Pipeline-Definition, unter `reaction_sets`: Weitergaben unter `transfers`, Benachrichtigungen unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Reaktions-Satz und füllt die Werte, die der Reaktions-Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
 
 _Übersetzungen_: EN reaction set, FR un ensemble de réactions, IT un insieme di reazioni
 
+_Vermeiden_: Satz, Satz von Reaktionen
+
 ## Kanal
 
-Was eine Reaktion ausführt, etwa die Ablage. Ob ein Kanal als Weitergabe oder als Benachrichtigung dient, legt nicht er fest, sondern der Satz, der ihn einsetzt. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
+Was eine Reaktion ausführt, etwa die Ablage. Ob ein Kanal als Weitergabe oder als Benachrichtigung dient, legt nicht er fest, sondern der Reaktions-Satz, der ihn einsetzt. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
 
 ## Info-Mail
 
-Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Satz nennt. Mit dem Schalter `includeSupplier` geht sie auch an den Lieferanten, bei einem Maschinen-Client an seine verantwortlichen Personen, und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.
+Eine Benachrichtigung über den Mail-Kanal an die Empfänger, die das Mandat oder der Reaktions-Satz nennt. Mit dem Schalter `includeSupplier` geht sie auch an den Lieferanten, bei einem Maschinen-Client an seine verantwortlichen Personen, und ist damit die Quittung aus ADR 0015; eine eigene Quittung neben den Reaktions-Sätzen gibt es nicht. Ihren Text bringt ein Template aus dem Ressourcen-Verzeichnis. Im Code: `MailChannel`, das Template in `MailTemplate`.

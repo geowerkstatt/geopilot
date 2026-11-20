@@ -1,6 +1,6 @@
 # Ablage
 
-Legt die Dateien einer Lieferung in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein Satz sie als Weitergabe ein (`transfers`), läuft sie nach dem Löschfenster und bestimmt mit, ob die Lieferung als weitergegeben gilt.
+Legt die Dateien einer Lieferung in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein Reaktions-Satz sie als Weitergabe ein (`transfers`), läuft sie nach dem Löschfenster und bestimmt mit, ob die Lieferung als weitergegeben gilt.
 
 ## Implementierung
 
@@ -31,7 +31,7 @@ oder als Umgebungsvariable:
 Pipeline__ChannelConfigs__Geopilot.Pipeline.Channels.FileDrop.FileDropChannel__baseDirectory=/drop
 ```
 
-Den Unterordner gibt entweder die Pipeline-Definition fest vor, dann landen die Lieferungen aller Mandate mit diesem Satz im selben Ordner. Mehrere Sätze können denselben Kanal verwenden und je ihren eigenen Unterordner setzen:
+Den Unterordner gibt entweder die Pipeline-Definition fest vor, dann landen die Lieferungen aller Mandate mit diesem Reaktions-Satz im selben Ordner. Mehrere Reaktions-Sätze können denselben Kanal verwenden und je ihren eigenen Unterordner setzen:
 
 ```yaml
 channels:
@@ -52,7 +52,7 @@ reaction_sets:
           subfolder: kanton-a
 ```
 
-oder der Satz verlangt ihn vom Mandat, und jedes Mandat trägt seinen eigenen ein. Der Kanal setzt den Unterordner dann nicht in seiner Standard-Konfiguration:
+oder der Reaktions-Satz verlangt ihn vom Mandat, und jedes Mandat trägt seinen eigenen ein. Der Kanal setzt den Unterordner dann nicht in seiner Standard-Konfiguration:
 
 ```yaml
 channels:

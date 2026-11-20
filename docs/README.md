@@ -13,7 +13,7 @@ Dokumentation zu geopilot für Betreiber, Pipeline-Autoren und Plugin-Entwickler
 
 - [Pipelines](pipeline/Pipelines.md): Grundlagen und Konzepte. Aufbau einer Pipeline, Format der YAML-Definition, Datenfluss zwischen den Schritten, Status-Modell, Konfiguration der Prozessoren, Conditions, Einschränkungen für die Datenlieferung und die Reaktionen nach der Abgabe.
 - [Prozessoren](pipeline/Pipelines.md#prozesse): Referenz zu jedem Prozessor, welcher mit geopilot ausgeliefert wird, je mit Implementierungsname, Konfiguration, Inputs und Outputs.
-- [Kanäle](pipeline/Pipelines.md#kanäle): Referenz zu jedem Kanal, den ein Satz als Weitergabe oder als Benachrichtigung einsetzen kann, je mit Implementierungsname, Konfiguration und Ablauf.
+- [Kanäle](pipeline/Pipelines.md#kanäle): Referenz zu jedem Kanal, den ein Reaktions-Satz als Weitergabe oder als Benachrichtigung einsetzen kann, je mit Implementierungsname, Konfiguration und Ablauf.
 - [Plugin System](pipeline/pluginSystem.md): Wie eigene Prozessoren als Plugin entwickelt und in geopilot eingebunden werden. Baut auf [Pipelines](pipeline/Pipelines.md) auf.
 
 Die Beispiel-Definitionen, welche mit geopilot ausgeliefert werden, liegen unter [`src/Geopilot.Api/PipelineDefinitions/`](../src/Geopilot.Api/PipelineDefinitions/).

@@ -1,6 +1,6 @@
 # Mail
 
-Schickt eine Mail über eine Lieferung, etwa an die Stelle, welche sie übernimmt. Setzt ein Satz den Mail-Kanal als Benachrichtigung ein (`notifications`), läuft er, sobald die Lieferung abgeschlossen ist, und ändert ihren Zustand nie. Mit dem Schalter `includeSupplier` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
+Schickt eine Mail über eine Lieferung, etwa an die Stelle, welche sie übernimmt. Setzt ein Reaktions-Satz den Mail-Kanal als Benachrichtigung ein (`notifications`), läuft er, sobald die Lieferung abgeschlossen ist, und ändert ihren Zustand nie. Mit dem Schalter `includeSupplier` geht dieselbe Mail auch an den Lieferanten, bei einer maschinellen Lieferung an die Personen, die für den Client verantwortlich sind, und ist damit seine Quittung. Wer dem Lieferanten eine eigene Mail schicken will, nimmt eine zweite Benachrichtigung mit einem anderen Template, die nur den Schalter setzt.
 
 ## Implementierung
 
@@ -40,7 +40,7 @@ Das Passwort gehört nicht in die Appsettings, sondern in eine Umgebungsvariable
 Pipeline__ChannelConfigs__Geopilot.Pipeline.Channels.Mail.MailChannel__password=...
 ```
 
-Ob das Mandat die Empfänger pflegt oder der Satz sie festlegt, entscheidet die Definition. Hier trägt jedes Mandat seine Empfänger selbst ein und entscheidet, ob der Lieferant die Mail bekommt:
+Ob das Mandat die Empfänger pflegt oder der Reaktions-Satz sie festlegt, entscheidet die Definition. Hier trägt jedes Mandat seine Empfänger selbst ein und entscheidet, ob der Lieferant die Mail bekommt:
 
 ```yaml
 channels:

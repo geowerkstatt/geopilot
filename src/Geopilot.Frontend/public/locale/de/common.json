@@ -297,7 +297,7 @@
   "reactionNextAttemptAt": "Nächster Versuch {{time}}",
   "reactionRetryError": "Beim erneuten Versuch der Reaktion ist ein Fehler aufgetreten: {{error}}",
   "reactionRunningSince": "Läuft seit {{time}}",
-  "reactionSet": "Satz von Reaktionen",
+  "reactionSet": "Reaktions-Satz",
   "reactionStateDeleted": "Gelöscht",
   "reactionStateDone": "Erledigt",
   "reactionStateError": "Fehlgeschlagen",
