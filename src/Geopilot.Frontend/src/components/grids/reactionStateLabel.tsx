@@ -19,7 +19,7 @@ export const ReactionStateLabel: FC<ReactionStateLabelProps> = ({ state }) => {
       direction="row"
       sx={{ alignItems: "center", gap: 1, color: reactionStateColor[state] }}
       data-cy={`reactionState-${state}`}>
-      <ReactionStateIcon state={state} />
+      <ReactionStateIcon state={state} size="small" />
       {t(reactionStateLabelKey[state])}
     </Stack>
   );
