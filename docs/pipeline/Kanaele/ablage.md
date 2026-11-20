@@ -1,6 +1,6 @@
 # Ablage
 
-Legt die Dateien einer Lieferung in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein Reaktions-Satz sie als Weitergabe ein (`transfers`), läuft sie nach dem Löschfenster und bestimmt mit, ob die Lieferung als weitergegeben gilt.
+Legt die Dateien einer [Lieferung](../../../GLOSSARY.md#lieferung) in einem eigenen Ordner ab, aus dem die Systeme des Empfängers sie übernehmen. Setzt ein [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) sie als [Weitergabe](../../../GLOSSARY.md#weitergabe) ein (`transfers`), läuft sie nach dem [Löschfenster](../../../GLOSSARY.md#löschfenster) und bestimmt mit, ob die Lieferung als weitergegeben gilt.
 
 ## Implementierung
 
@@ -11,7 +11,7 @@ Eine Ablage muss unter `channels[X].implementation` den Wert `Geopilot.Pipeline.
 | Parameter | Herkunft | Bedeutung |
 | --- | --- | --- |
 | `baseDirectory` | Basis-Konfiguration, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. Setzt die Pipeline-Definition es, startet geopilot nicht. |
-| `subfolder` | Pipeline-Definition (`default_config`, in einer Reaktion überschreibbar) oder Mandat (`mandate_config`) | Der Ordner der Lieferungen, ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Kein Abschnitt darf nur aus Ziffern bestehen, denn so heissen die Ordner der Lieferungen: statt `kanton-be/351` also etwa `kanton-be/bfs-351`. Ebenso darf keiner mit einem Punkt beginnen, denn so heissen die temporären Ordner. Ein anderer Wert hält den Start an oder lässt das Mandat nicht speichern. |
+| `subfolder` | Pipeline-Definition (`default_config`, in einer [Reaktion](../../../GLOSSARY.md#reaktion) überschreibbar) oder Mandat (`mandate_config`) | Der Ordner der [Lieferungen](../../../GLOSSARY.md#lieferung), ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Kein Abschnitt darf nur aus Ziffern bestehen, denn so heissen die Ordner der Lieferungen: statt `kanton-be/351` also etwa `kanton-be/bfs-351`. Ebenso darf keiner mit einem Punkt beginnen, denn so heissen die temporären Ordner. Ein anderer Wert hält den Start an oder lässt das Mandat nicht speichern. |
 
 Das Basisverzeichnis gehört in die Basis-Konfiguration, entweder in die Appsettings:
 
@@ -31,7 +31,7 @@ oder als Umgebungsvariable:
 Pipeline__ChannelConfigs__Geopilot.Pipeline.Channels.FileDrop.FileDropChannel__baseDirectory=/drop
 ```
 
-Den Unterordner gibt entweder die Pipeline-Definition fest vor, dann landen die Lieferungen aller Mandate mit diesem Reaktions-Satz im selben Ordner. Mehrere Reaktions-Sätze können denselben Kanal verwenden und je ihren eigenen Unterordner setzen:
+Den Unterordner gibt entweder die Pipeline-Definition fest vor, dann landen die Lieferungen aller Mandate mit diesem [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) im selben Ordner. Mehrere Reaktions-Sätze können denselben [Kanal](../../../GLOSSARY.md#kanal) verwenden und je ihren eigenen Unterordner setzen:
 
 ```yaml
 channels:
@@ -78,17 +78,17 @@ reaction_sets:
 
 ## Ablauf
 
-- Jede Lieferung bekommt einen eigenen Ordner nach ihrer Id: `<Basisverzeichnis>/<Unterordner>/<Id der Lieferung>/`. Darin liegen nur die gelieferten Dateien, unter ihrem ursprünglichen Namen. Metadaten der Lieferung, etwa wer sie geliefert hat, legt die Ablage nicht ab.
+- Jede [Lieferung](../../../GLOSSARY.md#lieferung) bekommt einen eigenen Ordner nach ihrer Id: `<Basisverzeichnis>/<Unterordner>/<Id der Lieferung>/`. Darin liegen nur die gelieferten Dateien, unter ihrem ursprünglichen Namen. Metadaten der Lieferung, etwa wer sie geliefert hat, legt die Ablage nicht ab.
 - Die Ablage schreibt zuerst in einen temporären Ordner `.<Id der Lieferung>.<Zufallsteil>.partial` daneben, jeder Versuch in seinen eigenen, und benennt ihn erst am Ende um. Unter dem Namen der Lieferung liegt also nie etwas Halbes, und wer die Ablage liest, kann Ordner mit einem Punkt am Anfang überspringen.
 - Besteht der Ordner der Lieferung schon, gilt sie nur dann als abgelegt, wenn er genau ihre Dateien enthält, mit gleichen Namen und Grössen. So endet ein Versuch, der die Dateien abgelegt hat, sich aber nicht mehr zurückmelden konnte. Liegt dort etwas anderes, scheitert der Versuch, etwa wenn nach dem Zurückspielen der Datenbank die Ids von vorne zählen. Die Ablage überschreibt nichts.
-- Scheitert ein Versuch, räumt die Ablage ihren temporären Ordner weg, und der nächste Versuch beginnt von vorne. Stirbt die Instanz mitten in einem Versuch, räumt der nächste Versuch derselben Lieferung zuerst auf. War es der letzte, bleibt der temporäre Ordner liegen, bis ein Admin die Reaktion zurücksetzt; der Betrieb darf ihn auch von Hand löschen.
+- Scheitert ein Versuch, räumt die Ablage ihren temporären Ordner weg, und der nächste Versuch beginnt von vorne. Stirbt die Instanz mitten in einem Versuch, räumt der nächste Versuch derselben Lieferung zuerst auf. War es der letzte, bleibt der temporäre Ordner liegen, bis ein Admin die [Reaktion](../../../GLOSSARY.md#reaktion) zurücksetzt; der Betrieb darf ihn auch von Hand löschen.
 - Das Basisverzeichnis wird nie angelegt. Fehlt es, etwa weil ein Volume nicht eingebunden ist, scheitert der Versuch. Den Unterordner legt die Ablage bei Bedarf an.
 
 ## Betrieb
 
 - geopilot braucht Schreibrechte auf das Basisverzeichnis. In einer Installation mit Containern ist das ein zusätzlich eingebundenes Volume, und weil der Container nicht als root läuft, muss es für dessen Benutzer beschreibbar sein.
 - Das Basisverzeichnis darf sich weder mit einem Verzeichnis unter `Storage:` noch mit `Upload:Direct:Directory`, `PublicAssetsOverride` oder dem Web-Root überschneiden, sonst startet geopilot nicht. Die Bereinigungen von geopilot löschen, was sie nicht kennen, die Dateien von `PublicAssetsOverride` und dem Web-Root liefert geopilot ohne Anmeldung aus, und wer die Ablage liest, soll die Daten von geopilot nicht sehen.
-- Was abgelegt ist, bleibt in der Ablage, auch wenn ein Admin die Lieferung später löscht.
+- Was abgelegt ist, bleibt in der Ablage, auch wenn ein Admin die [Lieferung](../../../GLOSSARY.md#lieferung) später löscht.
 - Die Ablage gibt die Dateien weiter, wie sie geliefert wurden. Ohne Virenprüfung (`ClamAV:Enabled`) erreichen sie die Systeme des Empfängers also ungeprüft; wer an Dritte weitergibt, schaltet sie ein.
 - Jede Installation braucht ihr eigenes Basisverzeichnis, auch Test und Produktion. Die Ids der Lieferungen zählen in jeder Installation für sich.
 - Wer die Ablage liest, legt darin keine Verknüpfungen (Symlinks, Junctions) an. Findet die Ablage unterhalb des Basisverzeichnisses eine, scheitert der Versuch, damit sie keine Dateien in ein Verzeichnis umgelenkt schreibt. Das Basisverzeichnis selbst darf eine Verknüpfung oder ein eingebundenes Laufwerk sein.

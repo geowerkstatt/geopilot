@@ -22,7 +22,7 @@ Lassen sich die Stände nicht vergleichen, ist `Diff` leer, und der Schritt sche
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `Visualization`: Die Visualisierung in einem Envelope mit dem Diskriminator `xtfDiff`. Wird mit der Output-Aktion `Visualization` versehen, damit die Visualisierung im Frontend dargestellt wird.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche meldet, dass die Visualisierung erstellt wurde.

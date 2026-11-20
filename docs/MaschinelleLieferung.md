@@ -1,6 +1,6 @@
 # Maschinelle Lieferung
 
-Datenlieferantinnen und -lieferanten, die ihre Daten aus einem automatisierten Prozess abgeben, brauchen keine Weboberfläche. geopilot bietet ihnen dafür eine eigene Ressource: ein Aufruf übergibt Mandat, Lieferangaben und Daten, danach wird der Versuch abgefragt, bis er geliefert oder abgelehnt ist. Die Lieferung erstellt geopilot selbst, sobald der Lauf sie zulässt.
+Datenlieferantinnen und -lieferanten, die ihre Daten aus einem automatisierten Prozess abgeben, brauchen keine Weboberfläche. geopilot bietet ihnen dafür eine eigene Ressource: ein Aufruf übergibt Mandat, Lieferangaben und Daten, danach wird der [Versuch](../GLOSSARY.md#versuch) abgefragt, bis er geliefert oder abgelehnt ist. Die [Lieferung](../GLOSSARY.md#lieferung) erstellt geopilot selbst, sobald der Lauf sie zulässt.
 
 Diese Schnittstelle ist bewusst von der Weboberfläche getrennt. Die Endpunkte, die das Frontend bedient, bewegen sich mit ihm; die hier beschriebenen sollen über die Zeit stabil bleiben.
 
@@ -10,13 +10,13 @@ Maschinell und über die Weboberfläche gelieferte Daten landen in derselben Abl
 
 - **Die Installation bietet die Fähigkeit an.** Ohne `MachineDelivery:Enabled` existieren die Endpunkte nicht: sie sind weder erreichbar noch in der OpenAPI-Beschreibung sichtbar.
 - **Das Mandat trägt einen Schlüssel.** Der Client spricht ein Mandat über diesen Schlüssel an, nicht über seine Datenbank-Id. Administratorinnen und Administratoren vergeben ihn in der Mandatsverwaltung; er ist installationsweit eindeutig.
-- **Der Aufrufer ist authentifiziert und darf auf das Mandat.** Ein Maschinen-Client ist in geopilot registriert und einer oder mehreren Organisationen zugeteilt (siehe [Authentifizierung](#authentifizierung)). Liefern darf der Aufrufer auf ein Mandat, wenn er einer Organisation angehört, der es zugeteilt ist. Dass ein Mandat öffentlich ist, genügt nicht: das gibt es allen zum Prüfen frei, nicht zum Liefern. Anonyme maschinelle Lieferungen gibt es nicht: eine Lieferung hat immer einen Lieferanten.
+- **Der Aufrufer ist authentifiziert und darf auf das Mandat.** Ein Maschinen-Client ist in geopilot registriert und einer oder mehreren Organisationen zugeteilt (siehe [Authentifizierung](#authentifizierung)). Liefern darf der Aufrufer auf ein Mandat, wenn er einer Organisation angehört, der es zugeteilt ist. Dass ein Mandat öffentlich ist, genügt nicht: das gibt es allen zum Prüfen frei, nicht zum Liefern. Anonyme maschinelle [Lieferungen](../GLOSSARY.md#lieferung) gibt es nicht: eine Lieferung hat immer einen Lieferanten.
 
 ## Authentifizierung
 
 Ein Maschinen-Client holt sich sein Token mit **Client Credentials** (Client ID und Secret) beim Identity Provider der Installation, demselben, an dem sich auch die Benutzerinnen und Benutzer anmelden: dieselbe Authority, dieselbe Audience. Je nach Identity Provider trägt das Token die Audience erst, wenn der Client sie beim Token-Aufruf über einen Scope anfordert; die Referenzskripte unter `scripts/` nehmen diesen Scope mit `-Scope`. Das Token schickt er unverändert als `Authorization: Bearer <token>` mit.
 
-Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client über seine **Kennung**, das `sub` seines Tokens. Bei opaken Tokens ist es das `sub` der Introspection-Antwort, ersatzweise deren `client_id`. Eine Administratorin oder ein Administrator registriert den Client in der Verwaltung unter *Maschinen-Clients* mit dieser Kennung und einem Anzeigenamen und teilt ihn Organisationen zu, so wie eine Person; über die Organisationen erreicht der Client seine Mandate. Dazu kann sie ihm verantwortliche Personen zuordnen: Sie sehen seine Lieferungen unter *Meine Lieferungen*, dürfen sie im Löschfenster löschen wie eigene und bekommen die Mail, die eine Lieferung mit `includeSupplier` an ihren Lieferanten schickt. Rechte auf die Mandate des Clients bekommen sie dadurch nicht. Nichts registriert einen Client von sich aus: ein gültiges Token mit unbekannter Kennung wird mit `403` abgewiesen, und das Log der Installation nennt die Kennung, damit sie beim Registrieren nicht am Identity Provider zusammengesucht werden muss. Ein deaktivierter Client wird ebenso abgewiesen, und auf den offenen Endpunkten der Verarbeitung zählt er ab dann als niemand, erreicht also auch die nicht öffentlichen Mandate seiner Organisationen nicht mehr. Das ist der Weg, einen Client zu sperren, ohne am Identity Provider etwas zu ändern.
+Die Zugangsdaten verwaltet der Identity Provider. geopilot kennt einen Client über seine **Kennung**, das `sub` seines Tokens. Bei opaken Tokens ist es das `sub` der Introspection-Antwort, ersatzweise deren `client_id`. Eine Administratorin oder ein Administrator registriert den Client in der Verwaltung unter *Maschinen-Clients* mit dieser Kennung und einem Anzeigenamen und teilt ihn Organisationen zu, so wie eine Person; über die Organisationen erreicht der Client seine Mandate. Dazu kann sie ihm [verantwortliche Personen](../GLOSSARY.md#verantwortliche-person) zuordnen: Sie sehen seine [Lieferungen](../GLOSSARY.md#lieferung) unter *Meine Lieferungen*, dürfen sie im [Löschfenster](../GLOSSARY.md#löschfenster) löschen wie eigene und bekommen die Mail, die eine Lieferung mit `includeSupplier` an ihren Lieferanten schickt. Rechte auf die Mandate des Clients bekommen sie dadurch nicht. Nichts registriert einen Client von sich aus: ein gültiges Token mit unbekannter Kennung wird mit `403` abgewiesen, und das Log der Installation nennt die Kennung, damit sie beim Registrieren nicht am Identity Provider zusammengesucht werden muss. Ein deaktivierter Client wird ebenso abgewiesen, und auf den offenen Endpunkten der [Verarbeitung](../GLOSSARY.md#verarbeitung) zählt er ab dann als niemand, erreicht also auch die nicht öffentlichen Mandate seiner Organisationen nicht mehr. Das ist der Weg, einen Client zu sperren, ohne am Identity Provider etwas zu ändern.
 
 Die Zugangsdaten eines Clients öffnen die Weboberfläche nicht. Ein Client ist kein Benutzer: er erreicht ausschliesslich `api/v1/submission*`, weder eine Lieferungsliste noch die Verwaltung, und ein Token, dessen Kennung als Client registriert ist, wird nirgends als Person behandelt, auch wenn der Identity Provider dazu Benutzerinformationen liefern würde; geopilot fragt sie für einen registrierten Client gar nicht ab. Umgekehrt lässt sich die Kennung einer bestehenden Person nicht als Client registrieren.
 
@@ -43,7 +43,7 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 
 1. `POST api/v2/upload` meldet die Dateien mit Name und Grösse an und liefert je Datei eine Upload-URL (`uploadUrl`) mit den Headern für den Upload (`uploadHeaders`).
 2. Der Client lädt jede Datei mit `PUT` an die zurückgegebene URL hoch und sendet dabei alle Header aus `uploadHeaders` mit. Welche Header der Object Storage verlangt, hängt vom Provider der Installation ab.
-3. `POST api/v1/submission` startet den Versuch:
+3. `POST api/v1/submission` startet den [Versuch](../GLOSSARY.md#versuch):
 
 ```json
 {
@@ -61,7 +61,7 @@ Unter [`scripts/`](../scripts/README.md) liegen zwei PowerShell-Skripte, die je 
 
 `metadata` trägt die Werte der zusätzlichen Felder, die das Mandat vorsieht. Es ist ein Objekt mit der Id des Felds als Schlüssel. Das Wertformat hängt vom Typ des Felds ab: Text und Datum (`2026-11-04`) sind Strings, eine Textliste ist ein Array von Strings, eine Auswahl nennt die Id der gewählten Option, eine Ganzzahl und eine Dezimalzahl sind JSON-Zahlen. Eine Ganzzahl steht ohne Dezimalpunkt und ohne Exponent (`12`, nicht `12.0`). Als nicht ausgefüllt gilt ein fehlender Schlüssel, `null`, ein leerer oder nur aus Leerzeichen bestehender String und ein leeres Array oder eines aus lauter solchen Strings. Ob ein Feld Pflicht ist, legt das Mandat fest. Eine unbekannte Id weist geopilot ab. Fehler stehen im Feld `errors` der Antwort `400`, unter dem Schlüssel `metadata.<id>`.
 
-Die Felder gehören damit zum Vertrag des Clients. Wird die Id eines Felds oder einer Option geändert, ein Feld oder eine Option entfernt, der Typ eines Felds geändert oder ein Feld zur Pflicht gemacht, bricht ein Client, der die Änderung nicht mitmacht. Geprüft wird immer gegen das Mandat im Moment der Prüfung, auch wenn geopilot die Lieferung eines bereits angenommenen Versuchs selbst erstellt. Erfüllen seine Werte die Felder, die das Mandat in diesem Moment hat, nicht mehr, wird die Lieferung abgewiesen: Der Versuch endet als `failed`, `messages` nennt die betroffenen Felder, und der Client muss einen neuen Versuch starten.
+Die Felder gehören damit zum Vertrag des Clients. Wird die Id eines Felds oder einer Option geändert, ein Feld oder eine Option entfernt, der Typ eines Felds geändert oder ein Feld zur Pflicht gemacht, bricht ein Client, der die Änderung nicht mitmacht. Geprüft wird immer gegen das Mandat im Moment der Prüfung, auch wenn geopilot die [Lieferung](../GLOSSARY.md#lieferung) eines bereits angenommenen Versuchs selbst erstellt. Erfüllen seine Werte die Felder, die das Mandat in diesem Moment hat, nicht mehr, wird die Lieferung abgewiesen: Der Versuch endet als `failed`, `messages` nennt die betroffenen Felder, und der Client muss einen neuen Versuch starten.
 
 `clientReference` ist optional: die eigene Kennung des Clients für die Lieferung, etwa seine Lieferungsnummer. Der Client schickt bei jedem Versuch derselben Lieferung dieselbe Kennung mit, ob er nach `failed` dieselben Daten oder nach `rejected` korrigierte schickt. Vergeben muss sie der Client, weil ein gescheiterter Versuch oft gar keine Id von geopilot erhält, etwa bei `503` oder einem Timeout vor der Antwort. geopilot hält die Kennung im [Protokoll](Ausfuehrungsprotokoll.md) fest, gibt sie im Statusdokument zurück und fasst in der Übersicht der Protokolle die Versuche mit derselben Kennung, vom selben Lieferanten und für dasselbe Mandat zusammen. Leerzeichen und Zeilenumbrüche am Anfang und am Ende fallen weg, danach wird exakt verglichen, Gross- und Kleinschreibung eingeschlossen; eine Kennung nur aus solchen Zeichen gilt als keine. Die Kennung darf höchstens 128 Zeichen lang sein und keine Steuer- oder unsichtbaren Formatzeichen enthalten, die zwei gleich aussehende Kennungen zu zwei Lieferungen machen würden; sonst antwortet geopilot mit `400`. Darüber hinaus prüft geopilot sie nicht, auch nicht gegen frühere Versuche.
 
@@ -85,7 +85,7 @@ Ein einzelnes Formularfeld darf 8 KB gross sein. Das betrifft in der Praxis nur 
 
 ### Antwort
 
-Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpunkt und dem Statusdokument. Die Id des Versuchs ist zugleich die Id seiner Verarbeitung.
+Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpunkt und dem Statusdokument. Die Id des Versuchs ist zugleich die Id seiner [Verarbeitung](../GLOSSARY.md#verarbeitung).
 
 ## Status abfragen
 
@@ -119,10 +119,10 @@ Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpun
 
 | `state` | Bedeutung |
 | --- | --- |
-| `processing` | Der Lauf ist unterwegs, oder er ist fertig und die Lieferung noch nicht erstellt. |
+| `processing` | Der Lauf ist unterwegs, oder er ist fertig und die [Lieferung](../GLOSSARY.md#lieferung) noch nicht erstellt. |
 | `delivered` | Die Pipeline hat die Daten angenommen, die Lieferung existiert. `deliveryId` ist gesetzt. |
 | `rejected` | Die Pipeline hat die Daten geprüft und abgelehnt. Es entsteht keine Lieferung, und die Daten müssen korrigiert werden. |
-| `failed` | So weit kam es nicht, oder die Lieferung liess sich nicht erstellen. Nicht die Daten sind das Problem, der Versuch kann wiederholt werden. |
+| `failed` | So weit kam es nicht, oder die Lieferung liess sich nicht erstellen. Nicht die Daten sind das Problem, der [Versuch](../GLOSSARY.md#versuch) kann wiederholt werden. |
 
 Damit ist auch die Frage beantwortet, ob die Prüfungen bestanden wurden: `delivered` heisst ja, `rejected` heisst nein. Ein eigenes Feld dafür gibt es bewusst nicht. geopilot kennt keinen ausgezeichneten Validierungsschritt; was eine Pipeline prüft und welcher Prozessor ablehnt, steht in ihrer Definition, und eine Pipeline muss überhaupt nichts prüfen. `rejected` sagt deshalb genau so viel, wie sich ehrlich sagen lässt: diese Pipeline hat diese Daten nicht angenommen.
 
@@ -142,9 +142,9 @@ Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in
 
 ## Lebensdauer
 
-Ein Versuch lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie seine Verarbeitung (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
+Ein [Versuch](../GLOSSARY.md#versuch) lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie seine [Verarbeitung](../GLOSSARY.md#verarbeitung) (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
 
-**Der dauerhafte Griff ist die `deliveryId`.** Die Lieferung ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient, und unter *Meine Lieferungen* jede für den Client verantwortliche Person; einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
+**Der dauerhafte Griff ist die `deliveryId`.** Die [Lieferung](../GLOSSARY.md#lieferung) ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient, und unter *Meine Lieferungen* jede für den Client [verantwortliche Person](../GLOSSARY.md#verantwortliche-person); einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
 
 Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst: Downloads werden `Processing:DownloadRetention` nach dem Ende des Laufs aufgeräumt, standardmässig nach einer Stunde, während die Verarbeitung einen Tag bleibt. Ein Client, der langsam abfragt, kann also einen fertigen Lauf vorfinden, dessen Dateien schon weg sind. Wer maschinelle Lieferungen anbietet, sollte `DownloadRetention` an die erwartete Abfragefrequenz anpassen.
 
@@ -152,12 +152,12 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 
 | Code | Wann |
 | --- | --- |
-| `202` | Der Versuch ist angenommen und läuft. |
+| `202` | Der [Versuch](../GLOSSARY.md#versuch) ist angenommen und läuft. |
 | `400` | Die Anfrage hat die falsche Form für diese Installation, das Mandat nimmt die Dateitypen nicht (oder der Upload enthält keine Datei mit Dateiendung, an der sie sich prüfen liessen), ein Dateiname verletzt die Regel für Dateinamen, die `clientReference` ist zu lang oder enthält Steuer- oder unsichtbare Formatzeichen, oder die Lieferangaben verletzen die Regeln des Mandats (die beiden letzten als `ValidationProblemDetails` je Feld). |
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |
-| `409` | Das Mandat nimmt keine Lieferungen an, es nennt keine Pipeline, die diese Installation anbietet, oder ein früherer Versuch verarbeitet denselben Upload noch. |
+| `409` | Das Mandat nimmt keine [Lieferungen](../GLOSSARY.md#lieferung) an, es nennt keine Pipeline, die diese Installation anbietet, oder ein früherer Versuch verarbeitet denselben Upload noch. |
 | `413` | Eine Datei ist grösser, als die Installation annimmt. |
 | `503` | Die Installation hält bereits so viele oder so grosse Uploads, wie sie gleichzeitig annimmt. `Retry-After` nennt die Wartezeit in Sekunden. |
 
@@ -171,11 +171,11 @@ Der Schlüsselvergleich ist **exakt, auch in der Gross- und Kleinschreibung**. `
 
 Ob ungültige Daten beim Client als `rejected` oder als `failed` ankommen, entscheidet die Pipeline-Definition, nicht geopilot.
 
-- Eine Definition, die die Lieferung über `restrict_delivery_conditions` sperrt, führt zu `rejected`. Das ist die richtige Aussage: geprüft und nicht angenommen, der Client korrigiert seine Daten.
+- Eine Definition, die die [Lieferung](../GLOSSARY.md#lieferung) über `restrict_delivery_conditions` sperrt, führt zu `rejected`. Das ist die richtige Aussage: geprüft und nicht angenommen, der Client korrigiert seine Daten.
 - Eine Definition, die denselben Sachverhalt über `fail_conditions` abbildet, führt zu `failed`. Der Client liest daraus "wiederhole es", obwohl seine Daten das Problem sind, und ein Serverproblem ist davon nicht mehr zu unterscheiden.
 
 Für Mandate, die maschinell bedient werden, gehören datenbedingte Ablehnungen deshalb in `restrict_delivery_conditions` (siehe [Pipelines](pipeline/Pipelines.md)).
 
 ## Wenn die Fähigkeit nicht eingeschaltet ist
 
-Ohne `MachineDelivery:Enabled` werden die Endpunkte gar nicht erst eingerichtet. Sie antworten nicht, und sie stehen nicht in der OpenAPI-Beschreibung der Installation. Ein Aufruf bekommt dann, was diese Installation auf einen unbekannten Pfad antwortet, und das ist kein verlässliches `404`: mit gültigem Token ist es `403`. Ob eine Installation maschinelle Lieferungen anbietet, ist eine Betriebsentscheidung und nichts, was ein Client zur Laufzeit aushandelt. Die Antwort auf die Frage steht in der OpenAPI-Beschreibung. Auch das Schlüsselfeld am Mandat wird in der Verwaltung dann nicht angeboten, und ein mitgeschickter Schlüssel wird ignoriert, ohne einen bereits gespeicherten zu überschreiben. Dasselbe gilt für die Maschinen-Clients: ihre Verwaltung (`api/v1/machineclient` und die Seite *Maschinen-Clients*) existiert nicht, und eine Organisation behält ihre zugeteilten Clients, auch wenn sie ohne die Fähigkeit gespeichert wird. So pflegt niemand einen Wert, der für seine Installation keine Bedeutung hat.
+Ohne `MachineDelivery:Enabled` werden die Endpunkte gar nicht erst eingerichtet. Sie antworten nicht, und sie stehen nicht in der OpenAPI-Beschreibung der Installation. Ein Aufruf bekommt dann, was diese Installation auf einen unbekannten Pfad antwortet, und das ist kein verlässliches `404`: mit gültigem Token ist es `403`. Ob eine Installation maschinelle [Lieferungen](../GLOSSARY.md#lieferung) anbietet, ist eine Betriebsentscheidung und nichts, was ein Client zur Laufzeit aushandelt. Die Antwort auf die Frage steht in der OpenAPI-Beschreibung. Auch das Schlüsselfeld am Mandat wird in der Verwaltung dann nicht angeboten, und ein mitgeschickter Schlüssel wird ignoriert, ohne einen bereits gespeicherten zu überschreiben. Dasselbe gilt für die Maschinen-Clients: ihre Verwaltung (`api/v1/machineclient` und die Seite *Maschinen-Clients*) existiert nicht, und eine Organisation behält ihre zugeteilten Clients, auch wenn sie ohne die Fähigkeit gespeichert wird. So pflegt niemand einen Wert, der für seine Installation keine Bedeutung hat.

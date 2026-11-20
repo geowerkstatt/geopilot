@@ -42,7 +42,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `Scope`: Der gelesene Validierungsumfang vom Typ `string`, oder `null`, wenn es keinen eindeutigen Wert gibt oder `scope` nicht konfiguriert ist. Wird mit `${step_output(stepId.Scope)}` auf den Input `scope` der XTF Validierung verdrahtet.
 - `InterlisVersion`: Die INTERLIS-Version der Datei vom Typ `string`, mit denselben Werten wie die `InterlisVersions` des [XTF Matchers](xtf-matcher.md): `Interlis1` (ITF), `Interlis23` oder `Interlis24`. Erkannt wird sie am Dateianfang: eine ITF-Datei an der ersten Zeile `SCNT`, eine XTF-Datei am Namespace ihres Wurzelelements. Gelesen wird sie in jedem `FileState`; lässt sich die Datei keiner dieser Versionen zuordnen (auch INTERLIS 2.2), ist sie `null`. Weil es ein einzelner Wert ist, vergleicht eine Condition ihn mit `==`, z.B. `[metadata.InterlisVersion] == 'Interlis23'`.

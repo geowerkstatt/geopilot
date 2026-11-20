@@ -28,7 +28,7 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `ErrorLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das Error-Log der Validierung enthält. Dieses Log enthält alle Fehler, welche bei der Validierung aufgetreten sind.
 - `XtfLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das XTF-Log der Validierung enthält. Dieses Log enthält alle Informationen über die Validierung, wie z.B. die Anzahl der validierten Objekte, die Anzahl der Fehler, etc.
