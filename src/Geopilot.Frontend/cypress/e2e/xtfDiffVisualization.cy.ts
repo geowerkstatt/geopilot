@@ -326,6 +326,34 @@ describe("XTF diff visualization", () => {
     cy.contains("Only one state has changes, so fading is not possible").should("be.visible");
   });
 
+  it("passes pointer events beside and above the scale line on to the map", () => {
+    openDiffVisualization();
+    cy.get(".ol-scale-line").scrollIntoView({ offset: { top: -200, left: 0 } });
+    cy.get(".ol-scale-line").should(scaleLine => {
+      const { top, bottom, right } = scaleLine[0].getBoundingClientRect();
+      const reachesMap = (x: number, y: number) =>
+        scaleLine[0].ownerDocument.elementFromPoint(x, y)?.closest(".ol-viewport") != null;
+      expect(reachesMap(right + 10, (top + bottom) / 2), "between the scale line and the buttons").to.equal(true);
+      expect(reachesMap(right - 4, top - 20), "above the scale line").to.equal(true);
+    });
+  });
+
+  it("keeps the slider clear of the scale line on a phone", () => {
+    cy.viewport(390, 844);
+    openDiffVisualization();
+    cy.dataCy("diffMapSlider-button").click();
+    cy.dataCy("diff-map-slider").should(slider => {
+      const fader = slider[0].getBoundingClientRect();
+      const scale = Cypress.$(".ol-scale-line")[0].getBoundingClientRect();
+      const apart =
+        fader.bottom <= scale.top ||
+        scale.bottom <= fader.top ||
+        fader.right <= scale.left ||
+        scale.right <= fader.left;
+      expect(apart, "slider and scale line share no area").to.equal(true);
+    });
+  });
+
   it("stacks before and after on a phone", () => {
     cy.viewport(390, 844);
     openDiffVisualization();

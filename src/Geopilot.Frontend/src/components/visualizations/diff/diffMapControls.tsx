@@ -236,7 +236,8 @@ export const DiffMapSlider: FC<DiffMapSliderProps> = ({ value, onChange }) => {
         bottom: 0,
         left: "50%",
         transform: "translateX(-50%)",
-        mb: { xs: 1, sm: 2 },
+        // Above the scale line, which it would cover on a narrow map: the map's margin, the scale line, a gap.
+        mb: { xs: 4.5, sm: 5.5 },
         width: "min(420px, calc(100% - 140px))",
         gap: 2,
         px: 2,

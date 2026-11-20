@@ -161,9 +161,18 @@ export const MapVisualization = ({
             </ButtonGroup>
           </Stack>
           <MapPanelContainerContext.Provider value={panelContainer}>
+            {/* The row is as tall as the buttons; only they take pointer events, the rest of it belongs to the map. */}
             <Stack
               direction="row"
-              sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1, alignItems: "flex-end" }}>
+              sx={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                m: { xs: 1, sm: 2 },
+                gap: 1,
+                alignItems: "flex-end",
+                pointerEvents: "none",
+              }}>
               <Box
                 ref={setScaleLineContainer}
                 sx={{
@@ -180,7 +189,7 @@ export const MapVisualization = ({
                   },
                 }}
               />
-              <Stack sx={{ gap: 1 }}>
+              <Stack sx={{ gap: 1, pointerEvents: "auto" }}>
                 {controls}
                 <ButtonGroup orientation="vertical">
                   {panelControls}
