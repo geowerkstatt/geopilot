@@ -119,6 +119,10 @@ export type CapabilitiesResponse = {
    * uploaders that closes: the reactions only run once it has.
    */
   reactionSetsEnabled: boolean;
+  /**
+   * Whether this installation maintains the reference data mapping in the admin portal.
+   */
+  refMappingEnabled: boolean;
 };
 
 /**
@@ -1345,6 +1349,29 @@ export type RecordingSummaryResponse = {
   mandate?: MandateReference;
   terminalState?: ProcessingState;
   outcome: RecordingOutcome;
+};
+
+/**
+ * An entry of the reference data mapping, one object of the class `RefData` in the INTERLIS model
+ * `IliVRefData_V1_0`. Tells ilivalidator which reference data to load for a specific scope.
+ */
+export type RefMapping = {
+  /**
+   * The unique identifier for the ref data entry.
+   */
+  id: number;
+  /**
+   * The value the pipeline reads from the delivery the entry applies to, e.g. the BFS number of a municipality.
+   */
+  scope: string;
+  /**
+   * The reference data to load, each in the form `ilidata:<Id>`.
+   */
+  refDataUris: Array<string>;
+  /**
+   * A description of the entry.
+   */
+  comment?: string | null;
 };
 
 /**
@@ -2758,6 +2785,153 @@ export type GetApiV1RecordingByJobIdDefinitionResponses = {
    */
   200: unknown;
 };
+
+export type GetApiV1RefMappingData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/RefMapping";
+};
+
+export type GetApiV1RefMappingResponses = {
+  /**
+   * Returns all entries of the reference data mapping.
+   */
+  200: Array<RefMapping>;
+};
+
+export type GetApiV1RefMappingResponse = GetApiV1RefMappingResponses[keyof GetApiV1RefMappingResponses];
+
+export type PostApiV1RefMappingData = {
+  /**
+   * The entry to create.
+   */
+  body?: RefMapping;
+  path?: never;
+  query?: never;
+  url: "/api/v1/RefMapping";
+};
+
+export type PostApiV1RefMappingErrors = {
+  /**
+   * The entry could not be created due to invalid input.
+   */
+  400: unknown;
+  /**
+   * The current user is not authorized to create an entry.
+   */
+  401: unknown;
+  /**
+   * Another entry already has the scope.
+   */
+  409: ProblemDetails;
+};
+
+export type PostApiV1RefMappingError = PostApiV1RefMappingErrors[keyof PostApiV1RefMappingErrors];
+
+export type PostApiV1RefMappingResponses = {
+  /**
+   * The entry was created successfully.
+   */
+  201: RefMapping;
+};
+
+export type PostApiV1RefMappingResponse = PostApiV1RefMappingResponses[keyof PostApiV1RefMappingResponses];
+
+export type PutApiV1RefMappingData = {
+  /**
+   * The entry to update, identified by its id.
+   */
+  body?: RefMapping;
+  path?: never;
+  query?: never;
+  url: "/api/v1/RefMapping";
+};
+
+export type PutApiV1RefMappingErrors = {
+  /**
+   * The entry could not be updated due to invalid input.
+   */
+  400: unknown;
+  /**
+   * The current user is not authorized to update the entry.
+   */
+  401: unknown;
+  /**
+   * The entry could not be found.
+   */
+  404: unknown;
+  /**
+   * Another entry already has the scope.
+   */
+  409: ProblemDetails;
+};
+
+export type PutApiV1RefMappingError = PutApiV1RefMappingErrors[keyof PutApiV1RefMappingErrors];
+
+export type PutApiV1RefMappingResponses = {
+  /**
+   * Returns the updated entry.
+   */
+  200: RefMapping;
+};
+
+export type PutApiV1RefMappingResponse = PutApiV1RefMappingResponses[keyof PutApiV1RefMappingResponses];
+
+export type DeleteApiV1RefMappingByIdData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/api/v1/RefMapping/{id}";
+};
+
+export type DeleteApiV1RefMappingByIdErrors = {
+  /**
+   * The current user is not authorized to delete the entry.
+   */
+  401: unknown;
+  /**
+   * The entry could not be found.
+   */
+  404: unknown;
+};
+
+export type DeleteApiV1RefMappingByIdResponses = {
+  /**
+   * The entry was deleted.
+   */
+  204: void;
+};
+
+export type DeleteApiV1RefMappingByIdResponse =
+  DeleteApiV1RefMappingByIdResponses[keyof DeleteApiV1RefMappingByIdResponses];
+
+export type GetApiV1RefMappingByIdData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/api/v1/RefMapping/{id}";
+};
+
+export type GetApiV1RefMappingByIdErrors = {
+  /**
+   * The entry could not be found.
+   */
+  404: unknown;
+};
+
+export type GetApiV1RefMappingByIdResponses = {
+  /**
+   * Returns the entry with the specified id.
+   */
+  200: RefMapping;
+};
+
+export type GetApiV1RefMappingByIdResponse = GetApiV1RefMappingByIdResponses[keyof GetApiV1RefMappingByIdResponses];
 
 export type PostApiV1SubmissionData = {
   /**

@@ -2,7 +2,10 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Threading.Channels;
 
@@ -22,7 +25,10 @@ public class JobLifecycle
     private readonly IPipelineFactory pipelineFactory;
     private readonly ChannelWriter<PreflightRequest> preflightQueue;
     private readonly ProcessingOptions processingOptions;
+    private readonly RefMappingOptions refMappingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
+
+    private sealed record RefMappings(IReadOnlyList<RefMappingEntry> Entries) : IRefMappings;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JobLifecycle"/> class.
@@ -33,9 +39,11 @@ public class JobLifecycle
         IPipelineFactory pipelineFactory,
         ChannelWriter<PreflightRequest> preflightQueue,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<ProcessingOptions> processingOptions)
+        IOptions<ProcessingOptions> processingOptions,
+        IOptions<RefMappingOptions> refMappingOptions)
     {
         ArgumentNullException.ThrowIfNull(processingOptions);
+        ArgumentNullException.ThrowIfNull(refMappingOptions);
 
         this.logger = logger;
         this.jobStore = jobStore;
@@ -43,11 +51,13 @@ public class JobLifecycle
         this.preflightQueue = preflightQueue;
         this.serviceScopeFactory = serviceScopeFactory;
         this.processingOptions = processingOptions.Value;
+        this.refMappingOptions = refMappingOptions.Value;
     }
 
     /// <summary>
-    /// Starts a job for an upload against a mandate the caller has checked: creates the job, instantiates and
-    /// attaches its pipeline, records the start in the execution protocol and hands the job to the preflight. A
+    /// Starts a job for an upload against a mandate the caller has checked: creates the job, instantiates its
+    /// pipeline with what the host binds to the job (the reference data mapping, where the installation maintains
+    /// it), attaches it, records the start in the execution protocol and hands the job to the preflight. A
     /// start that fails once the job exists leaves no job behind: it is removed again and its pipeline disposed,
     /// while the upload stays for another start.
     /// </summary>
@@ -87,16 +97,19 @@ public class JobLifecycle
         ProcessingJob jobWithPipeline;
         try
         {
+            using var scope = serviceScopeFactory.CreateScope();
+            var usedBindingTypes = pipelineFactory.GetUsedBindingTypes(pipelineId);
+            var bindings = await ReadJobBindingsAsync(scope.ServiceProvider, usedBindingTypes);
+
             // Instantiated up front (without files), so the status response can render the pipeline's steps
             // while preflight runs. The pipeline is started once preflight passes.
-            pipeline = pipelineFactory.CreatePipeline(pipelineId, job.Id);
+            pipeline = pipelineFactory.CreatePipeline(pipelineId, job.Id, bindings);
             jobWithPipeline = jobStore.AttachPipeline(job.Id, pipeline, mandate.Id);
 
             // Not through CarryOutAsync, which would swallow the failure: the record must exist before anything
             // can crash the job.
-            using var scope = serviceScopeFactory.CreateScope();
             await scope.ServiceProvider.GetRequiredService<IRecorder>()
-                .RecordJobStartedAsync(jobWithPipeline, mandate, supplier, upload);
+                .RecordJobStartedAsync(jobWithPipeline, mandate, supplier, upload, bindings.ToSnapshotJson());
         }
         catch
         {
@@ -107,6 +120,29 @@ public class JobLifecycle
 
         await preflightQueue.WriteAsync(new PreflightRequest(job.Id, upload.Id));
         return jobWithPipeline;
+    }
+
+    /// <summary>
+    /// Reads what the host binds to a job that starts now. A binding that no step receives is not read. The job
+    /// keeps what was read, so an entry changed later does not reach a job that already started.
+    /// </summary>
+    internal async Task<PipelineJobBindings> ReadJobBindingsAsync(IServiceProvider services, IReadOnlySet<Type> usedBindingTypes)
+    {
+        var bindings = new List<object>();
+
+        if (refMappingOptions.Enabled && usedBindingTypes.Contains(typeof(IRefMappings)))
+        {
+            // Not disposed here: the scope owns the context, and the recorder resolves the same instance afterwards.
+            var context = services.GetRequiredService<Context>();
+            var entries = await context.RefMappings
+                .AsNoTracking()
+                .OrderBy(entry => entry.Id)
+                .Select(entry => new RefMappingEntry(entry.Scope, entry.RefDataUris, entry.Comment))
+                .ToListAsync();
+            bindings.Add(new RefMappings(entries));
+        }
+
+        return bindings.Count == 0 ? PipelineJobBindings.None : new PipelineJobBindings(bindings);
     }
 
     /// <summary>
