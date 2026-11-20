@@ -42,7 +42,7 @@ Ohne `code review` bleiben additive, leicht umkehrbare Änderungen innerhalb bes
 
 `UI review`, wenn die Umsetzung das GUI ändert.
 
-Nicht jeder Fall ist eindeutig. Wer die Spec reviewt, entscheidet; war ein Fall unklar, schärfen wir diese Liste nach. Ältere Specs nennen die Entscheidung noch in der Zeile `Review:`, dort entspricht `required` dem Label `code review` und `waived` keinem Label.
+Nicht jeder Fall ist eindeutig. Wer die Spec reviewt, entscheidet; war ein Fall unklar, schärfen wir diese Liste nach.
 
 ## Spec schreiben
 
