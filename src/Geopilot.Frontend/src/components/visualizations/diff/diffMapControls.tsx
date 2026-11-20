@@ -45,7 +45,7 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
     filled: { stroke: color, strokeWidth: 2.5 },
     crisp: { stroke: color, strokeWidth: 2.5 },
     ghost: { stroke: color, strokeOpacity: 0.4, strokeWidth: 9, strokeLinecap: "round" as const },
-    crossed: { stroke: color, strokeWidth: 3.5, strokeDasharray: "0.1 6", strokeLinecap: "round" as const },
+    crossed: { stroke: color, strokeWidth: 2 },
   }[look];
   switch (geometry) {
     case "point":
@@ -66,16 +66,23 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
         return <path d="M17 9 L27 19 M27 9 L17 19" stroke={color} strokeWidth="3" strokeLinecap="round" />;
       return <circle cx="22" cy="14" r="5" fill={color} stroke={rim} strokeWidth="1.5" />;
     case "line":
-      return <polyline points={LINES[state]} fill="none" {...stroke} />;
+      return (
+        <polyline
+          points={LINES[state]}
+          fill="none"
+          {...stroke}
+          strokeDasharray={look === "crossed" ? "8 4" : undefined}
+        />
+      );
     case "area": {
       const area = { ...AREAS[state], width: 24, height: 15 };
       if (look === "crossed")
         return (
           <>
             <defs>
-              <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse">
-                <rect width="6" height="6" fill={color} fillOpacity={0.08} />
-                <circle cx="3" cy="3" r="1.25" fill={color} />
+              <pattern id={hatchId} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="7" height="7" fill={color} fillOpacity={0.08} />
+                <path d="M0 0 H7 M0 0 V7" stroke={color} strokeWidth="1" />
               </pattern>
             </defs>
             <rect {...area} fill={`url(#${hatchId})`} {...stroke} />
@@ -229,7 +236,8 @@ export const DiffMapSlider: FC<DiffMapSliderProps> = ({ value, onChange }) => {
         bottom: 0,
         left: "50%",
         transform: "translateX(-50%)",
-        mb: { xs: 1, sm: 2 },
+        // Above the scale line, which it would cover on a narrow map: the map's margin, the scale line, a gap.
+        mb: { xs: 4.5, sm: 5.5 },
         width: "min(420px, calc(100% - 140px))",
         gap: 2,
         px: 2,

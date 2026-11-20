@@ -78,4 +78,9 @@ describe("XTF error visualization", () => {
     cy.dataCy("zoomToError-button").last().click({ force: true });
     shouldBeFullyShown(cy.get(".ol-viewport"));
   });
+
+  it("shows a scale bar", () => {
+    openErrorVisualization();
+    cy.get(".ol-scale-line-inner").should("be.visible").and("contain.text", "m");
+  });
 });
