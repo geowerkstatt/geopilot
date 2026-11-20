@@ -35,7 +35,7 @@ Zwei Labels auf dem Issue sagen, wie der Umsetzungs-PR geprüft wird. Sie lassen
 - Kunden konfigurieren es oder bauen darauf auf: Neues in der Pipeline-Definition, brechende Änderungen an API, PipelineCore oder Betreiberdoku, Migrationen, die bestehende Daten anfassen. Eine Migration, die nur Spalten oder Tabellen hinzufügt, zählt nicht dazu.
 - Es bringt ein neues architektonisches Konzept.
 - Es ist sicherheitsrelevant, etwa Authentifizierung, Autorisierung, anonym erreichbare Endpunkte oder Uploads.
-- Es kommt eine Abhängigkeit dazu.
+- Es kommt eine Abhängigkeit dazu: ein Paket (NuGet oder npm, auch eines nur für die Entwicklung), ein Container-Image oder ein externer Dienst. Updates bestehender Abhängigkeiten zählen nicht.
 - Es ändert CI/CD oder Infrastruktur.
 
 Ohne `code review` bleiben additive, leicht umkehrbare Änderungen innerhalb bestehender Konzepte, zum Beispiel ein neues Attribut in einer API-Antwort, das das GUI anzeigt.
