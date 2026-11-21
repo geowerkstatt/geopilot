@@ -78,7 +78,7 @@ Alle antworten nur innerhalb des heutigen Fensters: solange der Lauf lebt, und w
 
 ## Nicht im Umfang
 
-- Für einen toten Lauf bleibt es bei 404. Einen Vertrag für den verlorenen Job bringt #891, die Wiedereinreichung ohne neuen Upload #1026. Beide bauen auf der Lebendigkeit und den Sessions dieser Spec auf; #1026 braucht dazu noch die Aktion selbst und muss den Konflikt mit #1024 lösen.
+- Für einen toten Lauf bleibt es bei 404. Einen Vertrag für den verlorenen Job bringt #891, er baut auf der Lebendigkeit auf.
 - Keine Wiederaufnahme, kein Neustart eines Laufs, keine verteilte Warteschlange: Ein Job, dessen Instanz stirbt, bleibt verloren.
 - Die gemeinsame Ablage der Artefakte (#850). Für mehr als eine Instanz müssen Download-, Visualisierungs- und Asset-Verzeichnis samt Staging für alle Instanzen dieselben sein, über einen gemeinsamen Mount oder #850, im Direct-Modus auch das Upload-Verzeichnis. Das Arbeitsverzeichnis der Pipeline bleibt lokal.
 - Prozesslokal bleiben der Rate-Limiter der Initiierung und `Processing:MaxConcurrentJobs`, das bewusst pro Instanz gilt.
