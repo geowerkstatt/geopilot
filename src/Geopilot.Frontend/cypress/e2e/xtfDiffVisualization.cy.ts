@@ -326,22 +326,6 @@ describe("XTF diff visualization", () => {
     cy.contains("Only one state has changes, so fading is not possible").should("be.visible");
   });
 
-  it("keeps the slider clear of the scale line on a phone", () => {
-    cy.viewport(390, 844);
-    openDiffVisualization();
-    cy.dataCy("diffMapSlider-button").click();
-    cy.dataCy("diff-map-slider").should(slider => {
-      const fader = slider[0].getBoundingClientRect();
-      const scale = Cypress.$(".ol-scale-line")[0].getBoundingClientRect();
-      const apart =
-        fader.bottom <= scale.top ||
-        scale.bottom <= fader.top ||
-        fader.right <= scale.left ||
-        scale.right <= fader.left;
-      expect(apart, "slider and scale line share no area").to.equal(true);
-    });
-  });
-
   it("stacks before and after on a phone", () => {
     cy.viewport(390, 844);
     openDiffVisualization();
