@@ -2,7 +2,7 @@ import { createElement } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { alpha, createTheme, Shadows, ThemeOptions } from "@mui/material/styles";
-import { blend, Spacing } from "@mui/system";
+import { Spacing } from "@mui/system";
 import { themePalette } from "./appPalette";
 
 const defaultTheme = createTheme();
@@ -342,7 +342,7 @@ export const geopilotTheme = createTheme({
                 border: alpha(themePalette.error.main, 0.5),
                 main: themePalette.error.main,
                 dark: themePalette.error.dark,
-                hover: blend(themePalette.background.content, themePalette.error.main, 0.05),
+                hover: themePalette.error.hover,
               })
             : outlinedPrimaryButton,
         sizeSmall: {
@@ -674,11 +674,25 @@ export const geopilotTheme = createTheme({
             "&:first-of-type": { marginTop: 0 },
             "&:last-of-type": { marginBottom: 0 },
           },
+          // Only an accordion that expands has the icon, so only its header reacts to hover.
+          "&:has(.MuiAccordionSummary-root:hover .MuiAccordionSummary-expandIconWrapper)": {
+            borderColor: themePalette.primary.main,
+          },
+          // A collapsed item below a collapsed one shows the bottom border of that one as its top border.
+          "&:not(.Mui-expanded):has(+ .MuiAccordion-root:not(.Mui-expanded) .MuiAccordionSummary-root:hover .MuiAccordionSummary-expandIconWrapper)":
+            {
+              borderBottomColor: themePalette.primary.main,
+            },
         },
       },
     },
     MuiAccordionSummary: {
       styleOverrides: {
+        root: {
+          "&:not(:has(.MuiAccordionSummary-expandIconWrapper))": {
+            cursor: "default",
+          },
+        },
         expandIconWrapper: {
           color: themePalette.primary.main,
         },

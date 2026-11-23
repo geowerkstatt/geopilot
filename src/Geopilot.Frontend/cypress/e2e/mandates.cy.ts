@@ -1070,15 +1070,16 @@ describe("Mandate with metadata fields", () => {
     openMandateWith([projectNumber, responsible]);
 
     cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
-    // A field is a button named by its title and type that opens a dialog, from the keyboard as well. Its title shows
-    // in full on hover, where the button cuts it off.
+    // A field is a native button named by its title and type that opens a dialog, so the browser opens it from the
+    // keyboard as well, which the simulated keys of Cypress do not reach. Its title shows in full on hover, where the
+    // button cuts it off.
     fieldButtons().eq(1).find(".MuiTypography-root").first().should("have.attr", "title", "Responsible");
     fieldButtons()
       .eq(1)
       .should("contain", "Responsible")
       .and("have.attr", "aria-haspopup", "dialog")
-      .focus()
-      .type("{enter}");
+      .and("match", "button")
+      .click();
     cy.dataCy("metadataFieldDialog")
       .find('[role="dialog"]')
       .invoke("attr", "aria-labelledby")
