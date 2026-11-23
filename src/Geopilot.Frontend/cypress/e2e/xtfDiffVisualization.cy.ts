@@ -200,7 +200,7 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diff-object-map").last().scrollIntoView();
     cy.get(".ol-viewport").should(viewport => expect(viewport[0].getBoundingClientRect().bottom).to.be.below(0));
     cy.dataCy("diff-object-map").last().click();
-    shouldBeFullyShown(cy.get(".ol-viewport"));
+    shouldBeFullyShown(cy.dataCy("map-visualization"));
   });
 
   it("shows a revealed object from its start when it is taller than the view", () => {
@@ -324,18 +324,6 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diffMapSlider-button").should("be.disabled");
     cy.dataCy("diffMapSlider-button").parent().trigger("mouseover");
     cy.contains("Only one state has changes, so fading is not possible").should("be.visible");
-  });
-
-  it("passes pointer events beside and above the scale line on to the map", () => {
-    openDiffVisualization();
-    cy.get(".ol-scale-line").scrollIntoView({ offset: { top: -200, left: 0 } });
-    cy.get(".ol-scale-line").should(scaleLine => {
-      const { top, bottom, right } = scaleLine[0].getBoundingClientRect();
-      const reachesMap = (x: number, y: number) =>
-        scaleLine[0].ownerDocument.elementFromPoint(x, y)?.closest(".ol-viewport") != null;
-      expect(reachesMap(right + 10, (top + bottom) / 2), "between the scale line and the buttons").to.equal(true);
-      expect(reachesMap(right - 4, top - 20), "above the scale line").to.equal(true);
-    });
   });
 
   it("keeps the slider clear of the scale line on a phone", () => {

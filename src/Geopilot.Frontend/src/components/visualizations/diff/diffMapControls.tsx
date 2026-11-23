@@ -7,6 +7,7 @@ import { DiffChangeType, DiffState } from "../../../api/apiInterfaces";
 import { TranslationKey } from "../../../appInterfaces";
 import { IconButton } from "../../buttons";
 import { MapPanelPopper } from "../map/mapPanelPopper";
+import { MAP_FOOTER_HEIGHT } from "../map/mapVisualizationContext";
 import { DiffLook, getLook } from "./diffMapGeometry";
 
 type LegendGeometry = "point" | "line" | "area";
@@ -233,11 +234,10 @@ export const DiffMapSlider: FC<DiffMapSliderProps> = ({ value, onChange }) => {
       data-cy="diff-map-slider"
       sx={{
         position: "absolute",
-        bottom: 0,
+        bottom: MAP_FOOTER_HEIGHT,
         left: "50%",
         transform: "translateX(-50%)",
-        // Above the scale line, which it would cover on a narrow map: the map's margin, the scale line, a gap.
-        mb: { xs: 4.5, sm: 5.5 },
+        mb: { xs: 1, sm: 2 },
         width: "min(420px, calc(100% - 140px))",
         gap: 2,
         px: 2,
