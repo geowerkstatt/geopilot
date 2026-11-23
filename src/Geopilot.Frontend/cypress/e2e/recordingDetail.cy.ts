@@ -190,7 +190,7 @@ describe("Recording", () => {
     cy.location("pathname").should("eq", `/admin/recordings/${earlierJobId}`);
     cy.location("hash").should("eq", "#reactions");
     cy.dataCy(`recordingAttempt-${earlierJobId}`).should("have.attr", "aria-current", "page");
-    cy.contains(`Job ID: ${earlierJobId}`).should("be.visible");
+    cy.contains(`Processing ID: ${earlierJobId}`).should("be.visible");
     cy.dataCy("summary-processingState")
       .find('[data-cy="processingState-failed"]')
       .should("contain", "XTF Validierung");
