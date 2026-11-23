@@ -227,9 +227,11 @@ Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifiz
 
 ### Pflicht-Claims
 
-Mit `Auth:RequiredClaims` verlangt geopilot Claims mit einem festen Wert, etwa den Mandanten bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Geprüft wird bei JWT das Token, bei opaken Tokens die Antwort der Introspection, für Personen und Maschinen-Clients. Fehlt ein Claim oder hat er einen anderen Wert, antwortet die API mit 401 und legt keinen Benutzer an. Der Vergleich beachtet Gross- und Kleinschreibung. Ein Claim mit einer Liste passt, wenn ein Wert der Liste passt. Ohne Eintrag prüft geopilot keine weiteren Claims.
+Mit `Auth:RequiredClaims` verlangt geopilot bestimmte Claims mit einem exakten Wert, zum Beispiel den Tenant bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Bei JWT prüft geopilot das Access-Token direkt, bei opaken Tokens die Introspection-Antwort. Diese Prüfung gilt für Personen und für Maschinen-Clients.
 
-Die Einträge stehen in einer Liste, weil ein Claim-Name einen Doppelpunkt enthalten kann:
+Der Vergleich unterscheidet Gross- und Kleinschreibung. Ein Claim muss genau einen Textwert enthalten; Zahlen, Wahrheitswerte (Boolean) und Claims mit mehreren Werten schlagen immer fehl. Deshalb eignet sich `Auth:RequiredClaims` nicht für Rollen oder Gruppen. Fehlt ein Pflicht-Claim oder weicht sein Wert ab, antwortet die API mit 401 und legt keinen Benutzer an. geopilot schreibt dann eine Warnung mit dem Claim-Namen ins Log. Ohne Eintrag prüft geopilot keine zusätzlichen Claims.
+
+`Auth:RequiredClaims` erwartet eine Liste, damit Claim-Namen auch Doppelpunkte enthalten können:
 
 ```json
 "RequiredClaims": [
@@ -237,7 +239,7 @@ Die Einträge stehen in einer Liste, weil ein Claim-Name einen Doppelpunkt entha
 ]
 ```
 
-Als Umgebungsvariablen heissen sie `Auth__RequiredClaims__0__Name` und `Auth__RequiredClaims__0__Value`.
+Die zugehörigen Umgebungsvariablen heissen `Auth__RequiredClaims__0__Name` und `Auth__RequiredClaims__0__Value`. geopilot startet nicht, wenn `Auth:RequiredClaims` keine gültige Liste ist, `Name` oder `Value` fehlt oder ein Claim-Name doppelt vorkommt.
 
 ### Redirect URIs
 
@@ -279,6 +281,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "PublicClientId": "geopilot-client", // Frontend client id (required)
     "Audience": "geopilot-api", // Access_Token audience (required for Jwt, optional for Opaque: when set, the introspection response must contain a matching aud)
     "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
+    "RequiredClaims": [], // List of { "Name", "Value" } claims every access token must contain (default: none, see Pflicht-Claims)
 
     // Opaque token options (required when AccessTokenFormat is Opaque)
     "IntrospectionUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token/introspect",
