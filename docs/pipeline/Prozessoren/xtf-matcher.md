@@ -16,7 +16,7 @@ Ein XTF Matcher Prozess muss unter `processes[X].implementation` den Wert `Geopi
 
 Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
-- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der Pipeline-Definition festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
+- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der [Pipeline-Definition](../../../GLOSSARY.md#pipeline) festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
 
 ## Output
 
@@ -29,7 +29,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 
 ## Beispiel: Validierungsprofil je INTERLIS-Version
 
-Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die Pipeline schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
+Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die [Pipeline](../../../GLOSSARY.md#pipeline) schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
 
 ```yaml
 processes:

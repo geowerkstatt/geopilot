@@ -4,7 +4,7 @@
 
 geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten abgeben um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
-Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md). Die Begriffe, wie wir sie in Issues, Specs, Reviews und im Code verwenden, stehen in [`GLOSSARY.md`](./GLOSSARY.md).
+Die Dokumentation zu [Pipelines](./GLOSSARY.md#pipeline), den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md). Die Begriffe, wie wir sie in Issues, Specs, Reviews und im Code verwenden, stehen in [`GLOSSARY.md`](./GLOSSARY.md).
 
 ## Einrichten der Entwicklungsumgebung
 
@@ -70,7 +70,7 @@ Startet der Container ohne root (z.B. `docker run --user 1654` oder in OpenShift
 
 ### Pipeline-Konfiguration
 
-geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
+geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als [Pipeline](./GLOSSARY.md#pipeline) zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
 
 Das Format der Definition, die mitgelieferten Prozessoren und das Plugin-System sind in der [Pipeline-Dokumentation](./docs/pipeline/Pipelines.md) beschrieben.
 
@@ -201,7 +201,7 @@ Für Kubernetes gibt es zwei weitere Endpunkte, beide ohne Anmeldung:
 | `/health/ready` | Datenbank, Datenverzeichnisse, im Direct-Upload-Modus das Upload-Verzeichnis | Readiness-Probe |
 | `/health` | alles, wie bisher | Docker `HEALTHCHECK`, Monitoring |
 
-Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der Pipeline-Definition vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
+Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der [Pipeline-Definition](./GLOSSARY.md#pipeline) vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
 
 Beim Start legt geopilot fehlende Datenverzeichnisse an und schreibt in jedes eine Probedatei, in `Storage:ResourcesDirectory` wird nur gelesen. Gelingt das nicht, etwa weil ein Volume dem falschen Benutzer gehört, bricht der Start mit dem Namen des Verzeichnisses ab.
 
@@ -298,7 +298,7 @@ Der Upload ist von der [Verarbeitung](./GLOSSARY.md#verarbeitung) entkoppelt: `P
 
 Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Eine Verarbeitung startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Lauf endet, bei einem lieferbaren Lauf nach dem [Staging](./GLOSSARY.md#staging) der Lieferdateien. Gestaged wird nur ein Lauf, den jemand abgeben darf: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt [Lieferungen](./GLOSSARY.md#lieferung) an. Ein abgebrochener Lauf (Zeitüberschreitung oder Herunterfahren) behält die Blobs bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Verarbeitungen noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Verarbeitungen starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
-`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Verarbeitungen warten, bis ein Platz frei wird. Wie viele Verarbeitungen insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jede wartende Verarbeitung ihren Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
+`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele [Pipelines](./GLOSSARY.md#pipeline) eine Instanz gleichzeitig ausführt; weitere Verarbeitungen warten, bis ein Platz frei wird. Wie viele Verarbeitungen insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jede wartende Verarbeitung ihren Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
 
 ### Entwicklung
 

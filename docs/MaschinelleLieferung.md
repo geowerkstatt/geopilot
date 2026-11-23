@@ -4,7 +4,7 @@ Datenlieferantinnen und -lieferanten, die ihre Daten aus einem automatisierten P
 
 Diese Schnittstelle ist bewusst von der Weboberfläche getrennt. Die Endpunkte, die das Frontend bedient, bewegen sich mit ihm; die hier beschriebenen sollen über die Zeit stabil bleiben.
 
-Maschinell und über die Weboberfläche gelieferte Daten landen in derselben Ablage: dieselbe Pipeline, dieselbe `Delivery` mit ihren `Assets`, dasselbe Protokoll (siehe [Ausführungsprotokoll](Ausfuehrungsprotokoll.md)).
+Maschinell und über die Weboberfläche gelieferte Daten landen in derselben Ablage: dieselbe [Pipeline](../GLOSSARY.md#pipeline), dieselbe `Delivery` mit ihren `Assets`, dasselbe Protokoll (siehe [Ausführungsprotokoll](Ausfuehrungsprotokoll.md)).
 
 ## Voraussetzungen
 
@@ -120,7 +120,7 @@ Beide Routen antworten mit `202 Accepted`, einem `Location` auf den Statusendpun
 | `state` | Bedeutung |
 | --- | --- |
 | `processing` | Der Lauf ist unterwegs, oder er ist fertig und die [Lieferung](../GLOSSARY.md#lieferung) noch nicht erstellt. |
-| `delivered` | Die Pipeline hat die Daten angenommen, die Lieferung existiert. `deliveryId` ist gesetzt. |
+| `delivered` | Die [Pipeline](../GLOSSARY.md#pipeline) hat die Daten angenommen, die Lieferung existiert. `deliveryId` ist gesetzt. |
 | `rejected` | Die Pipeline hat die Daten geprüft und abgelehnt. Es entsteht keine Lieferung, und die Daten müssen korrigiert werden. |
 | `failed` | So weit kam es nicht, oder die Lieferung liess sich nicht erstellen. Nicht die Daten sind das Problem, der [Versuch](../GLOSSARY.md#versuch) kann wiederholt werden. |
 
@@ -136,7 +136,7 @@ Ein fertiger Lauf bleibt kurz auf `processing`, bis die Lieferung erstellt ist. 
 
 ## Was der Lauf zum Herunterladen anbietet
 
-Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in `downloads`, je mit dem Schritt, der es erzeugt hat. Was das ist, entscheidet die Pipeline-Definition: bei der mitgelieferten XTF-Validierung ist es das Validierungsprotokoll, eine andere Pipeline kann dort einen Bericht oder umgewandelte Daten anbieten. geopilot weiss nur, dass die Datei zum Herunterladen markiert wurde.
+Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in `downloads`, je mit dem Schritt, der es erzeugt hat. Was das ist, entscheidet die [Pipeline-Definition](../GLOSSARY.md#pipeline): bei der mitgelieferten XTF-Validierung ist es das Validierungsprotokoll, eine andere Pipeline kann dort einen Bericht oder umgewandelte Daten anbieten. geopilot weiss nur, dass die Datei zum Herunterladen markiert wurde.
 
 **Der Client wählt über `step` und `name` aus und holt die Datei über `url`.** Die URL ist der einzige zugesicherte Weg. Sie aus `name` zusammenzusetzen geht schief: `name` ist der Name, den der Schritt der Datei gegeben hat, und weil zwei Schritte denselben Namen vergeben dürfen, steht in der URL ein davon abgeleiteter, eindeutiger Ablagename. Im Beispiel oben heisst die Datei `validation.log` und liegt unter `validation_validation.log`. Heruntergeladen wird sie wieder als `validation.log`.
 
@@ -157,7 +157,7 @@ Die Links in `downloads` haben ein **kürzeres** Fenster als der Versuch selbst:
 | `401` | Kein oder kein gültiges Token. |
 | `403` | Das Token gehört weder einem registrierten, aktiven Maschinen-Client noch einem aktiven Benutzer. Das Log der Installation nennt die Kennung, die zu registrieren wäre. |
 | `404` | Kein Mandat mit diesem Schlüssel ist für den Aufrufer erreichbar, der Upload ist unbekannt, oder der Versuch existiert nicht mehr. |
-| `409` | Das Mandat nimmt keine [Lieferungen](../GLOSSARY.md#lieferung) an, es nennt keine Pipeline, die diese Installation anbietet, oder ein früherer Versuch verarbeitet denselben Upload noch. |
+| `409` | Das Mandat nimmt keine [Lieferungen](../GLOSSARY.md#lieferung) an, es nennt keine [Pipeline](../GLOSSARY.md#pipeline), die diese Installation anbietet, oder ein früherer Versuch verarbeitet denselben Upload noch. |
 | `413` | Eine Datei ist grösser, als die Installation annimmt. |
 | `503` | Die Installation hält bereits so viele oder so grosse Uploads, wie sie gleichzeitig annimmt. `Retry-After` nennt die Wartezeit in Sekunden. |
 
@@ -169,7 +169,7 @@ Der Schlüsselvergleich ist **exakt, auch in der Gross- und Kleinschreibung**. `
 
 ## Hinweis für Pipeline-Definitionen
 
-Ob ungültige Daten beim Client als `rejected` oder als `failed` ankommen, entscheidet die Pipeline-Definition, nicht geopilot.
+Ob ungültige Daten beim Client als `rejected` oder als `failed` ankommen, entscheidet die [Pipeline-Definition](../GLOSSARY.md#pipeline), nicht geopilot.
 
 - Eine Definition, die die [Lieferung](../GLOSSARY.md#lieferung) über `restrict_delivery_conditions` sperrt, führt zu `rejected`. Das ist die richtige Aussage: geprüft und nicht angenommen, der Client korrigiert seine Daten.
 - Eine Definition, die denselben Sachverhalt über `fail_conditions` abbildet, führt zu `failed`. Der Client liest daraus "wiederhole es", obwohl seine Daten das Problem sind, und ein Serverproblem ist davon nicht mehr zu unterscheiden.

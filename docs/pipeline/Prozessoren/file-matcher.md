@@ -17,7 +17,7 @@ Ein File Matcher Prozess muss unter `processes[X].implementation` den Wert `Geop
 
 Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
-- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der Pipeline-Definition festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
+- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der [Pipeline-Definition](../../../GLOSSARY.md#pipeline) festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
 
 ## Output
 

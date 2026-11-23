@@ -2,7 +2,7 @@
 
 ## Was ist eine Pipeline bei geopilot?
 
-Eine Pipeline in geopilot ist eine Abfolge von Verarbeitungsschritten, die auf hochgeladene Daten angewendet werden, um ein bestimmtes Ergebnis zu erzielen.
+Eine [Pipeline](../../GLOSSARY.md#pipeline) in geopilot ist eine Abfolge von Verarbeitungsschritten, die auf hochgeladene Daten angewendet werden, um ein bestimmtes Ergebnis zu erzielen.
 Diese Schritte können verschiedene Operationen umfassen, wie z.B. Validierung, Transformation, Analyse oder Visualisierung.
 Pipelines ermöglichen es, komplexe Datenverarbeitungsprozesse zu automatisieren und effizient zu gestalten.
 Dabei können verschiedene Inputs und Outputs der Schritte miteinander verbunden werden, um die gewünschten Ergebnisse zu erzielen.
@@ -11,7 +11,7 @@ Die von der Pipeline verarbeiteten Daten können im Anschluss für die Datenlief
 
 ## Wie ist eine Pipeline aufgebaut?
 
-Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsdatei definiert. Pro Umgebung gibt es genau eine solche Konfigurationsdatei. Die Konfiguration wird in einer YAML-Datei erstellt. Eine Pipeline seinerseits enthält einen oder mehrere Schritte und beschreibt deren Konfigurationen und Logik. Der Aufbau einer Pipeline-Definition ist folgendermassen strukturiert:
+Alle [Pipelines](../../GLOSSARY.md#pipeline) stehen in einer gemeinsamen Pipeline-Definition, einer YAML-Datei; pro Umgebung gibt es genau eine. Eine Pipeline ihrerseits enthält einen oder mehrere Schritte und beschreibt deren Konfigurationen und Logik. Der Aufbau einer Pipeline-Definition ist folgendermassen strukturiert:
 
 - __Prozesse__: Eine Liste von möglichen Prozessen (processes), die in den Schritten (steps) verwendet werden können. Jeder Prozess hat eine eindeutige Identifikation (ID), über die er in den Schritten referenziert werden kann. Ein Prozess kann dabei in mehreren Schritten verwendet werden. Ein Prozess kann eine Standardkonfiguration haben, welche in den Schritten überschrieben werden kann. Jeder Prozess muss die Klasse, welche die Logik des Prozesses enthält, definieren.
 - __Pipelines__: Eine Liste von Pipelines, welche die Verarbeitungsschritte beschreibt, die sequenziell ausgeführt werden. Jede Pipeline hat eine eindeutige Identifikation (ID) und eine Liste von Schritten.
@@ -19,11 +19,11 @@ Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsda
 
 ## Wer darf eine Pipeline ausführen?
 
-Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
+Die Berechtigung zur Ausführung einer [Pipeline](../../GLOSSARY.md#pipeline) wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
 
 ## Wie ist der Ablauf einer Pipeline-Ausführung?
 
-Zu Beginn wählt der Anwender ein Mandat aus welches per ID auf eine Pipeline referenziert. Anhand dieser Referenz wird die Pipeline-Definition geladen. Jede Ausführung besitzt dabei seine eigene Pipeline-Instanz, welche die Informationen über die Ausführung der Pipeline enthält, wie z.B. die aktuellen Schritte und Prozessoren. Die Schritte innerhalb der Pipeline werden sequenziell ausgeführt, d.h. es wird erst mit dem nächsten Schritt begonnen, wenn der vorherige Schritt abgeschlossen ist.
+Zu Beginn wählt der Anwender ein Mandat aus welches per ID auf eine [Pipeline](../../GLOSSARY.md#pipeline) referenziert. Anhand dieser Referenz wird die Pipeline-Definition geladen. Jede Ausführung besitzt dabei seine eigene Pipeline-Instanz, welche die Informationen über die Ausführung der Pipeline enthält, wie z.B. die aktuellen Schritte und Prozessoren. Die Schritte innerhalb der Pipeline werden sequenziell ausgeführt, d.h. es wird erst mit dem nächsten Schritt begonnen, wenn der vorherige Schritt abgeschlossen ist.
 
 ### Status der Pipeline und Schritte
 
@@ -175,7 +175,7 @@ pipelines:
   - `processes[X].id`: Die eindeutige ID des Prozesses, welche in den Schritten referenziert werden kann.
   - `processes[X].implementation`: Die Implementierung für den aktuellen Prozess.
   - `processes[X].default_config`: Optionale Standard-Konfiguration für den aktuellen Prozess. Die Konfigurationsmöglichkeiten eines spezifischen Prozesses müssen in der Dokumentation des Prozesses nachgeschlagen werden. Diese Konfiguration kann in den Schritten überschrieben werden, um spezifisches Verhalten zu definieren. In diesem konkreten Beispiel definiert die Standard-Konfiguration des XTF Validators (`processes[1]`) das Profil `DEFAULT` und ein Poll-Intervall von 1000ms. Beim XTF Matcher (`processes[0]`) wird die Dateiendung `xtf` als Filter konfiguriert.
-- `pipelines`: Liste von Pipelines, welche die Verarbeitungsschritte beschreiben.
+- `pipelines`: Liste von [Pipelines](../../GLOSSARY.md#pipeline), welche die Verarbeitungsschritte beschreiben.
   - `pipelines[0].id`: Eindeutige ID der Pipeline, welche zur Ausführung der Pipeline verwendet wird. Diese ID wird als Referenz im Mandat verwendet, um die Berechtigung zur Ausführung der Pipeline zu regeln.
   - `pipelines[0].display_name`: Anzeigename der Pipeline, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
   - `pipelines[0].steps`: Liste der Schritte, die in der Pipeline ausgeführt werden. In diesem Beispiel ist der erste Schritt (`steps[0]`) der XTF Matcher, welcher die hochgeladenen Dateien filtert, und der zweite Schritt (`steps[1]`) die XTF Validierung.
@@ -197,7 +197,7 @@ pipelines:
 
 ## Validierungen
 
-Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei wird geprüft, ob die Definition den Anforderungen entspricht, und ob alle Referenzen korrekt sind. Es werden folgende Validierungen durchgeführt:
+Zum Programmstart wird validiert, ob die [Pipeline-Definition](../../GLOSSARY.md#pipeline) korrekt ist. Dabei wird geprüft, ob die Definition den Anforderungen entspricht, und ob alle Referenzen korrekt sind. Es werden folgende Validierungen durchgeführt:
 
 - Es muss mindestens ein Prozess vorhanden sein.
 - Jeder Prozess muss eine eindeutige ID haben.
@@ -223,7 +223,7 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 
 ## Konfiguration eines Pipeline-Prozessors
 
-Die Konfiguration eines Pipeline-Prozessors erfolgt über die Appsettings von geopilot und über die Pipeline-Definition. Die Namen der Konfiguration müssen der Dokumentation des jeweiligen Prozessors entnommen werden. Der Name der Konfiguration entsprich dabei immer dem Namen des Konstruktorparameters des Prozessors. Ein Prozessor muss genau einen `public` Konstruktor besitzen.
+Die Konfiguration eines Pipeline-Prozessors erfolgt über die Appsettings von geopilot und über die [Pipeline-Definition](../../GLOSSARY.md#pipeline). Die Namen der Konfiguration müssen der Dokumentation des jeweiligen Prozessors entnommen werden. Der Name der Konfiguration entsprich dabei immer dem Namen des Konstruktorparameters des Prozessors. Ein Prozessor muss genau einen `public` Konstruktor besitzen.
 
 ### Konfigurationsmöglichkeiten
 
@@ -376,7 +376,7 @@ public XtfValidatorProcess(
 
 ## Conditions
 
-Conditions ermöglichen es, die Ausführung von Schritten und somit der Pipeline oder die Bereitstellung von Daten zu steuern. Dabei wird eine Condition definiert, welche bei der Ausführung der Pipeline ausgewertet wird. Eine Condition referenziert dabei auf Resultate von vorherigen Schritten.
+Conditions ermöglichen es, die Ausführung von Schritten und somit der [Pipeline](../../GLOSSARY.md#pipeline) oder die Bereitstellung von Daten zu steuern. Dabei wird eine Condition definiert, welche bei der Ausführung der Pipeline ausgewertet wird. Eine Condition referenziert dabei auf Resultate von vorherigen Schritten.
 
 Beispiel für Conditions in einer Pipeline-Definition:
 
@@ -561,7 +561,7 @@ steps:
 
 ## Reaktionen nach dem Abschluss
 
-Ist eine [Lieferung](../../GLOSSARY.md#lieferung) abgeschlossen, also das [Löschfenster](../../GLOSSARY.md#löschfenster) des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Sind alle [Weitergaben](../../GLOSSARY.md#weitergabe) erfolgreich, ist sie weitergegeben; erst dann folgen die [Benachrichtigungen](../../GLOSSARY.md#benachrichtigung). Was dabei geschieht, beschreiben benannte [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets`. Jede [Reaktion](../../GLOSSARY.md#reaktion) verweist auf einen [Kanal](../../GLOSSARY.md#kanal) unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Reaktions-Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Reaktions-Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
+Ist eine [Lieferung](../../GLOSSARY.md#lieferung) abgeschlossen, also das [Löschfenster](../../GLOSSARY.md#löschfenster) des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Sind alle [Weitergaben](../../GLOSSARY.md#weitergabe) erfolgreich, ist sie weitergegeben; erst dann folgen die [Benachrichtigungen](../../GLOSSARY.md#benachrichtigung). Was dabei geschieht, beschreiben benannte [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets`. Jede [Reaktion](../../GLOSSARY.md#reaktion) verweist auf einen [Kanal](../../GLOSSARY.md#kanal) unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Reaktions-Satz per Id, so wie es seine [Pipeline](../../GLOSSARY.md#pipeline) wählt, und füllt die Werte, die der Reaktions-Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
 
 ```yaml
 channels:
@@ -679,7 +679,7 @@ Jeder Kanal, der mit geopilot ausgeliefert wird, ist in einer eigenen Datei doku
 
 ## Prozesse
 
-Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert werden, und wie sie in den Pipelines verwendet werden können. Jeder mitgelieferte Prozessor ist in einer eigenen Datei dokumentiert:
+Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert werden, und wie sie in den [Pipelines](../../GLOSSARY.md#pipeline) verwendet werden können. Jeder mitgelieferte Prozessor ist in einer eigenen Datei dokumentiert:
 
 - [XTF Matcher](Prozessoren/xtf-matcher.md)
 - [File Matcher](Prozessoren/file-matcher.md)

@@ -19,7 +19,7 @@ Ein XTF Fehlervisualisierungs-Prozess muss unter `processes[X].implementation` d
 
 ### Hintergrundkarte eines anderen Dienstes
 
-Die Hintergrundkarte lädt der Browser direkt vom Dienst, nicht über geopilot. Ein anderer Dienst als swisstopo braucht deshalb neben `baseMapWmtsCapabilitiesUrl` und `baseMapLayerIds` zwei Dinge ausserhalb der Pipeline-Definition:
+Die Hintergrundkarte lädt der Browser direkt vom Dienst, nicht über geopilot. Ein anderer Dienst als swisstopo braucht deshalb neben `baseMapWmtsCapabilitiesUrl` und `baseMapLayerIds` zwei Dinge ausserhalb der [Pipeline-Definition](../../../GLOSSARY.md#pipeline):
 
 - **Freigabe in der Content Security Policy:** geopilot erlaubt dem Browser die Hintergrundkarte von genau einem Host, dem der Applikationseinstellung `MapVisualization:BaseMapWmtsCapabilitiesUrl` (als Umgebungsvariable `MapVisualization__BaseMapWmtsCapabilitiesUrl`). Ohne diese Einstellung ist es der Host von swisstopo. Am einfachsten erhält sie dieselbe URL wie `baseMapWmtsCapabilitiesUrl`; ausgewertet wird nur der Host, und Capabilities wie Kacheln müssen von diesem Host kommen. Weil nur ein Host möglich ist, gilt er für alle Kartenansichten der Installation, auch die der [XTF Diff Visualisierung](xtf-diff-visualisierung.md): Wer ihn auf einen anderen Dienst setzt, sperrt die Standardkarte von swisstopo. Ohne passende Freigabe bleibt die Hintergrundkarte leer, und die Browser-Konsole meldet eine Verletzung der Direktive `connect-src`. geopilot liest die Einstellung beim Start.
 - **CORS:** Der Dienst muss Abrufe von der Adresse der geopilot-Installation zulassen (`Access-Control-Allow-Origin`), für die Capabilities wie für die Kacheln.

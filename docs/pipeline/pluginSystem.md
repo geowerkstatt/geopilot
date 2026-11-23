@@ -4,7 +4,7 @@ Die grundsätzliche Funktionsweise der Pipeline ist in der "[Dokumentation und K
 
 ## Einführung
 
-Pipeline-Prozessoren sind zentrale Komponenten in den geopilot Pipelines, die von Verarbeitungsschritten durchgeführt werden, um Daten zu transformieren oder zu analysieren. Das Pipeline-Plugin-System ermöglicht es den Funktionsumfang der Pipelines zu erweitern indem solche Prozessoren dazugeladen werden können ohne die Codebasis von geopilot zu verändern oder zu erweitern.
+Pipeline-Prozessoren sind zentrale Komponenten in den geopilot [Pipelines](../../GLOSSARY.md#pipeline), die von Verarbeitungsschritten durchgeführt werden, um Daten zu transformieren oder zu analysieren. Das Pipeline-Plugin-System ermöglicht es den Funktionsumfang der Pipelines zu erweitern indem solche Prozessoren dazugeladen werden können ohne die Codebasis von geopilot zu verändern oder zu erweitern.
 
 Dies ermöglicht es den verschiedenen Kunden von geopilot spezifische Anforderungen zu erfüllen, indem sie massgeschneiderte Prozessoren entwickeln und in ihre Pipelines integrieren können.
 
@@ -57,7 +57,7 @@ Wer ein Plugin unter anderen Bedingungen braucht, klärt das vorgängig mit der 
 
 ## Anforderungen an Pipeline-Prozessoren
 
-- **Instanzierung**: Es muss ein Konstruktor vorhanden sein, welcher die Initialisierung des Prozessors ermöglicht. Dieser Konstruktor kann 0-n Parameter besitzen, welche in der Pipeline-Definition angegeben werden können. Es muss jedoch sichergestellt werden, dass die Pflichtparameter durch die Konfiguration eindeutig identifizierbar sind, damit sie korrekt zugeordnet werden können. Ob ein Parameter Pflicht ist, bestimmt sein Typ: Ein nullbarer Typ (etwa `string?` oder `int?`) ist optional und wird ohne Wert mit `null` initialisiert. Jeder andere ist Pflicht: Fehlt er in der Konfiguration oder steht dort ein Schlüssel ohne Wert, startet die Anwendung nicht. Ein Plugin ohne Nullable-Annotationen nimmt für Referenztypen einen Schlüssel ohne Wert als `null` an. Die Parameter sind variabel und können die folgenden Typen aufnehmen:
+- **Instanzierung**: Es muss ein Konstruktor vorhanden sein, welcher die Initialisierung des Prozessors ermöglicht. Dieser Konstruktor kann 0-n Parameter besitzen, welche in der [Pipeline-Definition](../../GLOSSARY.md#pipeline) angegeben werden können. Es muss jedoch sichergestellt werden, dass die Pflichtparameter durch die Konfiguration eindeutig identifizierbar sind, damit sie korrekt zugeordnet werden können. Ob ein Parameter Pflicht ist, bestimmt sein Typ: Ein nullbarer Typ (etwa `string?` oder `int?`) ist optional und wird ohne Wert mit `null` initialisiert. Jeder andere ist Pflicht: Fehlt er in der Konfiguration oder steht dort ein Schlüssel ohne Wert, startet die Anwendung nicht. Ein Plugin ohne Nullable-Annotationen nimmt für Referenztypen einen Schlüssel ohne Wert als `null` an. Die Parameter sind variabel und können die folgenden Typen aufnehmen:
   - `ILogger`: Logger-Instanz für das Logging innerhalb des Prozessors.
   - `IPipelineFileManager`: Instanz zum Verwalten von Dateien innerhalb der Pipeline.
   - `IIli2GpkgClient`: Client für ili2gpkg-Operationen (Schema-Import, Import, Export, Update, Validierung) gegen den ilitools-wrapper-Service. Die Adresse des Services wird von geopilot konfiguriert; das Plugin benötigt dazu keine eigene Konfiguration. Die Operationen nehmen optional mitgelieferte Modell-Dateien (`modelFiles`) an, die der Wrapper neben die Eingabedateien legt.
@@ -151,7 +151,7 @@ Wird eine Visualisierung für einen fachlichen Anwendungsfall gebraucht, ist der
 
 Die Appsettings von geopilot bieten die Möglichkeit, die zu ladenden Pipeline-Prozessor-Plugins zu definieren. Hierzu werden die Namen der Assemblies angegeben, welche die Prozessoren enthalten. Die Plugins werden im Abschnitt `Pipeline:Plugins` definiert. Hier erwarten wir eine Liste von Strings, welche die Namen der zu ladenden Assemblies enthalten.
 
-- `Pipeline:Definition`: Definiert den Pfad zur Pipeline-Definition, welche die Struktur der Pipelines und die Konfiguration der einzelnen Schritte beschreibt. Dieser Pfad kann absolut oder relativ sein.
+- `Pipeline:Definition`: Definiert den Pfad zur [Pipeline-Definition](../../GLOSSARY.md#pipeline), welche die Struktur der Pipelines und die Konfiguration der einzelnen Schritte beschreibt. Dieser Pfad kann absolut oder relativ sein.
 - `Pipeline:Plugins`: Absolute oder Relative Pfade zu den Assemblies, welche die Pipeline-Prozessoren enthalten. Es können mehrere Plugins angegeben werden, welche dann alle geladen werden. Neben der JSON-Liste ist auch ein einzelner, kommaseparierter Wert möglich, damit die Plugins als flache Umgebungsvariable gesetzt werden können (`Pipeline__Plugins=a.dll,b.dll`).
 - `Pipeline:ProcessConfigs`: Hier können spezifische Konfigurationen für die einzelnen Prozessoren angegeben werden. Der Key ist der vollständige Name der Prozessklasse (inklusive Namespace). Der Value ist ein Dictionary von Schlüssel-Wert-Paaren, welche die Basis-Konfiguration für diesen Prozessor darstellen. Diese Konfigurationen werden den Prozessor-Initialisierungsfunktionen mittels Parameter übergeben und können in der Pipeline-Definition nicht überschrieben werden. Es sind nur skalare Werte möglich; listenwertige Parameter gehören in die `default_config` der Pipeline-Definition.
 
@@ -175,7 +175,7 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
 
 ## Integrationstests im Plugin-Repository
 
-Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflection über eine Pipeline-Definition: die **Konstruktor-Injection** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injection** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
+Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflection über eine [Pipeline-Definition](../../GLOSSARY.md#pipeline): die **Konstruktor-Injection** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injection** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
 
 **Ein Integrationstest führt einen Prozessor deshalb immer über eine Pipeline aus.** Die Pipeline-Klassen selbst sind nicht Teil der öffentlichen API; ein Schritt kann nicht von Hand zusammengesteckt werden. Der Einstieg ist `PipelineFactory`, gespeist aus einer Definition. Was ein Test damit prüft, ist genau das, was in Produktion schiefgehen kann: ein Konstruktor, der nicht zur Konfiguration passt, und eine Run-Methode, deren Parameter nicht zu den `input`-Einträgen passen.
 

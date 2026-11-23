@@ -1,6 +1,6 @@
 # Alt/Neu Matcher
 
-Ordnet Dateien einem alten und einem neuen Stand zu, damit ein Prozess, der zwei Stände vergleicht, jeden Stand aus einem eigenen Input nehmen kann, etwa der [XTF Diff](xtf-diff.md). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Stattdessen entscheiden Rollenwörter im Dateinamen, etwa `alt` und `neu`. Nur zwei Dateien ganz ohne Rollenwort ordnet die Reihenfolge der Namen zu. Wie viele Dateien ein Stand haben darf, entscheidet die Pipeline mit einer Bedingung auf die Anzahl (siehe Beispiel), der Prozess selbst scheitert nie an der Anzahl.
+Ordnet Dateien einem alten und einem neuen Stand zu, damit ein Prozess, der zwei Stände vergleicht, jeden Stand aus einem eigenen Input nehmen kann, etwa der [XTF Diff](xtf-diff.md). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Stattdessen entscheiden Rollenwörter im Dateinamen, etwa `alt` und `neu`. Nur zwei Dateien ganz ohne Rollenwort ordnet die Reihenfolge der Namen zu. Wie viele Dateien ein Stand haben darf, entscheidet die [Pipeline](../../../GLOSSARY.md#pipeline) mit einer Bedingung auf die Anzahl (siehe Beispiel), der Prozess selbst scheitert nie an der Anzahl.
 
 ## Implementierung
 
@@ -8,7 +8,7 @@ Ein Alt/Neu Matcher muss unter `processes[X].implementation` den Wert `Geopilot.
 
 ## Konfiguration
 
-- `oldWords`: Optionaler Parameter vom Typ `HashSet<string>`. Wörter, die im Dateinamen den alten Stand kennzeichnen, etwa `alt` und `old`. Eine Liste, sie gehört darum in die Pipeline-Definition (`default_config`), nicht in die Basis-Konfiguration der appsettings.
+- `oldWords`: Optionaler Parameter vom Typ `HashSet<string>`. Wörter, die im Dateinamen den alten Stand kennzeichnen, etwa `alt` und `old`. Eine Liste, sie gehört darum in die [Pipeline-Definition](../../../GLOSSARY.md#pipeline) (`default_config`), nicht in die Basis-Konfiguration der appsettings.
 - `newWords`: Optionaler Parameter vom Typ `HashSet<string>`. Wörter, die den neuen Stand kennzeichnen, etwa `neu` und `new`.
 
 Ohne Rollenwörter ordnet der Prozess nur zwei Dateien zu, nach der Reihenfolge der Namen. Weitere Sprachen oder Paare wie `vorher` und `nachher` kommen einfach in die Listen.
@@ -39,7 +39,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
   - `NameOrder`: die Reihenfolge der Namen zweier Dateien ohne Rollenwort.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche die Dateien beider Stände nennt, `keine Datei` für einen leeren Stand, bei `NameOrder` mit dem Hinweis, dass nach Namen sortiert wurde.
 
-Ein Vergleich nimmt je Stand genau eine Datei. Ein Input vom Typ `IPipelineFile` nimmt zwar ein Array mit genau einer Datei an, bei keiner oder mehreren scheitert er aber mit einer technischen Meldung. Darum verlangt eine `fail_conditions` nach dem Schritt genau eine Datei pro Stand und gibt dafür eine verständliche Meldung (siehe Beispiel). Ob übrige Dateien in `UnmatchedFiles` stören, entscheidet die Pipeline ebenso, etwa mit `Length([old_new.UnmatchedFiles]) > 0`.
+Ein Vergleich nimmt je Stand genau eine Datei. Ein Input vom Typ `IPipelineFile` nimmt zwar ein Array mit genau einer Datei an, bei keiner oder mehreren scheitert er aber mit einer technischen Meldung. Darum verlangt eine `fail_conditions` nach dem Schritt genau eine Datei pro Stand und gibt dafür eine verständliche Meldung (siehe Beispiel). Ob übrige Dateien in `UnmatchedFiles` stören, entscheidet die [Pipeline](../../../GLOSSARY.md#pipeline) ebenso, etwa mit `Length([old_new.UnmatchedFiles]) > 0`.
 
 Eine Zuordnung nach den Namen ist geraten. Damit sie auffällt, schliesst die Pipeline den Schritt dann mit einer `warn_conditions` auf `!= 'RoleWords'` als Warnung ab (siehe Beispiel). Die Warnung verhindert keine Lieferung. In dieser Form lässt ein Tippfehler im Vergleichswert die Warnung immer erscheinen, statt sie still wirkungslos zu machen.
 

@@ -18,7 +18,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 
 - `diff`: Das Diff vom Typ `IPipelineFile`, genau eine Datei im JSON-Format des XTF-Diff-Tools ([OutputFileDescription.md](https://github.com/geowerkstatt/XTF-Diff-Tool/blob/main/OutputFileDescription.md)), in der Regel der Output `Diff` des [XTF Diff](xtf-diff.md).
 
-Lassen sich die Stände nicht vergleichen, ist `Diff` leer, und der Schritt scheitert, weil die Datei fehlt. Bricht die Pipeline in diesem Fall nicht schon beim Vergleich ab, braucht der Schritt eine `skip_conditions` wie im Beispiel. Sie greift auch, wenn der Vergleich selbst übersprungen wurde. Entspricht die Datei nicht dem Format des Tools, scheitert der Schritt mit einer Meldung, die den Grund nennt, etwa die Nummer der Änderung ohne `oid`.
+Lassen sich die Stände nicht vergleichen, ist `Diff` leer, und der Schritt scheitert, weil die Datei fehlt. Bricht die [Pipeline](../../../GLOSSARY.md#pipeline) in diesem Fall nicht schon beim Vergleich ab, braucht der Schritt eine `skip_conditions` wie im Beispiel. Sie greift auch, wenn der Vergleich selbst übersprungen wurde. Entspricht die Datei nicht dem Format des Tools, scheitert der Schritt mit einer Meldung, die den Grund nennt, etwa die Nummer der Änderung ohne `oid`.
 
 ## Output
 

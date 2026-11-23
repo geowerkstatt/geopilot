@@ -10,7 +10,7 @@ Eine Ablage muss unter `channels[X].implementation` den Wert `Geopilot.Pipeline.
 
 | Parameter | Herkunft | Bedeutung |
 | --- | --- | --- |
-| `baseDirectory` | Basis-Konfiguration, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. Setzt die Pipeline-Definition es, startet geopilot nicht. |
+| `baseDirectory` | Basis-Konfiguration, unter `Pipeline:ChannelConfigs` | Das Verzeichnis, unter dem alle Ablagen liegen. Setzt die [Pipeline-Definition](../../../GLOSSARY.md#pipeline) es, startet geopilot nicht. |
 | `subfolder` | Pipeline-Definition (`default_config`, in einer [Reaktion](../../../GLOSSARY.md#reaktion) überschreibbar) oder Mandat (`mandate_config`) | Der Ordner der [Lieferungen](../../../GLOSSARY.md#lieferung), ein relativer Pfad unterhalb des Basisverzeichnisses ohne `..`, etwa `kanton-a/av`. Kein Abschnitt darf nur aus Ziffern bestehen, denn so heissen die Ordner der Lieferungen: statt `kanton-be/351` also etwa `kanton-be/bfs-351`. Ebenso darf keiner mit einem Punkt beginnen, denn so heissen die temporären Ordner. Ein anderer Wert hält den Start an oder lässt das Mandat nicht speichern. |
 
 Das Basisverzeichnis gehört in die Basis-Konfiguration, entweder in die Appsettings:

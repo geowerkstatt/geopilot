@@ -2,7 +2,7 @@
 
 Listet die Änderungen zwischen einem alten und einem neuen Stand einer INTERLIS-Transferdatei, mit dem [XTF-Diff-Tool](https://github.com/geowerkstatt/XTF-Diff-Tool) über den ilitools-wrapper. Ein Objekt, das nur im alten Stand vorkommt, gilt als gelöscht, eines nur im neuen als hinzugefügt. Bei einem Objekt in beiden Ständen meldet das Tool jedes geänderte Attribut, jede geänderte Geometrie und jede geänderte Referenz.
 
-Der Prozess weiss nicht, woher die beiden Stände kommen: Jeder ist ein eigener Input, und die Pipeline bestimmt, welche Datei welcher Stand ist.
+Der Prozess weiss nicht, woher die beiden Stände kommen: Jeder ist ein eigener Input, und die [Pipeline](../../../GLOSSARY.md#pipeline) bestimmt, welche Datei welcher Stand ist.
 
 ## Implementierung
 
@@ -25,7 +25,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 - `oldXtf`: Der alte Stand vom Typ `IPipelineFile`, genau eine Datei.
 - `newXtf`: Der neue Stand vom Typ `IPipelineFile`, genau eine Datei.
 
-Kommen beide Stände aus dem Upload, braucht die Pipeline davor einen Schritt, der sie zuordnet, etwa mit dem [Alt/Neu Matcher](alt-neu-matcher.md) (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Strenger geht es mit zwei [XTF Matchern](xtf-matcher.md), deren `fileNamePatterns` je eine Rolle erkennen: Dann muss der Lieferant seine Dateien passend benennen, und der Matcher muss `fileNamePatterns` in seiner `default_config` deklarieren, damit ein Schritt den Schlüssel überschreiben darf.
+Kommen beide Stände aus dem Upload, braucht die [Pipeline](../../../GLOSSARY.md#pipeline) davor einen Schritt, der sie zuordnet, etwa mit dem [Alt/Neu Matcher](alt-neu-matcher.md) (siehe Beispiel). Die Reihenfolge des Uploads taugt dafür nicht, sie ist zufällig. Strenger geht es mit zwei [XTF Matchern](xtf-matcher.md), deren `fileNamePatterns` je eine Rolle erkennen: Dann muss der Lieferant seine Dateien passend benennen, und der Matcher muss `fileNamePatterns` in seiner `default_config` deklarieren, damit ein Schritt den Schlüssel überschreiben darf.
 
 ## Output
 
@@ -38,7 +38,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
   - `NotComparable`: nicht verglichen, weil die Stände verschiedene Modelle oder INTERLIS-Versionen verwenden oder eine Datei fehlerhaft ist, etwa durch eine doppelte TID. `Diff` ist leer. Verschiedene Modelle oder INTERLIS-Versionen nennt die Status-Nachricht, jeden anderen Grund nur das `Log`.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche die Anzahl Änderungen nennt oder dass sich die Stände nicht vergleichen lassen, bei verschiedenen Modellen oder INTERLIS-Versionen auch warum.
 
-`NotComparable` ist kein Fehler des Schrittes: Ob es die Lieferung verhindert, entscheidet die Pipeline mit einer Condition. Vergleicht sie zwei Uploads, ist eine Datei falsch, und eine `fail_conditions` passt. Vergleicht sie mit einer früheren Lieferung, steckt meist ein Modellwechsel dahinter, und eine `warn_conditions` lässt die Lieferung zu. Wie beim [XTF Metadaten-Extraktor](xtf-metadaten.md) empfiehlt sich die Form `!= 'Compared'`, damit ein Tippfehler im Vergleichswert auffällt. Weil auch eine fehlerhafte Datei `NotComparable` ergibt, hält sie unter einer `warn_conditions` erst eine Validierung auf. Nur wenn das Tool gar kein Log schreibt, scheitert der Schritt.
+`NotComparable` ist kein Fehler des Schrittes: Ob es die Lieferung verhindert, entscheidet die [Pipeline](../../../GLOSSARY.md#pipeline) mit einer Condition. Vergleicht sie zwei Uploads, ist eine Datei falsch, und eine `fail_conditions` passt. Vergleicht sie mit einer früheren Lieferung, steckt meist ein Modellwechsel dahinter, und eine `warn_conditions` lässt die Lieferung zu. Wie beim [XTF Metadaten-Extraktor](xtf-metadaten.md) empfiehlt sich die Form `!= 'Compared'`, damit ein Tippfehler im Vergleichswert auffällt. Weil auch eine fehlerhafte Datei `NotComparable` ergibt, hält sie unter einer `warn_conditions` erst eine Validierung auf. Nur wenn das Tool gar kein Log schreibt, scheitert der Schritt.
 
 ## Beispiel
 

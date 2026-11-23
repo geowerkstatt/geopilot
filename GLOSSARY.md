@@ -2,9 +2,15 @@
 
 Die Begriffe rund um den Lebenszyklus einer [Verarbeitung](#verarbeitung) und ihrer [Lieferung](#lieferung), so wie sie in Issues, Specs, Reviews und im Code verwendet werden. Heisst ein Begriff im Code anders, steht der Name dort dabei. Wörter, die wir für einen Begriff nicht verwenden, stehen bei ihm unter *Vermeiden*. Zeigt die Oberfläche einen Begriff, stehen bei ihm unter *Übersetzungen* die Wörter, die sie auf Englisch, Französisch und Italienisch dafür verwendet, mit dem unbestimmten Artikel für das Geschlecht; neue Texte in `src/Geopilot.Frontend/public/locale` folgen ihnen. Ein Begriff ohne Übersetzungen erscheint nicht in der Oberfläche, sein englischer Name ist der im Code. Ändert sich ein Begriff oder kommt einer dazu, wird diese Datei im selben PR nachgeführt.
 
+## Pipeline
+
+Eine benannte Abfolge von Schritten; jeder Schritt führt einen Prozess aus, etwa eine Validierung. Ein Mandat wählt eine Pipeline, und jede [Verarbeitung](#verarbeitung) für das Mandat führt sie aus: Dafür baut geopilot aus der Pipeline eine eigene Instanz, die nach dem Lauf entsorgt wird. Alle Pipelines einer Installation stehen in der Pipeline-Definition, einer YAML-Datei, unter `pipelines`, zusammen mit den Prozessen, [Kanälen](#kanal) und [Reaktions-Sätzen](#reaktions-satz) (`Pipeline:Definition`). Im Code: `PipelineConfig`, die Instanz `IPipeline`, am Mandat `PipelineId`.
+
+_Übersetzungen_: EN pipeline, FR un pipeline, IT una pipeline
+
 ## Verarbeitung
 
-Was geopilot mit einem Upload für ein Mandat tut, vom Start bis zu ihrem [Retirement](#retirement); die Pipeline des Mandats beschreibt sie. Ihr Lauf ist die Ausführung der Pipeline nach dem Preflight; endet er mit `Success` oder `Warning`, ist er lieferbar. Im Speicher hält eine Verarbeitung ihren Zustand, ihre Pipeline und den Verweis auf den Upload. Pro Upload ist höchstens eine Verarbeitung aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis diese endet. Scheitert der Start, bleibt keine Verarbeitung zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
+Was geopilot mit einem Upload für ein Mandat tut, vom Start bis zu ihrem [Retirement](#retirement); die [Pipeline](#pipeline) des Mandats beschreibt sie. Ihr Lauf ist die Ausführung der Pipeline nach dem Preflight; endet er mit `Success` oder `Warning`, ist er lieferbar. Im Speicher hält eine Verarbeitung ihren Zustand, ihre Pipeline und den Verweis auf den Upload. Pro Upload ist höchstens eine Verarbeitung aktiv, also Pending oder Running; ein zweiter Start wird abgelehnt, bis diese endet. Scheitert der Start, bleibt keine Verarbeitung zurück. Im Code: `ProcessingJob`, gestartet in `JobLifecycle.StartAsync`.
 
 _Übersetzungen_: EN processing, FR un traitement, IT un'elaborazione
 
@@ -12,17 +18,17 @@ _Vermeiden_: Job, Verarbeitungsjob, Prozessierung
 
 ## Protokoll
 
-Was das Ausführungsprotokoll zu einer [Verarbeitung](#verarbeitung) festhält, den ganzen Weg vom Start über Preflight und die Schritte der Pipeline bis zur [Lieferung](#lieferung) und ihren [Reaktionen](#reaktion), auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jeder Verarbeitung genau ein Protokoll. Anders als die Verarbeitung überlebt es das [Retirement](#retirement) und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
+Was das Ausführungsprotokoll zu einer [Verarbeitung](#verarbeitung) festhält, den ganzen Weg vom Start über Preflight und die Schritte der [Pipeline](#pipeline) bis zur [Lieferung](#lieferung) und ihren [Reaktionen](#reaktion), auch wenn diese Tage nach dem Ende der Pipeline kommen. Heute gehört zu jeder Verarbeitung genau ein Protokoll. Anders als die Verarbeitung überlebt es das [Retirement](#retirement) und Neustarts, siehe [Ausführungsprotokoll](docs/Ausfuehrungsprotokoll.md). Sein Verarbeitungszustand ist der Zustand seiner Pipeline, nicht der seiner Lieferung. Im Code: `Recording`, geschrieben vom `Recorder`.
 
 _Übersetzungen_: EN recording, FR un enregistrement, IT una registrazione
 
 ## Ausgang
 
-Wie die Pipeline einer [Verarbeitung](#verarbeitung) geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
+Wie die [Pipeline](#pipeline) einer [Verarbeitung](#verarbeitung) geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
 
 ## Folgen
 
-Was aus einem [Ausgang](#ausgang) für die [Verarbeitung](#verarbeitung) folgt, soweit es vom Ausgang abhängt: ihr neuer Zustand und ob der Upload freigegeben wird. Was bei jedem Ausgang geschieht, etwa die Pipeline entsorgen oder das [Protokoll](#protokoll) schreiben, gehört nicht dazu. Im Code: `JobDecision`, entschieden in `JobLifecycle.Decide`.
+Was aus einem [Ausgang](#ausgang) für die [Verarbeitung](#verarbeitung) folgt, soweit es vom Ausgang abhängt: ihr neuer Zustand und ob der Upload freigegeben wird. Was bei jedem Ausgang geschieht, etwa die [Pipeline](#pipeline) entsorgen oder das [Protokoll](#protokoll) schreiben, gehört nicht dazu. Im Code: `JobDecision`, entschieden in `JobLifecycle.Decide`.
 
 ## Freigabe
 
@@ -52,7 +58,7 @@ _Vermeiden_: Deklaration, Anlieferung, Auslieferung
 
 ## Versuch
 
-Ein Anlauf eines Maschinen-Clients zu einer [Lieferung](#lieferung): Er übergibt Mandat, Lieferangaben und Daten und fragt ab, bis die Lieferung erstellt ist oder feststeht, dass keine entsteht. Lehnt die Pipeline die Daten ab, endet er als `rejected`; scheitert der Lauf oder weist geopilot die Lieferung ab, als `failed`. Ein Versuch lebt im Speicher und höchstens so lange wie seine [Verarbeitung](#verarbeitung), siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
+Ein Anlauf eines Maschinen-Clients zu einer [Lieferung](#lieferung): Er übergibt Mandat, Lieferangaben und Daten und fragt ab, bis die Lieferung erstellt ist oder feststeht, dass keine entsteht. Lehnt die [Pipeline](#pipeline) die Daten ab, endet er als `rejected`; scheitert der Lauf oder weist geopilot die Lieferung ab, als `failed`. Ein Versuch lebt im Speicher und höchstens so lange wie seine [Verarbeitung](#verarbeitung), siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
 
 _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
@@ -102,7 +108,7 @@ _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 
 ## Reaktions-Satz
 
-Eine benannte Zusammenstellung von [Reaktionen](#reaktion) in der Pipeline-Definition, unter `reaction_sets`: [Weitergaben](#weitergabe) unter `transfers`, [Benachrichtigungen](#benachrichtigung) unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Reaktions-Satz und füllt die Werte, die der Reaktions-Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
+Eine benannte Zusammenstellung von [Reaktionen](#reaktion) in der [Pipeline-Definition](#pipeline), unter `reaction_sets`: [Weitergaben](#weitergabe) unter `transfers`, [Benachrichtigungen](#benachrichtigung) unter `notifications`, mindestens eine Reaktion. Ein Mandat wählt einen Reaktions-Satz und füllt die Werte, die der Reaktions-Satz unter `mandate_config` von ihm verlangt, pro Reaktion. Im Code: `ReactionSetConfig`, am Mandat `ReactionSetId` und `ReactionSetValues`.
 
 _Übersetzungen_: EN reaction set, FR un ensemble de réactions, IT un insieme di reazioni
 
@@ -110,7 +116,7 @@ _Vermeiden_: Satz, Satz von Reaktionen
 
 ## Kanal
 
-Was eine [Reaktion](#reaktion) ausführt, etwa die Ablage. Ob ein Kanal als [Weitergabe](#weitergabe) oder als [Benachrichtigung](#benachrichtigung) dient, legt nicht er fest, sondern der [Reaktions-Satz](#reaktions-satz), der ihn einsetzt. Die Pipeline-Definition führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
+Was eine [Reaktion](#reaktion) ausführt, etwa die Ablage. Ob ein Kanal als [Weitergabe](#weitergabe) oder als [Benachrichtigung](#benachrichtigung) dient, legt nicht er fest, sondern der [Reaktions-Satz](#reaktions-satz), der ihn einsetzt. Die [Pipeline-Definition](#pipeline) führt die Kanäle unter `channels`, und eine Reaktion verweist mit `channel_id` auf einen davon, so wie ein Schritt auf einen Prozess. Jeder Wert eines Kanals kommt von genau einer Stelle: aus der Basis-Konfiguration (`Pipeline:ChannelConfigs`), aus der Pipeline-Definition (`default_config` des Kanals, in der Reaktion überschreibbar) oder, nur für Parameter mit `[MandateValue]`, vom Mandat. Im Code: `ChannelConfig` in der Definition, `IDeliveryChannel`, erzeugt von `DeliveryChannelFactory`.
 
 ## Info-Mail
 

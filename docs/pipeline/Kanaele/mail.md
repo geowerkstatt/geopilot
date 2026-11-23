@@ -15,7 +15,7 @@ Ein Mail-Kanal muss unter `channels[X].implementation` den Wert `Geopilot.Pipeli
 | `sender` | Basis-Konfiguration | Die Absenderadresse. Mit ihrer Domain stellt sich der [Kanal](../../../GLOSSARY.md#kanal) dem Server vor. |
 | `username`, `password` | Basis-Konfiguration, optional | Die Anmeldung am Server. Fehlen beide, sendet der Kanal ohne Anmeldung. |
 | `encryption` | Basis-Konfiguration, optional | `StartTls` (Vorgabe), `SslOnConnect` oder `None`. Ohne Verschlüsselung sendet der Kanal nur ohne Anmeldung, etwa an einen Relay im eigenen Netz. |
-| `template` | Pipeline-Definition (`default_config`, in einer [Reaktion](../../../GLOSSARY.md#reaktion) überschreibbar) | Der Pfad des Templates relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), siehe [Template](#template). |
+| `template` | [Pipeline-Definition](../../../GLOSSARY.md#pipeline) (`default_config`, in einer [Reaktion](../../../GLOSSARY.md#reaktion) überschreibbar) | Der Pfad des Templates relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), siehe [Template](#template). |
 | `to`, `cc`, `bcc` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Listen von Mail-Adressen für `To`, `Cc` und `Bcc`. |
 | `includeSupplier` | Pipeline-Definition oder Mandat (`mandate_config`), optional | Ob der Lieferant ebenfalls ins `To` kommt, bei einer maschinellen [Lieferung](../../../GLOSSARY.md#lieferung) die für den Client [verantwortlichen Personen](../../../GLOSSARY.md#verantwortliche-person). Nicht gesetzt heisst nein. |
 
