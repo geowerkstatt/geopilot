@@ -18,7 +18,7 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `ExtractedFiles`: Ein Array von Dateien vom Typ `IPipelineFile[]`, welche dem Inhalt des ZIP-Archivs entsprechen. Auf jeder Datei steht via `OriginalRelativePath` der Verzeichnispfad innerhalb des Archivs (oder ein leerer String für Dateien auf der obersten Ebene). Dieses Array kann leer sein, wenn das Archiv keine Dateien enthält.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht des Entpackers vom Typ `LocalizedText`, welche über die Anzahl der entpackten Dateien bzw. ein leeres Archiv informiert.

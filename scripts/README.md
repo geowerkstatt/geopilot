@@ -65,9 +65,9 @@ Remove-Item src/Geopilot.Api/appsettings.Local.<Name>.json
 
 Das Löschen des Symlinks fasst die Plugin-Datei nicht an.
 
-# Maschinelle Anlieferung ausprobieren
+# Maschinelle Lieferung ausprobieren
 
-Zwei Skripte fahren eine [maschinelle Anlieferung](../docs/MaschinelleAnlieferung.md) von Anfang bis Ende: Token per Client Credentials holen, die Dateien übergeben, den Versuch starten und den Status abfragen, bis er geliefert, abgewiesen oder gescheitert ist. Sie sind zugleich der Startpunkt für einen eigenen Client: jeder Schritt steht mit dem HTTP-Aufruf, den er absetzt, im Skript.
+Zwei Skripte fahren eine [maschinelle Lieferung](../docs/MaschinelleLieferung.md) von Anfang bis Ende: Token per Client Credentials holen, die Dateien übergeben, den Versuch starten und den Status abfragen, bis er geliefert, abgewiesen oder gescheitert ist. Sie sind zugleich der Startpunkt für einen eigenen Client: jeder Schritt steht mit dem HTTP-Aufruf, den er absetzt, im Skript.
 
 Welches Skript passt, entscheidet die Installation, nicht das Mandat:
 
