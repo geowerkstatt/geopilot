@@ -14,6 +14,11 @@ public interface IUploadStorage
     string StorageLocation { get; }
 
     /// <summary>
+    /// The HTTP headers a client must send with each PUT to an upload URL, in addition to its content type.
+    /// </summary>
+    IReadOnlyDictionary<string, string> UploadHeaders { get; }
+
+    /// <summary>
     /// Generates the URL the client uploads the file content to.
     /// </summary>
     /// <param name="key">The storage key for the file.</param>

@@ -440,8 +440,20 @@ export type FileMetadata = {
  * Upload information for a single file, including the presigned URL.
  */
 export type FileUploadInfo = {
+  /**
+   * The name of the file.
+   */
   fileName: string;
+  /**
+   * The URL to PUT the file content to.
+   */
   uploadUrl: string;
+  /**
+   * The headers to send with the PUT, in addition to the content type.
+   */
+  uploadHeaders: {
+    [key: string]: string;
+  };
 };
 
 /**

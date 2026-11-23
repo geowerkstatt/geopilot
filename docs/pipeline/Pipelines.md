@@ -2,7 +2,7 @@
 
 ## Was ist eine Pipeline bei geopilot?
 
-Eine Pipeline in geopilot ist eine Abfolge von Verarbeitungsschritten, die auf hochgeladene Daten angewendet werden, um ein bestimmtes Ergebnis zu erzielen.
+Eine [Pipeline](../../GLOSSARY.md#pipeline) in geopilot ist eine Abfolge von Verarbeitungsschritten, die auf hochgeladene Daten angewendet werden, um ein bestimmtes Ergebnis zu erzielen.
 Diese Schritte können verschiedene Operationen umfassen, wie z.B. Validierung, Transformation, Analyse oder Visualisierung.
 Pipelines ermöglichen es, komplexe Datenverarbeitungsprozesse zu automatisieren und effizient zu gestalten.
 Dabei können verschiedene Inputs und Outputs der Schritte miteinander verbunden werden, um die gewünschten Ergebnisse zu erzielen.
@@ -11,7 +11,7 @@ Die von der Pipeline verarbeiteten Daten können im Anschluss für die Datenlief
 
 ## Wie ist eine Pipeline aufgebaut?
 
-Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsdatei definiert. Pro Umgebung gibt es genau eine solche Konfigurationsdatei. Die Konfiguration wird in einer YAML-Datei erstellt. Eine Pipeline seinerseits enthält einen oder mehrere Schritte und beschreibt deren Konfigurationen und Logik. Der Aufbau einer Pipeline-Definition ist folgendermassen strukturiert:
+Alle [Pipelines](../../GLOSSARY.md#pipeline) stehen in einer gemeinsamen Pipeline-Definition, einer YAML-Datei; pro Umgebung gibt es genau eine. Eine Pipeline ihrerseits enthält einen oder mehrere Schritte und beschreibt deren Konfigurationen und Logik. Der Aufbau einer Pipeline-Definition ist folgendermassen strukturiert:
 
 - __Prozesse__: Eine Liste von möglichen Prozessen (processes), die in den Schritten (steps) verwendet werden können. Jeder Prozess hat eine eindeutige Identifikation (ID), über die er in den Schritten referenziert werden kann. Ein Prozess kann dabei in mehreren Schritten verwendet werden. Ein Prozess kann eine Standardkonfiguration haben, welche in den Schritten überschrieben werden kann. Jeder Prozess muss die Klasse, welche die Logik des Prozesses enthält, definieren.
 - __Pipelines__: Eine Liste von Pipelines, welche die Verarbeitungsschritte beschreibt, die sequenziell ausgeführt werden. Jede Pipeline hat eine eindeutige Identifikation (ID) und eine Liste von Schritten.
@@ -19,11 +19,11 @@ Alle Pipeline-Definitionen werden in einer gemeinsamen Pipeline-Konfigurationsda
 
 ## Wer darf eine Pipeline ausführen?
 
-Die Berechtigung zur Ausführung einer Pipeline wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
+Die Berechtigung zur Ausführung einer [Pipeline](../../GLOSSARY.md#pipeline) wird über die Mandate geregelt. Ein Mandat wird über Organisationen Benutzern zugeordnet und kann zusätzlich öffentlich sein. Ein öffentliches Mandat kann jede Person prüfen, auch ohne Anmeldung. Liefern können nur angemeldete Mitglieder der zugeordneten Organisationen.
 
 ## Wie ist der Ablauf einer Pipeline-Ausführung?
 
-Zu Beginn wählt der Anwender ein Mandat aus welches per ID auf eine Pipeline referenziert. Anhand dieser Referenz wird die Pipeline-Definition geladen. Jede Ausführung besitzt dabei seine eigene Pipeline-Instanz, welche die Informationen über die Ausführung der Pipeline enthält, wie z.B. die aktuellen Schritte und Prozessoren. Die Schritte innerhalb der Pipeline werden sequenziell ausgeführt, d.h. es wird erst mit dem nächsten Schritt begonnen, wenn der vorherige Schritt abgeschlossen ist.
+Zu Beginn wählt der Anwender ein Mandat aus welches per ID auf eine [Pipeline](../../GLOSSARY.md#pipeline) referenziert. Anhand dieser Referenz wird die Pipeline-Definition geladen. Jede Ausführung besitzt dabei seine eigene Pipeline-Instanz, welche die Informationen über die Ausführung der Pipeline enthält, wie z.B. die aktuellen Schritte und Prozessoren. Die Schritte innerhalb der Pipeline werden sequenziell ausgeführt, d.h. es wird erst mit dem nächsten Schritt begonnen, wenn der vorherige Schritt abgeschlossen ist.
 
 ### Status der Pipeline und Schritte
 
@@ -40,7 +40,7 @@ Die Schritte können dabei verschiedene Stati durchlaufen, welche den aktuellen 
 - `Warning`: Schritt wurde ausgeführt, hat aber Probleme gemeldet (eine `warn_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter; der Schritt gilt nicht als Fehler.
 - `DeliveryRestriction`: Schritt wurde ausgeführt, schränkt aber die Datenlieferung ein (eine `restrict_delivery_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter und der Schritt gilt nicht als Fehler, die produzierten Daten dürfen aber nicht geliefert werden.
 - `Error`: Schritt ist durch eigene Verarbeitungslogik fehlgeschlagen.
-- `Cancelled`: Schritt wurde vor Abschluss von aussen abgebrochen (z.B. Job-Timeout oder Shutdown des Hosts). Wird bewusst von `Error` unterschieden, weil der Schritt nicht aufgrund eines Verarbeitungsfehlers, sondern durch eine externe Unterbrechung beendet wurde.
+- `Cancelled`: Schritt wurde vor Abschluss von aussen abgebrochen (z.B. Zeitüberschreitung der [Verarbeitung](../../GLOSSARY.md#verarbeitung) oder Shutdown des Hosts). Wird bewusst von `Error` unterschieden, weil der Schritt nicht aufgrund eines Verarbeitungsfehlers, sondern durch eine externe Unterbrechung beendet wurde.
 
 #### Pipeline
 
@@ -52,13 +52,13 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 - `Warning`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `Warning` und die übrigen `Success` oder `Skipped` (kein `Error`, kein `Cancelled`, kein `DeliveryRestriction`). Ein `Warning`-Status verhindert die Datenlieferung nicht von sich aus.
 - `DeliveryRestriction`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `DeliveryRestriction` und die übrigen `Success`, `Skipped` oder `Warning` (kein `Error`, kein `Cancelled`). Die Datenlieferung ist nicht möglich. Dieser Status hat Vorrang vor `Warning`.
 - `Failed`: Ein Schritt hat mit dem Status `Error` abgeschlossen (die darauffolgenden Schritte wurden nicht mehr ausgeführt).
-- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Job-Timeout oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung.
+- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Zeitüberschreitung der Verarbeitung oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung.
 
 ### Datenfluss in der Pipeline
 
 Ein Schritt und somit auch ein Prozess kann 1-n Inputs und 1-n Outputs haben. Die Inputs eines Schrittes werden von vorherigen Schritten bezogen. Ein Input kann zudem die hochgeladenen Dateien über `${upload()}` beziehen. Ebenso kann ein Input über eine Datei-Referenz `${file(pfad)}` eine Datei aus dem konfigurierten Ressourcen-Verzeichnis beziehen. Die Outputs eines Schrittes sind implizit alle öffentlichen, lesbaren Properties seines Prozess-Ergebnisses; sie stehen den darauffolgenden Schritten unter ihrem Property-Namen (PascalCase) zur Verfügung, ohne einzeln deklariert werden zu müssen.
 
-Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Downloads und Visualisierungen stehen bereit, sobald der jeweilige Schritt abgeschlossen ist. Die Dateien für die Datenlieferung werden erst am Ende der Pipeline-Ausführung bereitgestellt, und nur wenn die Lieferung möglich ist. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
+Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Downloads und Visualisierungen stehen bereit, sobald der jeweilige Schritt abgeschlossen ist. Die Dateien für die Datenlieferung werden erst am Ende der Pipeline-Ausführung bereitgestellt, und nur wenn die [Lieferung](../../GLOSSARY.md#lieferung) möglich ist. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
 
 - `Download`: Die Daten werden zum Download bereitgestellt, und können von den Anwendern heruntergeladen werden. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein. Der deklarierte Typ der Property wird beim Laden geprüft: Eine Property, die gar keine Datei liefern kann, verhindert den Start. Ist der Wert zur Laufzeit nicht gesetzt (`null`), schlägt der Schritt fehl.
 - `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; auch hier wird der deklarierte Typ beim Laden geprüft. Ist der Wert zur Laufzeit nicht gesetzt (`null`), wird nichts geliefert, und der Schritt schlägt anders als bei `Download` nicht fehl. Die Lieferung enthält nur **genau** die Dateien, die von einem Schritt als `Delivery` getaggt wurden. Um hochgeladene Dateien in der Lieferung zu berücksichtigen, wird üblicherweise ein Matcher-Schritt verwendet, der die Uploads als `${upload()}` erhält und seine Treffer und optional seine `UnmatchedFiles` als `Delivery` taggt. Der Asset-Typ einer gelieferten Datei ergibt sich aus ihrer Herkunft: kam sie als Upload in die Pipeline, wird sie als `PrimaryData` geführt, wurde sie innerhalb der Pipeline erzeugt oder bearbeitet, als `ProcessedData`. Enthält eine Lieferung keine einzige `Delivery`-getaggte Datei, wird die Lieferung mit einem Fehler abgelehnt.
@@ -175,7 +175,7 @@ pipelines:
   - `processes[X].id`: Die eindeutige ID des Prozesses, welche in den Schritten referenziert werden kann.
   - `processes[X].implementation`: Die Implementierung für den aktuellen Prozess.
   - `processes[X].default_config`: Optionale Standard-Konfiguration für den aktuellen Prozess. Die Konfigurationsmöglichkeiten eines spezifischen Prozesses müssen in der Dokumentation des Prozesses nachgeschlagen werden. Diese Konfiguration kann in den Schritten überschrieben werden, um spezifisches Verhalten zu definieren. In diesem konkreten Beispiel definiert die Standard-Konfiguration des XTF Validators (`processes[1]`) das Profil `DEFAULT` und ein Poll-Intervall von 1000ms. Beim XTF Matcher (`processes[0]`) wird die Dateiendung `xtf` als Filter konfiguriert.
-- `pipelines`: Liste von Pipelines, welche die Verarbeitungsschritte beschreiben.
+- `pipelines`: Liste von [Pipelines](../../GLOSSARY.md#pipeline), welche die Verarbeitungsschritte beschreiben.
   - `pipelines[0].id`: Eindeutige ID der Pipeline, welche zur Ausführung der Pipeline verwendet wird. Diese ID wird als Referenz im Mandat verwendet, um die Berechtigung zur Ausführung der Pipeline zu regeln.
   - `pipelines[0].display_name`: Anzeigename der Pipeline, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
   - `pipelines[0].steps`: Liste der Schritte, die in der Pipeline ausgeführt werden. In diesem Beispiel ist der erste Schritt (`steps[0]`) der XTF Matcher, welcher die hochgeladenen Dateien filtert, und der zweite Schritt (`steps[1]`) die XTF Validierung.
@@ -189,15 +189,15 @@ pipelines:
       - Mehrere Quellen auf denselben Parameter: Als Wert kann eine YAML-Liste von Einträgen (Referenzen und/oder Literale) angegeben werden, welche zu einem einzigen Parameter zusammengeführt werden. Bei einem Listen-Parameter (Array bzw. `params`) trägt jede Quelle ihre Werte bei. Bei einem **einwertigen** Parameter werden die Quellen genauso zusammengeführt, es muss danach aber genau ein Wert übrig bleiben: Quellen, die nichts liefern (eine leere Liste, ein `null` oder ein übersprungener Schritt), zählen nicht mit, und bleiben zwei oder mehr Werte übrig, schlägt der Schritt fehl. Das gilt auch für mehr als zwei Quellen; die Definition muss dann aber selbst dafür sorgen, dass höchstens eine davon einen Wert liefert, denn geprüft wird das erst zur Laufzeit. Damit lässt sich "die Datei kommt aus der einen **oder** der anderen Quelle" ausdrücken, ohne den Parameter auf eine Liste umzustellen.
       - Referenz auf einen übersprungenen Schritt: Ein übersprungener Schritt (siehe [PRE-Condition](#pre-condition)) führt keinen Prozess aus und liefert deshalb keinen Wert. Eine Referenz darauf ist trotzdem erlaubt und steuert einfach nichts bei: In einer Liste von Quellen entfällt der Eintrag, bei einem Listen-Parameter als einzige Quelle bleibt der Parameter leer, und bei einem einzelnen Parameter wird `null` übergeben, sofern der Parameter das zulässt. Damit lässt sich ein optionaler Zwischenschritt abbilden, ohne die nachfolgenden Schritte zu verdoppeln: Ein Entpack-Schritt wird übersprungen, wenn kein Archiv geliefert wurde, und der nachfolgende Schritt bezieht seine Dateien aus dem Upload **und** aus dem entpackten Archiv. Lässt ein einzelner Parameter kein `null` zu, schlägt der Schritt weiterhin fehl, mit einer Meldung, die den übersprungenen Schritt benennt.
       - Datei-Referenz: Als Wert kann eine Datei aus dem konfigurierten Ressourcen-Verzeichnis in der Form `${file(pfad)}` referenziert werden. Der Pfad ist relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), muss innerhalb dieses Verzeichnisses liegen (kein absoluter Pfad, keine `..`-Segmente) und wird dem Prozessparameter als `IPipelineFile` übergeben. Damit lässt sich eine konstante Datei (z.B. eine Vorlage oder eine Nachschlagetabelle) direkt injizieren, ohne dass ein vorheriger Schritt sie bereitstellen muss. Das Ressourcen-Verzeichnis wird vom Deployment bereitgestellt (z.B. als Volume gemountet).
-    - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
+    - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der [Lieferung](../../GLOSSARY.md#lieferung), als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
       - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
-- `channels`: Optional. Liste von Kanälen, welche in den Reaktionen unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
-- `reaction_sets`: Optional. Sätze von Reaktionen, die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
+- `channels`: Optional. Liste von [Kanälen](../../GLOSSARY.md#kanal), welche in den [Reaktionen](../../GLOSSARY.md#reaktion) unter `reaction_sets` verwendet werden können, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
+- `reaction_sets`: Optional. [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz), die laufen, sobald eine Lieferung nicht mehr zurückgezogen werden kann, siehe [Reaktionen nach dem Abschluss](#reaktionen-nach-dem-abschluss).
 
 ## Validierungen
 
-Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei wird geprüft, ob die Definition den Anforderungen entspricht, und ob alle Referenzen korrekt sind. Es werden folgende Validierungen durchgeführt:
+Zum Programmstart wird validiert, ob die [Pipeline-Definition](../../GLOSSARY.md#pipeline) korrekt ist. Dabei wird geprüft, ob die Definition den Anforderungen entspricht, und ob alle Referenzen korrekt sind. Es werden folgende Validierungen durchgeführt:
 
 - Es muss mindestens ein Prozess vorhanden sein.
 - Jeder Prozess muss eine eindeutige ID haben.
@@ -220,11 +220,11 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
 - Die Pipeline-Definition darf keinen Parameter setzen, den ein Prozess als geheim kennzeichnet, und geheim kann nur ein Text sein, siehe [Geheime Werte](#geheime-werte).
-- Die Kanäle unter `channels` und die Sätze unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
+- Die [Kanäle](../../GLOSSARY.md#kanal) unter `channels` und die [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
 
-Die Konfiguration eines Pipeline-Prozessors erfolgt über die Appsettings von geopilot und über die Pipeline-Definition. Die Namen der Konfiguration müssen der Dokumentation des jeweiligen Prozessors entnommen werden. Der Name der Konfiguration entsprich dabei immer dem Namen des Konstruktorparameters des Prozessors. Ein Prozessor muss genau einen `public` Konstruktor besitzen.
+Die Konfiguration eines Pipeline-Prozessors erfolgt über die Appsettings von geopilot und über die [Pipeline-Definition](../../GLOSSARY.md#pipeline). Die Namen der Konfiguration müssen der Dokumentation des jeweiligen Prozessors entnommen werden. Der Name der Konfiguration entsprich dabei immer dem Namen des Konstruktorparameters des Prozessors. Ein Prozessor muss genau einen `public` Konstruktor besitzen.
 
 ### Konfigurationsmöglichkeiten
 
@@ -388,7 +388,7 @@ public XtfValidatorProcess(
 
 ## Conditions
 
-Conditions ermöglichen es, die Ausführung von Schritten und somit der Pipeline oder die Bereitstellung von Daten zu steuern. Dabei wird eine Condition definiert, welche bei der Ausführung der Pipeline ausgewertet wird. Eine Condition referenziert dabei auf Resultate von vorherigen Schritten.
+Conditions ermöglichen es, die Ausführung von Schritten und somit der [Pipeline](../../GLOSSARY.md#pipeline) oder die Bereitstellung von Daten zu steuern. Dabei wird eine Condition definiert, welche bei der Ausführung der Pipeline ausgewertet wird. Eine Condition referenziert dabei auf Resultate von vorherigen Schritten.
 
 Beispiel für Conditions in einer Pipeline-Definition:
 
@@ -514,7 +514,7 @@ In einer PRE-Condition wird vor der Ausführung eines Schrittes ausgewertet und 
 In einer POST-Condition wird nach der Ausführung eines Schrittes ausgewertet, wie der Schritt abgeschlossen wird. Es gibt drei Bedingungstypen mit fester Priorität:
 
 - `fail_conditions`: Trifft eine zu, wird der Schritt mit `Error` abgebrochen; die Pipeline schlägt fehl und die darauffolgenden Schritte werden nicht mehr ausgeführt.
-- `restrict_delivery_conditions`: Trifft keine `fail_conditions`, aber mindestens eine `restrict_delivery_conditions`-Condition zu, schliesst der Schritt mit `DeliveryRestriction` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter, die produzierten Daten dürfen aber nicht geliefert werden. Damit lassen sich datenabhängige Lieferbedingungen ausdrücken (z.B. eine nicht erfolgreiche Validierung), welche die Lieferung verhindern, ohne die Pipeline abzubrechen.
+- `restrict_delivery_conditions`: Trifft keine `fail_conditions`, aber mindestens eine `restrict_delivery_conditions`-Condition zu, schliesst der Schritt mit `DeliveryRestriction` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter, die produzierten Daten dürfen aber nicht geliefert werden. Damit lassen sich datenabhängige Lieferbedingungen ausdrücken (z.B. eine nicht erfolgreiche Validierung), welche die [Lieferung](../../GLOSSARY.md#lieferung) verhindern, ohne die Pipeline abzubrechen.
 - `warn_conditions`: Trifft keine `fail_conditions` und keine `restrict_delivery_conditions`, aber mindestens eine `warn_conditions`-Condition zu, schliesst der Schritt mit `Warning` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter. Damit lassen sich Probleme sichtbar machen, ohne die Pipeline abzubrechen. Die Datenlieferung wird dadurch nicht verhindert.
 
 Die Precedence ist somit `Error` (fail) vor `DeliveryRestriction` (restrict_delivery) vor `Warning` (warn) vor `Success`.
@@ -573,7 +573,7 @@ steps:
 
 ## Reaktionen nach dem Abschluss
 
-Ist eine Lieferung abgeschlossen, also das Löschfenster des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Was dabei geschieht, beschreiben benannte Sätze von Reaktionen unter `reaction_sets`. Jede Reaktion verweist auf einen Kanal unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Satz per Id, so wie es seine Pipeline wählt, und füllt die Werte, die der Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
+Ist eine [Lieferung](../../GLOSSARY.md#lieferung) abgeschlossen, also das [Löschfenster](../../GLOSSARY.md#löschfenster) des Lieferanten vorbei, kann geopilot sie weitergeben, etwa in eine Ablage, aus der die Systeme des Empfängers sie übernehmen, und darüber benachrichtigen. Sind alle [Weitergaben](../../GLOSSARY.md#weitergabe) erfolgreich, ist sie weitergegeben; erst dann folgen die [Benachrichtigungen](../../GLOSSARY.md#benachrichtigung). Was dabei geschieht, beschreiben benannte [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets`. Jede [Reaktion](../../GLOSSARY.md#reaktion) verweist auf einen [Kanal](../../GLOSSARY.md#kanal) unter `channels`, so wie ein Schritt auf einen Prozess unter `processes`. Ein Mandat wählt einen Reaktions-Satz per Id, so wie es seine [Pipeline](../../GLOSSARY.md#pipeline) wählt, und füllt die Werte, die der Reaktions-Satz von ihm verlangt; in der Administration geschieht beides im Abschnitt Reaktionen des Mandats. Wie die Reaktionen im Betrieb laufen und sich einstellen lassen, beschreibt [Reaktionen betreiben](../Reaktionen.md).
 
 ```yaml
 channels:
@@ -607,22 +607,22 @@ reaction_sets:
   - `channels[X].id`: Die eindeutige ID des Kanals, welche in den Reaktionen referenziert werden kann.
   - `channels[X].implementation`: Die Implementierung des Kanals, siehe [Kanäle](#kanäle).
   - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
-- `reaction_sets[X].id`: Die eindeutige Id des Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
-- `reaction_sets[X].display_name`: Der Name des Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
-- `reaction_sets[X].transfers`: Optional. Die Lieferungs-Schritte des Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Lieferungs-Schritte gilt sie das gleich nach der Abgabe.
-- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Lieferungs-Schritte, und die Betriebssicht zeigt sie mit ihnen.
-- Ein Satz braucht mindestens eine Reaktion, einen Lieferungs-Schritt oder eine Benachrichtigung. Beide sind gleich aufgebaut:
-  - `id`: Die Id der Reaktion. Sie muss über alle Sätze hinweg eindeutig sein, auch zwischen Lieferungs-Schritten und Benachrichtigungen, und folgt denselben Regeln wie die Id des Satzes.
+- `reaction_sets[X].id`: Die eindeutige Id des Reaktions-Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
+- `reaction_sets[X].display_name`: Der Name des Reaktions-Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
+- `reaction_sets[X].transfers`: Optional. Die Weitergaben des Reaktions-Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Weitergaben gilt sie das gleich nach der Abgabe.
+- `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Reaktions-Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Weitergaben, und die Betriebssicht zeigt sie mit ihnen.
+- Ein Reaktions-Satz braucht mindestens eine Reaktion, eine Weitergabe oder eine Benachrichtigung. Beide sind gleich aufgebaut:
+  - `id`: Die Id der Reaktion. Sie muss über alle Reaktions-Sätze hinweg eindeutig sein, auch zwischen Weitergaben und Benachrichtigungen, und folgt denselben Regeln wie die Id des Reaktions-Satzes.
   - `display_name`: Der Name der Reaktion in den Sprachen der Oberfläche, unter dem die Administration sie zeigt, etwa auf der Seite einer Lieferung oder im Mandat über den Werten, die sie verlangt. Auf der Seite der Lieferung steht die Id klein darunter, weil Log und Ausführungsprotokoll die Reaktion mit ihr nennen.
   - `channel_id`: Referenz auf die ID des Kanals, welcher die Reaktion ausführt.
   - `channel_config_overwrites`: Optional. Überschreibt die Standard-Konfiguration des Kanals für diese Reaktion, etwa mit einem anderen Unterordner.
-  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
+  - `mandate_config`: Optional. Die Werte, die das Mandat liefert, je mit dem Namen des Parameters (`key`) und der Beschriftung des Feldes in der Administration (`display_name`). Ein Mandat füllt nur Parameter, die der Kanal dafür vorsieht, und davon nur die, die der Reaktions-Satz hier deklariert. Je nach Parameter zeigt das Formular ein Textfeld, eine Liste von Texten oder einen Schalter; ein Schalter, der nie gesetzt wurde, ist aus.
 
 Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten: das Mandat, den Zeitpunkt der Abgabe, die Angaben zur Lieferung (Teillieferung, Vorgänger, Bemerkung) und wer sie geliefert hat, bei einer Person also Name und Mail-Adresse. Was davon das Ziel erreicht, steht auf der Seite des Kanals.
 
-Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Erstellung fest. Eine spätere Änderung am Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
+Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Erstellung fest. Eine spätere Änderung am Reaktions-Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
 
-Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Bis dahin nennt sie auch das Item einer späteren Lieferung nicht als Vorgängerversion. Weil die Lieferungs-Schritte erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet einer mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Lieferungs-Schritte erscheint gleich nach der Abgabe, auch wenn ihr Satz Benachrichtigungen hat.
+Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Bis dahin nennt sie auch das Item einer späteren Lieferung nicht als Vorgängerversion. Weil die Weitergaben erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet eine mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Weitergaben erscheint gleich nach der Abgabe, auch wenn ihr Reaktions-Satz Benachrichtigungen hat.
 
 Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Hat trotzdem schon eine begonnen, etwa weil das Löschfenster nach der Abgabe verlängert oder das Löschen für Lieferanten erst später eingeschaltet wurde, darf er nicht mehr löschen. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel. Der Löschdialog der Administration nennt deshalb vorher die erfolgten Weitergaben, und das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
 
@@ -634,13 +634,13 @@ Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsp
 
 1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier, ebenso einen geheimen Wert wie das Passwort des Mail-Kanals (siehe [Geheime Werte](#geheime-werte)). Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nicht in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu; dafür hält das Protokoll zu jedem Zustellversuch die Konfiguration fest, mit der sein Kanal lief, geheime Werte maskiert.
 2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
-3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Satz unter `mandate_config` deklariert.
+3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Reaktions-Satz unter `mandate_config` deklariert.
 
 Wie bei den Prozessoren ist die Basis-Konfiguration unveränderbar: Setzt die Pipeline-Definition einen ihrer Schlüssel, ob in `default_config`, `channel_config_overwrites` oder `mandate_config`, startet die Applikation nicht, mit einer Meldung wie unter [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration). Ebenso darf ein Wert nicht zugleich in der Standard-Konfiguration des Kanals stehen und vom Mandat kommen. Zugangsdaten gehören weder in die Definition noch an ein Mandat.
 
-Manche Parameter eines Kanals nennen eine Datei aus dem Ressourcen-Verzeichnis, etwa das Template einer Mail. Konfiguriert wird wie bei den Prozessoren ihr Pfad relativ zu `Storage:ResourcesDirectory` (siehe [Dateien als Konfiguration](#dateien-als-konfiguration)), und der Kanal bekommt ihren Text. Welche Parameter das sind, steht auf der Seite des Kanals. Die Datei wird bei jedem Zustellversuch neu gelesen, eine geänderte Datei gilt also auch für Reaktionen, die schon warten.
+Manche Parameter eines Kanals nennen eine Datei aus dem Ressourcen-Verzeichnis, etwa das Template einer Mail. Konfiguriert wird wie bei den Prozessoren ihr Pfad relativ zu `Storage:ResourcesDirectory` (siehe [Dateien als Konfiguration](#dateien-als-konfiguration)), und der Kanal bekommt ihren Text. Welche Parameter das sind, steht auf der Seite des Kanals. Die Datei wird bei jedem [Zustellversuch](../../GLOSSARY.md#zustellversuch) neu gelesen, eine geänderte Datei gilt also auch für Reaktionen, die schon warten.
 
-Eine Ablage mit einem Unterordner, den ein Satz für sich überschreibt:
+Eine Ablage mit einem Unterordner, den ein Reaktions-Satz für sich überschreibt:
 
 ```yaml
 channels:
@@ -663,11 +663,11 @@ reaction_sets:
 
 ### Prüfung beim Start
 
-Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines. geopilot startet nicht, wenn
+Die Kanäle und Reaktions-Sätze werden beim Start geprüft wie die Prozesse und Pipelines. geopilot startet nicht, wenn
 
-- zwei Kanäle oder zwei Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Sätze hinweg,
-- die Id eines Satzes oder einer Reaktion nicht den Regeln oben folgt,
-- ein Satz oder eine Reaktion keinen Namen (`display_name`) hat oder ein Satz keine Reaktion, weder einen Lieferungs-Schritt noch eine Benachrichtigung,
+- zwei Kanäle oder zwei Reaktions-Sätze dieselbe Id haben oder eine Id einer Reaktion mehr als einmal vorkommt, auch über Reaktions-Sätze hinweg,
+- die Id eines Reaktions-Satzes oder einer Reaktion nicht den Regeln oben folgt,
+- ein Reaktions-Satz oder eine Reaktion keinen Namen (`display_name`) hat oder ein Reaktions-Satz keine Reaktion, weder eine Weitergabe noch eine Benachrichtigung,
 - ein Kanal keine Implementierung hat oder eine Reaktion auf keinen oder einen nicht definierten Kanal verweist,
 - der Kanal einer Reaktion unbekannt ist oder nicht genau einen öffentlichen Konstruktor hat,
 - die Standard-Konfiguration des Kanals einer Reaktion einen Schlüssel enthält, den der Kanal nicht kennt, oder ein Wert der Pipeline-Definition sich nicht in den Typ des Parameters umwandeln lässt,
@@ -678,10 +678,10 @@ Die Kanäle und Sätze werden beim Start geprüft wie die Prozesse und Pipelines
 - ein Kanal einen geheimen Parameter hat, der keinen Text nimmt oder zugleich ein Wert des Mandats ist,
 - ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
 - der Kanal einer Reaktion seine Konfiguration abweist, etwa der Mail-Kanal ein Template ohne Titel. Dafür baut geopilot jeden Kanal einmal, der ohne Werte vom Mandat auskommt; einen, der welche braucht, prüft erst das Speichern eines Mandats,
-- ein Mandat einen Satz gewählt hat, den die Definition nicht mehr enthält,
-- ein Mandat einen Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.
+- ein Mandat einen Reaktions-Satz gewählt hat, den die Definition nicht mehr enthält,
+- ein Mandat einen Reaktions-Satz gewählt hat, das Löschfenster der Lieferanten aber nie schliesst (`Delivery:UploaderDeleteEnabled` ohne `Delivery:DeleteDuration` und ohne `Delivery:DeleteRestrictInterval`), denn dann würde nie eine Reaktion laufen.
 
-Ein Satz lässt sich deshalb erst aus der Definition entfernen, wenn kein Mandat ihn mehr gewählt hat. Werte eines Mandats, die ein Kanal nicht annimmt, etwa weil er nach einem Update einen neuen Wert verlangt, halten den Start nicht an, sondern erscheinen als Warnung im Log, mit Mandat und Reaktion. Das Mandat lässt sich danach nur mit gültigen Werten speichern.
+Ein Reaktions-Satz lässt sich deshalb erst aus der Definition entfernen, wenn kein Mandat ihn mehr gewählt hat. Werte eines Mandats, die ein Kanal nicht annimmt, etwa weil er nach einem Update einen neuen Wert verlangt, halten den Start nicht an, sondern erscheinen als Warnung im Log, mit Mandat und Reaktion. Das Mandat lässt sich danach nur mit gültigen Werten speichern.
 
 ### Kanäle
 
@@ -692,7 +692,7 @@ Jeder Kanal, der mit geopilot ausgeliefert wird, ist in einer eigenen Datei doku
 
 ## Prozesse
 
-Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert werden, und wie sie in den Pipelines verwendet werden können. Jeder mitgelieferte Prozessor ist in einer eigenen Datei dokumentiert:
+Dokumentation der Funktionsweise der Prozesse, welche mit geopilot ausgeliefert werden, und wie sie in den [Pipelines](../../GLOSSARY.md#pipeline) verwendet werden können. Jeder mitgelieferte Prozessor ist in einer eigenen Datei dokumentiert:
 
 - [XTF Matcher](Prozessoren/xtf-matcher.md)
 - [File Matcher](Prozessoren/file-matcher.md)

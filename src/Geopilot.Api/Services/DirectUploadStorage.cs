@@ -33,6 +33,9 @@ public class DirectUploadStorage : IUploadStorage
     public string StorageLocation { get; }
 
     /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string> UploadHeaders { get; } = new Dictionary<string, string>();
+
+    /// <inheritdoc/>
     public Task<string> GenerateUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
