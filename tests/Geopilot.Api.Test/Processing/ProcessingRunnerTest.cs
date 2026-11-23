@@ -27,8 +27,8 @@ public class ProcessingRunnerTest
     private PhysicalAssetStagingFileStore stagingStore;
     private PhysicalVisualizationFileStore visualizationStore;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
-    private Mock<IPipelineRunRecorder> runRecorderMock;
-    private Mock<IDeliveryDeclarationService> declarationServiceMock;
+    private Mock<IRecorder> runRecorderMock;
+    private Mock<IDeliveryCreationService> creationServiceMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -41,8 +41,8 @@ public class ProcessingRunnerTest
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
-        runRecorderMock = new Mock<IPipelineRunRecorder>();
-        declarationServiceMock = new Mock<IDeliveryDeclarationService>();
+        runRecorderMock = new Mock<IRecorder>();
+        creationServiceMock = new Mock<IDeliveryCreationService>();
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
@@ -50,8 +50,8 @@ public class ProcessingRunnerTest
         serviceProvider.Setup(p => p.GetService(typeof(IAssetStagingFileStore))).Returns(stagingStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
         serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
-        serviceProvider.Setup(p => p.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
-        serviceProvider.Setup(p => p.GetService(typeof(IDeliveryDeclarationService))).Returns(declarationServiceMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IRecorder))).Returns(runRecorderMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IDeliveryCreationService))).Returns(creationServiceMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -373,7 +373,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual("data.xtf", persisted.OriginalFileName);
         Assert.AreEqual("data.xtf", persisted.PersistedFileName, "A delivery file keeps its original name, without the step prefix.");
         Assert.IsTrue(stagingStore.Exists(jobId, persisted.PersistedFileName));
-        Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds deliveries only; until the declaration the file is staged.");
+        Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "The asset store holds deliveries only; until the delivery is created the file is staged.");
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Delivery files must not be written to the download store.");
         Assert.IsEmpty(step.Downloads);
     }
@@ -611,6 +611,28 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task StepExceptionIsRecordedOnTheStepOnly()
+    {
+        var jobId = NewJob();
+        var step = BuildThrowingStep("step_1");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.IsNotNull(step.ErrorMessage);
+        Assert.Contains("step failed", step.ErrorMessage);
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Failed), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Failed, null, It.IsAny<CancellationToken>()),
+            Times.Once,
+            "The run must not repeat the exception of the step as its own failure reason.");
+    }
+
+    [TestMethod]
     public async Task DownloadFromCompletedStepSurvivesJobTimeout()
     {
         var jobId = NewJob();
@@ -716,7 +738,7 @@ public class ProcessingRunnerTest
         var store = new ProcessingJobStore();
         var gate = new TaskCompletionSource();
 
-        var job = store.CreateJob(Guid.NewGuid(), isDeclarable: true);
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: true);
         createdJobIds.Add(job.Id);
 
         var jobTimeout = TimeSpan.FromSeconds(2);
@@ -782,7 +804,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
         Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
-        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
+        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is created.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
@@ -802,7 +824,7 @@ public class ProcessingRunnerTest
         Assert.AreEqual(ProcessingState.Warning, pipeline.State);
         Assert.HasCount(1, step.DeliveryFiles);
         Assert.IsTrue(stagingStore.Exists(jobId, "data.xtf"));
-        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is declared.");
+        Assert.IsFalse(assetStore.Exists(jobId, "data.xtf"), "The payload stays staged until the delivery is created.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Warning), Times.Once);
     }
 
@@ -846,13 +868,13 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task DeliveryFilesAreNotStagedWhenNobodyCanDeclareTheRun()
+    public async Task DeliveryFilesAreNotStagedWhenNobodyMayDeliverTheRun()
     {
         var jobId = NewJob();
         var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
         using var pipeline = BuildPipeline(jobId, step);
 
-        var (runner, store) = CreateRunnerWithStore(pipeline, isDeclarable: false);
+        var (runner, store) = CreateRunnerWithStore(pipeline, mayDeliver: false);
 
         await runner.StartAsync(CancellationToken.None);
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
@@ -861,7 +883,7 @@ public class ProcessingRunnerTest
         // The run itself still succeeds: whether it is kept as a delivery depends on who started it, not on the data.
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.IsEmpty(step.DeliveryFiles);
-        Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "A run nobody can declare must not be kept as a delivery.");
+        Assert.IsFalse(stagingStore.Exists(jobId, "data.xtf"), "A run nobody may deliver must not be kept as a delivery.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
@@ -874,15 +896,15 @@ public class ProcessingRunnerTest
 
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
-        // The declaration lets a job through on its state alone, so the job must not turn deliverable before
-        // its delivery files are staged, and the unattended declaration must not start before that. Recorded
+        // Creating a delivery lets a job through on its state alone, so the job must not turn deliverable before
+        // its delivery files are staged, and the unattended creation must not start before that. Recorded
         // here and asserted after the run, because the runner catches whatever these callbacks throw.
         var stagedWhenDeliverable = false;
         var calls = new List<string>();
-        var deliveryIntent = new DeliveryIntent(Declarer.ForUser(7), "GRUMPYFALCON", new DeliveryFields(null, null, null));
+        var deliveryIntent = new DeliveryIntent(Supplier.ForUser(7), "GRUMPYFALCON", new DeliveryFields(null, null, null));
         store
             .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), 1, DateTime.UtcNow) { DeliveryIntent = deliveryIntent, IsDeclarable = true });
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), 1, DateTime.UtcNow) { DeliveryIntent = deliveryIntent, MayDeliver = true });
         store
             .Setup(s => s.TryPipelineFinished(jobId, ProcessingState.Success))
             .Callback(() =>
@@ -891,19 +913,19 @@ public class ProcessingRunnerTest
                 calls.Add(nameof(IProcessingJobStore.TryPipelineFinished));
             })
             .Returns(true);
-        declarationServiceMock
-            .Setup(d => d.DeclareAsync(jobId, deliveryIntent.Fields, deliveryIntent.Declarer, It.IsAny<CancellationToken>()))
-            .Callback(() => calls.Add(nameof(IDeliveryDeclarationService.DeclareAsync)))
-            .ReturnsAsync(new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, DeliveryId: 42));
+        creationServiceMock
+            .Setup(d => d.CreateAsync(jobId, deliveryIntent.Fields, deliveryIntent.Supplier, It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add(nameof(IDeliveryCreationService.CreateAsync)))
+            .ReturnsAsync(new DeliveryCreationResult(DeliveryCreationStatus.Created, DeliveryId: 42));
 
         await runner.StartAsync(CancellationToken.None);
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
         CollectionAssert.AreEqual(
-            new[] { nameof(IProcessingJobStore.TryPipelineFinished), nameof(IDeliveryDeclarationService.DeclareAsync) },
+            new[] { nameof(IProcessingJobStore.TryPipelineFinished), nameof(IDeliveryCreationService.CreateAsync) },
             calls,
-            "The unattended declaration must not start before the job is deliverable.");
+            "The unattended creation must not start before the job is deliverable.");
         Assert.IsTrue(stagedWhenDeliverable, "The job must not turn deliverable while its delivery files are still being staged.");
     }
 
@@ -927,6 +949,10 @@ public class ProcessingRunnerTest
             s => s.TryPipelineFinished(It.IsAny<Guid>(), ProcessingState.Success),
             Times.Never,
             "A job whose delivery files could not be staged must never turn deliverable.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Failed, It.IsNotNull<string>(), It.IsAny<CancellationToken>()),
+            Times.Once,
+            "A failure outside the steps must keep its reason on the run.");
     }
 
     [TestMethod]
@@ -1004,7 +1030,7 @@ public class ProcessingRunnerTest
 
         foreach (var gate in gates)
         {
-            var job = store.CreateJob(Guid.NewGuid(), isDeclarable: true);
+            var job = store.CreateJob(Guid.NewGuid(), mayDeliver: true);
             createdJobIds.Add(job.Id);
             var pipeline = BuildPipeline(job.Id, BuildBlockingStep("step_1", gate.Task));
             pipelines.Add(pipeline);
@@ -1087,7 +1113,7 @@ public class ProcessingRunnerTest
             ShutdownDrainTimeout = shutdownDrainTimeout,
         });
 
-        // The real lifecycle, not a mock: it resolves the recorder, the orchestration and the declaration service
+        // The real lifecycle, not a mock: it resolves the recorder, the orchestration and the creation service
         // from the same scope factory, so the runner's tests still see every consequence of a run.
         var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, Mock.Of<IPipelineFactory>(), Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactory, options);
         return new ProcessingRunner(Mock.Of<ILogger<ProcessingRunner>>(), jobStore, lifecycle, scopeFactory, options);
@@ -1100,7 +1126,7 @@ public class ProcessingRunnerTest
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerAwaitingShutdown(IPipeline pipeline, TimeSpan shutdownDrainTimeout = default)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>(), IsDeclarable: true));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>(), MayDeliver: true));
 
         var store = new Mock<IProcessingJobStore>();
         store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
@@ -1112,10 +1138,10 @@ public class ProcessingRunnerTest
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state, FinishedAt = DateTime.UtcNow };
 
-    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null, bool isDeclarable = true)
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null, bool mayDeliver = true)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>(), isDeclarable));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>(), mayDeliver));
         channel.Writer.Complete();
 
         var store = new Mock<IProcessingJobStore>();

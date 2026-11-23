@@ -22,6 +22,10 @@ const themeRadius: ThemeOptions["radius"] = {
   full: "50%",
 };
 
+// The gap in the border of an outlined field is sized by a hidden copy of the label in a smaller font. Without its own
+// letter spacing in em, it keeps the spacing of the input in px (or the pickers' own) and misses the shrunk label.
+const notchLegendSpacing = { "& legend": { letterSpacing: NEOGEO_LETTERSPACING } };
+
 export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
@@ -178,12 +182,14 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
+          ...notchLegendSpacing,
         },
         input: {
           fontSize: px2rem(16),
           lineHeight: px2rem(24),
         },
         root: {
+          backgroundColor: themePalette.background.content,
           "&:hover .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.primary.main,
           },
@@ -196,6 +202,67 @@ export const geopilotTheme = createTheme({
           "&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.error.dark,
           },
+        },
+      },
+    },
+    MuiPickersTextField: {
+      defaultProps: {
+        size: "small",
+      },
+      styleOverrides: {
+        root: {
+          flex: "1",
+        },
+      },
+    },
+    MuiPickersOutlinedInput: {
+      defaultProps: {
+        notched: true,
+      },
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: themePalette.primary.light,
+          ...notchLegendSpacing,
+        },
+        root: {
+          backgroundColor: themePalette.background.content,
+          "&:hover .MuiPickersOutlinedInput-notchedOutline, &.Mui-focused .MuiPickersOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+        },
+      },
+    },
+    MuiPickerPopper: {
+      styleOverrides: {
+        paper: {
+          border: `1px solid ${themePalette.primary.light}`,
+          borderRadius: themeRadius.default,
+        },
+      },
+    },
+    MuiPickersToolbar: {
+      styleOverrides: {
+        root: {
+          // The heading margins of the app would push the picked date and time out of line.
+          "& .MuiTypography-h3, & .MuiTypography-h4, & .MuiTypography-h5": {
+            marginTop: 0,
+            marginBottom: 0,
+          },
+        },
+      },
+    },
+    MuiDateTimePickerToolbar: {
+      styleOverrides: {
+        // On the line of the date rather than between the year and the date.
+        timeContainer: {
+          alignSelf: "flex-end",
+        },
+      },
+    },
+    MuiPickersLayout: {
+      styleOverrides: {
+        actionBar: {
+          padding: themeSpacing(1.5),
         },
       },
     },
@@ -358,6 +425,14 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          color: themePalette.text.secondary,
+          fontWeight: NEOGEO_FONTWEIGHT_REGULAR,
+        },
+      },
+    },
     MuiStepLabel: {
       styleOverrides: {
         label: {
@@ -369,6 +444,13 @@ export const geopilotTheme = createTheme({
           "&.Mui-completed": {
             fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           },
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
         },
       },
     },
@@ -490,17 +572,20 @@ export const geopilotTheme = createTheme({
       },
     },
     MuiToggleButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
           color: themePalette.primary.main,
-          padding: themeSpacing(1),
           borderColor: themePalette.primary.light,
           textTransform: "none",
+          // Grouped buttons share one border, which a background painted under the border would cover.
+          backgroundClip: "padding-box",
           "&:hover": {
-            backgroundColor: themePalette.primary.states.hover,
+            backgroundColor: alpha(themePalette.primary.main, 0.04),
           },
           "&.Mui-selected, &.Mui-selected:hover": {
-            color: themePalette.primary.main,
             backgroundColor: themePalette.primary.states.selected,
           },
         },

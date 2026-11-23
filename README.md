@@ -2,9 +2,9 @@
 
 # geopilot
 
-geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
+geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten abgeben um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
-Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md).
+Die Dokumentation zu [Pipelines](./GLOSSARY.md#pipeline), den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md). Die Begriffe, wie wir sie in Issues, Specs, Reviews und im Code verwenden, stehen in [`GLOSSARY.md`](./GLOSSARY.md).
 
 ## Einrichten der Entwicklungsumgebung
 
@@ -70,7 +70,7 @@ Startet der Container ohne root (z.B. `docker run --user 1654` oder in OpenShift
 
 ### Pipeline-Konfiguration
 
-geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
+geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als [Pipeline](./GLOSSARY.md#pipeline) zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
 
 Das Format der Definition, die mitgelieferten Prozessoren und das Plugin-System sind in der [Pipeline-Dokumentation](./docs/pipeline/Pipelines.md) beschrieben.
 
@@ -99,6 +99,7 @@ volumes:
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
+| http://localhost:8333  | SeaweedFS S3 Storage (in docker-compose)      | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
@@ -200,7 +201,7 @@ Für Kubernetes gibt es zwei weitere Endpunkte, beide ohne Anmeldung:
 | `/health/ready` | Datenbank, Datenverzeichnisse, im Direct-Upload-Modus das Upload-Verzeichnis | Readiness-Probe |
 | `/health` | alles, wie bisher | Docker `HEALTHCHECK`, Monitoring |
 
-Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der Pipeline-Definition vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
+Die Datenbank gehört nie in die Liveness-Probe: Eine kurze Störung würde den Pod neu starten, und mit ihm alle laufenden Validierungen abbrechen. Die Startup-Probe zeigt auf `/health/live`, weil Migrationen, das Laden der Plugins und die Prüfung der [Pipeline-Definition](./GLOSSARY.md#pipeline) vor dem Start des Webservers laufen. `/health/ready` antwortet als JSON mit dem Status jeder Prüfung; fehlt ein Datenverzeichnis, nennt die Antwort dessen Konfigurationsschlüssel (z.B. `Storage:AssetsDirectory`), den Pfad nur das Log.
 
 Beim Start legt geopilot fehlende Datenverzeichnisse an und schreibt in jedes eine Probedatei, in `Storage:ResourcesDirectory` wird nur gelesen. Gelingt das nicht, etwa weil ein Volume dem falschen Benutzer gehört, bricht der Start mit dem Namen des Verzeichnisses ab.
 
@@ -222,7 +223,7 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 
 ### Maschinen-Clients
 
-Für die [maschinelle Anlieferung](./docs/MaschinelleAnlieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
+Für die [maschinelle Lieferung](./docs/MaschinelleLieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
 
 ### Redirect URIs
 
@@ -291,37 +292,38 @@ Die API wendet ausstehende Migrationen beim Start an. Starten mehrere Instanzen 
 
 ## Cloud Upload
 
-Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage, möglich ist auch ein S3-kompatibler Storage. In der Entwicklung läuft [SeaweedFS](https://github.com/seaweedfs/seaweedfs) als S3-Storage und [Azurite](https://github.com/Azure/Azurite) als Emulator für Azure. Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
-Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
+Der Upload ist von der [Verarbeitung](./GLOSSARY.md#verarbeitung) entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID die Verarbeitung.
 
-Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Lauf endet, bei einem lieferbaren Lauf nach dem Staging der Lieferdateien. Gestaged wird nur ein Lauf, den jemand deklarieren kann: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt Lieferungen an. Ein abgebrochener Lauf (Job-Timeout oder Herunterfahren) behält die Blobs bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Jobs noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Jobs starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Eine Verarbeitung startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Lauf endet, bei einem lieferbaren Lauf nach dem [Staging](./GLOSSARY.md#staging) der Lieferdateien. Gestaged wird nur ein Lauf, den jemand abgeben darf: Wer ihn startet, ist Mitglied einer Organisation des Mandats, und das Mandat nimmt [Lieferungen](./GLOSSARY.md#lieferung) an. Ein abgebrochener Lauf (Zeitüberschreitung oder Herunterfahren) behält die Blobs bis zum Ablauf des Uploads (`Upload:CleanupAgeHours`), weil er über die Daten nichts aussagt. Beim Herunterfahren dürfen laufende Verarbeitungen noch während `Processing:ShutdownDrainTimeout` zu Ende laufen (Vorgabe null, also sofortiger Abbruch); neue Verarbeitungen starten in dieser Zeit nicht mehr. Die Lieferung enthält genau die Dateien, die ein Schritt mit der `Delivery`-Output-Action taggt; eine durchgereichte Upload-Datei wird dabei als `PrimaryData` archiviert und spätestens bei dieser Ablage geholt. `Upload:CleanupAgeHours` muss länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
-`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele Pipelines eine Instanz gleichzeitig ausführt; weitere Jobs warten, bis ein Platz frei wird. Wie viele Jobs insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jeder wartende Job seinen Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
+`Processing:MaxConcurrentJobs` (Standard: 2) begrenzt, wie viele [Pipelines](./GLOSSARY.md#pipeline) eine Instanz gleichzeitig ausführt; weitere Verarbeitungen warten, bis ein Platz frei wird. Wie viele Verarbeitungen insgesamt angenommen werden, begrenzt `Upload:MaxActiveJobs`, weil jede wartende Verarbeitung ihren Upload hält. Eine Installation mit mehreren Instanzen belastet den ilitools-wrapper mit bis zu Instanzen × `MaxConcurrentJobs` Läufen.
 
 ### Entwicklung
 
-Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
+SeaweedFS, Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. In der Entwicklung gehen die Uploads nach SeaweedFS (S3) auf `http://localhost:8333`. Azurite braucht es für die Tests von Azure. Für Uploads nach Azurite `Upload:Cloud:Provider` auf `AzureBlob` setzen. Im Container `geopilot` dafür `UPLOAD_PROVIDER=AzureBlob` und `UPLOAD_BLOB_ENDPOINT=https://localhost:10000` zusammen setzen. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
 
 ```bash
-docker compose up -d azurite clamav
+docker compose up -d seaweedfs azurite clamav
 ```
 
 ### Konfiguration
 
 `Upload:Backend` wählt, wohin hochgeladene Dateien geschrieben werden:
 
-- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Azure-Blob-kompatiblen Object Storage. Die API sieht die Datei-Bytes nie.
+- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Object Storage. Die API sieht die Datei-Bytes nie. `Upload:Cloud:Provider` ist `AzureBlob` (Standard) oder `S3`.
 - **`Direct`:** Die Dateien laufen über einen Upload-Endpunkt der API in ein lokales Verzeichnis. Für Installationen ohne Object Storage.
 
 Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) gelten in beiden Modi und werden direkt unter `Upload` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt. Es wird nur die Sektion des gewählten Backends gelesen und validiert.
 
-**Cloud:** Ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+**Cloud mit Azure:** Ohne `BucketName` und `ConnectionString` startet die Applikation nicht.
 
 ```json5
 "Upload": {
     "Backend": "Cloud",
     "Cloud": {
+        "Provider": "AzureBlob",
         "ConnectionString": "...",
         "BucketName": "uploads",
         "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
@@ -336,13 +338,34 @@ Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, 
 }
 ```
 
+**Cloud mit S3:** Ohne `BucketName`, `ServiceUrl`, `Region`, `AccessKeyId` und `SecretAccessKey` startet die Applikation nicht. Die Schlüssel gehören in Umgebungsvariablen oder einen Vault. Mit `AllowedOrigins` muss der Provider CORS-Regeln auf dem Bucket unterstützen. Ohne `ForcePathStyle` steht der Bucket im Hostnamen der Upload-URL (`https://uploads.s3.example.com/...`). `BlobEndpoint` braucht dann diesen Host, sonst blockiert die CSP den Upload im Browser.
+
+```json5
+"Upload": {
+    "Backend": "Cloud",
+    "Cloud": {
+        "Provider": "S3",
+        "BucketName": "uploads",
+        "BlobEndpoint": "https://s3.example.com", // Für die CSP (connect-src)
+        "AllowedOrigins": ["https://geopilot.example.com"], // CORS-Regel des Buckets, beim Start gesetzt
+        "S3": {
+            "ServiceUrl": "https://s3.example.com",
+            "Region": "...", // Gemäss Provider
+            "AccessKeyId": "...",
+            "SecretAccessKey": "...",
+            "ForcePathStyle": true // Für die meisten S3-kompatiblen Provider nötig
+        }
+    }
+}
+```
+
 **Direct:** Ohne `Directory` startet die Applikation nicht.
 
 ```json5
 "Upload": {
     "Backend": "Direct",
     "Direct": {
-        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Job-Arbeitsverzeichnis
+        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Arbeitsverzeichnis einer Verarbeitung
     }
 }
 ```
@@ -354,7 +377,7 @@ Für den direkten Modus gilt:
 
 - **Der Upload-Endpunkt prüft jede Anfrage gegen die Upload-Session:** er nimmt nur bei der Initiierung angemeldete Dateien an, das Schreibziel stammt aus der Session statt aus der URL, die Session läuft nach `UploadUrlExpiryMinutes` ab und der Inhalt muss der deklarierten Grösse entsprechen.
 - **Die maximale Dateigrösse kommt aus `Upload:MaxFileSizeMB`.** Der Upload-Endpunkt hebt sein Request-Limit selbst auf die deklarierte Dateigrösse; alle übrigen Endpunkte behalten die globale Obergrenze von 100 MB pro Request. Ein vorgeschalteter Reverse Proxy bringt seine eigene Grössenbeschränkung mit und muss entsprechend konfiguriert werden.
-- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor ein Job verarbeitet wird.
+- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor eine Verarbeitung beginnt.
 - **geopilot bewirtschaftet keinen Plattenschutz** für das Upload-Verzeichnis (keine Quota, kein Aufräumen bei Füllstand über die konfigurierte Bereinigung hinaus). Die Überwachung des Dateisystems gehört zur Infrastruktur der Installation.
 
 In `docker-compose` wird der direkte Modus über Umgebungsvariablen konfiguriert, das Verzeichnis als Volume gemountet:
@@ -372,7 +395,7 @@ volumes:
 
 ## Löschen von Lieferungen
 
-Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, und die eines Maschinen-Clients, für den sie verantwortlich sind, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.
+Ob Lieferanten ihre eigenen [Lieferungen](./GLOSSARY.md#lieferung) löschen dürfen, und die eines Maschinen-Clients, für den sie verantwortlich sind, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.
 
 ```json
 "Delivery": {
@@ -382,15 +405,15 @@ Ob Lieferanten ihre eigenen Lieferungen löschen dürfen, und die eines Maschine
 }
 ```
 
-Das Löschfenster schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
+Das [Löschfenster](./GLOSSARY.md#löschfenster) schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
 
 ## Weitergabe von Lieferungen
 
-Ist eine Lieferung abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Ist sie weitergegeben, kann geopilot darüber berichten, etwa mit einer [Info-Mail](./docs/pipeline/Kanaele/mail.md) an die Empfänger des Mandats, die mit einem Schalter auch an den Lieferanten geht. Was mit den Lieferungen eines Mandats geschieht, legt ein Satz von Reaktionen in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Reaktionen nach dem Abschluss](./docs/pipeline/Pipelines.md#reaktionen-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Satz und füllt die Werte, die der Satz von ihm verlangt, etwa seinen Unterordner der Ablage oder die Empfänger der Info-Mail.
+Ist eine [Lieferung](./GLOSSARY.md#lieferung) abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Ist sie weitergegeben, kann geopilot darüber berichten, etwa mit einer [Info-Mail](./docs/pipeline/Kanaele/mail.md) an die Empfänger des Mandats, die mit einem Schalter auch an den Lieferanten geht. Was mit den Lieferungen eines Mandats geschieht, legt ein [Reaktions-Satz](./GLOSSARY.md#reaktions-satz) in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Reaktionen nach dem Abschluss](./docs/pipeline/Pipelines.md#reaktionen-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Reaktions-Satz und füllt die Werte, die der Reaktions-Satz von ihm verlangt, etwa seinen Unterordner der Ablage oder die Empfänger der Info-Mail.
 
-Die Weitergabe beginnt, sobald das [Löschfenster](#löschen-von-lieferungen) geschlossen ist. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht. Im STAC-Katalog erscheint eine solche Lieferung erst, wenn sie weitergegeben ist, auch für Admins.
+Die [Weitergabe](./GLOSSARY.md#weitergabe) beginnt, sobald das [Löschfenster](#löschen-von-lieferungen) geschlossen ist. Ein Mandat mit einem Reaktions-Satz verlangt deshalb ein [Löschfenster](./GLOSSARY.md#löschfenster), das schliesst, sonst startet geopilot nicht. Im STAC-Katalog erscheint eine solche Lieferung erst, wenn sie weitergegeben ist, auch für Admins.
 
-Was ein Kanal vom Betrieb braucht, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs`, für die Ablage das Basisverzeichnis:
+Was ein [Kanal](./GLOSSARY.md#kanal) vom Betrieb braucht, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs`, für die Ablage das Basisverzeichnis:
 
 ```json
 "Pipeline": {

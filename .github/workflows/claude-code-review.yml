@@ -1,0 +1,83 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    # Spec-only PRs need no review: the workflow is skipped only when every changed file is under specs/.
+    paths-ignore:
+      - "specs/**"
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        # Advisory review: a failed run (quota, budget cap, API error) must not block merging.
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Workload identity federation: the action trades the job's GitHub OIDC token
+          # (needs id-token: write) for a short-lived Claude API token, so no stored secret.
+          anthropic_federation_rule_id: fdrl_01VbFjgZoyYoeQSajNxJRLGE
+          anthropic_organization_id: 4447e626-7d70-487a-a71a-994ecfd37f0d
+          anthropic_service_account_id: svac_01CqkAtrbNN9a6vU3EWy96iN
+          anthropic_workspace_id: wrkspc_012NWo5qD5JhsypBuHN8Sqg1
+          # Cost cap comes from the repo variable CLAUDE_REVIEW_MAX_BUDGET_USD; unset means no cap.
+          # The review itself is the project skill in .claude/skills/pr-review.
+          claude_args: |
+            --model opus
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)"
+            ${{ vars.CLAUDE_REVIEW_MAX_BUDGET_USD && format('--max-budget-usd {0}', vars.CLAUDE_REVIEW_MAX_BUDGET_USD) || '' }}
+          prompt: /automatic-pr-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+      - name: Write usage metrics to step summary
+        if: always()
+        env:
+          EXECUTION_FILE: ${{ steps.claude-review.outputs.execution_file }}
+        run: |
+          if [ -z "$EXECUTION_FILE" ] || [ ! -f "$EXECUTION_FILE" ]; then
+            echo "_No execution log, usage metrics unavailable._" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          jq -r '
+            [.[] | select(.type == "result")] | last
+            | if . == null then "_No result entry in execution log._" else (
+                "## Claude usage",
+                "",
+                "| Metric | Value |",
+                "|---|---:|",
+                "| Result | \(.subtype // "unknown") |",
+                "| Turns | \(.num_turns // 0) |",
+                "| Duration | \((.duration_ms // 0) / 1000 | floor) s (API \((.duration_api_ms // 0) / 1000 | floor) s) |",
+                "| Input tokens | \(.usage.input_tokens // 0) |",
+                "| Output tokens | \(.usage.output_tokens // 0) |",
+                "| Cache read tokens | \(.usage.cache_read_input_tokens // 0) |",
+                "| Cache write tokens | \(.usage.cache_creation_input_tokens // 0) |",
+                "| Est. cost (API list price) | $\((.total_cost_usd // 0) * 10000 | round / 10000) |",
+                "",
+                "### Per model",
+                "",
+                "| Model | Input | Output | Cache read | Cache write | Est. cost |",
+                "|---|---:|---:|---:|---:|---:|",
+                (.modelUsage // {} | to_entries[]
+                  | "| \(.key) | \(.value.inputTokens // 0) | \(.value.outputTokens // 0) | \(.value.cacheReadInputTokens // 0) | \(.value.cacheCreationInputTokens // 0) | $\((.value.costUSD // 0) * 10000 | round / 10000) |")
+              ) end
+          ' "$EXECUTION_FILE" >> "$GITHUB_STEP_SUMMARY"

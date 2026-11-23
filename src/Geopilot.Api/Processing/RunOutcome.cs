@@ -15,7 +15,8 @@ public abstract record RunOutcome
 
     /// <summary>
     /// The pipeline ran to its end and reported <paramref name="State"/>. A <see cref="ProcessingState.Failed"/>
-    /// here means a condition failed the data, unlike <see cref="Crashed"/>.
+    /// here means a step failed, by a condition or by throwing, and the step itself says why, unlike
+    /// <see cref="Crashed"/>.
     /// </summary>
     public sealed record Completed(ProcessingState State) : RunOutcome;
 
@@ -30,7 +31,7 @@ public abstract record RunOutcome
     public sealed record ShutDown : RunOutcome;
 
     /// <summary>
-    /// An exception aborted the run: a step threw, or persisting the downloads or staging the delivery files failed.
+    /// An exception outside the steps aborted the run: persisting the downloads or staging the delivery files failed.
     /// <paramref name="Reason"/> is the message that goes into the execution protocol.
     /// </summary>
     public sealed record Crashed(string Reason) : RunOutcome;

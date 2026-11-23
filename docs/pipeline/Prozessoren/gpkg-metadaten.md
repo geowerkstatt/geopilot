@@ -20,7 +20,7 @@ Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schritt
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `Models`: Die Namen der gespeicherten Modelle vom Typ `string[]` (`["Geometry_V2", "GeometryCHLV95_V2"]`), leer, wenn keine gelesen werden konnten. Dazu gehören auch die importierten Basismodelle wie `Units` oder `CoordSys`. Jedes Modell kommt nur einmal vor. Die Liste passt direkt auf den Input `models` der GPKG Validierung. Eine Einschränkung, dass ein bestimmtes Modell enthalten sein muss, kann über eine Condition gelöst werden, siehe [Beispiel](#beispiel).
 - `FileState`: Wie weit die Datei gelesen werden konnte:
@@ -29,7 +29,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
   - `Unreadable`: Die Datei ist keine lesbare SQLite-Datenbank, etwa weil ein falscher Dateityp hochgeladen wurde, oder die Tabelle `T_ILI2DB_MODEL` liess sich nicht lesen oder beinhaltet ungültige Modellnamen.
 - `StatusMessage`: Eine lokalisierte Status-Nachricht vom Typ `LocalizedText`, welche die gelesenen Modelle nennt oder erklärt, warum keine gelesen wurden.
 
-Keine Modelle sind kein Fehler des Schrittes: Ob sie Pflicht sind, entscheidet die Pipeline mit einer Condition. Für `FileState` empfiehlt sich die Form `!= 'Readable'`. Sie deckt beide Fehlerzustände ab, und ein Tippfehler im Vergleichswert lässt die Condition immer greifen, statt sie still wirkungslos zu machen.
+Keine Modelle sind kein Fehler des Schrittes: Ob sie Pflicht sind, entscheidet die [Pipeline](../../../GLOSSARY.md#pipeline) mit einer Condition. Für `FileState` empfiehlt sich die Form `!= 'Readable'`. Sie deckt beide Fehlerzustände ab, und ein Tippfehler im Vergleichswert lässt die Condition immer greifen, statt sie still wirkungslos zu machen.
 
 ## Beispiel
 

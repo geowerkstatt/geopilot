@@ -40,7 +40,7 @@ public class DeliveryReaction
     public string Implementation { get; set; } = string.Empty;
 
     /// <summary>
-    /// The configuration of the channel as the set and the mandate defined it when the delivery was declared, stored
+    /// The configuration of the channel as the set and the mandate defined it when the delivery was created, stored
     /// as JSON. Never holds credentials: every attempt reads those from the base configuration.
     /// </summary>
     public ReactionSnapshot Config { get; set; } = new(new Parameterization(), []);

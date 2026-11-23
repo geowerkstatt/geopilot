@@ -65,9 +65,9 @@ Remove-Item src/Geopilot.Api/appsettings.Local.<Name>.json
 
 Das Löschen des Symlinks fasst die Plugin-Datei nicht an.
 
-# Maschinelle Anlieferung ausprobieren
+# Maschinelle Lieferung ausprobieren
 
-Zwei Skripte fahren eine [maschinelle Anlieferung](../docs/MaschinelleAnlieferung.md) von Anfang bis Ende: Token per Client Credentials holen, die Dateien übergeben, den Versuch starten und den Status abfragen, bis er geliefert, abgewiesen oder gescheitert ist. Sie sind zugleich der Startpunkt für einen eigenen Client: jeder Schritt steht mit dem HTTP-Aufruf, den er absetzt, im Skript.
+Zwei Skripte fahren eine [maschinelle Lieferung](../docs/MaschinelleLieferung.md) von Anfang bis Ende: Token per Client Credentials holen, die Dateien übergeben, den Versuch starten und den Status abfragen, bis er geliefert, abgewiesen oder gescheitert ist. Sie sind zugleich der Startpunkt für einen eigenen Client: jeder Schritt steht mit dem HTTP-Aufruf, den er absetzt, im Skript.
 
 Welches Skript passt, entscheidet die Installation, nicht das Mandat:
 
@@ -93,7 +93,7 @@ $env:GEOPILOT_CLIENT_SECRET = '<Secret des Clients>'
 
 Der Dev-Stack legt seine Uploads in den Objektspeicher, es läuft dort also `submit-delivery-upload.ps1`. `submit-delivery-files.ps1` braucht eine Installation, die ihre Uploads selbst schreibt (`Upload:Backend=Direct` mit `Upload:Direct:Directory`), und antwortet sonst mit dem `400` auf die falsche Form.
 
-Gegen eine andere Installation `-ApiUrl`, `-TokenUrl`, `-ClientId` und `-ClientSecret` setzen, bei Bedarf `-Scope`; `-Comment`, `-PartialDelivery`, `-PrecursorDeliveryId` und `-Metadata` je nachdem, was das Mandat verlangt. Die weiteren Felder eines Mandats gehen als Hashtable an `-Metadata`, mit der Id des Felds als Schlüssel, zum Beispiel `-Metadata @{ project_number = '2026-117'; municipalities = @('Aarau', 'Buchs') }`. Mehrere Dateien werden kommagetrennt an `-File` übergeben. `Get-Help ./scripts/submit-delivery-upload.ps1 -Detailed` beschreibt alle Parameter.
+Gegen eine andere Installation `-ApiUrl`, `-TokenUrl`, `-ClientId` und `-ClientSecret` setzen, bei Bedarf `-Scope`; `-Comment`, `-PartialDelivery`, `-PrecursorDeliveryId` und `-Metadata` je nachdem, was das Mandat verlangt. Die weiteren Felder eines Mandats gehen als Hashtable an `-Metadata`, mit der Id des Felds als Schlüssel, zum Beispiel `-Metadata @{ project_number = '2026-117'; municipalities = @('Aarau', 'Buchs') }`. `-ClientReference` gibt die eigene Kennung der Lieferung mit; wer einen Versuch mit derselben Kennung wiederholt, sieht die Versuche in der Übersicht der Verarbeitungen zusammen. Mehrere Dateien werden kommagetrennt an `-File` übergeben. `Get-Help ./scripts/submit-delivery-upload.ps1 -Detailed` beschreibt alle Parameter.
 
 Weist die Installation einen Aufruf ab, weil sie gerade nicht mehr annimmt, wartet das Skript und wiederholt ihn bis zu fünfmal: `submit-delivery-upload.ps1` beim Anmelden des Uploads, wo eine zu dichte Folge von Anfragen `429` ergibt, und `submit-delivery-files.ps1` beim Versuch selbst, den eine ausgelastete Installation mit `503` und `Retry-After` abweist. Bricht die Statusabfrage vorübergehend weg, wird auch sie wiederholt, statt den Lauf abzubrechen: die Daten sind zu dem Zeitpunkt längst angenommen. Das Token wird kurz vor Ablauf erneuert, damit auch ein langer Lauf bis zum Ende verfolgt wird.
 

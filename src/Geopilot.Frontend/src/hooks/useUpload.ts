@@ -24,7 +24,7 @@ const useUpload = () => {
             body: files[i],
             headers: {
               "Content-Type": "application/octet-stream",
-              "x-ms-blob-type": "BlockBlob",
+              ...info.uploadHeaders,
             },
             signal,
           }).then(r => {

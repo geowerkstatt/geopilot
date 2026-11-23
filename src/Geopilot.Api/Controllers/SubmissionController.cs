@@ -91,7 +91,7 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="request">The mandate, the upload and the delivery details.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    [Authorize(Policy = GeopilotPolicies.Declarer)]
+    [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpPost]
     [SwaggerResponse(StatusCodes.Status202Accepted, "The attempt was accepted and is being processed.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "This installation takes the files with the request, the upload has no file with a file extension, or the delivery details violate the rules of the mandate.", typeof(ValidationProblemDetails), "application/json")]
@@ -107,10 +107,10 @@ public class SubmissionController : ControllerBase
             return BadRequest("This installation takes the files with the request. Send them as multipart/form-data to api/v1/submission/multipart instead of referencing an upload.");
         }
 
-        var declarer = await context.GetDeclarerAsync(User);
+        var supplier = await context.GetSupplierAsync(User);
 
         // The key is free text from the request: it may be reflected to its sender, but it must not reach the log.
-        var mandate = await mandateService.GetMandateByKeyAsync(request.MandateKey, declarer);
+        var mandate = await mandateService.GetMandateByKeyAsync(request.MandateKey, supplier);
         if (mandate is null)
         {
             logger.LogInformation("A machine delivery was refused because no accessible mandate carries the given key.");
@@ -146,7 +146,11 @@ public class SubmissionController : ControllerBase
                 break;
         }
 
-        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata);
+        var clientReference = ReadClientReference(request.ClientReference, nameof(SubmissionRequest.ClientReference));
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var fields = new DeliveryFields(request.PartialDelivery, request.PrecursorDeliveryId, request.Comment, request.Metadata, clientReference);
         var fieldErrors = await ValidateDeliveryFieldsAsync(mandate.Id, fields, cancellationToken);
         if (fieldErrors.Count > 0)
         {
@@ -163,11 +167,11 @@ public class SubmissionController : ControllerBase
 
         // Started on the request thread: the execution protocol classifies the client from the current request,
         // and without it every machine delivery would be recorded as coming from an unknown client. The delivery
-        // fields make the job an attempt whose delivery geopilot declares itself.
+        // fields make the job an attempt whose delivery geopilot creates itself.
         ProcessingJob job;
         try
         {
-            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, declarer, fields);
+            job = await processingService.StartJobAsync(request.UploadId, mandate.Id, supplier, fields);
         }
         catch (JobAlreadyActiveException)
         {
@@ -185,7 +189,7 @@ public class SubmissionController : ControllerBase
     /// or a missing delivery detail is refused before any file content is read.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    [Authorize(Policy = GeopilotPolicies.Declarer)]
+    [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpPost("multipart")]
     [Consumes("multipart/form-data")]
     [SelfManagedBodySize]
@@ -218,13 +222,13 @@ public class SubmissionController : ControllerBase
 
         RaiseBodySizeLimit();
 
-        var declarer = await context.GetDeclarerAsync(User);
+        var supplier = await context.GetSupplierAsync(User);
         var uploadId = Guid.NewGuid();
         var storedFiles = new List<UploadedFileInfo>();
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // Set when the first file part arrives, which is the moment the fields are complete and checked.
-        (Mandate Mandate, DeliveryFields Fields)? declaration = null;
+        (Mandate Mandate, DeliveryFields Fields)? target = null;
         var accepted = false;
 
         try
@@ -250,7 +254,7 @@ public class SubmissionController : ControllerBase
 
                     // The fields are read and checked before the first file, so one arriving afterwards would
                     // have no effect at all. Refusing it beats accepting a delivery without the detail it carried.
-                    if (declaration is not null)
+                    if (target is not null)
                         return BadRequest($"The form field <{name}> arrived after a file. Send every field before the files.");
 
                     var value = await ReadFieldAsync(section, cancellationToken);
@@ -264,29 +268,29 @@ public class SubmissionController : ControllerBase
                 if (!disposition.IsFileDisposition())
                     continue;
 
-                if (declaration is null)
+                if (target is null)
                 {
-                    var (resolvedMandate, resolvedFields, failure) = await ResolveMandateAsync(fields, declarer, cancellationToken);
+                    var (resolvedMandate, resolvedFields, failure) = await ResolveMandateAsync(fields, supplier, cancellationToken);
                     if (resolvedMandate is null || resolvedFields is null)
                         return failure ?? BadRequest("The mandate and the delivery details could not be read from the request.");
 
-                    declaration = (resolvedMandate, resolvedFields);
+                    target = (resolvedMandate, resolvedFields);
                 }
 
-                var fileFailure = await StoreFileAsync(section, disposition, declaration.Value.Mandate, directStorage, uploadId, storedFiles, cancellationToken);
+                var fileFailure = await StoreFileAsync(section, disposition, target.Value.Mandate, directStorage, uploadId, storedFiles, cancellationToken);
                 if (fileFailure is not null)
                     return fileFailure;
             }
 
-            if (declaration is null || storedFiles.Count == 0)
+            if (target is null || storedFiles.Count == 0)
             {
                 return BadRequest("The request carries no files. Send the mandate and the delivery details as form fields, followed by the files.");
             }
 
-            var (mandate, deliveryFields) = declaration.Value;
+            var (mandate, deliveryFields) = target.Value;
             uploadStore.CreateUpload(uploadId, storedFiles.ToImmutableList());
 
-            var job = await processingService.StartJobAsync(uploadId, mandate.Id, declarer, deliveryFields);
+            var job = await processingService.StartJobAsync(uploadId, mandate.Id, supplier, deliveryFields);
             accepted = true;
 
             logger.LogInformation("Accepted machine delivery <{JobId}> with {FileCount} files for mandate <{MandateId}>.", job.Id, storedFiles.Count, mandate.Id);
@@ -317,7 +321,7 @@ public class SubmissionController : ControllerBase
     /// the delivery it created is the durable record.
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
-    [Authorize(Policy = GeopilotPolicies.Declarer)]
+    [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpGet("{id}", Name = nameof(GetSubmissionStatus))]
     [SwaggerResponse(StatusCodes.Status200OK, "The attempt was found.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
@@ -336,7 +340,7 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
     /// <param name="name">The storage name of the file, taken from the <c>url</c> of a download listed on the attempt. That URL, not this name, is what a client follows.</param>
-    [Authorize(Policy = GeopilotPolicies.Declarer)]
+    [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpGet("{id}/downloads/{name}", Name = nameof(GetDownload))]
     [SwaggerResponse(StatusCodes.Status200OK, "The file was found.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
@@ -373,13 +377,13 @@ public class SubmissionController : ControllerBase
         if (processingService.GetJob(id) is not { DeliveryIntent: { } deliveryIntent } job)
             return null;
 
-        var declarer = await context.GetDeclarerAsync(User);
-        return deliveryIntent.Declarer == declarer ? job : null;
+        var supplier = await context.GetSupplierAsync(User);
+        return deliveryIntent.Supplier == supplier ? job : null;
     }
 
     /// <summary>
-    /// The delivery declared for the job, by geopilot or by the caller itself. A job yields at most one in place,
-    /// which the unique index on the job id of a delivery ensures, so the delivery is the record of a declaration.
+    /// The delivery created for the job, by geopilot or by the caller itself. A job yields at most one in place,
+    /// which the unique index on the job id of a delivery ensures, so the delivery is the record of its creation.
     /// A delivery deleted later counts as well, otherwise the attempt would fall back to processing; one still in
     /// place comes first.
     /// </summary>
@@ -424,16 +428,16 @@ public class SubmissionController : ControllerBase
             downloads.AddRange(step.Downloads.Select(download => new SubmissionDownload(step.Id, download.OriginalFileName, download.Url)));
         }
 
-        // A delivery the caller declared by hand after geopilot could not supersedes the failure.
-        if (deliveryId is null && job.DeclarationFailure is not null)
+        // A delivery the caller created by hand after geopilot could not supersedes the failure.
+        if (deliveryId is null && job.DeliveryFailure is not null)
         {
             messages.Add(new SubmissionMessage(
                 "delivery",
                 SubmissionMessageSeverity.Error,
-                new Dictionary<string, string> { ["en"] = job.DeclarationFailure }));
+                new Dictionary<string, string> { ["en"] = job.DeliveryFailure }));
         }
 
-        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, deliveryId, messages, downloads);
+        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, job.DeliveryIntent?.Fields.ClientReference, deliveryId, messages, downloads);
     }
 
     private static SubmissionState DeriveState(ProcessingJob job, int? deliveryId)
@@ -441,10 +445,10 @@ public class SubmissionController : ControllerBase
         if (deliveryId is not null)
             return SubmissionState.Delivered;
 
-        // A declaration that failed after a run the pipeline allowed is not the fault of the delivered data,
-        // so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
+        // A delivery geopilot could not create after a run the pipeline allowed is not the fault of the delivered
+        // data, so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
         // messages.
-        if (job.DeclarationFailure is not null)
+        if (job.DeliveryFailure is not null)
             return SubmissionState.Failed;
 
         return job.State switch
@@ -465,13 +469,13 @@ public class SubmissionController : ControllerBase
         _ => SubmissionMessageSeverity.Info,
     };
 
-    private async Task<(Mandate? Mandate, DeliveryFields? Fields, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, Declarer declarer, CancellationToken cancellationToken)
+    private async Task<(Mandate? Mandate, DeliveryFields? Fields, IActionResult? Failure)> ResolveMandateAsync(Dictionary<string, string> fields, Supplier supplier, CancellationToken cancellationToken)
     {
         if (!fields.TryGetValue("mandateKey", out var mandateKey) || string.IsNullOrWhiteSpace(mandateKey))
             return (null, null, BadRequest("The form field <mandateKey> is required and must be sent before the files."));
 
         // The key is free text from the request: it may be reflected to its sender, but it must not reach the log.
-        var mandate = await mandateService.GetMandateByKeyAsync(mandateKey, declarer);
+        var mandate = await mandateService.GetMandateByKeyAsync(mandateKey, supplier);
         if (mandate is null)
         {
             logger.LogInformation("A machine delivery was refused because no accessible mandate carries the given key.");
@@ -528,7 +532,8 @@ public class SubmissionController : ControllerBase
         }
 
         fields.TryGetValue("comment", out var comment);
-        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment, ReadMetadata(fields));
+        var clientReference = ReadClientReference(fields.GetValueOrDefault("clientReference"), "clientReference");
+        return new DeliveryFields(partialDelivery, precursorDeliveryId, comment, ReadMetadata(fields), clientReference);
     }
 
     private Dictionary<string, JsonElement>? ReadMetadata(Dictionary<string, string> fields)
@@ -546,6 +551,26 @@ public class SubmissionController : ControllerBase
             ModelState.AddModelError("metadata", "Must be a JSON object with the ids of the metadata fields as keys.");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Reads the caller's own identifier of the delivery, trimmed; nothing but white space means none. The protocol
+    /// keeps it as sent, so what its column cannot hold is refused, and so is an invisible character, which would make
+    /// two references that look alike two deliveries. Free text from the request: it may be reflected to its sender,
+    /// but it must not reach the log.
+    /// </summary>
+    private string? ReadClientReference(string? value, string fieldName)
+    {
+        var reference = value?.Trim();
+        if (string.IsNullOrEmpty(reference))
+            return null;
+
+        if (reference.Length > Recording.ClientReferenceMaxLength)
+            ModelState.AddModelError(fieldName, $"Must be at most {Recording.ClientReferenceMaxLength} characters.");
+        else if (reference.Any(StringExtensions.IsControlOrFormat))
+            ModelState.AddModelError(fieldName, "Must not contain control or invisible format characters.");
+
+        return reference;
     }
 
     private async Task<IActionResult?> StoreFileAsync(

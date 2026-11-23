@@ -12,7 +12,7 @@ namespace Geopilot.Pipeline.Channels.Mail;
 
 /// <summary>
 /// Sends a mail about a forwarded delivery, made from an HTML template, to the recipients the mandate or the pipeline
-/// definition names and, with a switch, to the declarer. The base configuration provides the server, the sender and the
+/// definition names and, with a switch, to the supplier. The base configuration provides the server, the sender and the
 /// login. Every attempt sends the same Message-ID, made from the job id of the delivery and the id of the reaction, so a
 /// mail server may drop a repetition.
 /// </summary>
@@ -68,7 +68,7 @@ internal sealed class MailChannel : IDeliveryChannel
     private readonly IReadOnlyList<MailboxAddress> to;
     private readonly IReadOnlyList<MailboxAddress> cc;
     private readonly IReadOnlyList<MailboxAddress> bcc;
-    private readonly bool includeDeclarer;
+    private readonly bool includeSupplier;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MailChannel"/> class.
@@ -83,7 +83,7 @@ internal sealed class MailChannel : IDeliveryChannel
     /// <param name="to">The addresses the mail goes to.</param>
     /// <param name="cc">The addresses that get a copy.</param>
     /// <param name="bcc">The addresses that get a copy no other recipient sees.</param>
-    /// <param name="includeDeclarer">Whether the declarer goes into <c>To</c> as well: a person at the own address, a
+    /// <param name="includeSupplier">Whether the supplier goes into <c>To</c> as well: a person at the own address, a
     /// machine client through the users responsible for it.</param>
     /// <exception cref="ArgumentException">A value is missing or invalid, a login comes without encryption or the
     /// template is refused.</exception>
@@ -98,7 +98,7 @@ internal sealed class MailChannel : IDeliveryChannel
         [MandateValue] IReadOnlyList<string>? to,
         [MandateValue] IReadOnlyList<string>? cc,
         [MandateValue] IReadOnlyList<string>? bcc,
-        [MandateValue] bool? includeDeclarer)
+        [MandateValue] bool? includeSupplier)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1);
@@ -121,7 +121,7 @@ internal sealed class MailChannel : IDeliveryChannel
         this.to = ParseAddresses(to, nameof(to));
         this.cc = ParseAddresses(cc, nameof(cc));
         this.bcc = ParseAddresses(bcc, nameof(bcc));
-        this.includeDeclarer = includeDeclarer ?? false;
+        this.includeSupplier = includeSupplier ?? false;
     }
 
     /// <inheritdoc />
@@ -160,7 +160,7 @@ internal sealed class MailChannel : IDeliveryChannel
 
     /// <summary>
     /// Builds the mail for a delivery: the template filled in, the recipients of the mandate and, with the switch, the
-    /// declarer, and a Message-ID that every attempt repeats.
+    /// supplier, and a Message-ID that every attempt repeats.
     /// </summary>
     internal MimeMessage BuildMessage(DeliveryInfo delivery, IReadOnlyList<string> fileNames)
     {
@@ -174,7 +174,7 @@ internal sealed class MailChannel : IDeliveryChannel
 
         // Every address gets the mail once, in the first field that names it: To before Cc before Bcc.
         var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        message.To.AddRange(NotYetNamed(includeDeclarer ? to.Concat(DeclarerAddresses(delivery.Declarer)) : to, named));
+        message.To.AddRange(NotYetNamed(includeSupplier ? to.Concat(SupplierAddresses(delivery.Supplier)) : to, named));
         message.Cc.AddRange(NotYetNamed(cc, named));
         message.Bcc.AddRange(NotYetNamed(bcc, named));
         return message;
@@ -184,11 +184,11 @@ internal sealed class MailChannel : IDeliveryChannel
         => mailboxes.Where(mailbox => named.Add(mailbox.Address)).ToList();
 
     // A person gets the mail at the own address; a machine client has none and gets it through the users responsible for it.
-    private static IEnumerable<MailboxAddress> DeclarerAddresses(DeclarerInfo declarer)
+    private static IEnumerable<MailboxAddress> SupplierAddresses(SupplierInfo supplier)
     {
-        IEnumerable<(string Name, string? Email)> contacts = declarer.Kind == DeclarerKind.User
-            ? [(declarer.Name, declarer.Email)]
-            : declarer.ResponsibleUsers.Select(user => (user.Name, (string?)user.Email));
+        IEnumerable<(string Name, string? Email)> contacts = supplier.Kind == SupplierKind.User
+            ? [(supplier.Name, supplier.Email)]
+            : supplier.ResponsibleUsers.Select(user => (user.Name, (string?)user.Email));
 
         foreach (var (name, email) in contacts)
         {

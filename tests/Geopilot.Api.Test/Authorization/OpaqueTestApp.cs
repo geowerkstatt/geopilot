@@ -37,7 +37,7 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
         builder.UseSetting("Auth:UserInfoUrl", UserInfoUrl);
 
         // Read in the builder phase, so it has to come through UseSetting. Pinned like in JwtTestApp, because
-        // without it MachineDeliveryConvention removes the delivery routes and the Declarer sweep below would
+        // without it MachineDeliveryConvention removes the delivery routes and the Supplier sweep below would
         // meet a 404 instead of the authorization it is meant to cover.
         builder.UseSetting("MachineDelivery:Enabled", "true");
 

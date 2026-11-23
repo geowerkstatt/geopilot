@@ -1,14 +1,14 @@
 # Reaktionen betreiben
 
-Ist eine Lieferung abgeschlossen, gibt geopilot sie mit den Reaktionen weiter, die der Satz ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Satz definiert wird, steht unter [Reaktionen nach dem Abschluss](pipeline/Pipelines.md#reaktionen-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
+Ist eine [Lieferung](../GLOSSARY.md#lieferung) abgeschlossen, gibt geopilot sie mit den [Reaktionen](../GLOSSARY.md#reaktion) weiter, die der [Reaktions-Satz](../GLOSSARY.md#reaktions-satz) ihres Mandats vorsieht, etwa in eine [Ablage](pipeline/Kanaele/ablage.md), und berichtet danach über sie, etwa mit einer [Info-Mail](pipeline/Kanaele/mail.md). Wie ein Reaktions-Satz definiert wird, steht unter [Reaktionen nach dem Abschluss](pipeline/Pipelines.md#reaktionen-nach-dem-abschluss). Diese Seite beschreibt den Betrieb: wann die Reaktionen laufen, wie sich Wiederholungen und Zeitlimit einstellen lassen, woran sich der Stand ablesen lässt und was eine Installation unter IIS braucht.
 
 ## Ablauf
 
-- Bei der Deklaration entsteht pro Lieferungs-Schritt und pro Benachrichtigung des Satzes eine Reaktion. Sie wartet, bis das Löschfenster der Lieferanten schliesst (siehe [Löschen von Lieferungen](../README.md#löschen-von-lieferungen)); dürfen Lieferanten nicht löschen, ist sie sofort fällig. Ein Mandat mit einem Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht.
-- Ein Hintergrunddienst sucht beim Start und danach alle `PollInterval` nach fälligen Reaktionen und führt sie aus, pro Instanz einen Zustellversuch nach dem anderen. Dauert ein Versuch lange, warten die übrigen so lange.
-- Gelingt ein Versuch, ist die Reaktion `Done`. Sind alle Lieferungs-Schritte einer Lieferung `Done`, ist sie weitergegeben, und erst dann erscheint sie im STAC-Katalog. Erst dann laufen auch ihre Benachrichtigungen; hat sie keine Lieferungs-Schritte, laufen sie, sobald das Löschfenster schliesst.
+- Mit der [Lieferung](../GLOSSARY.md#lieferung) entsteht pro [Weitergabe](../GLOSSARY.md#weitergabe) und pro [Benachrichtigung](../GLOSSARY.md#benachrichtigung) des [Reaktions-Satzes](../GLOSSARY.md#reaktions-satz) eine [Reaktion](../GLOSSARY.md#reaktion). Sie wartet, bis das [Löschfenster](../GLOSSARY.md#löschfenster) der Lieferanten schliesst (siehe [Löschen von Lieferungen](../README.md#löschen-von-lieferungen)); dürfen Lieferanten nicht löschen, ist sie sofort fällig. Ein Mandat mit einem Reaktions-Satz verlangt deshalb ein Löschfenster, das schliesst, sonst startet geopilot nicht.
+- Ein Hintergrunddienst sucht beim Start und danach alle `PollInterval` nach fälligen Reaktionen und führt sie aus, pro Instanz einen [Zustellversuch](../GLOSSARY.md#zustellversuch) nach dem anderen. Dauert ein Versuch lange, warten die übrigen so lange.
+- Gelingt ein Versuch, ist die Reaktion `Done`. Sind alle Weitergaben einer Lieferung `Done`, ist sie weitergegeben, und erst dann erscheint sie im STAC-Katalog. Erst dann laufen auch ihre Benachrichtigungen; hat sie keine Weitergaben, laufen sie, sobald das Löschfenster schliesst.
 - Misslingt ein Versuch, beginnt der nächste den Abstand aus `RetryDelays` nach dem Start des misslungenen, ist dieser Zeitpunkt schon vorbei, sofort. Ein Versuch, der länger als `TimeLimit` dauert, misslingt.
-- Nach dem letzten misslungenen Versuch steht die Reaktion auf `Error` und läuft erst wieder, wenn ein Admin sie [zurücksetzt](#zurücksetzen). Eine Lieferung mit einem Lieferungs-Schritt in `Error` gilt nicht als weitergegeben. Eine Benachrichtigung in `Error` ändert am Zustand der Lieferung nichts.
+- Nach dem letzten misslungenen Versuch steht die Reaktion auf `Error` und läuft erst wieder, wenn ein Admin sie [zurücksetzt](#zurücksetzen). Eine Lieferung mit einer Weitergabe in `Error` gilt nicht als weitergegeben. Eine Benachrichtigung in `Error` ändert am Zustand der Lieferung nichts.
 
 ## Konfiguration
 
@@ -16,7 +16,7 @@ Wiederholungen und Zeitlimit stehen im Abschnitt `Delivery:Reactions`. Ohne Eint
 
 | Schlüssel | Standard | Bedeutung |
 | --- | --- | --- |
-| `RetryDelays` | `00:01:00`, `00:05:00`, `00:30:00`, `02:00:00`, `06:00:00`, `12:00:00` | Die Abstände von Start zu Start zwischen den Versuchen einer Reaktion. Eine Reaktion bekommt einen Versuch mehr, als die Liste Einträge hat, mit dem Standard also sieben; der letzte beginnt knapp 21 Stunden nach dem ersten. |
+| `RetryDelays` | `00:01:00`, `00:05:00`, `00:30:00`, `02:00:00`, `06:00:00`, `12:00:00` | Die Abstände von Start zu Start zwischen den Versuchen einer [Reaktion](../GLOSSARY.md#reaktion). Eine Reaktion bekommt einen Versuch mehr, als die Liste Einträge hat, mit dem Standard also sieben; der letzte beginnt knapp 21 Stunden nach dem ersten. |
 | `TimeLimit` | `00:30:00` | Wie lange ein einzelner Versuch dauern darf, gemessen ab dem Holen der Reaktion. |
 | `PollInterval` | `00:00:15` | Wie oft eine Instanz nach fälligen Reaktionen sucht. |
 
@@ -42,24 +42,24 @@ Delivery__Reactions__TimeLimit=00:10:00
 
 - Eine gesetzte Liste ersetzt den Standard ganz. Das Beispiel gibt jeder Reaktion also vier Versuche.
 - Alle Werte müssen grösser als null sein, sonst startet geopilot nicht.
-- Läuft die Applikation durch, ist eine Reaktion spätestens erledigt oder aufgegeben, wenn nach dem Ende des Löschfensters die Summe aller Abstände verstrichen und ihr letzter Versuch beendet ist.
-- `TimeLimit` sollte grosszügig über der Dauer des längsten normalen Versuchs liegen, etwa einer grossen Lieferung auf ein langsames Netzlaufwerk.
+- Läuft die Applikation durch, ist eine Reaktion spätestens erledigt oder aufgegeben, wenn nach dem Ende des [Löschfensters](../GLOSSARY.md#löschfenster) die Summe aller Abstände verstrichen und ihr letzter Versuch beendet ist.
+- `TimeLimit` sollte grosszügig über der Dauer des längsten normalen Versuchs liegen, etwa einer grossen [Lieferung](../GLOSSARY.md#lieferung) auf ein langsames Netzlaufwerk.
 
-Was ein Kanal sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat, und auch dort nicht in eine appsettings-Datei, sondern in eine Umgebungsvariable oder einen Vault.
+Was ein [Kanal](../GLOSSARY.md#kanal) sonst braucht, etwa das Basisverzeichnis einer Ablage oder Zugangsdaten, steht in seiner Basis-Konfiguration unter `Pipeline:ChannelConfigs` (siehe [Konfiguration eines Kanals](pipeline/Pipelines.md#konfiguration-eines-kanals)). Zugangsdaten gehören nur dorthin, nie in die Pipeline-Definition oder an ein Mandat, und auch dort nicht in eine appsettings-Datei, sondern in eine Umgebungsvariable oder einen Vault.
 
 ## Neustart und Ausfall
 
 - Stoppt geopilot, etwa für ein Update, bricht ein laufender Versuch ab. Er zählt als misslungen, mit der Meldung "Der Versuch wurde abgebrochen, weil die Anwendung beendet wurde.", und es geht weiter wie nach jedem misslungenen Versuch.
-- Stirbt die Applikation mitten in einem Versuch, hält dieser seine Reaktion noch, bis seit seinem Start das Zeitlimit plus eine Minute vergangen ist. Danach übernimmt eine Instanz die Reaktion mit dem nächsten Versuch, nach einem Neustart also die neu gestartete. War es der letzte Versuch, steht die Reaktion auf `Error`, mit der Meldung "Der letzte Versuch hat sich nicht zurückgemeldet, bevor seine Sperre abgelaufen ist."
+- Stirbt die Applikation mitten in einem Versuch, hält dieser seine [Reaktion](../GLOSSARY.md#reaktion) noch, bis seit seinem Start das Zeitlimit plus eine Minute vergangen ist. Danach übernimmt eine Instanz die Reaktion mit dem nächsten Versuch, nach einem Neustart also die neu gestartete. War es der letzte Versuch, steht die Reaktion auf `Error`, mit der Meldung "Der letzte Versuch hat sich nicht zurückgemeldet, bevor seine Sperre abgelaufen ist."
 - Was während eines Ausfalls fällig wurde, holt geopilot beim Start nach. Dabei geht kein Versuch verloren, das Ende einer Reaktion verschiebt sich um die Dauer des Ausfalls.
 
 ## Stand ablesen
 
-In der Administration zeigt die Lieferungsübersicht für jede Lieferung den zusammengefassten Zustand ihrer Lieferungs-Schritte (Spalte Weitergabe) und ihrer Benachrichtigungen (Spalte Benachrichtigungen): `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick auf eine Lieferung öffnet ihre Seite. Sie fasst zusammen, was geliefert wurde, verlinkt nach der Weitergabe die Dateien und das Item im STAC-Browser und listet die Reaktionen mit Namen, Art, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des Löschfensters ("Wartet bis"), eine Benachrichtigung auf die Weitergabe der Lieferung ("Wartet auf die Weitergabe"). Dieselben Angaben liefern `GET api/v1/delivery` mit `forwardingState` und `notificationState` und `GET api/v1/delivery/{deliveryId}`.
+In der Administration zeigt die Lieferungsübersicht für jede [Lieferung](../GLOSSARY.md#lieferung) den zusammengefassten Zustand ihrer [Weitergaben](../GLOSSARY.md#weitergabe) (Spalte Weitergabe) und ihrer [Benachrichtigungen](../GLOSSARY.md#benachrichtigung) (Spalte Benachrichtigungen): `Error` vor `Running` vor `Pending` vor `Done`. Ein Klick auf eine Lieferung öffnet ihre Seite. Sie fasst zusammen, was geliefert wurde, verlinkt nach der Weitergabe die Dateien und das Item im STAC-Browser und listet die [Reaktionen](../GLOSSARY.md#reaktion) mit Namen, Art, Zustand, Versuchen, Zeitpunkt und Meldung. Unter dem Namen steht klein die Id, mit der Log und Ausführungsprotokoll die Reaktion nennen. Eine Reaktion, die auf `Pending` steht und noch keinen Versuch hatte, wartet auf das Ende des [Löschfensters](../GLOSSARY.md#löschfenster) ("Wartet bis"), eine Benachrichtigung auf die Weitergabe der Lieferung ("Wartet auf die Weitergabe"). Dieselben Angaben liefern `GET api/v1/delivery` mit `forwardingState` und `notificationState` und `GET api/v1/delivery/{deliveryId}`.
 
 Die Meldung erscheint in der Sprache der Oberfläche; die API liefert sie als Objekt mit einem Text pro Sprache. Was ein Server oder eine Ausnahme dazu meldet, etwa die Antwort des Mailservers, steht unübersetzt darin. Das Log schreibt die englische Fassung.
 
-Jeder Zustellversuch steht im [Ausführungsprotokoll](Ausfuehrungsprotokoll.md) des Laufs, aus dem die Lieferung stammt: in der Tabelle `PipelineRunReactionEvents` und über die API unter `GET api/v1/pipelinerun/{jobId}` als `reactionEvents`.
+Jeder [Zustellversuch](../GLOSSARY.md#zustellversuch) steht im [Protokoll](../GLOSSARY.md#protokoll) der [Verarbeitung](../GLOSSARY.md#verarbeitung), aus der die Lieferung stammt ([Ausführungsprotokoll](Ausfuehrungsprotokoll.md)): in der Tabelle `RecordingReactionEvents` und über die API unter `GET api/v1/recording/{jobId}` als `reactionEvents`.
 
 Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWorker` und `Geopilot.Api.Reactions.ReactionStore`:
 
@@ -68,8 +68,8 @@ Im Log schreibt geopilot unter den Kategorien `Geopilot.Api.Reactions.ReactionWo
 | Information | `The delivery reaction {ReactionId} of delivery {DeliveryId} is done: {Message}` | Der Versuch ist gelungen. |
 | Warning | `Attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} failed, the next one starts {Wait} after it started: {Message}` | Der Versuch ist misslungen, ein weiterer folgt. |
 | Warning | `The delivery reaction {ReactionId} of delivery {DeliveryId} no longer belonged to its attempt when the attempt reported: {Message}` | Der Versuch hielt seine Reaktion bei der Rückmeldung nicht mehr, etwa weil die Lieferung inzwischen gelöscht wurde. |
-| Error | `Attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} failed unexpectedly.` | Der Kanal ist mit einer Ausnahme gescheitert. Der Versuch zählt als misslungen. Die Meldung der Reaktion nennt nur den Typ der Ausnahme, die Einzelheiten stehen in diesem Logeintrag. |
-| Error | `The transfer {ReactionId} of delivery {DeliveryId} gave up after {Attempts} attempts: {Message}` | Ein Lieferungs-Schritt ist endgültig gescheitert, die Lieferung gilt nicht als weitergegeben. |
+| Error | `Attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} failed unexpectedly.` | Der [Kanal](../GLOSSARY.md#kanal) ist mit einer Ausnahme gescheitert. Der Versuch zählt als misslungen. Die Meldung der Reaktion nennt nur den Typ der Ausnahme, die Einzelheiten stehen in diesem Logeintrag. |
+| Error | `The transfer {ReactionId} of delivery {DeliveryId} gave up after {Attempts} attempts: {Message}` | Eine Weitergabe ist endgültig gescheitert, die Lieferung gilt nicht als weitergegeben. |
 | Warning | `The notification {ReactionId} of delivery {DeliveryId} gave up after {Attempts} attempts: {Message}` | Eine Benachrichtigung ist endgültig gescheitert. Die Lieferung bleibt weitergegeben. |
 | Error | `The outcome of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be saved. Delivered: {Delivered}. {Message}` | Der Versuch ist gelaufen, sein Ergebnis liess sich aber nicht speichern, etwa weil die Datenbank nicht erreichbar war. Nach Ablauf der Sperre läuft die Reaktion noch einmal oder gibt auf, und im Ausführungsprotokoll bleibt der Ausgang unbekannt. Ob der Versuch geliefert hat, steht nur hier. |
 | Error | `{Count} delivery reactions gave up because their last attempt did not report back before its lock ran out.` | Der letzte Versuch dieser Reaktionen hat sich nie zurückgemeldet, etwa nach einem Absturz. |
@@ -79,11 +79,11 @@ Ein Alarm auf die Meldungen der Stufe Error dieser beiden Kategorien meldet jede
 
 ## Zurücksetzen
 
-Hat eine Reaktion aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: auf der Seite der Lieferung mit "Erneut versuchen" in ihrer Zeile oder über `POST api/v1/delivery/{deliveryId}/reactions/{reactionId}/reset`. Die Reaktion bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Steht sie nicht auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt eine Zeile `Reset` mit dem Admin dazu.
+Hat eine [Reaktion](../GLOSSARY.md#reaktion) aufgegeben, behebt der Betrieb die Ursache, etwa die Rechte auf das Basisverzeichnis einer Ablage, und setzt sie als Admin zurück: auf der Seite der [Lieferung](../GLOSSARY.md#lieferung) mit "Erneut versuchen" in ihrer Zeile oder über `POST api/v1/delivery/{deliveryId}/reactions/{reactionId}/reset`. Die Reaktion bekommt wieder alle Versuche, ist sofort fällig, und ihre Abstände beginnen von vorne. Steht sie nicht auf `Error`, antwortet geopilot mit `409`. Im Ausführungsprotokoll kommt eine Zeile `Reset` mit dem Admin dazu.
 
 ## Betrieb unter IIS
 
-geopilot führt die Reaktionen nur aus, solange sein Prozess läuft. IIS startet ihn standardmässig erst mit der ersten Anfrage und beendet ihn nach 20 Minuten ohne Anfrage. Dann gibt geopilot eine Lieferung erst weiter, wenn die nächste Anfrage die Applikation weckt, auch wenn das Löschfenster längst geschlossen hat. Damit die Weitergabe pünktlich läuft:
+geopilot führt die [Reaktionen](../GLOSSARY.md#reaktion) nur aus, solange sein Prozess läuft. IIS startet ihn standardmässig erst mit der ersten Anfrage und beendet ihn nach 20 Minuten ohne Anfrage. Dann gibt geopilot eine [Lieferung](../GLOSSARY.md#lieferung) erst weiter, wenn die nächste Anfrage die Applikation weckt, auch wenn das [Löschfenster](../GLOSSARY.md#löschfenster) längst geschlossen hat. Damit die [Weitergabe](../GLOSSARY.md#weitergabe) pünktlich läuft:
 
 1. Die IIS-Funktion **Application Initialization** installieren (unter **Web Server > Application Development**).
 2. Im App-Pool von geopilot unter **Advanced Settings** den **Start Mode** auf `AlwaysRunning` setzen (Standard `OnDemand`) und **Idle Time-out (minutes)** auf `0` (Standard 20).

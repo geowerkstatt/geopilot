@@ -21,7 +21,7 @@ public class Context : DbContext
 
     /// <summary>
     /// Name of the unique index over <see cref="Delivery.JobId"/>. A violation of this index is how the
-    /// declaration learns that another caller declared the same job first, so the name is shared instead of
+    /// creation learns that another caller created a delivery for the same job first, so the name is shared instead of
     /// repeated as a literal.
     /// </summary>
     public const string DeliveryJobIndexName = "IX_Deliveries_JobId";
@@ -114,8 +114,8 @@ public class Context : DbContext
             return Deliveries
                 .Include(d => d.Mandate)
                 .Include(d => d.Assets)
-                .Include(d => d.DeclaringUser)
-                .Include(d => d.DeclaringClient)
+                .Include(d => d.DeliveredByUser)
+                .Include(d => d.DeliveredByClient)
                 .Include(d => d.PrecursorDelivery);
         }
     }
@@ -136,9 +136,9 @@ public class Context : DbContext
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
                 .Include(m => m.Deliveries)
-                .ThenInclude(d => d.DeclaringUser)
+                .ThenInclude(d => d.DeliveredByUser)
                 .Include(m => m.Deliveries)
-                .ThenInclude(d => d.DeclaringClient)
+                .ThenInclude(d => d.DeliveredByClient)
                 .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
@@ -155,49 +155,49 @@ public class Context : DbContext
     public DbSet<DeliveryReaction> DeliveryReactions { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRun"/> execution protocol records.
+    /// Set of all <see cref="Recording"/> execution protocol records.
     /// </summary>
-    public DbSet<PipelineRun> PipelineRuns { get; set; }
+    public DbSet<Recording> Recordings { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunStep"/> records. Exposed so the per-step upsert can address a
+    /// Set of all <see cref="RecordingStep"/> records. Exposed so the per-step upsert can address a
     /// row by run and step id without loading the whole run.
     /// </summary>
-    public DbSet<PipelineRunStep> PipelineRunSteps { get; set; }
+    public DbSet<RecordingStep> RecordingSteps { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunFile"/> records.
+    /// Set of all <see cref="RecordingFile"/> records.
     /// </summary>
-    public DbSet<PipelineRunFile> PipelineRunFiles { get; set; }
+    public DbSet<RecordingFile> RecordingFiles { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunInput"/> records.
+    /// Set of all <see cref="RecordingInput"/> records.
     /// </summary>
-    public DbSet<PipelineRunInput> PipelineRunInputs { get; set; }
+    public DbSet<RecordingInput> RecordingInputs { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunCondition"/> records.
+    /// Set of all <see cref="RecordingCondition"/> records.
     /// </summary>
-    public DbSet<PipelineRunCondition> PipelineRunConditions { get; set; }
+    public DbSet<RecordingCondition> RecordingConditions { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunArtifact"/> records.
+    /// Set of all <see cref="RecordingArtifact"/> records.
     /// </summary>
-    public DbSet<PipelineRunArtifact> PipelineRunArtifacts { get; set; }
+    public DbSet<RecordingArtifact> RecordingArtifacts { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="PipelineRunReactionEvent"/> records.
+    /// Set of all <see cref="RecordingReactionEvent"/> records.
     /// </summary>
-    public DbSet<PipelineRunReactionEvent> PipelineRunReactionEvents { get; set; }
+    public DbSet<RecordingReactionEvent> RecordingReactionEvents { get; set; }
 
     /// <summary>
-    /// Gets the <see cref="PipelineRun"/> entity with all includes.
+    /// Gets the <see cref="Recording"/> entity with all includes.
     /// </summary>
-    public IQueryable<PipelineRun> PipelineRunsWithIncludes
+    public IQueryable<Recording> RecordingsWithIncludes
     {
         get
         {
-            return PipelineRuns
+            return Recordings
                 .Include(r => r.Files)
                 .Include(r => r.Steps)
                 .ThenInclude(s => s.Inputs)
@@ -226,15 +226,15 @@ public class Context : DbContext
             .HasFilter("\"Deleted\" = false")
             .HasDatabaseName(DeliveryJobIndexName);
 
-        // A delivery is declared by a user or by a machine client, never by both and never by neither. The
+        // A delivery is made by a user or by a machine client, never by both and never by neither. The
         // navigations are optional so either can be absent, and the database keeps exactly one of them set.
         // Restrict on both: users and clients are only ever deactivated, and a delivery must not lose who
-        // declared it.
+        // delivered it.
         modelBuilder.Entity<Delivery>(delivery =>
         {
-            delivery.HasOne(d => d.DeclaringUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeclaringUserId).OnDelete(DeleteBehavior.Restrict);
-            delivery.HasOne(d => d.DeclaringClient).WithMany(c => c.Deliveries).HasForeignKey(d => d.DeclaringClientId).OnDelete(DeleteBehavior.Restrict);
-            delivery.ToTable(t => t.HasCheckConstraint("CK_Deliveries_Declarer", "(\"DeclaringUserId\" IS NULL) <> (\"DeclaringClientId\" IS NULL)"));
+            delivery.HasOne(d => d.DeliveredByUser).WithMany(u => u.Deliveries).HasForeignKey(d => d.DeliveredByUserId).OnDelete(DeleteBehavior.Restrict);
+            delivery.HasOne(d => d.DeliveredByClient).WithMany(c => c.Deliveries).HasForeignKey(d => d.DeliveredByClientId).OnDelete(DeleteBehavior.Restrict);
+            delivery.ToTable(t => t.HasCheckConstraint("CK_Deliveries_DeliveredBy", "(\"DeliveredByUserId\" IS NULL) <> (\"DeliveredByClientId\" IS NULL)"));
         });
 
         modelBuilder.Entity<MachineClient>()
@@ -349,12 +349,18 @@ public class Context : DbContext
 
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
         // text so the tables stay readable in SQL and reordering an enum cannot reinterpret history.
-        modelBuilder.Entity<PipelineRun>(run =>
+        modelBuilder.Entity<Recording>(run =>
         {
             run.HasIndex(r => r.JobId).IsUnique();
+
+            // For the list of runs, which pages by start and groups only the runs with a client reference.
+            run.HasIndex(r => new { r.StartedAt, r.Id });
+            run.HasIndex(r => r.ClientReference).HasFilter("\"ClientReference\" IS NOT NULL");
+
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
-            run.Property(r => r.Declarability).HasConversion<string>();
+            run.Property(r => r.ClientReference).HasMaxLength(Recording.ClientReferenceMaxLength);
+            run.Property(r => r.PermissionToDeliver).HasConversion<string>();
             run.Property(r => r.ScanState).HasConversion<string>();
             run.Property(r => r.TerminalState).HasConversion<string>();
 
@@ -365,16 +371,16 @@ public class Context : DbContext
             run.HasOne(r => r.MachineClient).WithMany().HasForeignKey(r => r.MachineClientId).OnDelete(DeleteBehavior.Restrict);
 
             // A run is started by a user, by a machine client or anonymously, never by both. The recorder
-            // cannot write both (a Declarer is one or the other); the constraint holds that promise for every
+            // cannot write both (a Supplier is one or the other); the constraint holds that promise for every
             // other writer, the way the one on the delivery does.
-            run.ToTable(t => t.HasCheckConstraint("CK_PipelineRuns_Declarer", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
+            run.ToTable(t => t.HasCheckConstraint("CK_Recordings_StartedBy", "NOT (\"UserId\" IS NOT NULL AND \"MachineClientId\" IS NOT NULL)"));
 
-            run.HasMany(r => r.Files).WithOne(f => f.PipelineRun).HasForeignKey(f => f.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
-            run.HasMany(r => r.Steps).WithOne(s => s.PipelineRun).HasForeignKey(s => s.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
-            run.HasMany(r => r.ReactionEvents).WithOne().HasForeignKey(e => e.PipelineRunId).OnDelete(DeleteBehavior.Cascade);
+            run.HasMany(r => r.Files).WithOne(f => f.Recording).HasForeignKey(f => f.RecordingId).OnDelete(DeleteBehavior.Cascade);
+            run.HasMany(r => r.Steps).WithOne(s => s.Recording).HasForeignKey(s => s.RecordingId).OnDelete(DeleteBehavior.Cascade);
+            run.HasMany(r => r.ReactionEvents).WithOne().HasForeignKey(e => e.RecordingId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<PipelineRunReactionEvent>(reactionEvent =>
+        modelBuilder.Entity<RecordingReactionEvent>(reactionEvent =>
         {
             reactionEvent.Property(e => e.ReactionId).HasMaxLength(128);
             reactionEvent.Property(e => e.ReactionKind).HasConversion<string>();
@@ -386,9 +392,9 @@ public class Context : DbContext
             reactionEvent.HasOne<User>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<PipelineRunStep>(step =>
+        modelBuilder.Entity<RecordingStep>(step =>
         {
-            step.HasIndex(s => new { s.PipelineRunId, s.StepId }).IsUnique();
+            step.HasIndex(s => new { s.RecordingId, s.StepId }).IsUnique();
             step.Property(s => s.State).HasConversion<string>();
             step.Property(s => s.DisplayName).HasColumnType("jsonb").HasConversion(localizedTextConverter, localizedTextComparer);
 
@@ -396,25 +402,25 @@ public class Context : DbContext
             // for the nullable properties, while EF never passes null through a converter anyway.
             step.Property(s => s.StatusMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
             step.Property(s => s.ConditionMessage).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
-            step.HasMany(s => s.Inputs).WithOne().HasForeignKey(i => i.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
-            step.HasMany(s => s.Conditions).WithOne(c => c.Step).HasForeignKey(c => c.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
-            step.HasMany(s => s.Artifacts).WithOne(a => a.Step).HasForeignKey(a => a.PipelineRunStepId).OnDelete(DeleteBehavior.Cascade);
+            step.HasMany(s => s.Inputs).WithOne().HasForeignKey(i => i.RecordingStepId).OnDelete(DeleteBehavior.Cascade);
+            step.HasMany(s => s.Conditions).WithOne(c => c.Step).HasForeignKey(c => c.RecordingStepId).OnDelete(DeleteBehavior.Cascade);
+            step.HasMany(s => s.Artifacts).WithOne(a => a.Step).HasForeignKey(a => a.RecordingStepId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<PipelineRunInput>(input =>
+        modelBuilder.Entity<RecordingInput>(input =>
         {
             input.Property(i => i.Origin).HasConversion<string>();
             input.Property(i => i.Kind).HasConversion<string>();
         });
 
-        modelBuilder.Entity<PipelineRunCondition>(condition =>
+        modelBuilder.Entity<RecordingCondition>(condition =>
         {
             condition.Property(c => c.Phase).HasConversion<string>();
             condition.Property(c => c.Kind).HasConversion<string>();
             condition.Property(c => c.EvaluatedValues).HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<PipelineRunArtifact>(artifact => artifact.Property(a => a.Kind).HasConversion<string>());
+        modelBuilder.Entity<RecordingArtifact>(artifact => artifact.Property(a => a.Kind).HasConversion<string>());
 
         modelBuilder.Entity<User>()
             .HasIndex(u => u.AuthIdentifier)

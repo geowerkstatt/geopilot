@@ -83,6 +83,8 @@ public class UploadOrchestrationServiceTest
         uploadStorageMock
             .Setup(s => s.GenerateUploadUrlAsync(It.IsAny<string>(), null, It.IsAny<TimeSpan>()))
             .ReturnsAsync("https://storage.example.com/presigned-url");
+        var uploadHeaders = new Dictionary<string, string> { ["x-test-header"] = "value" };
+        uploadStorageMock.SetupGet(s => s.UploadHeaders).Returns(uploadHeaders);
 
         var response = await service.InitiateUploadAsync(request);
 
@@ -91,6 +93,7 @@ public class UploadOrchestrationServiceTest
         Assert.HasCount(1, response.Files);
         Assert.AreEqual("test.xtf", response.Files[0].FileName);
         Assert.AreEqual("https://storage.example.com/presigned-url", response.Files[0].UploadUrl);
+        Assert.AreSame(uploadHeaders, response.Files[0].UploadHeaders);
 
         var upload = uploadStore.GetUpload(response.UploadId);
         Assert.IsNotNull(upload);
@@ -215,7 +218,7 @@ public class UploadOrchestrationServiceTest
     public void RegisterJobFilesRecordsFilesWithoutTransferringAnything()
     {
         var upload = CreateUpload("test.xtf", 1024);
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
         var files = service.RegisterJobFiles(upload.Id, job.Id);
 
@@ -231,7 +234,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesMaterializesInsideTheJobsPipelineDirectory()
     {
         var upload = CreateUpload("test.xtf", 1024);
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
         uploadStorageMock
             .Setup(s => s.DownloadAsync($"uploads/{upload.Id}/test.xtf", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
@@ -255,7 +258,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesDisambiguatesFilesThatSanitizeToTheSameName()
     {
         var upload = CreateUpload(("a:b.xtf", 1024), ("a*b.xtf", 2048));
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -275,7 +278,7 @@ public class UploadOrchestrationServiceTest
     public async Task RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
     {
         var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
-        var job = jobStore.CreateJob(upload.Id, isDeclarable: false);
+        var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -296,7 +299,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public void RegisterJobFilesThrowsForUnknownUpload()
     {
-        var job = jobStore.CreateJob(Guid.NewGuid(), isDeclarable: false);
+        var job = jobStore.CreateJob(Guid.NewGuid(), mayDeliver: false);
         Assert.ThrowsExactly<ArgumentException>(() => service.RegisterJobFiles(Guid.NewGuid(), job.Id));
     }
 

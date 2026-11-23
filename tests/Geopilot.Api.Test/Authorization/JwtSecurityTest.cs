@@ -23,7 +23,7 @@ public class JwtSecurityTest
 
     public static IEnumerable<object[]> UserEndpoints => EndpointDiscovery.GetUserEndpoints();
 
-    public static IEnumerable<object[]> DeclarerEndpoints => EndpointDiscovery.GetDeclarerEndpoints();
+    public static IEnumerable<object[]> SupplierEndpoints => EndpointDiscovery.GetSupplierEndpoints();
 
     public static IEnumerable<object[]> AnonymousEndpoints => EndpointDiscovery.GetAnonymousEndpoints();
 
@@ -133,8 +133,8 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
-    [DynamicData(nameof(DeclarerEndpoints))]
-    public async Task DeclarerEndpointValidUserTokenReturnsNon401(string method, string url, string policy, string description)
+    [DynamicData(nameof(SupplierEndpoints))]
+    public async Task SupplierEndpointValidUserTokenReturnsNon401(string method, string url, string policy, string description)
     {
         var token = JwtTestTokenBuilder.CreateValidUserToken();
         using var request = CreateRequest(method, url, token);
@@ -150,8 +150,8 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
-    [DynamicData(nameof(DeclarerEndpoints))]
-    public async Task DeclarerEndpointValidClientTokenReturnsNon401(string method, string url, string policy, string description)
+    [DynamicData(nameof(SupplierEndpoints))]
+    public async Task SupplierEndpointValidClientTokenReturnsNon401(string method, string url, string policy, string description)
     {
         var token = JwtTestTokenBuilder.CreateValidClientToken();
         using var request = CreateRequest(method, url, token);

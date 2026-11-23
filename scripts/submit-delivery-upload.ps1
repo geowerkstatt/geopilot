@@ -9,7 +9,7 @@
 
       1. POST {TokenUrl}                    client credentials, answers the access token
       2. POST {ApiUrl}/api/v2/upload        announces the files, answers one upload URL per file
-      3. PUT  {uploadUrl}                   uploads each file to its URL (a presigned blob URL)
+      3. PUT  {uploadUrl}                   uploads each file to its URL (a presigned URL) with its uploadHeaders
       4. POST {ApiUrl}/api/v1/submission    starts the attempt for the mandate key and the upload
       5. GET  {Location of step 4}          polls the attempt until it is delivered, rejected or failed
 
@@ -61,6 +61,10 @@
     a date as 'yyyy-MM-dd', a selection as the id of the option and a list of texts as an array. Left out
     when not given; the mandate decides which fields there are and which of them are required.
 
+.PARAMETER ClientReference
+    Your own identifier of the delivery, such as your delivery number. Give the same one with every attempt of the
+    same delivery, so geopilot shows the attempts together. Left out when not given.
+
 .PARAMETER PollSeconds
     Seconds between two status requests.
 
@@ -93,6 +97,7 @@ param(
     [nullable[bool]]$PartialDelivery,
     [nullable[int]]$PrecursorDeliveryId,
     [hashtable]$Metadata,
+    [string]$ClientReference,
     [int]$PollSeconds = 5,
     [int]$TimeoutMinutes = 30,
     [switch]$SkipCertificateCheck
@@ -257,11 +262,13 @@ $announcement = @{ files = @($files | ForEach-Object { @{ fileName = $_.Name; si
 $upload = Invoke-UploadAnnouncement $announcement
 
 # 3. Upload each file to its URL. The URL itself authorizes the PUT, so no bearer header goes here;
-#    the blob type header is what an Azure blob storage requires for a single PUT.
+#    the headers the storage of the installation requires come with each URL.
 foreach ($entry in $upload.files) {
     $local = $files | Where-Object Name -eq $entry.fileName | Select-Object -First 1
+    $headers = @{}
+    $entry.uploadHeaders.PSObject.Properties | ForEach-Object { $headers[$_.Name] = $_.Value }
     Write-Host "Uploading $($local.Name) ($($local.Length) bytes) ..."
-    Invoke-RestMethod -Method Put -Uri $entry.uploadUrl -InFile $local.FullName -ContentType 'application/octet-stream' -Headers @{ 'x-ms-blob-type' = 'BlockBlob' } | Out-Null
+    Invoke-RestMethod -Method Put -Uri $entry.uploadUrl -InFile $local.FullName -ContentType 'application/octet-stream' -Headers $headers | Out-Null
 }
 
 # 4. Start the attempt. Only the fields that were given go into the request; the mandate decides which
@@ -271,6 +278,7 @@ if ($Comment) { $request.comment = $Comment }
 if ($null -ne $PartialDelivery) { $request.partialDelivery = $PartialDelivery }
 if ($null -ne $PrecursorDeliveryId) { $request.precursorDeliveryId = $PrecursorDeliveryId }
 if ($null -ne $Metadata) { $request.metadata = $Metadata }
+if ($ClientReference) { $request.clientReference = $ClientReference }
 
 $submission = Invoke-Submission ($request | ConvertTo-Json)
 Write-Host "Accepted as attempt $($submission.Response.id); status at $($submission.StatusUrl)"

@@ -86,7 +86,7 @@ public class AssetHandlerTest
     [TestMethod]
     public async Task RecordJobAssetsPromotesTheStagedFilesBeforeReadingThem()
     {
-        // Until promoted, the files exist only in the staging store: reading the asset store first would fail the declaration.
+        // Until promoted, the files exist only in the staging store: reading the asset store first would fail the creation.
         var promoted = false;
         assetFileStoreMock.Setup(x => x.PromoteStagedFiles(job.Id)).Callback(() => promoted = true);
         assetFileStoreMock

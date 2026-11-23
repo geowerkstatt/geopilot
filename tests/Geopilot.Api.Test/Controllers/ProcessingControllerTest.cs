@@ -191,7 +191,7 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(jobId, Guid.NewGuid(), mandate.Id, DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), null)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, Supplier.ForUser(user.Id), null)).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -208,7 +208,7 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual(mandate.Id, jobResponse.MandateId);
         Assert.AreEqual(ProcessingState.Pending, jobResponse.State);
 
-        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Id, Declarer.ForUser(user.Id), null), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Id, Supplier.ForUser(user.Id), null), Times.Once);
     }
 
     [TestMethod]
@@ -238,7 +238,7 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(jobId, Guid.NewGuid(), publicMandate.Entity.Id, DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<Declarer?>(), null)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<Supplier?>(), null)).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -296,14 +296,14 @@ public sealed class ProcessingControllerTest
         context.SaveChanges();
         controller.SetupTestUser(new User { AuthIdentifier = client.Entity.AuthIdentifier });
 
-        var expectedDeclarer = state == MachineClientState.Active ? Declarer.ForClient(client.Entity.Id) : null;
+        var expectedSupplier = state == MachineClientState.Active ? Supplier.ForClient(client.Entity.Id) : null;
         var processingJob = new ProcessingJob(Guid.NewGuid(), Guid.NewGuid(), mandate.Entity.Id, DateTime.Now);
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedSupplier, null)).ReturnsAsync(processingJob);
 
         var response = await controller.StartJobAsync(new StartJobRequest { UploadId = uploadId, MandateId = mandate.Entity.Id });
 
         Assert.IsInstanceOfType<AcceptedAtActionResult>(response);
-        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedSupplier, null), Times.Once);
     }
 
     [TestMethod]
@@ -322,14 +322,14 @@ public sealed class ProcessingControllerTest
         context.SaveChanges();
         controller.SetupTestUser(user.Entity);
 
-        var expectedDeclarer = state == UserState.Active ? Declarer.ForUser(user.Entity.Id) : null;
+        var expectedSupplier = state == UserState.Active ? Supplier.ForUser(user.Entity.Id) : null;
         var processingJob = new ProcessingJob(Guid.NewGuid(), Guid.NewGuid(), mandate.Entity.Id, DateTime.Now);
-        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedSupplier, null)).ReturnsAsync(processingJob);
 
         var response = await controller.StartJobAsync(new StartJobRequest { UploadId = uploadId, MandateId = mandate.Entity.Id });
 
         Assert.IsInstanceOfType<AcceptedAtActionResult>(response);
-        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedDeclarer, null), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Entity.Id, expectedSupplier, null), Times.Once);
     }
 
     [TestMethod]
@@ -363,7 +363,7 @@ public sealed class ProcessingControllerTest
 
         controller.SetupTestUser(user);
 
-        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Declarer>(), null))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Supplier>(), null))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
         // Act
@@ -447,7 +447,7 @@ public sealed class ProcessingControllerTest
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = mandate.Id };
 
         controller.SetupTestUser(user);
-        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Declarer>(), null))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<Supplier>(), null))
             .ThrowsAsync(new InvalidOperationException("The user is not authorized to start the job with the specified mandate."));
 
         // Act

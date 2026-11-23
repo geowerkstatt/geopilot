@@ -10,13 +10,16 @@ import { DeliveryResponse, ReactionState, UploadedDelivery } from "../../api/gen
 import { useDeleteDelivery } from "../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
+import { UserOrClientLabel } from "../userOrClientLabel.tsx";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
 import { ReactionStateLabel } from "./reactionStateLabel.tsx";
 
 interface DeliveryInfo {
   id: number;
   date: string;
-  declarerName: string;
+  deliveredByName: string;
+  /** Unknown (`undefined`) in the list of a user's own deliveries, which shows the name alone. */
+  deliveredByClientId?: number | null;
   mandateName: LocalizedText;
   forwardingState?: ReactionState | null;
   notificationState?: ReactionState | null;
@@ -24,7 +27,7 @@ interface DeliveryInfo {
   canDelete?: boolean;
 }
 
-type ColumnName = keyof Omit<DeliveryInfo, "canDelete">;
+type ColumnName = keyof Omit<DeliveryInfo, "canDelete" | "deliveredByClientId">;
 
 interface DeliveryGridProps {
   fetchUrl: string;
@@ -45,13 +48,14 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
   const loadDeliveries = useCallback(async () => {
     // Administrators get all deliveries with how far their reactions got, users their own uploads and whether they
     // may delete them.
-    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
+    fetchApi<(DeliveryResponse | UploadedDelivery)[]>(fetchUrl, { errorMessageLabel: "deliveriesLoadingError" })
       .then(response => {
         setDeliveries(
           response.map(d => ({
             id: d.id,
             date: d.date,
-            declarerName: d.declarerName,
+            deliveredByName: d.deliveredByName,
+            deliveredByClientId: "deliveredByClientId" in d ? d.deliveredByClientId : undefined,
             mandateName: d.mandate.name,
             forwardingState: "forwardingState" in d ? d.forwardingState : undefined,
             notificationState: "notificationState" in d ? d.notificationState : undefined,
@@ -69,7 +73,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
     loadDeliveries();
   }, [loadDeliveries]);
 
-  const openDetails = (id: GridRowId) => navigate(`/admin/delivery-overview/${id}`);
+  const openDetails = (id: GridRowId) => navigate(`/admin/deliveries/${id}`);
 
   const namedColumnDefs: Record<ColumnName, GridColDef> = {
     id: { field: "id", headerName: t("id"), width: 60 },
@@ -80,7 +84,19 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
       valueGetter: (date: string) => new Date(date),
       width: 180,
     },
-    declarerName: { field: "declarerName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 250 },
+    deliveredByName: {
+      field: "deliveredByName",
+      headerName: t("deliveredBy"),
+      flex: 0.5,
+      minWidth: 250,
+      display: "flex",
+      renderCell: ({ row }: GridRenderCellParams<DeliveryInfo>) =>
+        row.deliveredByClientId !== undefined ? (
+          <UserOrClientLabel userOrClient={{ name: row.deliveredByName, machineClientId: row.deliveredByClientId }} />
+        ) : (
+          row.deliveredByName
+        ),
+    },
     mandateName: {
       field: "mandateName",
       headerName: t("mandate"),
@@ -149,7 +165,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns, rowActi
 
   return (
     <GeopilotDataGrid
-      name="deliveryOverview"
+      name="deliveries"
       loading={isLoading}
       rows={deliveries}
       columns={columnDefs}
