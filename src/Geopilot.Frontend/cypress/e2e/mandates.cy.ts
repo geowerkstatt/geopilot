@@ -962,37 +962,56 @@ describe("Mandate with metadata fields", () => {
     cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
   });
 
+  const fieldButtons = () => cy.dataCy("metadataFields-list").find('[role="button"]');
+
+  const fieldTexts = (index: number) =>
+    fieldButtons()
+      .eq(index)
+      .find(".MuiTypography-root")
+      .then(texts => Cypress._.map(texts, "innerText"));
+
+  const openFieldDialog = (index: number) => {
+    fieldButtons().eq(index).click();
+    cy.dataCy("metadataFieldDialog").should("exist");
+  };
+
+  const applyDialog = () => {
+    cy.dataCy("apply-button").click();
+    cy.dataCy("metadataFieldDialog").should("not.exist");
+  };
+
+  // A message under an input can wrap to two lines, where setInput would click into the message instead of the input.
+  const retype = (fieldName: string, value: string) =>
+    cy.dataCy(`${fieldName}-formInput`).find("input").clear().type(value);
+
+  const message = (fieldName: string) => cy.dataCy(`${fieldName}-formInput`).find(".MuiFormHelperText-root");
+
   it("adds metadata fields to a mandate", () => {
     openMandateWith([]);
-    cy.dataCy("metadataFields-language-tab-de").click();
+    cy.dataCy("metadataFieldsNone").should("have.text", "No additional fields have been added yet.");
 
     cy.dataCy("addMetadataField-button").click();
+    cy.dataCy("metadataFieldDialog").should("contain", "New field");
+    cy.dataCy("metadataFieldDialog-language-tab-de").click();
     setInput("metadataFields.0.id", "project_number");
     setInput("metadataFields.0.title.de", "Projektnummer");
     toggleCheckbox("metadataFields.0.evaluation");
+    applyDialog();
 
     cy.dataCy("addMetadataField-button").click();
+    cy.dataCy("metadataFieldDialog-language-tab-de").click();
     setInput("metadataFields.1.id", "responsible");
     setInput("metadataFields.1.title.de", "Zuständig");
-    cy.dataCy("save-button").should("be.enabled");
-
-    // A selection cannot be saved until it has an option. The type select says why, linked for assistive technology.
+    // A selection starts with the inputs of its first option, which cannot be removed while it is the only one.
     setSelect("metadataFields.1.type", 2, 6);
-    cy.dataCy("metadataFields.1.type-formSelect")
-      .find(".MuiFormHelperText-root")
-      .should("have.text", "A selection needs at least one option")
-      .invoke("attr", "id")
-      .then(id => {
-        cy.dataCy("metadataFields.1.type-formSelect")
-          .find('[role="combobox"]')
-          .should("have.attr", "aria-describedby", id);
-      });
-    cy.dataCy("save-button").should("be.disabled");
-    cy.dataCy("addMetadataFieldOption-button").click();
     cy.dataCy("metadataFields.1.type-formSelect").find(".MuiFormHelperText-root").should("not.exist");
+    cy.dataCy("removeMetadataFieldOption-button").should("be.disabled");
     setInput("metadataFields.1.options.0.id", "canton");
     setInput("metadataFields.1.options.0.title.de", "Kanton");
+    applyDialog();
 
+    cy.dataCy("metadataFieldsNone").should("not.exist");
+    fieldButtons().should("have.length", 2);
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
       expect(body.metadataFields).to.deep.equal([
@@ -1013,64 +1032,96 @@ describe("Mandate with metadata fields", () => {
     });
   });
 
-  it("opens a mandate with metadata fields unchanged", () => {
+  it("lists the metadata fields and opens one unchanged", () => {
     openMandateWith([projectNumber, responsible]);
 
-    evaluateInput("metadataFields.0.id", "project_number");
-    evaluateCheckbox("metadataFields.0.evaluation", true);
-    evaluateSelect("metadataFields.1.type", "selection");
-    evaluateInput("metadataFields.1.options.1.id", "municipality");
+    fieldTexts(0).should("deep.equal", ["Project number", "Text", "Required"]);
+    fieldTexts(1).should("deep.equal", ["Responsible", "Selection, 2 options"]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
+    // A click on the field opens it, a click beside the dialog keeps it open, and cancelling leaves the form as it was.
+    openFieldDialog(1);
+    cy.dataCy("metadataFieldDialog").should("contain", "Field “responsible”");
+    evaluateSelect("metadataFields.1.type", "selection");
+    evaluateInput("metadataFields.1.options.1.id", "municipality");
+    setInput("metadataFields.1.title.en", "Contact");
+    cy.get(".MuiDialog-container").click("topLeft");
+    evaluateInput("metadataFields.1.title.en", "Contact");
+    cy.dataCy("cancel-button").click();
+    cy.dataCy("metadataFieldDialog").should("not.exist");
+    fieldTexts(1).should("deep.equal", ["Responsible", "Selection, 2 options"]);
+    cy.dataCy("save-button").should("be.disabled");
+
+    // Applying changes the form, and resetting it brings the loaded field back.
+    openFieldDialog(0);
+    evaluateCheckbox("metadataFields.0.evaluation", true);
     toggleCheckbox("metadataFields.0.evaluation");
+    applyDialog();
+    fieldTexts(0).should("deep.equal", ["Project number", "Text"]);
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("reset-button").should("be.enabled").click();
-    evaluateCheckbox("metadataFields.0.evaluation", true);
+    fieldTexts(0).should("deep.equal", ["Project number", "Text", "Required"]);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
   });
 
-  it("names the language rows, the fields and their buttons for assistive technology", () => {
+  it("names the dialog, the fields and their buttons for assistive technology", () => {
     openMandateWith([projectNumber, responsible]);
 
     cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
-    cy.dataCy("metadataFields-language-tabs").should(
+    // A field is a button named by its title and type that opens a dialog, from the keyboard as well. Its title shows
+    // in full on hover, where the button cuts it off.
+    fieldButtons().eq(1).find(".MuiTypography-root").first().should("have.attr", "title", "Responsible");
+    fieldButtons()
+      .eq(1)
+      .should("contain", "Responsible")
+      .and("have.attr", "aria-haspopup", "dialog")
+      .focus()
+      .type("{enter}");
+    cy.dataCy("metadataFieldDialog")
+      .find('[role="dialog"]')
+      .invoke("attr", "aria-labelledby")
+      .then(id => {
+        cy.get(`#${id}`).should("have.text", "Field “responsible”");
+      });
+    cy.dataCy("metadataFieldDialog-language-tabs").should(
       "have.attr",
       "aria-label",
       "Input language of the additional fields",
     );
-    cy.get('[role="group"][aria-label="Field 2"]').within(() => {
-      cy.dataCy("metadataFields.1.id-formInput").should("exist");
-      cy.get('[role="group"][aria-label="Option 2"]').dataCy("metadataFields.1.options.1.id-formInput").should("exist");
-    });
-    cy.dataCy("removeMetadataField-button").eq(1).should("have.attr", "aria-label", "Remove field 2");
+    cy.get('[role="group"][aria-label="Option 2"]').dataCy("metadataFields.1.options.1.id-formInput").should("exist");
     cy.dataCy("removeMetadataFieldOption-button").eq(1).should("have.attr", "aria-label", "Remove option 2 of field 2");
+
+    // Removing the last option hands the focus to the option before it.
+    cy.dataCy("removeMetadataFieldOption-button").eq(1).click();
+    cy.dataCy("metadataFields.1.options.0.id-formInput").find("input").should("have.focus").and("have.value", "canton");
   });
 
   it("switches the language of the titles apart from the general data", () => {
     openMandateWith([projectNumber]);
 
     setFormLanguage("de");
-    cy.dataCy("name.de-formInput").should("be.visible");
+    openFieldDialog(0);
     cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
-
-    cy.dataCy("metadataFields-language-tab-de").click();
-    cy.dataCy("metadataFields.0.title.de-formInput").should("be.visible");
-    cy.dataCy("metadataFields-language-tab-en").click();
-    cy.dataCy("metadataFields.0.title.en-formInput").should("be.visible");
+    cy.dataCy("metadataFieldDialog-language-tab-it").click();
+    cy.dataCy("metadataFields.0.title.it-formInput").should("be.visible");
+    cy.dataCy("metadataFields.0.title.en-formInput").should("not.be.visible");
+    cy.dataCy("cancel-button").click();
     cy.dataCy("name.de-formInput").should("be.visible");
   });
 
   it("saves a former selection without its options", () => {
     openMandateWith([responsible]);
+    openFieldDialog(0);
 
-    // An option left empty marks its id as required. Once the options are hidden, that must not block saving.
+    // An option left empty marks its id as required. Once the options are gone, that must not block applying.
     cy.dataCy("addMetadataFieldOption-button").click();
     cy.dataCy("metadataFields.0.options.2.id-formInput").find("input").blur();
     hasError("metadataFields.0.options.2.id");
     setSelect("metadataFields.0.type", 0, 6);
     cy.dataCy("metadataFields.0.options.0.id-formInput").should("not.exist");
+    applyDialog();
 
     cy.dataCy("save-button").should("be.enabled").click();
     savedMandate().then(body => {
@@ -1079,51 +1130,137 @@ describe("Mandate with metadata fields", () => {
     });
   });
 
+  it("starts new options empty in every language", () => {
+    openMandateWith([responsible]);
+
+    // Switching back to a selection drops the loaded options for one empty option.
+    openFieldDialog(0);
+    setSelect("metadataFields.0.type", 0, 6);
+    setSelect("metadataFields.0.type", 2, 6);
+    evaluateInput("metadataFields.0.options.0.id", "");
+    ["de", "en", "fr", "it"].forEach(language => evaluateInput(`metadataFields.0.options.0.title.${language}`, ""));
+    cy.dataCy("metadataFields.0.options.1.id-formInput").should("not.exist");
+    cy.dataCy("cancel-button").click();
+
+    // An option added in place of a removed one shows nothing of it either.
+    openFieldDialog(0);
+    cy.dataCy("removeMetadataFieldOption-button").eq(1).click();
+    cy.dataCy("addMetadataFieldOption-button").click();
+    evaluateInput("metadataFields.0.options.1.id", "");
+    ["de", "en", "fr", "it"].forEach(language => evaluateInput(`metadataFields.0.options.1.title.${language}`, ""));
+  });
+
   it("refuses an id that does not start with a letter or is reserved", () => {
     openMandateWith([]);
 
     cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.0.title.en", "Abc");
     setInput("metadataFields.0.id", "1abc");
     hasError("metadataFields.0.id");
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("apply-button").should("be.disabled");
 
-    setInput("metadataFields.0.id", "abc1");
+    retype("metadataFields.0.id", "abc1");
     hasError("metadataFields.0.id", false);
+    cy.dataCy("apply-button").should("be.enabled");
 
     // react-hook-form refuses the word as a path segment, so the delivery form could not hold its value.
-    setInput("metadataFields.0.id", "constructor");
+    retype("metadataFields.0.id", "constructor");
     hasError("metadataFields.0.id");
-    cy.dataCy("metadataFields.0.id-formInput")
-      .find(".MuiFormHelperText-root")
-      .should("contain", "constructor and prototype are reserved");
+    message("metadataFields.0.id").should("contain", "constructor and prototype are reserved");
   });
 
   it("refuses a field id or an option id that is already taken", () => {
     openMandateWith([responsible]);
 
-    // Both entries are marked, and changing one of them checks the other one again.
+    // A new field is checked against the fields already there.
     cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.1.title.en", "Contact");
     setInput("metadataFields.1.id", "responsible");
-    hasError("metadataFields.0.id");
     hasError("metadataFields.1.id");
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("apply-button").should("be.disabled");
     setInput("metadataFields.1.id", "contact");
-    hasError("metadataFields.0.id", false);
     hasError("metadataFields.1.id", false);
-    cy.dataCy("save-button").should("be.enabled");
+    applyDialog();
+    fieldButtons().should("have.length", 2);
 
     // An option id only has to be unique within its field. Removing the duplicate checks the remaining ids again.
+    openFieldDialog(0);
     cy.dataCy("addMetadataFieldOption-button").click();
     setInput("metadataFields.0.options.2.id", "canton");
     hasError("metadataFields.0.options.0.id");
     hasError("metadataFields.0.options.2.id");
-    cy.dataCy("save-button").should("be.disabled");
     // Leaving the input starts an asynchronous check. A browser finishes it before the next input event, but Cypress
     // could click first, and the late check would mark the removed option again.
     cy.dataCy("metadataFields.0.options.2.id-formInput").find("input").blur();
     cy.wait(0);
     cy.dataCy("removeMetadataFieldOption-button").eq(2).click();
     hasError("metadataFields.0.options.0.id", false);
-    cy.dataCy("save-button").should("be.enabled");
+    applyDialog();
+  });
+
+  it("refuses a field title that reads the same as another field's in some language", () => {
+    openMandateWith([projectNumber, responsible]);
+    const conflict = "In FR, the title reads the same as for field “responsible”.";
+
+    // The French title of the new field meets the English one that the existing field shows in French as well.
+    cy.dataCy("addMetadataField-button").click();
+    setInput("metadataFields.2.id", "contact");
+    cy.dataCy("metadataFieldDialog-language-tab-de").click();
+    setInput("metadataFields.2.title.de", "Kontakt");
+    cy.dataCy("metadataFieldDialog-language-tab-fr").click();
+    setInput("metadataFields.2.title.fr", "Responsible");
+    message("metadataFields.2.title.fr").should("have.text", conflict);
+    cy.dataCy("apply-button").should("be.disabled");
+
+    // Every language shows the conflict until the title is changed.
+    cy.dataCy("metadataFieldDialog-language-tab-de").click();
+    message("metadataFields.2.title.de").should("have.text", conflict);
+    cy.dataCy("metadataFieldDialog-language-tab-fr").click();
+    message("metadataFields.2.title.fr").should("have.text", conflict);
+    retype("metadataFields.2.title.fr", "Responsable");
+    hasError("metadataFields.2.title.fr", false);
+    hasError("metadataFields.2.title.de", false);
+    applyDialog();
+    fieldButtons().should("have.length", 3);
+  });
+
+  it("refuses two options of a field with the same title", () => {
+    openMandateWith([responsible]);
+    openFieldDialog(0);
+
+    // Both options show the conflict, and changing one of them clears it on both.
+    setInput("metadataFields.0.options.1.title.en", "Canton");
+    message("metadataFields.0.options.0.title.en").should(
+      "have.text",
+      "In EN, the title reads the same as for option 2.",
+    );
+    message("metadataFields.0.options.1.title.en").should(
+      "have.text",
+      "In EN, the title reads the same as for option 1.",
+    );
+    cy.dataCy("apply-button").should("be.disabled");
+
+    retype("metadataFields.0.options.1.title.en", "Municipality");
+    hasError("metadataFields.0.options.0.title.en", false);
+    hasError("metadataFields.0.options.1.title.en", false);
+    applyDialog();
+  });
+
+  it("deletes a field from its dialog", () => {
+    openMandateWith([projectNumber, responsible]);
+
+    // A new field has nothing to delete yet.
+    cy.dataCy("addMetadataField-button").click();
+    cy.dataCy("delete-button").should("not.exist");
+    cy.dataCy("cancel-button").click();
+
+    openFieldDialog(0);
+    cy.dataCy("delete-button").click();
+    cy.dataCy("metadataFieldDialog").should("not.exist");
+    fieldButtons().should("have.length", 1).and("contain", "Responsible");
+    cy.dataCy("save-button").should("be.enabled").click();
+    savedMandate().then(body => {
+      expect(body.metadataFields.map(field => field.id)).to.deep.equal(["responsible"]);
+    });
   });
 });

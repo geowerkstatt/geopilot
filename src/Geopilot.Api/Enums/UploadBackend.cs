@@ -6,7 +6,7 @@
 public enum UploadBackend
 {
     /// <summary>
-    /// Files are uploaded to an Azure Blob compatible object storage via presigned URLs.
+    /// Files are uploaded to an object storage via presigned URLs.
     /// </summary>
     Cloud,
 

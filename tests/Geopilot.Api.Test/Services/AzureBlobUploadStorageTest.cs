@@ -80,7 +80,8 @@ public class AzureBlobUploadStorageTest
         // Verify the presigned URL actually works by uploading through it.
         using var httpClient = new HttpClient();
         using var content = new ByteArrayContent("test content"u8.ToArray());
-        content.Headers.Add("x-ms-blob-type", "BlockBlob");
+        foreach (var (name, value) in service.UploadHeaders)
+            content.Headers.Add(name, value);
         var response = await httpClient.PutAsync(url, content);
         Assert.IsTrue(response.IsSuccessStatusCode, $"Upload via presigned URL failed: {response.StatusCode}");
     }

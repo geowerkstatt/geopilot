@@ -16,6 +16,10 @@ public class AzureBlobUploadStorage : IUploadStorage
     /// <inheritdoc/>
     public string StorageLocation { get; }
 
+    /// <inheritdoc/>
+    /// <remarks>Azure Blob Storage refuses a Put Blob request without the blob type.</remarks>
+    public IReadOnlyDictionary<string, string> UploadHeaders { get; } = new Dictionary<string, string> { ["x-ms-blob-type"] = "BlockBlob" };
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureBlobUploadStorage"/> class.
     /// </summary>

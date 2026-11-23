@@ -8,4 +8,7 @@ public record InitiateUploadResponse(Guid UploadId, IReadOnlyList<FileUploadInfo
 /// <summary>
 /// Upload information for a single file, including the presigned URL.
 /// </summary>
-public record FileUploadInfo(string FileName, string UploadUrl);
+/// <param name="FileName">The name of the file.</param>
+/// <param name="UploadUrl">The URL to PUT the file content to.</param>
+/// <param name="UploadHeaders">The headers to send with the PUT, in addition to the content type.</param>
+public record FileUploadInfo(string FileName, string UploadUrl, IReadOnlyDictionary<string, string> UploadHeaders);
