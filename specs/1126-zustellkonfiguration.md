@@ -1,7 +1,5 @@
 # Konfiguration der Zustellversuche festhalten und geheime Werte maskieren (#1126)
 
-Review: required. Sicherheitsrelevant: Es entscheidet, ob Zugangsdaten in die Datenbank gelangen. Dazu kommt ein öffentlicher Typ in PipelineCore, auf dem Plugins aufbauen. Die Migration legt nur Spalten an.
-
 Abhängig von: #1188. Die Umsetzung beginnt nach dessen Merge und kommt in einem PR: Migration und GUI aus #1188 liegen sonst daneben, und ein Teil-PR ohne GUI müsste #1188 zum Nachziehen seiner Migration zwingen. Benennt #1195 die Tabellen vorher um, gelten die neuen Namen.
 
 Ein Zustellversuch soll später belegen, womit und wohin sein Kanal lief. Heute nennt `PipelineRunReactionEvents` nur Kanal, Versuch, Zustand und Meldung. `DeliveryReaction.Config` hilft nicht weiter: Dort fehlen die Basis-Konfiguration (`Pipeline:ChannelConfigs`) und der Stand der Ressourcen, die jeder Versuch neu liest, und sobald die Lieferung gelöscht ist, blendet ein Query-Filter die Reaktion aus. Zugleich übernimmt der Definitions-Snapshot eines Laufs `Pipeline:ProcessConfigs` im Klartext, für `Processing:ProtocolRetention` (Standard 10 Jahre). Heute steht dort kein Secret, mit dem ersten Plugin, das einen Token braucht, schon. Beides gehört zusammen: Hält das Protokoll die Konfiguration der Versuche fest, muss das Passwort des Mail-Kanals maskiert sein.
