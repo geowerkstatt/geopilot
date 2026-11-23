@@ -255,6 +255,10 @@ describe("diff map geometry", () => {
       expect(gap).to.be.greaterThan(stroke?.getWidth() ?? Infinity);
     });
 
+    it("draws a changed line solid", () => {
+      expect(styleOf(LINE, "changed", "new")?.getStroke()?.getLineDash() ?? []).to.be.empty;
+    });
+
     it("draws deleted lines and area outlines dashed", () => {
       const line = styleOf(LINE, "deleted", "old");
       const area = styleOf(AREA, "deleted", "old");
