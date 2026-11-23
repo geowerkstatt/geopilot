@@ -43,10 +43,10 @@ interface LookShapeProps {
 /** One state of a geometry in the look the map draws it in. */
 const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatchId }) => {
   const stroke = {
-    dotted: { stroke: color, strokeWidth: 2.5 },
+    dotted: { stroke: color, strokeWidth: 3.5, strokeDasharray: "0.1 6", strokeLinecap: "round" as const },
     crisp: { stroke: color, strokeWidth: 2.5 },
     ghost: { stroke: color, strokeOpacity: 0.4, strokeWidth: 9, strokeLinecap: "round" as const },
-    crossed: { stroke: color, strokeWidth: 2 },
+    crossed: { stroke: color, strokeWidth: 2, strokeDasharray: "8 4" },
   }[look];
   switch (geometry) {
     case "point":
@@ -65,16 +65,23 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
         );
       if (look === "crossed")
         return <path d="M17 9 L27 19 M27 9 L17 19" stroke={color} strokeWidth="3" strokeLinecap="round" />;
+      if (look === "dotted")
+        return (
+          <circle
+            cx="22"
+            cy="14"
+            r="6"
+            fill={color}
+            fillOpacity={0.25}
+            stroke={color}
+            strokeWidth="3"
+            strokeDasharray="0.1 4"
+            strokeLinecap="round"
+          />
+        );
       return <circle cx="22" cy="14" r="5" fill={color} stroke={rim} strokeWidth="1.5" />;
     case "line":
-      return (
-        <polyline
-          points={LINES[state]}
-          fill="none"
-          {...stroke}
-          strokeDasharray={look === "crossed" ? "8 4" : undefined}
-        />
-      );
+      return <polyline points={LINES[state]} fill="none" {...stroke} />;
     case "area": {
       const area = { ...AREAS[state], width: 24, height: 15 };
       if (look === "crossed")
@@ -82,14 +89,15 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
           <>
             <defs>
               <pattern id={hatchId} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <rect width="7" height="7" fill={color} fillOpacity={0.08} />
-                <path d="M0 0 H7 M0 0 V7" stroke={color} strokeWidth="1" />
+                <rect width="7" height="7" fill={color} fillOpacity={0.05} />
+                {/* Off the tile edge, where the pattern would clip half of the stroke. */}
+                <path d="M0 3.5 H7 M3.5 0 V7" stroke={color} strokeOpacity={0.5} strokeWidth="1" />
               </pattern>
             </defs>
             <rect {...area} fill={`url(#${hatchId})`} {...stroke} />
           </>
         );
-      const fillOpacity = { dotted: 0.5, crisp: 0.25, ghost: 0.08 }[look];
+      const fillOpacity = { dotted: 0.25, crisp: 0.25, ghost: 0.08 }[look];
       return (
         <rect
           {...area}
