@@ -525,7 +525,7 @@ describe("Delivery tests", () => {
     cy.dataCy("mandate-1").should("have.class", "Mui-selected").should("have.class", "Mui-disabled");
 
     // Can not navigate to future steps
-    selectStep("delivery");
+    cy.dataCy("delivery-step").should("be.disabled");
     stepIsActive("delivery", false);
 
     selectStep("processing");

@@ -1,4 +1,5 @@
 import { alpha, PaletteOptions } from "@mui/material/styles";
+import { blend } from "@mui/system";
 
 export const themePalette = {
   text: {
@@ -30,7 +31,7 @@ export const themePalette = {
     light: "#4CAF50",
     contrastText: "#1E4620",
     background: "#EDF7ED",
-    hover: alpha("#4caf51", 0.05),
+    hover: blend("#ffffff", "#4caf51", 0.05),
   },
   info: {
     main: "#0288D1",
@@ -46,7 +47,7 @@ export const themePalette = {
     contrastText: "#663C00",
     background: "#FFF4E5",
     selected: alpha("#fd9903", 0.18),
-    hover: alpha("#fd9903", 0.05),
+    hover: blend("#ffffff", "#fd9903", 0.05),
   },
   error: {
     main: "#e53835",
@@ -55,7 +56,7 @@ export const themePalette = {
     contrastText: "#5F2120",
     background: "#FDEDED",
     selected: alpha("#e53835", 0.18),
-    hover: alpha("#e53835", 0.05),
+    hover: blend("#ffffff", "#e53835", 0.05),
   },
   map: {
     stroke: "#ffffff",

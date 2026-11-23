@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Typography } from "@mui/material";
-import { styled, useMediaQuery, useTheme } from "@mui/system";
+import { Box, Stack, styled, Typography } from "@mui/material";
+import { useMediaQuery, useTheme } from "@mui/system";
 import { DeliveryStepState } from "../../api/apiInterfaces";
 import { themePalette } from "../../appPalette.ts";
 import { px2rem } from "../../appTheme.ts";
@@ -21,24 +21,32 @@ const getStateColors = (state: DeliveryStepState, active: boolean) => {
       return {
         backgroundColor: active ? themePalette.error.background : themePalette.background.content,
         borderColor: active ? themePalette.error.dark : themePalette.error.light,
+        hoverBackgroundColor: themePalette.error.hover,
+        hoverBorderColor: themePalette.error.main,
         messageColor: themePalette.error.contrastText,
       };
     case DeliveryStepState.Warning:
       return {
         backgroundColor: active ? themePalette.warning.background : themePalette.background.content,
         borderColor: active ? themePalette.warning.dark : themePalette.warning.light,
+        hoverBackgroundColor: themePalette.warning.hover,
+        hoverBorderColor: themePalette.warning.main,
         messageColor: themePalette.warning.contrastText,
       };
     case DeliveryStepState.Skipped:
       return {
         backgroundColor: themePalette.background.content,
         borderColor: themePalette.primary.light,
+        hoverBackgroundColor: themePalette.primary.states.hover,
+        hoverBorderColor: themePalette.primary.main,
         messageColor: themePalette.text.secondary,
       };
     default:
       return {
         backgroundColor: active ? themePalette.primary.states.selected : themePalette.background.content,
         borderColor: active ? themePalette.primary.dark : themePalette.primary.light,
+        hoverBackgroundColor: themePalette.primary.states.hover,
+        hoverBorderColor: themePalette.primary.main,
         messageColor: themePalette.text.primary,
       };
   }
@@ -72,7 +80,8 @@ const StepperStack = styled(Stack)({
   position: "relative",
 });
 
-const StepDetailTypography = styled(Typography)(({ theme }) => ({
+const StepDetail = styled("span")(({ theme }) => ({
+  ...theme.typography.body2,
   display: "none",
   paddingLeft: `calc(${px2rem(28)} + ${theme.spacing(2)})`,
   maxWidth: "100%",
@@ -119,19 +128,36 @@ export const DeliveryStepper = () => {
                 : enabled
                   ? DeliveryStepState.Enabled
                   : DeliveryStepState.Pending);
-          const { backgroundColor, borderColor, messageColor } = getStateColors(stepState, open);
+          const { backgroundColor, borderColor, hoverBackgroundColor, hoverBorderColor, messageColor } = getStateColors(
+            stepState,
+            open,
+          );
+          const selectable = enabled && !skipped;
 
           return (
             <GeopilotBox
               key={key}
+              component="button"
+              type="button"
+              disabled={!selectable}
               data-cy={`${key}-step`}
               aria-current={open ? "step" : undefined}
-              onClick={skipped ? undefined : () => openCompletedOrNextStep(index)}
+              onClick={() => openCompletedOrNextStep(index)}
               sx={{
                 gap: 1,
+                textAlign: "left",
                 backgroundColor: backgroundColor,
                 borderColor: borderColor,
-                cursor: enabled ? "pointer" : "default",
+                cursor: selectable ? "pointer" : "default",
+                ...(selectable &&
+                  !open && {
+                    "&:hover": { backgroundColor: hoverBackgroundColor, borderColor: hoverBorderColor },
+                  }),
+                "&:focus-visible": {
+                  outline: "none",
+                  borderColor: hoverBorderColor,
+                  boxShadow: `inset 0 0 0 1px ${hoverBorderColor}`,
+                },
                 [theme.breakpoints.down("md")]: {
                   scrollSnapAlign: "center",
                   width: "100%",
@@ -141,27 +167,30 @@ export const DeliveryStepper = () => {
                   justifyContent: "center",
                 },
               }}>
-              <Stack direction="row" sx={{ alignItems: "center" }}>
+              <Stack component="span" direction="row" sx={{ alignItems: "center" }}>
                 <StepIcon step={index + 1} state={stepState} variant="contained" />
-                <Typography variant="h4" sx={{ color: enabled ? "text.primary" : "text.secondary", m: 0 }}>
+                <Typography
+                  variant="h4"
+                  component="span"
+                  sx={{ color: enabled ? "text.primary" : "text.secondary", m: 0 }}>
                   {t(step.label)}
                 </Typography>
               </Stack>
               {step.labelAddition && (
-                <StepDetailTypography variant="body2" sx={{ color: "primary.main" }}>
+                <StepDetail sx={{ color: "primary.main" }}>
                   {step.labelAddition.split("\n").map((line, idx) => (
                     <MiddleTruncate key={idx} text={line} endLength={10} />
                   ))}
-                </StepDetailTypography>
+                </StepDetail>
               )}
               {step.messages && step.messages.length > 0 && (
-                <StepDetailTypography variant="body2" sx={{ color: messageColor }}>
+                <StepDetail sx={{ color: messageColor }}>
                   {step.messages.map((message, idx) => (
                     <Box component="span" key={idx} sx={{ display: "block" }}>
                       {typeof message === "string" ? t(message) : localized(message)}
                     </Box>
                   ))}
-                </StepDetailTypography>
+                </StepDetail>
               )}
             </GeopilotBox>
           );

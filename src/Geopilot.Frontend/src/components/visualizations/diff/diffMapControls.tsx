@@ -176,7 +176,7 @@ export const DiffMapLegendButton: FC = () => {
         tooltipPlacement="left"
         aria-expanded={open}
         aria-controls={open ? legendId : undefined}
-        sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
+        className={open ? "active" : undefined}
         onClick={() => setOpen(previous => !previous)}
       />
     </>
@@ -204,7 +204,7 @@ export const DiffMapSliderButton: FC<DiffMapSliderButtonProps> = ({ slider, onSl
         disabled={disabled}
         tooltipPlacement="left"
         aria-pressed={sliderOn}
-        sx={{ bgcolor: sliderOn ? "primary.states.selected" : undefined }}
+        className={sliderOn ? "active" : undefined}
         onClick={() => onSliderChange(sliderOn ? null : 0)}
       />
     </ButtonGroup>

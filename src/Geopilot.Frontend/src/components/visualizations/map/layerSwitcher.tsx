@@ -139,7 +139,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
         label="layers"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        sx={{ bgcolor: open ? "primary.states.selected" : undefined }}
+        className={open ? "active" : undefined}
         onClick={() => setOpen(previous => !previous)}
         tooltipPlacement="left"
       />

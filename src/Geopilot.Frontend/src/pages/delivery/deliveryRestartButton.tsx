@@ -32,6 +32,7 @@ export const DeliveryRestartButton = forwardRef<HTMLButtonElement, DeliveryResta
           ref={ref}
           label="restart"
           variant="text"
+          size="medium"
           onClick={immediate ? resetDelivery : promptToRestart}
           {...props}
         />
