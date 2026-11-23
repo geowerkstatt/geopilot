@@ -45,7 +45,7 @@ export const RecordingReactionEvents: FC<RecordingReactionEventsProps> = ({ even
           // expand icon of an attempt, so the times line up.
           return (
             <Accordion key={eventKey(reactionEvent)} expanded={false} data-cy={dataCy}>
-              <Box sx={{ paddingLeft: 2, paddingRight: 5, paddingY: 1.5 }}>
+              <Box sx={{ paddingLeft: 2, paddingRight: 7, paddingY: 1.5 }}>
                 <ReactionEventSummary reactionEvent={reactionEvent} />
               </Box>
             </Accordion>
