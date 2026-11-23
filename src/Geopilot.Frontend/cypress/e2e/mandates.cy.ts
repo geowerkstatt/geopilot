@@ -761,7 +761,7 @@ describe("Mandate with a reaction set", () => {
     cy.wait("@getPipelines");
 
     // The values are grouped under the name of their reaction.
-    cy.contains("p", /^File drop$/).should("be.visible");
+    cy.contains("h4", /^File drop$/).should("be.visible");
     evaluateInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
     setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-b");
     setChipInput("reactionSetValues.ablage_pro_mandat.recipients", "someone@example.com");

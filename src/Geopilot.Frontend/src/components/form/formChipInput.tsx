@@ -160,7 +160,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   };
 
   return (
-    <Stack spacing={1} sx={{ width: "100%" }}>
+    <Stack spacing={0.5} sx={{ width: "100%" }}>
       <TextField
         label={typeof label === "string" ? t(label) : label}
         placeholder={t("chipInputPlaceholder")}

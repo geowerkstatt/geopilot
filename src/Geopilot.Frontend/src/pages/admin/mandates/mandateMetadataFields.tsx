@@ -58,11 +58,16 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
 
   return (
     <>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", marginTop: 1 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "end" }}>
         <Typography variant={"h4"} sx={{ margin: 0 }}>
           {t("metadataFields")}
         </Typography>
-        <Button startIcon={<AddIcon />} label={"addMetadataField"} onClick={() => setEditedIndex(fields.length)} />
+        <Button
+          size="medium"
+          startIcon={<AddIcon />}
+          label={"addMetadataField"}
+          onClick={() => setEditedIndex(fields.length)}
+        />
       </Stack>
       {fields.length > 0 ? (
         <List
