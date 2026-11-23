@@ -1,4 +1,5 @@
 import Feature from "ol/Feature";
+import RegularShape from "ol/style/RegularShape";
 import Style from "ol/style/Style";
 import {
   buildConnectors,
@@ -181,7 +182,7 @@ describe("diff map geometry", () => {
   });
 
   it("draws each change type in its own look", () => {
-    expect(getLook("added", "new")).to.equal("filled");
+    expect(getLook("added", "new")).to.equal("dotted");
     expect(getLook("deleted", "old")).to.equal("crossed");
     expect(getLook("changed", "old")).to.equal("ghost");
     expect(getLook("changed", "new")).to.equal("crisp");
@@ -209,28 +210,57 @@ describe("diff map geometry", () => {
     expect(fillOf(buildPartTypeIndex([geometryChange({ newLocation: surface })]))).to.equal("rgba(0, 0, 255, 0.25)");
   });
 
-  it("draws a deleted line dashed and outlines a deleted area solid", () => {
-    const styleOf = (wkt: string) => {
+  describe("tells the change types apart without color", () => {
+    const POINT = "POINT (5 5)";
+    const LINE = "LINESTRING (0 0, 10 0)";
+    const AREA = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+
+    /** The first style the diff map gives a feature that is entirely of one change type. */
+    const styleOf = (wkt: string, changeType: "added" | "deleted" | "changed", state: "old" | "new") => {
       const feature = new Feature(readLocation(wkt));
       feature.setId("o");
       const inputs = {
         current: {
-          objectTypes: new Map<string, "deleted">([["o", "deleted"]]),
+          objectTypes: new Map([["o", changeType]]),
           partTypes: buildPartTypeIndex([]),
           highlightedIds: new Set<string>(),
           hoveredIds: new Set<string>(),
         },
       };
       const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
-      const styles = buildDiffStyleFunction("old", inputs, colors)(feature, 1);
+      const styles = buildDiffStyleFunction(state, inputs, colors)(feature, 1);
       return Array.isArray(styles) ? styles[0] : undefined;
     };
-    const line = styleOf("LINESTRING (0 0, 10 0)");
-    const area = styleOf("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))");
 
-    expect(line?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
-    expect(area?.getStroke()?.getLineDash()).to.equal(null);
-    // A fill keeps the area pickable from inside.
-    expect(area?.getFill()?.getColor()).to.be.instanceOf(CanvasPattern);
+    const rimDashOf = (style: Style | undefined) => {
+      const image = style?.getImage();
+      return image instanceof RegularShape ? image.getStroke()?.getLineDash() : undefined;
+    };
+
+    it("draws added lines and area outlines dotted", () => {
+      const line = styleOf(LINE, "added", "new");
+      const area = styleOf(AREA, "added", "new");
+
+      for (const style of [line, area]) {
+        expect(style?.getStroke()?.getLineDash()).to.deep.equal([0.1, 6]);
+        expect(style?.getStroke()?.getLineCap()).to.equal("round");
+      }
+      expect(area?.getFill()?.getColor()).to.equal("rgba(0, 128, 0, 0.25)");
+    });
+
+    it("draws deleted lines and area outlines dashed", () => {
+      const line = styleOf(LINE, "deleted", "old");
+      const area = styleOf(AREA, "deleted", "old");
+
+      expect(line?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
+      expect(area?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
+      // A fill keeps the area pickable from inside.
+      expect(area?.getFill()?.getColor()).to.be.instanceOf(CanvasPattern);
+    });
+
+    it("rims an added point dotted and a changed one solid", () => {
+      expect(rimDashOf(styleOf(POINT, "added", "new")) ?? []).to.not.be.empty;
+      expect(rimDashOf(styleOf(POINT, "changed", "new")) ?? []).to.be.empty;
+    });
   });
 });

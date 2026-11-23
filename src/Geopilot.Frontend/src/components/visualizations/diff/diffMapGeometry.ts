@@ -30,13 +30,13 @@ export type PartTypeIndex = ReadonlyMap<string, Record<DiffState, ReadonlyMap<st
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
 /**
- * How a geometry is drawn. Deleted has a shape of its own, so it reads without color; added and changed share the solid
- * line and tell apart by the band of the old state beneath a changed object.
+ * How a geometry is drawn. Each change type reads without color: added is dotted, changed solid with the band of its old
+ * state beneath, deleted dashed.
  */
-export type DiffLook = "filled" | "crisp" | "ghost" | "crossed";
+export type DiffLook = "dotted" | "crisp" | "ghost" | "crossed";
 
 export const getLook = (changeType: DiffChangeType, state: DiffState): DiffLook => {
-  if (changeType === "added") return "filled";
+  if (changeType === "added") return "dotted";
   if (changeType === "deleted") return "crossed";
   return state === "old" ? "ghost" : "crisp";
 };

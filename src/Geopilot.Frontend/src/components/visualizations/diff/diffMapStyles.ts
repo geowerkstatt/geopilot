@@ -40,18 +40,20 @@ export interface DiffStyleInputs {
 type Emphasis = 0 | 1 | 2;
 
 const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
-  filled: { radius: 5, width: 2.5 },
+  dotted: { radius: 6, width: 3.5 },
   crisp: { radius: 5, width: 2.5 },
   ghost: { radius: 10, width: 10 },
   crossed: { radius: 7, width: 2 },
 };
 
-/** The shape of a part by its rank: areas 0, lines 1, points 2. */
-const SHAPES_BY_RANK = ["area", "line", "point"] as const;
-type PartShape = (typeof SHAPES_BY_RANK)[number];
+/** An added line or outline as dots: with round caps, each near-zero dash draws as a dot. */
+const ADDED_DOTS = [0.1, 6];
 
-/** Dash and gap in pixels of a deleted line; dashes stay long enough that a short line does not read as a point. */
-const DELETED_LINE_DASH = [8, 4];
+/** The dots on the rim of an added point lie closer than on a line, so the small circle still gets enough of them. */
+const ADDED_POINT_DOTS = [0.1, 4];
+
+/** Dash and gap in pixels of a deleted line or outline; dashes stay long enough that a short line does not read as a point. */
+const DELETED_DASH = [8, 4];
 
 /** Pixels between the lines of the cross-hatching of a deleted area. */
 const HATCH_SPACING = 10;
@@ -61,9 +63,12 @@ const withAlpha = (color: string, opacity: number): string => {
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 };
 
-/** Crossed diagonals on a faint tint, scaled to the device pixels the map renders in so they keep their size on any screen. */
+/**
+ * Pale crossed diagonals on a faint tint, so the base map beneath stays legible. Scaled to the device pixels the map
+ * renders in, so they keep their size on any screen.
+ */
 const createCrossHatching = (color: string): CanvasPattern | string => {
-  const tint = withAlpha(color, 0.08);
+  const tint = withAlpha(color, 0.05);
   const canvas = document.createElement("canvas");
   const size = Math.round(HATCH_SPACING * DEVICE_PIXEL_RATIO);
   canvas.width = canvas.height = size;
@@ -71,7 +76,7 @@ const createCrossHatching = (color: string): CanvasPattern | string => {
   if (!context) return tint;
   context.fillStyle = tint;
   context.fillRect(0, 0, size, size);
-  context.strokeStyle = color;
+  context.strokeStyle = withAlpha(color, 0.5);
   context.lineWidth = DEVICE_PIXEL_RATIO;
   context.beginPath();
   // Each diagonal is repeated one tile to either side, so its ends cut off at the corners join the neighboring tiles.
@@ -101,7 +106,6 @@ const getSizes = (look: DiffLook, emphasis: Emphasis) => {
  */
 const buildLookStyle = (
   look: DiffLook,
-  shape: PartShape,
   color: string,
   rim: string,
   emphasis: Emphasis,
@@ -109,18 +113,21 @@ const buildLookStyle = (
   filled: boolean,
 ): Style => {
   const { radius, width } = getSizes(look, emphasis);
-  const dot = new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) });
   switch (look) {
-    case "filled":
+    case "dotted":
       return new Style({
-        image: dot,
-        stroke: new Stroke({ color, width }),
-        fill: new Fill({ color: withAlpha(color, 0.5) }),
+        image: new Circle({
+          radius,
+          fill: new Fill({ color: withAlpha(color, 0.25) }),
+          stroke: new Stroke({ color, width: 3, lineDash: ADDED_POINT_DOTS, lineCap: "round" }),
+        }),
+        stroke: new Stroke({ color, width, lineDash: ADDED_DOTS, lineCap: "round" }),
+        fill: new Fill({ color: withAlpha(color, 0.25) }),
         zIndex,
       });
     case "crisp":
       return new Style({
-        image: dot,
+        image: new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) }),
         stroke: new Stroke({ color, width }),
         fill: new Fill({ color: withAlpha(color, filled ? 0.25 : 0) }),
         zIndex,
@@ -145,13 +152,8 @@ const buildLookStyle = (
           angle: Math.PI / 4,
           stroke: new Stroke({ color, width: 3, lineCap: "round" }),
         }),
-        // The outline of an area stays solid, its hatching marks it as deleted. Round caps would grow a dash into its gap.
-        stroke: new Stroke({
-          color,
-          width,
-          lineDash: shape === "area" ? undefined : DELETED_LINE_DASH,
-          lineCap: "butt",
-        }),
+        // Round caps would grow a dash into its gap.
+        stroke: new Stroke({ color, width, lineDash: DELETED_DASH, lineCap: "butt" }),
         fill: new Fill({ color: createCrossHatching(color) }),
         zIndex,
       });
@@ -239,7 +241,7 @@ export const buildDiffStyleFunction = (
       const filled = changeType !== "changed" || hasOwnGeometryChange(current.partTypes, id, state, part);
       const styles = cached(`${look}|${changeType}|${zIndex}|${emphasis}|${filled}`, () => [
         ...(emphasis === 0 ? [] : [buildUnderlayStyle(look, colors.outline, emphasis, zIndex)]),
-        buildLookStyle(look, SHAPES_BY_RANK[rank], colors[changeType], colors.rim, emphasis, zIndex, filled),
+        buildLookStyle(look, colors[changeType], colors.rim, emphasis, zIndex, filled),
       ]);
       if (!(geometry instanceof GeometryCollection)) return styles;
       return styles.map(style => {

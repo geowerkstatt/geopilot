@@ -43,7 +43,7 @@ interface LookShapeProps {
 /** One state of a geometry in the look the map draws it in. */
 const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatchId }) => {
   const stroke = {
-    filled: { stroke: color, strokeWidth: 2.5 },
+    dotted: { stroke: color, strokeWidth: 2.5 },
     crisp: { stroke: color, strokeWidth: 2.5 },
     ghost: { stroke: color, strokeOpacity: 0.4, strokeWidth: 9, strokeLinecap: "round" as const },
     crossed: { stroke: color, strokeWidth: 2 },
@@ -89,7 +89,7 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
             <rect {...area} fill={`url(#${hatchId})`} {...stroke} />
           </>
         );
-      const fillOpacity = { filled: 0.5, crisp: 0.25, ghost: 0.08 }[look];
+      const fillOpacity = { dotted: 0.5, crisp: 0.25, ghost: 0.08 }[look];
       return (
         <rect
           {...area}
