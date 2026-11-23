@@ -167,7 +167,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
 
                 foreach (var required in Options.RequiredClaims)
                 {
-                    var hasClaim = root.TryGetProperty(required.Name, out var claim) && HasValue(claim, required.Value);
+                    var hasClaim = root.TryGetProperty(required.Name, out var claim) && HasSingleValue(claim, required.Value);
                     if (!hasClaim)
                     {
                         Logger.LogWarning("Introspection response does not have required claim {Claim} with the configured value.", required.Name);
@@ -238,6 +238,16 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             element.ValueKind == JsonValueKind.String && string.Equals(element.GetString(), value, StringComparison.Ordinal)),
         _ => false,
     };
+
+    /// <summary>
+    /// Matches a single JSON string or a one-element string array.
+    /// The JWT path treats both as one claim, so this check accepts both.
+    /// </summary>
+    private static bool HasSingleValue(JsonElement member, string value)
+    {
+        var single = member.ValueKind == JsonValueKind.Array && member.GetArrayLength() == 1 ? member[0] : member;
+        return single.ValueKind == JsonValueKind.String && string.Equals(single.GetString(), value, StringComparison.Ordinal);
+    }
 
     /// <summary>
     /// Reads a string member of the introspection response, treating a blank one as absent so the next

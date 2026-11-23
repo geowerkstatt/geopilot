@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
+using System.Security.Claims;
 
 namespace Geopilot.Api.Authorization;
 
@@ -14,7 +15,7 @@ public static class AuthenticationExtensions
     /// </summary>
     /// <param name="builder">The web application builder.</param>
     /// <returns>The configured <see cref="AccessTokenFormat"/>.</returns>
-    /// <exception cref="InvalidOperationException">Auth:AccessTokenFormat is not a supported value, or an entry of Auth:RequiredClaims has no name or no value.</exception>
+    /// <exception cref="InvalidOperationException"><c>Auth:AccessTokenFormat</c> is unsupported, or <c>Auth:RequiredClaims</c> is invalid or contains duplicate claim names.</exception>
     public static AccessTokenFormat AddGeopilotAuthentication(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -40,10 +41,20 @@ public static class AuthenticationExtensions
 
     private static RequiredClaim[] ReadRequiredClaims(this WebApplicationBuilder builder)
     {
-        var requiredClaims = builder.Configuration.GetSection("Auth:RequiredClaims").Get<RequiredClaim[]>() ?? [];
-        if (requiredClaims.Any(claim => string.IsNullOrWhiteSpace(claim.Name) || string.IsNullOrWhiteSpace(claim.Value)))
+        // Do not use ConfigurationBinder here: it silently skips malformed entries and disables the check.
+        var section = builder.Configuration.GetSection("Auth:RequiredClaims");
+        var requiredClaims = section.GetChildren()
+            .Select(entry => new RequiredClaim { Name = entry["Name"] ?? string.Empty, Value = entry["Value"] ?? string.Empty })
+            .ToArray();
+        if (!string.IsNullOrEmpty(section.Value) || requiredClaims.Any(claim => string.IsNullOrWhiteSpace(claim.Name) || string.IsNullOrWhiteSpace(claim.Value)))
         {
-            throw new InvalidOperationException("Every entry of Auth:RequiredClaims needs a Name and a Value.");
+            throw new InvalidOperationException("Auth:RequiredClaims must be a list of entries, each with a Name and a Value.");
+        }
+
+        var duplicate = requiredClaims.CountBy(claim => claim.Name, StringComparer.Ordinal).FirstOrDefault(count => count.Value > 1).Key;
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException($"Auth:RequiredClaims names the claim {duplicate} more than once.");
         }
 
         return requiredClaims;
@@ -106,14 +117,14 @@ public static class AuthenticationExtensions
                     },
                     OnTokenValidated = async context =>
                     {
-                        // Before the anonymous return: an anonymous endpoint that reads the current user must see no user.
+                        // Check required claims before the anonymous return so anonymous endpoints treat a rejected token as unauthenticated.
                         foreach (var required in requiredClaims)
                         {
-                            var hasClaim = context.Principal?.HasClaim(claim =>
-                                string.Equals(claim.Type, required.Name, StringComparison.Ordinal) &&
-                                string.Equals(claim.Value, required.Value, StringComparison.Ordinal)) == true;
-                            if (!hasClaim)
+                            if (!HasRequiredClaim(context.Principal, required))
                             {
+                                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                                    .CreateLogger(typeof(AuthenticationExtensions))
+                                    .LogWarning("Token does not have required claim {Claim} with the configured value.", required.Name);
                                 context.Fail($"Token does not have required claim {required.Name} with the configured value.");
                                 return;
                             }
@@ -155,5 +166,24 @@ public static class AuthenticationExtensions
                     },
                 };
             });
+    }
+
+    private static bool HasRequiredClaim(ClaimsPrincipal? principal, RequiredClaim required)
+    {
+        if (principal is null)
+        {
+            return false;
+        }
+
+        // JsonWebTokenHandler splits a JSON array into one Claim per element, so multiple values produce multiple claims.
+        var claims = principal.FindAll(claim => string.Equals(claim.Type, required.Name, StringComparison.Ordinal)).ToList();
+        if (claims.Count != 1)
+        {
+            return false;
+        }
+
+        var claim = claims[0];
+        return string.Equals(claim.ValueType, ClaimValueTypes.String, StringComparison.Ordinal)
+            && string.Equals(claim.Value, required.Value, StringComparison.Ordinal);
     }
 }

@@ -59,8 +59,8 @@ internal static class JwtTestTokenBuilder
     /// <summary>
     /// A token as an identity provider issues it for client credentials: a subject and nothing about a person.
     /// </summary>
-    public static string CreateClientToken(string sub) =>
-        WriteToken([new Claim(JwtRegisteredClaimNames.Sub, sub)], Issuer, Audience, Credentials);
+    public static string CreateClientToken(string sub, params Claim[] extraClaims) =>
+        WriteToken([new Claim(JwtRegisteredClaimNames.Sub, sub), .. extraClaims], Issuer, Audience, Credentials);
 
     public static string CreateValidAdminToken() =>
         CreateToken(AdminSub, Issuer, Audience, Credentials);

@@ -33,7 +33,7 @@ public class OpaqueTokenOptions : AuthenticationSchemeOptions
     public string Audience { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the claims that the introspection response must have, each with its exact value.
+    /// Gets or sets the required claims that the introspection response must contain.
     /// </summary>
     public IReadOnlyList<RequiredClaim> RequiredClaims { get; set; } = [];
 
