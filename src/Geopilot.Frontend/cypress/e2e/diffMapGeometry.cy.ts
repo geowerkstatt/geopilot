@@ -215,21 +215,26 @@ describe("diff map geometry", () => {
     const LINE = "LINESTRING (0 0, 10 0)";
     const AREA = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
 
-    /** The first style the diff map gives a feature that is entirely of one change type. */
-    const styleOf = (wkt: string, changeType: "added" | "deleted" | "changed", state: "old" | "new") => {
+    /** The own style, above any underlay, the diff map gives a feature that is entirely of one change type. */
+    const styleOf = (
+      wkt: string,
+      changeType: "added" | "deleted" | "changed",
+      state: "old" | "new",
+      selection: "plain" | "highlighted" = "plain",
+    ) => {
       const feature = new Feature(readLocation(wkt));
       feature.setId("o");
       const inputs = {
         current: {
           objectTypes: new Map([["o", changeType]]),
           partTypes: buildPartTypeIndex([]),
-          highlightedIds: new Set<string>(),
+          highlightedIds: new Set<string>(selection === "highlighted" ? ["o"] : []),
           hoveredIds: new Set<string>(),
         },
       };
       const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
       const styles = buildDiffStyleFunction(state, inputs, colors)(feature, 1);
-      return Array.isArray(styles) ? styles[0] : undefined;
+      return Array.isArray(styles) ? styles.at(-1) : undefined;
     };
 
     const rimDashOf = (style: Style | undefined) => {
@@ -246,6 +251,13 @@ describe("diff map geometry", () => {
         expect(style?.getStroke()?.getLineCap()).to.equal("round");
       }
       expect(area?.getFill()?.getColor()).to.equal("rgba(0, 128, 0, 0.25)");
+    });
+
+    it("keeps the dots of a highlighted added line apart", () => {
+      const stroke = styleOf(LINE, "added", "new", "highlighted")?.getStroke();
+      const [, gap] = stroke?.getLineDash() ?? [];
+
+      expect(gap).to.be.greaterThan(stroke?.getWidth() ?? Infinity);
     });
 
     it("draws deleted lines and area outlines dashed", () => {

@@ -46,8 +46,11 @@ const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
   crossed: { radius: 7, width: 2 },
 };
 
-/** An added line or outline as dots: with round caps, each near-zero dash draws as a dot. */
-const ADDED_DOTS = [0.1, 6];
+/**
+ * An added line or outline as dots: with round caps, each near-zero dash draws as a dot. The gap grows with the width,
+ * so the dots of a hovered or selected line stay apart.
+ */
+const getAddedDots = (width: number) => [0.1, width + 2.5];
 
 /** The dots on the rim of an added point lie closer than on a line, so the small circle still gets enough of them. */
 const ADDED_POINT_DOTS = [0.1, 4];
@@ -121,7 +124,7 @@ const buildLookStyle = (
           fill: new Fill({ color: withAlpha(color, 0.25) }),
           stroke: new Stroke({ color, width: 3, lineDash: ADDED_POINT_DOTS, lineCap: "round" }),
         }),
-        stroke: new Stroke({ color, width, lineDash: ADDED_DOTS, lineCap: "round" }),
+        stroke: new Stroke({ color, width, lineDash: getAddedDots(width), lineCap: "round" }),
         fill: new Fill({ color: withAlpha(color, 0.25) }),
         zIndex,
       });
