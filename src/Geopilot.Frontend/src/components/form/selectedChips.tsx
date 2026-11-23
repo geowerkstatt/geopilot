@@ -16,7 +16,7 @@ interface SelectedChipsProps {
  * whatever does not fit into a trailing "+N".
  */
 export const SelectedChips: FC<SelectedChipsProps> = ({ values, onDelete, dataCy }) => (
-  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }} data-cy={dataCy}>
+  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, paddingBottom: 0.5 }} data-cy={dataCy}>
     {values.map((value, index) => (
       <Chip
         key={`${value}-${index}`}
