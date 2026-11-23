@@ -1,7 +1,5 @@
 # Downloads, Visualisierungen und Delivery-Assets im Object Store ablegen (#850)
 
-Review: required. Jede Installation muss Konfigurationsschlüssel umstellen, die Betreiberdoku ändert sich, und CI ebenso. Der Zugriff auf den Upload-Speicher wird umgebaut, und Uploads zählen als sicherheitsrelevant. Ein Fehler in der Deklaration kostet Lieferungen.
-
 Abhängig von: #1199 und #947, beide nur für PR 2. #1199 bringt den S3-Provider, den diese Spec um Schreiben und Kopieren erweitert. Von #947 übernimmt sie die Reihenfolge der Deklaration und die Regeln, nach denen das Cleanup Lieferdateien behält; hier wird beides für den Bucket übersetzt.
 
 ## Ziel
