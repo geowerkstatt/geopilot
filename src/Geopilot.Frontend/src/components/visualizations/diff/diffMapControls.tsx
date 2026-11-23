@@ -65,20 +65,6 @@ const LookShape: FC<LookShapeProps> = ({ look, geometry, state, color, rim, hatc
         );
       if (look === "crossed")
         return <path d="M17 9 L27 19 M27 9 L17 19" stroke={color} strokeWidth="3" strokeLinecap="round" />;
-      if (look === "dotted")
-        return (
-          <circle
-            cx="22"
-            cy="14"
-            r="6"
-            fill={color}
-            fillOpacity={0.25}
-            stroke={color}
-            strokeWidth="3"
-            strokeDasharray="0.1 4"
-            strokeLinecap="round"
-          />
-        );
       return <circle cx="22" cy="14" r="5" fill={color} stroke={rim} strokeWidth="1.5" />;
     case "line":
       return <polyline points={LINES[state]} fill="none" {...stroke} />;

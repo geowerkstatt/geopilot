@@ -210,7 +210,7 @@ describe("diff map geometry", () => {
     expect(fillOf(buildPartTypeIndex([geometryChange({ newLocation: surface })]))).to.equal("rgba(0, 0, 255, 0.25)");
   });
 
-  describe("tells the change types apart without color", () => {
+  describe("styles of the change types", () => {
     const POINT = "POINT (5 5)";
     const LINE = "LINESTRING (0 0, 10 0)";
     const AREA = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
@@ -235,11 +235,6 @@ describe("diff map geometry", () => {
       const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
       const styles = buildDiffStyleFunction(state, inputs, colors)(feature, 1);
       return Array.isArray(styles) ? styles.at(-1) : undefined;
-    };
-
-    const rimDashOf = (style: Style | undefined) => {
-      const image = style?.getImage();
-      return image instanceof RegularShape ? image.getStroke()?.getLineDash() : undefined;
     };
 
     it("draws added lines and area outlines dotted", () => {
@@ -270,9 +265,13 @@ describe("diff map geometry", () => {
       expect(area?.getFill()?.getColor()).to.be.instanceOf(CanvasPattern);
     });
 
-    it("rims an added point dotted and a changed one solid", () => {
-      expect(rimDashOf(styleOf(POINT, "added", "new")) ?? []).to.not.be.empty;
-      expect(rimDashOf(styleOf(POINT, "changed", "new")) ?? []).to.be.empty;
+    it("draws an added point as a full dot with a white rim", () => {
+      const image = styleOf(POINT, "added", "new")?.getImage();
+      const dot = image instanceof RegularShape ? image : undefined;
+
+      expect(dot?.getFill()?.getColor()).to.equal("green");
+      expect(dot?.getStroke()?.getColor()).to.equal("white");
+      expect(dot?.getStroke()?.getLineDash() ?? []).to.be.empty;
     });
   });
 });

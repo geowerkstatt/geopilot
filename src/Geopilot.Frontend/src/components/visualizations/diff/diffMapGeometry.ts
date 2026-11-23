@@ -30,8 +30,8 @@ export type PartTypeIndex = ReadonlyMap<string, Record<DiffState, ReadonlyMap<st
 export type DecorationRole = "connector" | "focus" | "counterpart";
 
 /**
- * How a geometry is drawn. Each change type reads without color: added is dotted, changed solid with the band of its old
- * state beneath, deleted dashed.
+ * How a geometry is drawn. Lines and outlines read without color: added dotted, changed solid with the band of its old
+ * state beneath, deleted dashed. Among points, a deleted one is an X and a changed one has the ring of its old state.
  */
 export type DiffLook = "dotted" | "crisp" | "ghost" | "crossed";
 

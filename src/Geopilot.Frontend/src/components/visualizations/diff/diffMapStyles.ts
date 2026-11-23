@@ -40,7 +40,7 @@ export interface DiffStyleInputs {
 type Emphasis = 0 | 1 | 2;
 
 const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
-  dotted: { radius: 6, width: 3.5 },
+  dotted: { radius: 5, width: 3.5 },
   crisp: { radius: 5, width: 2.5 },
   ghost: { radius: 10, width: 10 },
   crossed: { radius: 7, width: 2 },
@@ -51,9 +51,6 @@ const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
  * so the dots of a hovered or selected line stay apart.
  */
 const getAddedDots = (width: number) => [0.1, width + 2.5];
-
-/** The dots on the rim of an added point lie closer than on a line, so the small circle still gets enough of them. */
-const ADDED_POINT_DOTS = [0.1, 4];
 
 /** Dash and gap in pixels of a deleted line or outline; dashes stay long enough that a short line does not read as a point. */
 const DELETED_DASH = [8, 4];
@@ -116,21 +113,18 @@ const buildLookStyle = (
   filled: boolean,
 ): Style => {
   const { radius, width } = getSizes(look, emphasis);
+  const dot = new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) });
   switch (look) {
     case "dotted":
       return new Style({
-        image: new Circle({
-          radius,
-          fill: new Fill({ color: withAlpha(color, 0.25) }),
-          stroke: new Stroke({ color, width: 3, lineDash: ADDED_POINT_DOTS, lineCap: "round" }),
-        }),
+        image: dot,
         stroke: new Stroke({ color, width, lineDash: getAddedDots(width), lineCap: "round" }),
         fill: new Fill({ color: withAlpha(color, 0.25) }),
         zIndex,
       });
     case "crisp":
       return new Style({
-        image: new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) }),
+        image: dot,
         stroke: new Stroke({ color, width }),
         fill: new Fill({ color: withAlpha(color, filled ? 0.25 : 0) }),
         zIndex,
