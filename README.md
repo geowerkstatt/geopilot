@@ -428,3 +428,5 @@ Was ein [Kanal](./GLOSSARY.md#kanal) vom Betrieb braucht, steht in seiner Basis-
 Der Mail-Kanal braucht dort Server, Port und Absender und, wo der Server es verlangt, die Anmeldung. Das Passwort gehört in eine Umgebungsvariable oder einen Vault. Lokal fängt Mailpit aus dem Docker Compose die Mails ab: Die Entwicklungskonfiguration sendet dorthin, und die Mails stehen unter http://localhost:8025.
 
 Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Reaktionen betreiben](./docs/Reaktionen.md).
+
+This is a test change
