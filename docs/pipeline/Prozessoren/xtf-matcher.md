@@ -16,11 +16,11 @@ Ein XTF Matcher Prozess muss unter `processes[X].implementation` den Wert `Geopi
 
 Der Name des Prozessor-Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
-- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der Pipeline-Definition festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
+- `files`: Eine Liste von Dateien vom Typ `IPipelineFile[]`, welche gefiltert wird. Die Quelle wird in der [Pipeline-Definition](../../../GLOSSARY.md#pipeline) festgelegt; in den ausgelieferten Pipelines ist der Parameter mit `${upload()}` (die hochgeladenen Dateien) verdrahtet.
 
 ## Output
 
-Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
+Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, [Lieferung](../../../GLOSSARY.md#lieferung), Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
 - `XtfFiles`: Ein Array von Dateien vom Typ `IPipelineFile[]`, welche den konfigurierten Filterkriterien entsprechen. Dieses Array kann leer sein, wenn keine Datei den Kriterien entspricht.
 - `UnmatchedFiles`: Ein Array von Dateien vom Typ `IPipelineFile[]` mit allen Eingabedateien, welche die Filterkriterien **nicht** erfüllen (die Ergänzung zu `XtfFiles`). Die Eingabereihenfolge bleibt erhalten. Der Rest wird nach dem inhaltsbasierten Modellfilter berechnet, weshalb Dateien, deren Kopf sich nicht lesen lässt, bei aktiviertem `iliModels`-Filter hier landen. Damit lassen sich die aussortierten Dateien in einem nachfolgenden Schritt weiterverarbeiten oder über `output_actions` mitliefern.
@@ -29,7 +29,7 @@ Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schri
 
 ## Beispiel: Validierungsprofil je INTERLIS-Version
 
-Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die Pipeline schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
+Ein Input kann keine Fallunterscheidung ausdrücken. Soll die Validierung je nach INTERLIS-Version mit einem anderen Profil laufen, erhält jede Version einen eigenen Validierungsschritt, welcher mit einer `skip_conditions` übersprungen wird, wenn seine Version nicht vorkommt. Erkennt der Matcher keine Version, würden alle Validierungsschritte übersprungen und die [Pipeline](../../../GLOSSARY.md#pipeline) schlösse ohne Validierung erfolgreich ab, mit lieferbaren Daten. Die Bedingung `interlis-version-unknown` auf dem Matcher-Schritt verhindert das. Weil ein Validierungsschritt genau eine Transferdatei nimmt, verlangt die Bedingung `single-xtf-file` genau eine XTF-Datei. Sonst scheiterte der Validierungsschritt erst zur Laufzeit beim Binden seines Inputs.
 
 ```yaml
 processes:
