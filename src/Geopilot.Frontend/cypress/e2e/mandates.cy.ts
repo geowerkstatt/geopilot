@@ -962,7 +962,7 @@ describe("Mandate with metadata fields", () => {
     cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
   });
 
-  const fieldButtons = () => cy.dataCy("metadataFields-list").find('[role="button"]');
+  const fieldButtons = () => cy.dataCy("metadataFields-list").find("button");
 
   const fieldTexts = (index: number) =>
     fieldButtons()
