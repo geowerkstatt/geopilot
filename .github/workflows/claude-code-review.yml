@@ -62,6 +62,7 @@ jobs:
             | if . == null then "_No result entry in execution log._" else (
                 "## Claude usage",
                 "",
+                (if .is_error then "**Error:** \(.result // "no result text")", "" else empty end),
                 "| Metric | Value |",
                 "|---|---:|",
                 "| Result | \(.subtype // "unknown") |",
