@@ -16,6 +16,7 @@ import { SearchField } from "../../searchField";
 import { LayerSwitcherCollection } from "./layerSwitcherCollection";
 import { getOpen, getTitle, LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapPanelPopper } from "./mapPanelPopper";
+import { MAP_FOOTER_HEIGHT } from "./mapVisualizationContext";
 
 const { OPEN, RESULT } = LayerSwitcherProperties;
 
@@ -143,7 +144,8 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
         onClick={() => setOpen(previous => !previous)}
         tooltipPlacement="left"
       />
-      {/* Within the map, which holds the panel: no higher or wider than it, less the margin around the buttons. */}
+      {/* Within the map, which holds the panel: no higher or wider than it, less the margin around the buttons and,
+          below them, the footer bar. */}
       <MapPanelPopper
         id={panelId}
         open={open}
@@ -151,7 +153,10 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
         onClose={close}
         sx={{
           display: "flex",
-          maxHeight: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
+          maxHeight: {
+            xs: `calc(100% - ${theme.spacing(2)} - ${MAP_FOOTER_HEIGHT})`,
+            sm: `calc(100% - ${theme.spacing(4)} - ${MAP_FOOTER_HEIGHT})`,
+          },
           maxWidth: { xs: `calc(100% - ${theme.spacing(8)})`, sm: `calc(100% - ${theme.spacing(12)})` },
         }}>
         <Stack

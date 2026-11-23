@@ -279,7 +279,8 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       overlays: [selectionOverlay],
       controls: [],
       interactions,
-      view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
+      // Without rotation the map needs no north arrow.
+      view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT, enableRotation: false }),
     });
 
     // A plain wheel scrolls the popup, also in fullscreen where it would zoom the map. The map skips wheel on a
