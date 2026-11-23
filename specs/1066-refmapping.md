@@ -1,7 +1,5 @@
 # Zuordnung der Referenzdaten im Admin-Portal pflegen (#1066)
 
-Review: required. Zum ersten Mal reicht der Host Daten aus der Datenbank pro Job an einen Prozess weiter, ein neues Konzept in der Runtime. Sicherheitsrelevant ist es auch: Was ein Admin einträgt, holt ilivalidator ab, und davor schützt nur die Prüfung beim Speichern.
-
 ## Umsetzung
 
 **Abweichungen.** Vom Issue: Die Umsetzung wartet nicht auf ADR 0018 (noch Draft) und #1067. Statt eines Interfaces in PipelineCore gibt es eines nur für diesen Fall, intern im Projekt `Geopilot.Pipeline` wie `IXtfDiffClient`; Plugins sehen es nicht. Die Bindung pro Job entsteht hier zum ersten Mal, #1067 kann sie übernehmen. Nennt ein Schritt selbst `refMapping` oder `refMappingFile`, gilt bei eingeschaltetem Schalter nicht seine Angabe, sondern der Schritt scheitert (siehe Validierung). Vom Design (Kommentar im Issue): Referenzen werden frei als `ilidata:<Id>` eingegeben statt aus einer Liste gewählt, und eine Referenz, die aus dem Index verschwunden ist, wird weder markiert, noch sperrt sie das Speichern. Beides bräuchte den Index, und der liegt mit den Referenzdaten beim ilitools-wrapper, an den geopilot nicht herankommt.
