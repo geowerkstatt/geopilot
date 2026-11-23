@@ -106,7 +106,7 @@
   "diffFieldChangeType": "Änderungsart",
   "diffFieldValueType": "Werttyp",
   "diffLegendArea": "Fläche",
-  "diffLegendChangedHint": "Geändert: Das breite Band zeigt vorher, die dünne Linie nachher. Gefüllt ist eine Fläche nur, wenn sich ihre Geometrie geändert hat.",
+  "diffLegendChangedHint": "Geändert: Das breite Band zeigt vorher, die dünne Linie nachher. Ist die Geometrie einer Fläche gleich geblieben, zeigt die Karte nur ihren Umriss.",
   "diffLegendLine": "Linie",
   "diffLegendPoint": "Punkt",
   "diffMapLegend": "Legende",
