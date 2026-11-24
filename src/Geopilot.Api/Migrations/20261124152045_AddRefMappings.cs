@@ -14,7 +14,7 @@ namespace Geopilot.Api.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "Bindings",
-                table: "PipelineRuns",
+                table: "Recordings",
                 type: "jsonb",
                 nullable: true);
 
@@ -26,7 +26,7 @@ namespace Geopilot.Api.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Scope = table.Column<string>(type: "varchar(250)", nullable: false),
                     RefDataUris = table.Column<List<string>>(type: "text[]", nullable: false),
-                    Comment = table.Column<string>(type: "text", nullable: true),
+                    Comment = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -48,7 +48,7 @@ namespace Geopilot.Api.Migrations
 
             migrationBuilder.DropColumn(
                 name: "Bindings",
-                table: "PipelineRuns");
+                table: "Recordings");
         }
     }
 }

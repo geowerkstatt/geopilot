@@ -716,7 +716,8 @@ namespace Geopilot.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Scope")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_RefMappings_Scope");
 
                     b.ToTable("RefMappings");
                 });
