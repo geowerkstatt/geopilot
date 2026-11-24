@@ -133,6 +133,23 @@ public class DeliveryCreationServiceTest
     }
 
     [TestMethod]
+    public async Task ReportsAlreadyDeliveredWhenAnotherCallerMovedTheFilesAway()
+    {
+        // Both passed the check; the other caller saved its delivery and renamed staging while this one still read it.
+        var (jobId, supplier) = PrepareCreation(nameof(ReportsAlreadyDeliveredWhenAnotherCallerMovedTheFilesAway));
+        int? otherDeliveryId = null;
+        assetHandlerMock
+            .Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
+            .Callback(() => otherDeliveryId = SaveDeliveryOfAnotherCaller(jobId))
+            .ThrowsAsync(new FileNotFoundException("moved into the delivery directory"));
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.AlreadyDelivered, result.Status);
+        Assert.AreEqual(otherDeliveryId, result.DeliveryId);
+    }
+
+    [TestMethod]
     public async Task ReportsCreatedWhenRenamingTheFilesFails()
     {
         var (jobId, supplier) = PrepareCreation(nameof(ReportsCreatedWhenRenamingTheFilesFails));
@@ -422,6 +439,20 @@ public class DeliveryCreationServiceTest
         var jobId = SetupDeliverableJob(mandate.Id);
         mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
         return (jobId, supplier);
+    }
+
+    private int SaveDeliveryOfAnotherCaller(Guid jobId)
+    {
+        var delivery = context.Deliveries.Add(new Delivery
+        {
+            JobId = jobId,
+            Mandate = context.Mandates.First(),
+            DeliveredByUser = context.Users.First(),
+            Comment = string.Empty,
+            Assets = new List<Asset>(),
+        }).Entity;
+        context.SaveChanges();
+        return delivery.Id;
     }
 
     private void SetupStagedAssets(Guid jobId)

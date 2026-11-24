@@ -539,6 +539,10 @@ public class ProcessingJobCleanupServiceTest
 
         Assert.IsTrue(Directory.Exists(blockedStaging), "The staged files of an active delivery wait for the next run.");
         Assert.IsFalse(Directory.Exists(deletedDeliveryDirectory), "One failed move must not stop the run.");
+        VerifyWarning(
+            message => message.Contains(blockedJobId.ToString(), StringComparison.Ordinal) && message.Contains("no delivery directory", StringComparison.Ordinal),
+            Times.Never(),
+            "files still waiting in staging are on their way, not missing");
     }
 
     [TestMethod]
@@ -649,7 +653,7 @@ public class ProcessingJobCleanupServiceTest
         context.SaveChanges();
     }
 
-    private void VerifyWarning(Func<string, bool> message, Times times)
+    private void VerifyWarning(Func<string, bool> message, Times times, string? because = null)
         => loggerMock.Verify(
             logger => logger.Log(
                 LogLevel.Warning,
@@ -657,7 +661,8 @@ public class ProcessingJobCleanupServiceTest
                 It.Is<It.IsAnyType>((state, _) => message(state.ToString() ?? string.Empty)),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            times);
+            times,
+            because ?? string.Empty);
 
     private static void CreateWithPayload(string directory)
     {

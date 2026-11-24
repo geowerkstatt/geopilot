@@ -128,6 +128,14 @@ public class DeliveryCreationService : IDeliveryCreationService
         }
         catch (Exception e)
         {
+            // Another caller that passed the check as well may have saved its delivery and moved the staged files away
+            // under this read; that caller's delivery is the answer, not a failure.
+            if (await FindDeliveryOfJobAsync(jobId, CancellationToken.None) is int deliveredId)
+            {
+                logger.LogInformation("Job with id <{JobId}> was delivered by another caller while this delivery was being recorded.", jobId);
+                return new DeliveryCreationResult(DeliveryCreationStatus.AlreadyDelivered, deliveredId, $"Job with id <{jobId}> was already delivered.");
+            }
+
             logger.LogError(e, "Error while persisting assets for job with id <{JobId}>.", jobId);
             return new DeliveryCreationResult(DeliveryCreationStatus.AssetRecordingFailed, Message: $"Error while persisting assets for job with id <{jobId}>.");
         }
