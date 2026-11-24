@@ -40,33 +40,53 @@ export interface DiffStyleInputs {
 type Emphasis = 0 | 1 | 2;
 
 const LOOK_SIZES: Record<DiffLook, { radius: number; width: number }> = {
-  filled: { radius: 5, width: 2.5 },
+  dotted: { radius: 5, width: 3.5 },
   crisp: { radius: 5, width: 2.5 },
   ghost: { radius: 10, width: 10 },
-  crossed: { radius: 7, width: 3.5 },
+  crossed: { radius: 7, width: 2 },
 };
 
-/** Pixels between the dots of the hatching of a deleted area. */
-const HATCH_SPACING = 6;
+/**
+ * An added line or outline as dots: with round caps, each near-zero dash draws as a dot. The gap grows with the width,
+ * so the dots of a hovered or selected line stay apart.
+ */
+const getAddedDots = (width: number) => [0.1, width + 2.5];
+
+/** Dash and gap in pixels of a deleted line or outline; dashes stay long enough that a short line does not read as a point. */
+const DELETED_DASH = [8, 4];
+
+/** Pixels between the lines of the cross-hatching of a deleted area. */
+const HATCH_SPACING = 10;
 
 const withAlpha = (color: string, opacity: number): string => {
   const [red, green, blue] = asArray(color);
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 };
 
-/** Dots on a faint tint, scaled to the device pixels the map renders in so they keep their size on any screen. */
-const createDotHatching = (color: string): CanvasPattern | string => {
-  const tint = withAlpha(color, 0.08);
+/**
+ * Pale crossed diagonals on a faint tint, so the base map beneath stays legible. Scaled to the device pixels the map
+ * renders in, so they keep their size on any screen.
+ */
+const createCrossHatching = (color: string): CanvasPattern | string => {
+  const tint = withAlpha(color, 0.05);
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = Math.round(HATCH_SPACING * DEVICE_PIXEL_RATIO);
+  const size = Math.round(HATCH_SPACING * DEVICE_PIXEL_RATIO);
+  canvas.width = canvas.height = size;
   const context = canvas.getContext("2d");
   if (!context) return tint;
   context.fillStyle = tint;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = color;
+  context.fillRect(0, 0, size, size);
+  context.strokeStyle = withAlpha(color, 0.5);
+  context.lineWidth = DEVICE_PIXEL_RATIO;
   context.beginPath();
-  context.arc(canvas.width / 2, canvas.height / 2, 1.25 * DEVICE_PIXEL_RATIO, 0, 2 * Math.PI);
-  context.fill();
+  // Each diagonal is repeated one tile to either side, so its ends cut off at the corners join the neighboring tiles.
+  for (const offset of [-size, 0, size]) {
+    context.moveTo(offset, 0);
+    context.lineTo(offset + size, size);
+    context.moveTo(offset, size);
+    context.lineTo(offset + size, 0);
+  }
+  context.stroke();
   return context.createPattern(canvas, "repeat") ?? tint;
 };
 
@@ -95,11 +115,11 @@ const buildLookStyle = (
   const { radius, width } = getSizes(look, emphasis);
   const dot = new Circle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: rim, width: 1.5 }) });
   switch (look) {
-    case "filled":
+    case "dotted":
       return new Style({
         image: dot,
-        stroke: new Stroke({ color, width }),
-        fill: new Fill({ color: withAlpha(color, 0.5) }),
+        stroke: new Stroke({ color, width, lineDash: getAddedDots(width), lineCap: "round" }),
+        fill: new Fill({ color: withAlpha(color, 0.25) }),
         zIndex,
       });
     case "crisp":
@@ -129,9 +149,9 @@ const buildLookStyle = (
           angle: Math.PI / 4,
           stroke: new Stroke({ color, width: 3, lineCap: "round" }),
         }),
-        // A near-zero dash with round caps draws each dash as a dot.
-        stroke: new Stroke({ color, width, lineDash: [0.1, 6], lineCap: "round" }),
-        fill: new Fill({ color: createDotHatching(color) }),
+        // Round caps would grow a dash into its gap.
+        stroke: new Stroke({ color, width, lineDash: DELETED_DASH, lineCap: "butt" }),
+        fill: new Fill({ color: createCrossHatching(color) }),
         zIndex,
       });
   }
@@ -211,7 +231,8 @@ export const buildDiffStyleFunction = (
     );
     const styles = drawnParts.flatMap(({ part, changeType }) => {
       const look = getLook(changeType, state);
-      const zIndex = getRank(part) * 3 + emphasis;
+      const rank = getRank(part);
+      const zIndex = rank * 3 + emphasis;
       // Only a changed geometry fills its area. A perimeter covering a whole municipality changes along with the
       // references to it and would otherwise cover the map.
       const filled = changeType !== "changed" || hasOwnGeometryChange(current.partTypes, id, state, part);

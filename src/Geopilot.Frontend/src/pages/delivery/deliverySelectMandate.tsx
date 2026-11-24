@@ -15,17 +15,15 @@ import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces";
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   gap: theme.spacing(2),
   flexWrap: "wrap",
+  // The group drops the left border of all but its first button, which buttons set apart each need.
   [`& .${toggleButtonClasses.root}`]: {
     borderRadius: theme.radius.default,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
     marginLeft: 0,
     padding: theme.spacing(1, 3),
-    "&:hover": {
-      backgroundColor: theme.palette.primary.states.hover,
-    },
   },
   [`& .${toggleButtonClasses.root}.${toggleButtonClasses.disabled}`]: {
-    borderColor: theme.palette.divider,
+    borderLeftColor: theme.palette.primary.states.disabledBackground,
   },
 }));
 
