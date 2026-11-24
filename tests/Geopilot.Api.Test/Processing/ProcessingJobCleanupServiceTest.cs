@@ -594,6 +594,44 @@ public class ProcessingJobCleanupServiceTest
         VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal), Times.Never());
     }
 
+    public enum ConcurrentCreation
+    {
+        BeforeStagingIsListed,
+        BeforeDeliveryDirectoriesAreListed,
+    }
+
+    [TestMethod]
+    [DataRow(ConcurrentCreation.BeforeStagingIsListed)]
+    [DataRow(ConcurrentCreation.BeforeDeliveryDirectoriesAreListed)]
+    public async Task RunCleanupDoesNotReportADeliveryCreatedDuringTheRun(ConcurrentCreation moment)
+    {
+        // A creation saves the delivery and renames its staging while the cleanup runs: right before the cleanup
+        // first lists the chosen directory.
+        var jobId = Guid.NewGuid();
+        var stagingDirectory = Path.Combine(tempAssetStagingRoot, jobId.ToString());
+        CreateWithPayload(stagingDirectory);
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow));
+        var created = false;
+        void CreateDelivery()
+        {
+            if (created)
+                return;
+            created = true;
+            SeedDelivery(jobId);
+            Directory.Move(stagingDirectory, Path.Combine(tempAssetRoot, jobId.ToString()));
+        }
+
+        if (moment == ConcurrentCreation.BeforeStagingIsListed)
+            directoryProviderMock.Setup(d => d.AssetStagingDirectory).Callback(CreateDelivery).Returns(tempAssetStagingRoot);
+        else
+            directoryProviderMock.Setup(d => d.AssetDirectory).Callback(CreateDelivery).Returns(tempAssetRoot);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(created, "The creation ran during the cleanup.");
+        VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal), Times.Never());
+    }
+
     [TestMethod]
     public async Task RunCleanupReportsTheCountAndAtMostTenJobIds()
     {

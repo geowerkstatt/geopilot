@@ -112,11 +112,15 @@ public class ProcessingJobCleanupService : BackgroundService
             // Delivery and staging directories follow the deliveries in the database alone, deleted ones included:
             // a delivery directory exists only once its delivery is saved, so one without a delivery holds a
             // delivery the database no longer knows, after restoring an older database for instance. It is
-            // reported, never deleted (#947).
+            // reported, never deleted (#947). Both are listed before the deliveries load, staging first, so a creation
+            // renaming in between leaves no false report: a listed delivery directory has its delivery loaded, and the
+            // files of a loaded delivery are in one of the two lists.
+            var stagingDirectories = EnumerateJobIds(directoryProvider.AssetStagingDirectory);
+            var deliveryDirectories = EnumerateJobIds(directoryProvider.AssetDirectory);
             var deliveryRows = await LoadDeliveriesAsync(dbContext);
             var deliveries = ByJob(deliveryRows);
             var movedStagings = MoveStagedDeliveriesIntoPlace(deliveries);
-            ReportMismatches(deliveryRows, deliveries);
+            ReportMismatches(deliveryRows, deliveries, deliveryDirectories, stagingDirectories);
 
             // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
             // so retiring a job never cuts their retention short; a job that has not finished counts from its
@@ -254,10 +258,12 @@ public class ProcessingJobCleanupService : BackgroundService
     /// every run until an operator reconciles them. Nothing is deleted or filled in: only an operator can tell which
     /// side is right.
     /// </summary>
-    private void ReportMismatches(IReadOnlyList<DeliveryRow> rows, IReadOnlyDictionary<Guid, JobDeliveries> deliveries)
+    private void ReportMismatches(
+        IReadOnlyList<DeliveryRow> rows,
+        IReadOnlyDictionary<Guid, JobDeliveries> deliveries,
+        HashSet<Guid> deliveryDirectories,
+        HashSet<Guid> stagingDirectories)
     {
-        var deliveryDirectories = EnumerateJobIds(directoryProvider.AssetDirectory);
-
         var directoriesWithoutDelivery = deliveryDirectories
             .Where(jobId => deliveries.GetValueOrDefault(jobId) == JobDeliveries.None)
             .ToList();
@@ -271,12 +277,11 @@ public class ProcessingJobCleanupService : BackgroundService
 
         // Newest first, since files restored from an older backup lack the latest deliveries. Files still waiting in
         // staging are on their way, not missing.
-        var directoriesOnTheirWay = EnumerateJobIds(directoryProvider.AssetStagingDirectory);
         var deliveriesWithoutDirectory = rows
             .Where(row => !row.Deleted)
             .Select(row => row.JobId)
             .Distinct()
-            .Where(jobId => !deliveryDirectories.Contains(jobId) && !directoriesOnTheirWay.Contains(jobId))
+            .Where(jobId => !deliveryDirectories.Contains(jobId) && !stagingDirectories.Contains(jobId))
             .ToList();
         if (deliveriesWithoutDirectory.Count > 0)
         {
