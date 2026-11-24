@@ -200,7 +200,18 @@ public partial class RefMappingController : ControllerBase
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static bool HasInvalidChar(string value) => !value.All(XmlConvert.IsXmlChar);
+    private static bool HasInvalidChar(string value)
+    {
+        try
+        {
+            XmlConvert.VerifyXmlChars(value);
+            return false;
+        }
+        catch (XmlException)
+        {
+            return true;
+        }
+    }
 
     [GeneratedRegex(@"^ilidata:[A-Za-z0-9._-]+\z")]
     private static partial Regex IlidataReference();

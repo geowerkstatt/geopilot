@@ -125,10 +125,11 @@ public class RefMappingControllerTest
     }
 
     [TestMethod]
-    [DataRow("351", "ilidata:dmav_LFP3_351")]
-    public void ValidateAcceptsAValidEntry(string scope, string uri)
+    [DataRow("351", "ilidata:dmav_LFP3_351", null)]
+    [DataRow("351", "ilidata:dmav_LFP3_351", "🙂")]
+    public void ValidateAcceptsAValidEntry(string scope, string uri, string? comment)
     {
-        Assert.IsNull(RefMappingController.Validate(new RefMapping { Scope = scope, RefDataUris = [uri] }));
+        Assert.IsNull(RefMappingController.Validate(new RefMapping { Scope = scope, RefDataUris = [uri], Comment = comment }));
     }
 
     [TestMethod]
