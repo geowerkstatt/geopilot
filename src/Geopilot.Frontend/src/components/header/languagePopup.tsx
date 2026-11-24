@@ -56,6 +56,7 @@ export function LanguagePopup() {
     <>
       <Button
         variant="text"
+        size="medium"
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{ ...(open && { backgroundColor: geopilotTheme.palette.primary.states.hover }) }}

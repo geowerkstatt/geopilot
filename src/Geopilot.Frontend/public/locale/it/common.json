@@ -106,7 +106,7 @@
   "diffFieldChangeType": "Tipo di modifica",
   "diffFieldValueType": "Tipo di valore",
   "diffLegendArea": "Superficie",
-  "diffLegendChangedHint": "Modificato: la banda larga mostra il prima, la linea sottile il dopo. Una superficie è riempita solo se la sua geometria è cambiata.",
+  "diffLegendChangedHint": "Modificato: la banda larga mostra il prima, la linea sottile il dopo. Se la geometria di una superficie è rimasta invariata, la mappa ne mostra solo il contorno.",
   "diffLegendLine": "Linea",
   "diffLegendPoint": "Punto",
   "diffMapLegend": "Legenda",

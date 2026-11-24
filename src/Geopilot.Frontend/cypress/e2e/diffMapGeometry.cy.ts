@@ -1,4 +1,5 @@
 import Feature from "ol/Feature";
+import RegularShape from "ol/style/RegularShape";
 import Style from "ol/style/Style";
 import {
   buildConnectors,
@@ -181,7 +182,7 @@ describe("diff map geometry", () => {
   });
 
   it("draws each change type in its own look", () => {
-    expect(getLook("added", "new")).to.equal("filled");
+    expect(getLook("added", "new")).to.equal("dotted");
     expect(getLook("deleted", "old")).to.equal("crossed");
     expect(getLook("changed", "old")).to.equal("ghost");
     expect(getLook("changed", "new")).to.equal("crisp");
@@ -207,5 +208,74 @@ describe("diff map geometry", () => {
 
     expect(fillOf(buildPartTypeIndex([]))).to.equal("rgba(0, 0, 255, 0)");
     expect(fillOf(buildPartTypeIndex([geometryChange({ newLocation: surface })]))).to.equal("rgba(0, 0, 255, 0.25)");
+  });
+
+  describe("styles of the change types", () => {
+    const POINT = "POINT (5 5)";
+    const LINE = "LINESTRING (0 0, 10 0)";
+    const AREA = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+
+    /** The own style, above any underlay, the diff map gives a feature that is entirely of one change type. */
+    const styleOf = (
+      wkt: string,
+      changeType: "added" | "deleted" | "changed",
+      state: "old" | "new",
+      selection: "plain" | "highlighted" = "plain",
+    ) => {
+      const feature = new Feature(readLocation(wkt));
+      feature.setId("o");
+      const inputs = {
+        current: {
+          objectTypes: new Map([["o", changeType]]),
+          partTypes: buildPartTypeIndex([]),
+          highlightedIds: new Set<string>(selection === "highlighted" ? ["o"] : []),
+          hoveredIds: new Set<string>(),
+        },
+      };
+      const colors = { added: "green", deleted: "red", changed: "blue", outline: "black", rim: "white" };
+      const styles = buildDiffStyleFunction(state, inputs, colors)(feature, 1);
+      return Array.isArray(styles) ? styles.at(-1) : undefined;
+    };
+
+    it("draws added lines and area outlines dotted", () => {
+      const line = styleOf(LINE, "added", "new");
+      const area = styleOf(AREA, "added", "new");
+
+      for (const style of [line, area]) {
+        expect(style?.getStroke()?.getLineDash()).to.deep.equal([0.1, 6]);
+        expect(style?.getStroke()?.getLineCap()).to.equal("round");
+      }
+      expect(area?.getFill()?.getColor()).to.equal("rgba(0, 128, 0, 0.25)");
+    });
+
+    it("keeps the dots of a highlighted added line apart", () => {
+      const stroke = styleOf(LINE, "added", "new", "highlighted")?.getStroke();
+      const [, gap] = stroke?.getLineDash() ?? [];
+
+      expect(gap).to.be.greaterThan(stroke?.getWidth() ?? Infinity);
+    });
+
+    it("draws a changed line solid", () => {
+      expect(styleOf(LINE, "changed", "new")?.getStroke()?.getLineDash() ?? []).to.be.empty;
+    });
+
+    it("draws deleted lines and area outlines dashed", () => {
+      const line = styleOf(LINE, "deleted", "old");
+      const area = styleOf(AREA, "deleted", "old");
+
+      expect(line?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
+      expect(area?.getStroke()?.getLineDash()).to.deep.equal([8, 4]);
+      // A fill keeps the area pickable from inside.
+      expect(area?.getFill()?.getColor()).to.be.instanceOf(CanvasPattern);
+    });
+
+    it("draws an added point as a full dot with a white rim", () => {
+      const image = styleOf(POINT, "added", "new")?.getImage();
+      const dot = image instanceof RegularShape ? image : undefined;
+
+      expect(dot?.getFill()?.getColor()).to.equal("green");
+      expect(dot?.getStroke()?.getColor()).to.equal("white");
+      expect(dot?.getStroke()?.getLineDash() ?? []).to.be.empty;
+    });
   });
 });

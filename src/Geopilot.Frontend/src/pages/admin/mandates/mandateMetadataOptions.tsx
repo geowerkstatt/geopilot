@@ -64,7 +64,7 @@ const MandateMetadataOptions: FC<MandateMetadataOptionsProps> = ({ fieldIndex, a
         <Typography variant={"h4"} sx={{ margin: 0 }}>
           {t("metadataFieldOptions")}
         </Typography>
-        <Button startIcon={<AddIcon />} label={"addMetadataFieldOption"} onClick={addOption} />
+        <Button size="medium" startIcon={<AddIcon />} label={"addMetadataFieldOption"} onClick={addOption} />
       </Stack>
       <Stack spacing={0}>
         {fields.map((option, optionIndex) => (
