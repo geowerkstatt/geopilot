@@ -13,6 +13,7 @@ public class ProcessingJobCleanupService : BackgroundService
     private readonly IProcessingJobStore jobStore;
     private readonly JobLifecycle lifecycle;
     private readonly IDirectoryProvider directoryProvider;
+    private readonly IAssetFileStore assetFileStore;
     private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<ProcessingJobCleanupService> logger;
     private readonly ProcessingOptions processingOptions;
@@ -25,6 +26,7 @@ public class ProcessingJobCleanupService : BackgroundService
         IProcessingJobStore jobStore,
         JobLifecycle lifecycle,
         IDirectoryProvider directoryProvider,
+        IAssetFileStore assetFileStore,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<ProcessingJobCleanupService> logger,
         IOptions<ProcessingOptions> processingOptions)
@@ -34,6 +36,7 @@ public class ProcessingJobCleanupService : BackgroundService
         this.jobStore = jobStore;
         this.lifecycle = lifecycle;
         this.directoryProvider = directoryProvider;
+        this.assetFileStore = assetFileStore;
         this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
         this.processingOptions = processingOptions.Value;
@@ -103,15 +106,21 @@ public class ProcessingJobCleanupService : BackgroundService
                 }
             }
 
+            // Delivery and staging directories follow the deliveries in the database alone, deleted ones included:
+            // a delivery directory exists only once its delivery is saved, so one without a delivery holds a
+            // delivery the database no longer knows, after restoring an older database for instance. It is
+            // reported, never deleted (#947).
+            var deliveries = ByJob(await LoadDeliveriesAsync(dbContext));
+            var movedStagings = MoveStagedDeliveriesIntoPlace(deliveries);
+
             // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
             // so retiring a job never cuts their retention short; a job that has not finished counts from its
             // creation, which is how a stuck one shows up below. Its upload is not released here: it went when
             // the job ended, or it stays on purpose until its upload session expires (a cancelled run, see
-            // JobLifecycle.Decide). The asset directory is the long-term archive of deliveries, which survive
-            // cleanup and are only removed via DeliveryController.Delete; a job directory there without a
-            // delivery is a creation that failed after the promotion, and goes. A staged payload (the staging
-            // root below the asset directory) belongs to a deliverable run that was never delivered: once the
-            // in-memory job is gone nobody can create its delivery any more, so it retires with the job.
+            // JobLifecycle.Decide). A delivery directory goes only once all deliveries of its job are deleted,
+            // the fallback for files DeliveryController.Delete could not remove. A staged payload without an
+            // active delivery belongs to a deliverable run that was never delivered: once the in-memory job is
+            // gone nobody can create its delivery any more, so it retires with the job.
             // Pipeline working directories are normally removed by Pipeline.Dispose, but survive a hard restart
             // (nothing gets disposed), so they count as retirement candidates too.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
@@ -139,14 +148,13 @@ public class ProcessingJobCleanupService : BackgroundService
                     continue;
                 }
 
-                var hasDelivery = dbContext.Deliveries.Any(d => d.JobId == jobId);
-                if (RetireJob(jobId, hasDelivery))
+                if (RetireJob(jobId, deliveries.GetValueOrDefault(jobId, JobDeliveries.None)))
                     retiredJobs++;
             }
 
             var purgedRuns = await PurgeExpiredProtocolRecordsAsync(dbContext, now);
 
-            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}, expired visualization dirs: {Visualizations}, purged protocol runs: {PurgedRuns}.", retiredJobs, cleanedDownloads, cleanedVisualizations, purgedRuns);
+            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}, expired visualization dirs: {Visualizations}, staged deliveries moved into place: {MovedStagings}, purged protocol runs: {PurgedRuns}.", retiredJobs, cleanedDownloads, cleanedVisualizations, movedStagings, purgedRuns);
         }
         catch (Exception ex)
         {
@@ -190,18 +198,65 @@ public class ProcessingJobCleanupService : BackgroundService
         return jobIds;
     }
 
-    private bool RetireJob(Guid jobId, bool hasSubmittedDelivery)
+    private static async Task<IReadOnlyList<DeliveryRow>> LoadDeliveriesAsync(Context dbContext)
+        => await dbContext.Deliveries
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .OrderByDescending(d => d.Id)
+            .Select(d => new DeliveryRow(d.JobId, d.Deleted))
+            .ToListAsync();
+
+    private static Dictionary<Guid, JobDeliveries> ByJob(IReadOnlyList<DeliveryRow> rows)
+        => rows
+            .GroupBy(row => row.JobId)
+            .ToDictionary(group => group.Key, group => group.Any(row => !row.Deleted) ? JobDeliveries.Active : JobDeliveries.OnlyDeleted);
+
+    /// <summary>
+    /// Moves the staged files of every active delivery into its delivery directory, whether the job is still known
+    /// or not: the creation renames them only after saving, and when that rename failed, this is where it happens.
+    /// </summary>
+    private int MoveStagedDeliveriesIntoPlace(IReadOnlyDictionary<Guid, JobDeliveries> deliveries)
+    {
+        var moved = 0;
+        foreach (var jobId in EnumerateJobIds(directoryProvider.AssetStagingDirectory))
+        {
+            if (deliveries.GetValueOrDefault(jobId) != JobDeliveries.Active)
+                continue;
+
+            if (Directory.Exists(directoryProvider.GetAssetDirectoryPath(jobId)))
+            {
+                logger.LogWarning("The staged files of the delivery of job <{JobId}> cannot move into place: its delivery directory already exists. geopilot keeps both; compare them by hand.", jobId);
+                continue;
+            }
+
+            try
+            {
+                assetFileStore.PromoteStagedFiles(jobId);
+                moved++;
+            }
+            catch (Exception ex)
+            {
+                // Also where a creation renaming the same directory at the same moment ends up, without harm.
+                logger.LogWarning(ex, "Could not move the staged files of the delivery of job <{JobId}> into place. The next run tries again.", jobId);
+            }
+        }
+
+        return moved;
+    }
+
+    private bool RetireJob(Guid jobId, JobDeliveries deliveries)
     {
         try
         {
             DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetPipelineDirectoryPath(jobId));
-            DeleteIfExists(directoryProvider.GetAssetStagingDirectoryPath(jobId));
-            if (!hasSubmittedDelivery)
+            if (deliveries != JobDeliveries.Active)
+                DeleteIfExists(directoryProvider.GetAssetStagingDirectoryPath(jobId));
+            if (deliveries == JobDeliveries.OnlyDeleted)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             lifecycle.Retire(jobId);
-            logger.LogTrace("Retired job <{JobId}>. Removed asset directory: {RemovedAssets}.", jobId, !hasSubmittedDelivery);
+            logger.LogTrace("Retired job <{JobId}>. Deliveries: {Deliveries}.", jobId, deliveries);
             return true;
         }
         catch (Exception ex)
@@ -226,4 +281,16 @@ public class ProcessingJobCleanupService : BackgroundService
         Directory.Delete(directory, recursive: true);
         return true;
     }
+
+    /// <summary>
+    /// What the database says about the deliveries of one job; it alone decides over its delivery and staging directories.
+    /// </summary>
+    private enum JobDeliveries
+    {
+        None,
+        OnlyDeleted,
+        Active,
+    }
+
+    private sealed record DeliveryRow(Guid JobId, bool Deleted);
 }

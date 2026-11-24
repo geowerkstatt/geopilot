@@ -19,6 +19,7 @@ public class ProcessingJobCleanupServiceTest
     private const double DownloadRetentionHours = 1;
     private const double VisualizationRetentionHours = 0.5;
     private const double ProtocolRetentionDays = 3650;
+    private const string Payload = "payload.xtf";
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
@@ -71,6 +72,7 @@ public class ProcessingJobCleanupServiceTest
             jobStoreMock.Object,
             lifecycle,
             directoryProviderMock.Object,
+            new PhysicalAssetFileStore(directoryProviderMock.Object),
             scopeFactoryMock.Object,
             loggerMock.Object,
             optionsMock.Object);
@@ -164,6 +166,7 @@ public class ProcessingJobCleanupServiceTest
             jobStoreMock.Object,
             lifecycle,
             directoryProviderMock.Object,
+            new PhysicalAssetFileStore(directoryProviderMock.Object),
             scopeFactoryMock.Object,
             loggerMock.Object,
             optionsWithoutProtocolRetention.Object);
@@ -214,7 +217,7 @@ public class ProcessingJobCleanupServiceTest
         await service.RunCleanupAsync();
         Assert.IsFalse(Directory.Exists(downloadDir));
         Assert.IsFalse(Directory.Exists(visualizationDir));
-        Assert.IsFalse(Directory.Exists(assetDir));
+        Assert.IsTrue(Directory.Exists(assetDir), "A delivery directory without a delivery is reported, never deleted.");
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(orphanJobId), Times.Once);
     }
@@ -233,7 +236,7 @@ public class ProcessingJobCleanupServiceTest
         await service.RunCleanupAsync();
         Assert.IsFalse(Directory.Exists(downloadDir));
         Assert.IsFalse(Directory.Exists(visualizationDir));
-        Assert.IsFalse(Directory.Exists(assetDir));
+        Assert.IsTrue(Directory.Exists(assetDir), "A delivery directory without a delivery is reported, never deleted.");
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
     }
@@ -463,6 +466,81 @@ public class ProcessingJobCleanupServiceTest
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 
+    public enum SeededDeliveries
+    {
+        None,
+        OnlyDeleted,
+        Active,
+    }
+
+    public enum JobDirectories
+    {
+        Delivery,
+        Staging,
+        Both,
+    }
+
+    [TestMethod]
+    [DataRow(SeededDeliveries.Active, true, JobDirectories.Delivery, true, false)]
+    [DataRow(SeededDeliveries.Active, false, JobDirectories.Delivery, true, false)]
+    [DataRow(SeededDeliveries.OnlyDeleted, true, JobDirectories.Delivery, true, false)]
+    [DataRow(SeededDeliveries.OnlyDeleted, false, JobDirectories.Delivery, false, false)]
+    [DataRow(SeededDeliveries.None, true, JobDirectories.Delivery, true, false)]
+    [DataRow(SeededDeliveries.None, false, JobDirectories.Delivery, true, false, DisplayName = "After restoring an older database")]
+    [DataRow(SeededDeliveries.Active, true, JobDirectories.Staging, true, false)]
+    [DataRow(SeededDeliveries.Active, false, JobDirectories.Staging, true, false)]
+    [DataRow(SeededDeliveries.OnlyDeleted, true, JobDirectories.Staging, false, true)]
+    [DataRow(SeededDeliveries.OnlyDeleted, false, JobDirectories.Staging, false, false)]
+    [DataRow(SeededDeliveries.None, true, JobDirectories.Staging, false, true)]
+    [DataRow(SeededDeliveries.None, false, JobDirectories.Staging, false, false)]
+    [DataRow(SeededDeliveries.Active, true, JobDirectories.Both, true, true)]
+    [DataRow(SeededDeliveries.Active, false, JobDirectories.Both, true, true)]
+    public async Task RunCleanupDecidesDeliveryAndStagingDirectoriesByTheDeliveries(
+        SeededDeliveries deliveries, bool jobKnown, JobDirectories directories, bool deliveryDirectoryAfter, bool stagingAfter)
+    {
+        var jobId = Guid.NewGuid();
+        var deliveryDirectory = Path.Combine(tempAssetRoot, jobId.ToString());
+        var stagingDirectory = Path.Combine(tempAssetStagingRoot, jobId.ToString());
+        if (directories is JobDirectories.Delivery or JobDirectories.Both)
+            CreateWithPayload(deliveryDirectory);
+        if (directories is JobDirectories.Staging or JobDirectories.Both)
+            CreateWithPayload(stagingDirectory);
+        if (deliveries != SeededDeliveries.None)
+            SeedDelivery(jobId, deleted: deliveries == SeededDeliveries.OnlyDeleted);
+        var job = jobKnown ? FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow) : null;
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(job);
+
+        await service.RunCleanupAsync();
+
+        Assert.AreEqual(deliveryDirectoryAfter, Directory.Exists(deliveryDirectory), "delivery directory");
+        Assert.AreEqual(stagingAfter, Directory.Exists(stagingDirectory), "staging directory");
+        if (deliveryDirectoryAfter)
+            Assert.IsTrue(File.Exists(Path.Combine(deliveryDirectory, Payload)), "A moved staging arrives with its content.");
+    }
+
+    [TestMethod]
+    public async Task RunCleanupKeepsGoingWhenAStagingCannotMove()
+    {
+        // A file where the delivery directory belongs makes the move throw.
+        var blockedJobId = Guid.NewGuid();
+        var blockedStaging = Path.Combine(tempAssetStagingRoot, blockedJobId.ToString());
+        CreateWithPayload(blockedStaging);
+        File.WriteAllText(Path.Combine(tempAssetRoot, blockedJobId.ToString()), "not a directory");
+        SeedDelivery(blockedJobId);
+        jobStoreMock.Setup(s => s.GetJob(blockedJobId)).Returns(FinishedJob(blockedJobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow));
+
+        var deletedJobId = Guid.NewGuid();
+        var deletedDeliveryDirectory = Path.Combine(tempAssetRoot, deletedJobId.ToString());
+        CreateWithPayload(deletedDeliveryDirectory);
+        SeedDelivery(deletedJobId, deleted: true);
+        jobStoreMock.Setup(s => s.GetJob(deletedJobId)).Returns((ProcessingJob?)null);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(blockedStaging), "The staged files of an active delivery wait for the next run.");
+        Assert.IsFalse(Directory.Exists(deletedDeliveryDirectory), "One failed move must not stop the run.");
+    }
+
     [TestMethod]
     public async Task RunCleanupSkipsNonGuidFolders()
     {
@@ -491,7 +569,7 @@ public class ProcessingJobCleanupServiceTest
         return (asset, download, visualization, pipeline);
     }
 
-    private void SeedDelivery(Guid jobId)
+    private void SeedDelivery(Guid jobId, bool deleted = false)
     {
         var mandate = context.Mandates.First();
         var user = context.Users.First();
@@ -501,9 +579,16 @@ public class ProcessingJobCleanupServiceTest
             Mandate = mandate,
             DeliveredByUser = user,
             Comment = "test",
+            Deleted = deleted,
             Assets = new List<Asset>(),
         });
         context.SaveChanges();
+    }
+
+    private static void CreateWithPayload(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, Payload), "payload");
     }
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state, DateTime finishedAt) =>
