@@ -26,7 +26,7 @@ Ist `RefMapping:Enabled` gesetzt, pflegen Administratoren die Abbildungstabelle 
 - Ist kein Eintrag erfasst, geht keine Abbildungstabelle mit, und der Schritt validiert ohne Referenzdaten.
 - Nennt ein Schritt mit `refMappingFromPortal: true` zusätzlich `refMapping` oder `refMappingFile`, scheitert er mit einem Fehler, sonst bliebe offen, welche Zuordnung gilt.
 - Setzt ein Schritt `refMappingFromPortal: true`, während `RefMapping:Enabled` aus ist, scheitert er mit einem Fehler, statt still ohne Referenzdaten zu validieren.
-- Beide Fehler erkennt die Prüfung beim Start der Applikation nicht, sie zeigen sich erst beim Start der Pipeline.
+- Beide Fehler erkennt die Prüfung beim Start der Applikation nicht, sie zeigen sich erst, wenn der Schritt läuft. Ein Schritt, den seine Vorbedingung überspringt, scheitert daran nicht.
 - Sobald ein Eintrag erfasst ist, braucht jeder Schritt mit `refMappingFromPortal: true` ilivalidator 1.15.0 oder neuer, wie `refMappingFile`: mit einer älteren `toolVersion` lehnt der Wrapper die Zuordnung ab, und der Schritt scheitert.
 - Ist für den `scope` einer Validierung kein Eintrag definiert oder die Daten werden ohne `scope` als Input validiert, lädt ilivalidator keine Referenzdaten. Dazu gibt es keinen Hinweis und es fällt nur über Constraints auf, welche die Referenzdaten benötigen.
 

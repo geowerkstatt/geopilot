@@ -396,42 +396,48 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
-    public void ConstructorThrowsWhenTheStepConfiguresARefMappingNextToTheBoundOne()
+    public async Task RunThrowsWhenTheStepConfiguresARefMappingNextToTheBoundOne()
     {
+        var process = CreateProcess(null, null, success: true, refMapping: "ilidata:DMAV_RefData_Mapping", refMappingFromPortal: true, refMappings: new RefMappings([]));
+
         // Otherwise it would stay open which mapping applies. Also with an empty binding, so the conflict shows
         // before the first entry is added in the admin portal.
-        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMapping: "ilidata:DMAV_RefData_Mapping", refMappingFromPortal: true, refMappings: new RefMappings([])));
+        var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => process.RunAsync(new Mock<IPipelineFile>().Object, [], [], null, CancellationToken.None));
 
         Assert.Contains("refMapping", exception.Message);
         Assert.Contains("refMappingFromPortal", exception.Message);
     }
 
     [TestMethod]
-    public void ConstructorThrowsWhenTheStepConfiguresRefMappingFromPortalWithoutBoundMappings()
+    public async Task RunThrowsWhenTheStepConfiguresRefMappingFromPortalWithoutBoundMappings()
     {
-        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMappingFromPortal: true, refMappings: null));
+        var process = CreateProcess(null, null, success: true, refMappingFromPortal: true, refMappings: null);
+
+        var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => process.RunAsync(new Mock<IPipelineFile>().Object, [], [], null, CancellationToken.None));
 
         Assert.Contains("refMappingFromPortal", exception.Message);
         Assert.Contains("RefMapping:Enabled", exception.Message);
     }
 
     [TestMethod]
-    public void ConstructorThrowsWhenTheStepConfiguresARefMappingFileNextToTheBoundOne()
+    public async Task RunThrowsWhenTheStepConfiguresARefMappingFileNextToTheBoundOne()
     {
         var mapping = new PipelineFile(Path.Combine("TestData", "Ilitools", "refmapping.xtf"), "refmapping.xtf");
+        var process = CreateProcess(null, null, success: true, refMappingFile: mapping, refMappingFromPortal: true, refMappings: new RefMappings([]));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMappingFile: mapping, refMappingFromPortal: true, refMappings: new RefMappings([])));
+        var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => process.RunAsync(new Mock<IPipelineFile>().Object, [], [], null, CancellationToken.None));
 
         Assert.Contains("refMappingFile", exception.Message);
         Assert.Contains("refMappingFromPortal", exception.Message);
     }
 
     [TestMethod]
-    public void ConstructorThrowsWhenTheStepConfiguresARefMappingFileNextToRefMapping()
+    public async Task RunThrowsWhenTheStepConfiguresARefMappingFileNextToRefMapping()
     {
         var mapping = new PipelineFile(Path.Combine("TestData", "Ilitools", "refmapping.xtf"), "refmapping.xtf");
+        var process = CreateProcess(null, null, success: true, refMapping: "ilidata:DMAV_RefData_Mapping", refMappingFile: mapping);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => CreateProcess(null, null, success: true, refMapping: "ilidata:DMAV_RefData_Mapping", refMappingFile: mapping));
+        var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => process.RunAsync(new Mock<IPipelineFile>().Object, [], [], null, CancellationToken.None));
 
         Assert.Contains("refMapping", exception.Message);
         Assert.Contains("refMappingFile", exception.Message);

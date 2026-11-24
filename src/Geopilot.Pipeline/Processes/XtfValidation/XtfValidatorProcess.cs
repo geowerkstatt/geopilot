@@ -30,6 +30,7 @@ internal class XtfValidatorProcess
     private readonly IlivalidatorArgs validatorArgs;
     private readonly IPipelineFile? modelRepository;
     private readonly IPipelineFile? refMappingFile;
+    private readonly bool? refMappingFromPortal;
     private readonly IRefMappings? refMappings;
     private readonly IIlivalidatorClient ilivalidatorClient;
     private readonly IPipelineFileManager pipelineFileManager;
@@ -67,24 +68,10 @@ internal class XtfValidatorProcess
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
     {
-        if (refMappingFromPortal == true && refMappings is null)
-        {
-            throw new InvalidOperationException(
-                $"The xtf validator process is configured to use the reference data mapping from the admin portal, but it is disabled (RefMapping:Enabled). Enable refmapping in geopilot or remove \"{nameof(refMappingFromPortal)}: true\" from the validation step.");
-        }
-
-        var refMappingSources = 0;
-        if (!string.IsNullOrWhiteSpace(refMapping)) refMappingSources++;
-        if (refMappingFile != null) refMappingSources++;
-        if (refMappingFromPortal == true) refMappingSources++;
-        if (refMappingSources > 1)
-        {
-            throw new InvalidOperationException($"The reference data mapping can only be configured in one of {nameof(refMapping)}, {nameof(refMappingFile)} and {nameof(refMappingFromPortal)}. Keep only the relevant refmapping source.");
-        }
-
         this.modelRepository = modelRepository;
         this.refMappingFile = refMappingFile;
-        this.refMappings = refMappingFromPortal == true ? refMappings : null;
+        this.refMappingFromPortal = refMappingFromPortal;
+        this.refMappings = refMappings;
         this.validatorArgs = new IlivalidatorArgs
         {
             ModelDirs = IlitoolsHelper.SplitConfiguredList(modelDirs),
@@ -129,6 +116,21 @@ internal class XtfValidatorProcess
         ArgumentNullException.ThrowIfNull(modelFiles);
         ArgumentNullException.ThrowIfNull(referenceDataFiles);
 
+        if (refMappingFromPortal == true && refMappings is null)
+        {
+            throw new InvalidOperationException(
+                $"The xtf validator process is configured to use the reference data mapping from the admin portal, but it is disabled (RefMapping:Enabled). Enable refmapping in geopilot or remove \"refMappingFromPortal: true\" from the validation step.");
+        }
+
+        var refMappingSources = 0;
+        if (!string.IsNullOrWhiteSpace(validatorArgs.RefMapping)) refMappingSources++;
+        if (refMappingFile != null) refMappingSources++;
+        if (refMappingFromPortal == true) refMappingSources++;
+        if (refMappingSources > 1)
+        {
+            throw new InvalidOperationException($"The reference data mapping can only be configured in one of refMapping, refMappingFile and refMappingFromPortal. Keep only the relevant refmapping source.");
+        }
+
         var runArgs = validatorArgs with { Scope = string.IsNullOrWhiteSpace(scope) ? null : scope.Trim() };
 
         logger.LogInformation($"Validating transfer file <{transferFile.OriginalFileName}>...");
@@ -146,7 +148,9 @@ internal class XtfValidatorProcess
             logger.LogInformation($"Forwarding {referenceDataFiles.Length} delivered reference data file(s) to the validation.");
         }
 
-        var mappingFile = refMappings is null ? refMappingFile : await WriteBoundRefMappingAsync(refMappings, cancellationToken);
+        var mappingFile = refMappingFromPortal == true
+            ? refMappings is null ? null : await WriteBoundRefMappingAsync(refMappings, cancellationToken)
+            : refMappingFile;
         var result = await ilivalidatorClient.ValidateAsync(runArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, mappingFile, referenceDataFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
