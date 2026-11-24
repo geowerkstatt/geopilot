@@ -62,6 +62,20 @@ services:
       - ./certs:/certs:ro
     command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck --cert /certs/cert.pem --key /certs/cert.key"
 
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.53
+    command: "mini -dir=/data"
+    ports:
+      - 8333:8333
+    environment:
+      AWS_ACCESS_KEY_ID: geopilot
+      AWS_SECRET_ACCESS_KEY: geopilot-dev-secret
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
   clamav:
     image: clamav/clamav:latest
     restart: unless-stopped
@@ -102,11 +116,19 @@ services:
       Auth__ApiOrigin: https://localhost:5173
       Auth__Scope: "profile email openid geopilot.api"
       Auth__SwaggerAdditionalScopes: "geopilot.api"
-      Upload__Cloud__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
+      # Uploads go to SeaweedFS. For Azurite, set UPLOAD_PROVIDER=AzureBlob and
+      # UPLOAD_BLOB_ENDPOINT=https://localhost:10000 together. Only the AzureBlob provider reads the connection string.
+      Upload__Cloud__Provider: ${UPLOAD_PROVIDER:-S3}
+      Upload__Cloud__ConnectionString: "UseDevelopmentStorage=true;DevelopmentStorageProxyUri=https://localhost"
       Upload__Cloud__BucketName: uploads
-      Upload__Cloud__BlobEndpoint: https://localhost:10000
+      Upload__Cloud__BlobEndpoint: ${UPLOAD_BLOB_ENDPOINT:-http://localhost:8333}
       Upload__Cloud__AutoCreateContainer: true
       Upload__Cloud__AllowedOrigins__0: https://localhost:5173
+      Upload__Cloud__S3__ServiceUrl: http://localhost:8333
+      Upload__Cloud__S3__Region: us-east-1
+      Upload__Cloud__S3__AccessKeyId: geopilot
+      Upload__Cloud__S3__SecretAccessKey: geopilot-dev-secret
+      Upload__Cloud__S3__ForcePathStyle: true
       ClamAV__Enabled: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310
@@ -130,6 +152,8 @@ services:
       - "localhost:host-gateway"
     depends_on:
       db:
+        condition: service_healthy
+      seaweedfs:
         condition: service_healthy
 
   # Creates the local test data. Waits until the migrations are applied and then exits, so it works

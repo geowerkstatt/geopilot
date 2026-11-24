@@ -143,7 +143,9 @@ export const DeliveryProcessing = () => {
             <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
               <Stack direction="row" sx={{ alignItems: "center", flexWrap: "nowrap" }}>
                 <StepIcon step={index + 1} state={step.state} variant={"outlined"} />
-                <Typography variant="h4" sx={{ margin: 0 }}>
+                <Typography
+                  variant="h4"
+                  sx={{ margin: 0, color: step.state === StepState.Pending ? "text.secondary" : undefined }}>
                   {localized(step.name)}
                 </Typography>
               </Stack>

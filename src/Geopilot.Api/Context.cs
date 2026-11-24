@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Pipeline.Channels;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -353,14 +354,14 @@ public class Context : DbContext
             .Property(mandate => mandate.MetadataFields)
             .HasColumnType("jsonb")
             .HasDefaultValueSql("jsonb_build_array()")
-            .HasConversion(MetadataConverter<MetadataField>(metadataJsonOptions), MetadataComparer<MetadataField>(metadataJsonOptions))
+            .HasConversion(JsonValueConverter<List<MetadataField>>(metadataJsonOptions), JsonValueComparer<List<MetadataField>>(metadataJsonOptions))
             .IsRequired();
 
         modelBuilder.Entity<Delivery>()
             .Property(delivery => delivery.Metadata)
             .HasColumnType("jsonb")
             .HasDefaultValueSql("jsonb_build_array()")
-            .HasConversion(MetadataConverter<DeliveredMetadataField>(metadataJsonOptions), MetadataComparer<DeliveredMetadataField>(metadataJsonOptions))
+            .HasConversion(JsonValueConverter<List<DeliveredMetadataField>>(metadataJsonOptions), JsonValueComparer<List<DeliveredMetadataField>>(metadataJsonOptions))
             .IsRequired();
 
         // The execution protocol is append-only: no Deleted flags, no query filters, and enums stored as
@@ -397,6 +398,15 @@ public class Context : DbContext
             run.HasMany(r => r.ReactionEvents).WithOne().HasForeignKey(e => e.RecordingId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        // The configuration of an attempt is read with SQL as well, so it has the shape the API writes: camelCase
+        // properties and enum strings, and a hash only for a resource file.
+        var attemptConfigJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        };
+
         modelBuilder.Entity<RecordingReactionEvent>(reactionEvent =>
         {
             reactionEvent.Property(e => e.ReactionId).HasMaxLength(128);
@@ -404,6 +414,7 @@ public class Context : DbContext
             reactionEvent.Property(e => e.Event).HasConversion<string>();
             reactionEvent.Property(e => e.State).HasConversion<string>();
             reactionEvent.Property(e => e.Message).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
+            reactionEvent.Property(e => e.Config).HasColumnType("jsonb").HasConversion((ValueConverter)JsonValueConverter<Dictionary<string, RecordedConfigValue>>(attemptConfigJsonOptions), JsonValueComparer<Dictionary<string, RecordedConfigValue>>(attemptConfigJsonOptions));
 
             // Restrict like the user of the run: users are only ever soft-deleted.
             reactionEvent.HasOne<User>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
@@ -445,12 +456,14 @@ public class Context : DbContext
     }
 
     // A JsonElement has no value equality, so the comparer looks at the serialized JSON like the reaction set values do.
-    private static ValueConverter<List<T>, string> MetadataConverter<T>(JsonSerializerOptions options) => new(
-        list => JsonSerializer.Serialize(list, options),
-        json => JsonSerializer.Deserialize<List<T>>(json, options) ?? new List<T>());
+    private static ValueConverter<T, string> JsonValueConverter<T>(JsonSerializerOptions options)
+        where T : new() => new(
+        value => JsonSerializer.Serialize(value, options),
+        json => JsonSerializer.Deserialize<T>(json, options) ?? new T());
 
-    private static ValueComparer<List<T>> MetadataComparer<T>(JsonSerializerOptions options) => new(
+    private static ValueComparer<T> JsonValueComparer<T>(JsonSerializerOptions options)
+        where T : new() => new(
         (left, right) => JsonSerializer.Serialize(left, options) == JsonSerializer.Serialize(right, options),
-        list => JsonSerializer.Serialize(list, options).GetHashCode(StringComparison.Ordinal),
-        list => JsonSerializer.Deserialize<List<T>>(JsonSerializer.Serialize(list, options), options) ?? new List<T>());
+        value => JsonSerializer.Serialize(value, options).GetHashCode(StringComparison.Ordinal),
+        value => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, options), options) ?? new T());
 }

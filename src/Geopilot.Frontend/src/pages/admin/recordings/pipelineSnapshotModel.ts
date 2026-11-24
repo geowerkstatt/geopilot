@@ -24,18 +24,18 @@ export interface SnapshotStepView {
 }
 
 /** A value of the definition as text: a list as its items separated by commas, a value that is not set as null. */
-const formatValue = (value: unknown): string | null => {
+export const formatConfigValue = (value: unknown): string | null => {
   if (value === null || value === undefined) {
     return null;
   }
   if (Array.isArray(value)) {
-    return value.map(item => formatValue(item) ?? "null").join(", ");
+    return value.map(item => formatConfigValue(item) ?? "null").join(", ");
   }
   return typeof value === "string" ? value : JSON.stringify(value);
 };
 
 const entries = (values: Record<string, unknown> | undefined, origin: SnapshotConfigOrigin): SnapshotConfigEntry[] =>
-  Object.entries(values ?? {}).map(([key, value]) => ({ key, value: formatValue(value), origin }));
+  Object.entries(values ?? {}).map(([key, value]) => ({ key, value: formatConfigValue(value), origin }));
 
 /** The steps of the snapshot's pipeline with their effective configuration, inputs, conditions and outputs. */
 export const buildSnapshotSteps = (snapshot: DefinitionSnapshot): SnapshotStepView[] =>
@@ -68,7 +68,7 @@ export const buildSnapshotSteps = (snapshot: DefinitionSnapshot): SnapshotStepVi
       config: [...config.values()],
       inputs: Object.entries(step.input ?? {}).map(([key, value]) => ({
         key,
-        expression: formatValue(value) ?? "null",
+        expression: formatConfigValue(value) ?? "null",
       })),
       conditionGroups,
       outputs: (step.output_actions ?? []).map(output => ({

@@ -2,6 +2,7 @@
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Channels;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
@@ -292,7 +293,7 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction)
+    public async Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config)
     {
         ArgumentNullException.ThrowIfNull(reaction);
 
@@ -304,7 +305,7 @@ public class Recorder : IRecorder
                 return;
             }
 
-            context.RecordingReactionEvents.Add(NewAttemptRow(runId, reaction));
+            context.RecordingReactionEvents.Add(NewAttemptRow(runId, reaction, config));
             await context.SaveChangesAsync();
         }
         catch (Exception ex)
@@ -315,7 +316,7 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, ReactionState? state, LocalizedText message)
+    public async Task RecordReactionAttemptFinishedAsync(DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config, ReactionState? state, LocalizedText message)
     {
         ArgumentNullException.ThrowIfNull(reaction);
 
@@ -338,7 +339,7 @@ public class Recorder : IRecorder
             if (row is null)
             {
                 logger.LogWarning("No row exists for attempt {Attempt} of the reaction <{ReactionId}> of delivery <{DeliveryId}>; creating it late.", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId);
-                row = NewAttemptRow(runId, reaction);
+                row = NewAttemptRow(runId, reaction, config);
                 context.RecordingReactionEvents.Add(row);
             }
 
@@ -414,7 +415,7 @@ public class Recorder : IRecorder
             .SingleOrDefaultAsync();
     }
 
-    private static RecordingReactionEvent NewAttemptRow(int runId, DeliveryReaction reaction)
+    private static RecordingReactionEvent NewAttemptRow(int runId, DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config)
     {
         return new RecordingReactionEvent
         {
@@ -427,6 +428,8 @@ public class Recorder : IRecorder
             Attempt = reaction.Attempts,
             OccurredAt = reaction.LastAttemptAt ?? DateTime.UtcNow,
             State = ReactionState.Running,
+            AppVersion = AppVersion,
+            Config = config is null ? null : new Dictionary<string, RecordedConfigValue>(config),
         };
     }
 
