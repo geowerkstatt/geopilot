@@ -43,6 +43,7 @@ builder.Services.AddCors(options =>
 });
 
 var machineDeliveryEnabled = builder.AddMachineDelivery();
+var refMappingEnabled = builder.AddRefMapping();
 
 builder.Services
     .AddControllers(options =>
@@ -50,6 +51,7 @@ builder.Services
         options.Conventions.Add(new StacRoutingConvention(GeopilotPolicies.Admin));
         options.Conventions.Add(new GeopilotJsonConvention());
         options.Conventions.Add(new MachineDeliveryConvention(machineDeliveryEnabled));
+        options.Conventions.Add(new RefMappingConvention(refMappingEnabled));
 
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()

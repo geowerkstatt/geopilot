@@ -75,6 +75,11 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
     getTableRowThatContains("reactions-table", "ablage").should("contain", "File drop").and("contain", "Ended");
     cy.dataCy("retryReaction").should("not.exist");
+
+    // The column of the reset button has no heading, so it leaves no empty column header to announce.
+    cy.dataCy("reactions-table")
+      .find("thead th")
+      .each(header => expect(header.text().trim()).not.to.equal(""));
   });
 
   it("links neither the files nor the STAC item before the delivery is forwarded", () => {

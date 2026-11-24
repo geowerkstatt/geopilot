@@ -40,6 +40,8 @@ Das Passwort gehört nicht in die Appsettings, sondern in eine Umgebungsvariable
 Pipeline__ChannelConfigs__Geopilot.Pipeline.Channels.Mail.MailChannel__password=...
 ```
 
+Der Kanal kennzeichnet das Passwort als geheim (`[SecretConfigValue]`): Es kommt nur aus der Basis-Konfiguration, und das Ausführungsprotokoll, das zu jedem [Zustellversuch](../../../GLOSSARY.md#zustellversuch) die Konfiguration des Kanals festhält, zeigt es nur als `**********`.
+
 Ob das Mandat die Empfänger pflegt oder der [Reaktions-Satz](../../../GLOSSARY.md#reaktions-satz) sie festlegt, entscheidet die Definition. Hier trägt jedes Mandat seine Empfänger selbst ein und entscheidet, ob der Lieferant die Mail bekommt:
 
 ```yaml
@@ -117,7 +119,7 @@ Das Template ist eine HTML-Datei im Ressourcen-Verzeichnis. Es ist in der Sprach
 
 ## Personendaten
 
-Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeSupplier` geht sie an seine Adresse, bei einem Maschinen-Client an die Adressen der [verantwortlichen Personen](../../../GLOSSARY.md#verantwortliche-person). Weist der Server eine dieser Adressen ab, steht sie in der Meldung der [Reaktion](../../../GLOSSARY.md#reaktion) und damit im Ausführungsprotokoll.
+Die Mail trägt, soweit das Template sie verwendet, den Namen des Lieferanten und seinen Kommentar, und mit `includeSupplier` geht sie an seine Adresse, bei einem Maschinen-Client an die Adressen der [verantwortlichen Personen](../../../GLOSSARY.md#verantwortliche-person). Weist der Server eine dieser Adressen ab, steht sie in der Meldung der [Reaktion](../../../GLOSSARY.md#reaktion) und damit im Ausführungsprotokoll. Die Adressen unter `to`, `cc` und `bcc` hält das Ausführungsprotokoll mit der Konfiguration jedes Zustellversuchs fest, die Adresse des Lieferanten nicht.
 
 ## Betrieb
 

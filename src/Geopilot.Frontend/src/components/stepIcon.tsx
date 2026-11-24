@@ -14,6 +14,7 @@ import { DeliveryStepState } from "../api/apiInterfaces.ts";
 import { StepState } from "../api/generated";
 import { TranslationKey } from "../appInterfaces";
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../appTheme.ts";
+import { StateIconFrame } from "./stateIconFrame.tsx";
 
 type StepIconVariant = "contained" | "outlined";
 
@@ -97,20 +98,8 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
   };
 
   return (
-    <Stack
-      component="span"
-      role="img"
-      aria-label={t(stateLabelKey[state])}
-      data-cy={`stepIcon-${state}`}
-      sx={{
-        width: px2rem(28),
-        height: px2rem(28),
-        position: "relative",
-        direction: "row",
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
+    <StateIconFrame label={t(stateLabelKey[state])} dataCy={`stepIcon-${state}`}>
       {renderContent()}
-    </Stack>
+    </StateIconFrame>
   );
 };

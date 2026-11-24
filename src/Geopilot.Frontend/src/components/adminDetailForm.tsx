@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
-import { FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook-form";
+import { DefaultValues, FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Box, CircularProgress, Stack } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -26,6 +26,7 @@ interface AdminDetailFormProps<T> {
   apiEndpoint: string;
   saveErrorLabel: TranslationKey;
   prepareDataForSave: (data: FieldValues) => T;
+  additionalButtons?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,10 +37,12 @@ const AdminDetailForm = <T extends { id: number }>({
   apiEndpoint,
   saveErrorLabel,
   prepareDataForSave,
+  additionalButtons,
   children,
 }: AdminDetailFormProps<T>) => {
   const { fetchApi } = useFetch();
-  const formMethods = useForm({ mode: "all" });
+  // Without defaults, a form whose data is there on the first render compares its values against nothing and starts dirty.
+  const formMethods = useForm({ mode: "all", defaultValues: data as DefaultValues<T> | undefined });
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
     useControlledNavigate();
   const navigate = useNavigate();
@@ -121,22 +124,27 @@ const AdminDetailForm = <T extends { id: number }>({
             <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
               <Stack>
                 {children}
-                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <Button
-                    disabled={!formMethods.formState.isDirty}
-                    onClick={() => formMethods.reset(data, resetOptions)}
-                    label={"reset"}
-                  />
-                  <Button
-                    variant="contained"
-                    disabled={
-                      formMethods.formState.isSubmitting ||
-                      !formMethods.formState.isDirty ||
-                      (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
-                    }
-                    onClick={() => formMethods.handleSubmit(submitForm)()}
-                    label={"save"}
-                  />
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+                  <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-start" }}>
+                    {additionalButtons}
+                  </Stack>
+                  <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <Button
+                      disabled={!formMethods.formState.isDirty}
+                      onClick={() => formMethods.reset(data, resetOptions)}
+                      label={"reset"}
+                    />
+                    <Button
+                      variant="contained"
+                      disabled={
+                        formMethods.formState.isSubmitting ||
+                        !formMethods.formState.isDirty ||
+                        (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
+                      }
+                      onClick={() => formMethods.handleSubmit(submitForm)()}
+                      label={"save"}
+                    />
+                  </Stack>
                 </Stack>
               </Stack>
             </form>
