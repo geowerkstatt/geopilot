@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Channels;
+using Geopilot.PipelineCore.Pipeline.Process;
 using System.Collections.Concurrent;
 
 namespace Geopilot.Api.Reactions;
@@ -13,8 +14,13 @@ internal sealed class ProbeChannel : IDeliveryChannel
 
     private readonly ChannelProbe probe;
 
-    public ProbeChannel(string probe, string? baseValue, int? port, [MandateValue] string? subfolder)
+    public ProbeChannel(string probe, string? baseValue, int? port, [MandateValue] string? subfolder, [SecretConfigValue] string? secret)
     {
+        // A negative port stands for a value the channel refuses, as a real channel does in its constructor.
+        if (port < 0)
+            throw new ArgumentException($"The port <{port}> is refused.", nameof(port));
+
+        _ = secret;
         this.probe = Probes[probe];
         this.probe.Created(baseValue, port, subfolder);
     }

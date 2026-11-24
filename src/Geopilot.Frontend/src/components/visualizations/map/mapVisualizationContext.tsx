@@ -1,6 +1,10 @@
 import { createContext, useContext } from "react";
 import OlMap from "ol/Map";
 import { FitOptions } from "ol/View";
+import { px2rem } from "../../../appTheme";
+
+/** The height of the bar along the bottom of a map; the buttons and panels over the map stay above it. */
+export const MAP_FOOTER_HEIGHT = px2rem(20);
 
 /**
  * Access to the OpenLayers map owned by the MapVisualizationProvider. The provider builds and holds the

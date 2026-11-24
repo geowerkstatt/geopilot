@@ -17,8 +17,10 @@ internal class JwtTestApp : GeopilotTestApp
         builder.UseSetting("Auth:AccessTokenFormat", "Jwt");
 
         // Read in the builder phase, so it has to come through UseSetting. Pinned here rather than taken from
-        // appsettings.Development.json, so the security suite covers the machine delivery routes on purpose.
+        // appsettings.Development.json, so the security suite covers the machine delivery and reference data
+        // mapping routes on purpose.
         builder.UseSetting("MachineDelivery:Enabled", "true");
+        builder.UseSetting("RefMapping:Enabled", "true");
 
         base.ConfigureWebHost(builder);
 

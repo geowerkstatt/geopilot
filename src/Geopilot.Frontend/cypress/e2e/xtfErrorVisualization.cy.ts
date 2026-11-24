@@ -76,6 +76,19 @@ describe("XTF error visualization", () => {
         expect(Cypress.$(".ol-viewport")[0].getBoundingClientRect().bottom).to.be.below(0);
       });
     cy.dataCy("zoomToError-button").last().click({ force: true });
-    shouldBeFullyShown(cy.get(".ol-viewport"));
+    shouldBeFullyShown(cy.dataCy("map-visualization"));
+  });
+
+  it("shows a scale bar and the coordinates under the pointer while it is over the map", () => {
+    openErrorVisualization();
+    cy.dataCy("map-scale-bar").should("be.visible").and("contain.text", "m");
+    cy.get(".ol-viewport").trigger("pointermove", "center");
+    cy.dataCy("map-pointer-position")
+      .should("be.visible")
+      .invoke("text")
+      // Browsers write the Swiss thousands separator as ' or ’, depending on their locale data.
+      .should("match", /^2['’]\d{3}['’]\d{3}, 1['’]\d{3}['’]\d{3}$/);
+    cy.get(".ol-viewport").trigger("pointerout");
+    cy.dataCy("map-pointer-position").should("have.text", "");
   });
 });

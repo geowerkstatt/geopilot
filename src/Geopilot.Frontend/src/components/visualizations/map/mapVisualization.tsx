@@ -7,10 +7,13 @@ import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
 import { Box, ButtonGroup, Link, Stack, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { MapVisualizationConfig } from "../../../api/apiInterfaces";
+import { px2rem } from "../../../appTheme";
 import { stopStepSwipePropagation } from "../../../hooks/useStepSwipe";
 import { IconButton } from "../../buttons";
 import { LayerSwitcher } from "./layerSwitcher";
-import { MapPanelContainerContext, useMapVisualization } from "./mapVisualizationContext";
+import { MapPointerPosition } from "./mapPointerPosition";
+import { MapScaleBar } from "./mapScaleBar";
+import { MAP_FOOTER_HEIGHT, MapPanelContainerContext, useMapVisualization } from "./mapVisualizationContext";
 
 interface MapVisualizationProps {
   /** The map visualization config to render. */
@@ -61,6 +64,7 @@ export const MapVisualization = ({
   return (
     <Box
       ref={setPanelContainer}
+      data-cy="map-visualization"
       {...stopStepSwipePropagation}
       sx={{
         position: "relative",
@@ -79,40 +83,51 @@ export const MapVisualization = ({
           height: "100%",
         }}
       />
-      {attributions.length > 0 && (
-        <Typography
-          variant="caption"
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            px: 0.75,
-            py: 0.25,
-            maxWidth: "100%",
-            backgroundColor: alpha(theme.palette.background.content, 0.7),
-            borderTopRightRadius: theme.radius.default,
-            lineHeight: 1.2,
-          }}>
-          {t("mapCopyrightPrefix")}{" "}
-          {attributions.map((attribution, index) => (
-            <Fragment key={attribution.text}>
-              {index > 0 && ", "}
-              {attribution.url ? (
-                <Link
-                  href={attribution.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="inherit"
-                  color="inherit">
-                  {attribution.text}
-                </Link>
-              ) : (
-                attribution.text
-              )}
-            </Fragment>
-          ))}
-        </Typography>
-      )}
+      <Stack
+        direction="row"
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: MAP_FOOTER_HEIGHT,
+          gap: 1,
+          alignItems: "baseline",
+          px: 0.75,
+          pt: 0.25,
+          ...theme.typography.caption,
+          lineHeight: 1.2,
+          backgroundColor: alpha(theme.palette.background.content, 0.7),
+        }}>
+        {map && (
+          <>
+            <MapScaleBar map={map} />
+            <MapPointerPosition map={map} />
+          </>
+        )}
+        {attributions.length > 0 && (
+          <Typography variant="caption" noWrap sx={{ ml: "auto", fontSize: px2rem(10) }}>
+            {t("mapCopyrightPrefix")}{" "}
+            {attributions.map((attribution, index) => (
+              <Fragment key={attribution.text}>
+                {index > 0 && ", "}
+                {attribution.url ? (
+                  <Link
+                    href={attribution.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="inherit"
+                    color="inherit">
+                    {attribution.text}
+                  </Link>
+                ) : (
+                  attribution.text
+                )}
+              </Fragment>
+            ))}
+          </Typography>
+        )}
+      </Stack>
       {map && (
         <>
           <Stack direction="column" sx={{ position: "absolute", top: 0, right: 0, m: { xs: 1, sm: 2 } }}>
@@ -150,7 +165,7 @@ export const MapVisualization = ({
             </ButtonGroup>
           </Stack>
           <MapPanelContainerContext.Provider value={panelContainer}>
-            <Stack sx={{ position: "absolute", bottom: 0, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
+            <Stack sx={{ position: "absolute", bottom: MAP_FOOTER_HEIGHT, right: 0, m: { xs: 1, sm: 2 }, gap: 1 }}>
               {controls}
               <ButtonGroup orientation="vertical">
                 {panelControls}

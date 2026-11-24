@@ -561,6 +561,34 @@ public class ReactionSetValidationTest
         Assert.AreEqual("Reaction set <unbekannt> does not exist.", exception.Message);
     }
 
+    [TestMethod]
+    public void RefusesASecretAReactionOverwrites()
+    {
+        // A reaction overwrites only keys the channel's default configuration defines, so both carry it.
+        const string definition = """
+            channels:
+              - id: maske
+                implementation: Geopilot.Pipeline.Test.Channels.MaskedChannel
+                default_config:
+                  password: in-the-default
+            reaction_sets:
+              - id: kanton_a
+                display_name:
+                  de: Kanton A
+                transfers:
+                  - id: weitergabe
+                    display_name:
+                      de: Weitergabe
+                    channel_id: maske
+                    channel_config_overwrites:
+                      password: in-the-overwrite
+            """;
+
+        AssertInvalid(
+            Factory(definition),
+            "reaction set kanton_a, reaction weitergabe, channel maske, error: Channel <Geopilot.Pipeline.Test.Channels.MaskedChannel>: the parameter 'password' is marked [SecretConfigValue]");
+    }
+
     private static void AssertInvalid(PipelineFactory factory, string expectedError)
     {
         var result = factory.ValidateDefinition();
