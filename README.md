@@ -109,6 +109,7 @@ volumes:
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
 Der STAC Browser ist über https://localhost:5173/browser erreichbar. Ohne Anmeldung zeigt er nur Mandate, deren STAC-Zugriff auf _Öffentlich_ steht (im Seed das öffentliche Mandat); angemeldete Administratoren sehen über das Cookie alle Mandate.
+Eine [Lieferung](./GLOSSARY.md#lieferung) erscheint dort erst, wenn ihr [Löschfenster](./GLOSSARY.md#löschfenster) geschlossen ist (siehe [Löschen von Lieferungen](#löschen-von-lieferungen)): mit `appsettings.Development.json` nach Mitternacht, im Docker-Compose-Stack nie.
 
 ### Debugging 🪲
 
@@ -406,6 +407,8 @@ Ob Lieferanten ihre eigenen [Lieferungen](./GLOSSARY.md#lieferung) löschen dür
 ```
 
 Das [Löschfenster](./GLOSSARY.md#löschfenster) schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
+
+Der STAC-Katalog zeigt eine Lieferung erst, wenn ihr Löschfenster geschlossen ist, auch Admins, und erst dann lassen sich ihre Dateien herunterladen. Dürfen Lieferanten nicht löschen, ist das gleich nach der Abgabe der Fall; schliesst das Löschfenster nie, erscheint keine Lieferung. Massgebend ist die aktuelle Konfiguration: Wer das Löschfenster verlängert, nimmt bereits gezeigte Lieferungen wieder aus dem Katalog, bis das neue Fenster geschlossen ist.
 
 ## Weitergabe von Lieferungen
 
