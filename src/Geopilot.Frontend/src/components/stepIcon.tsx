@@ -65,6 +65,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
         return (
           <>
             <Stack
+              component="span"
               sx={{
                 width: px2rem(20),
                 height: px2rem(20),
@@ -97,6 +98,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
 
   return (
     <Stack
+      component="span"
       role="img"
       aria-label={t(stateLabelKey[state])}
       data-cy={`stepIcon-${state}`}

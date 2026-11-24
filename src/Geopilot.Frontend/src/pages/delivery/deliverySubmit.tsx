@@ -48,7 +48,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent title="createDelivery" buttons={buttons}>
+    <DeliveryContent title="delivery" buttons={buttons}>
       <FormProvider {...formMethods}>
         <form onSubmit={formMethods.handleSubmit(submitForm)}>
           <Stack>
