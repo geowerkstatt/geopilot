@@ -108,7 +108,7 @@
   "diffFieldChangeType": "Type de modification",
   "diffFieldValueType": "Type de valeur",
   "diffLegendArea": "Surface",
-  "diffLegendChangedHint": "Modifié: la bande large montre l'avant, la ligne fine l'après. Une surface n'est remplie que si sa géométrie a changé.",
+  "diffLegendChangedHint": "Modifié: la bande large montre l'avant, la ligne fine l'après. Si la géométrie d'une surface n'a pas changé, la carte n'en montre que le contour.",
   "diffLegendLine": "Ligne",
   "diffLegendPoint": "Point",
   "diffMapLegend": "Légende",

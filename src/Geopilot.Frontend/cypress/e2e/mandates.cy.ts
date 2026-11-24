@@ -761,7 +761,7 @@ describe("Mandate with a reaction set", () => {
     cy.wait("@getPipelines");
 
     // The values are grouped under the name of their reaction.
-    cy.contains("p", /^File drop$/).should("be.visible");
+    cy.contains("h4", /^File drop$/).should("be.visible");
     evaluateInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-a");
     setInput("reactionSetValues.ablage_pro_mandat.subfolder", "kanton-b");
     setChipInput("reactionSetValues.ablage_pro_mandat.recipients", "someone@example.com");
@@ -962,7 +962,7 @@ describe("Mandate with metadata fields", () => {
     cy.intercept("PUT", "/api/v1/mandate", req => req.reply({ statusCode: 200, body: req.body })).as("updateMandate");
   });
 
-  const fieldButtons = () => cy.dataCy("metadataFields-list").find('[role="button"]');
+  const fieldButtons = () => cy.dataCy("metadataFields-list").find("button");
 
   const fieldTexts = (index: number) =>
     fieldButtons()
@@ -1070,15 +1070,16 @@ describe("Mandate with metadata fields", () => {
     openMandateWith([projectNumber, responsible]);
 
     cy.dataCy("language-tabs").should("have.attr", "aria-label", "Input language of name and description");
-    // A field is a button named by its title and type that opens a dialog, from the keyboard as well. Its title shows
-    // in full on hover, where the button cuts it off.
+    // A field is a native button named by its title and type that opens a dialog, so the browser opens it from the
+    // keyboard as well, which the simulated keys of Cypress do not reach. Its title shows in full on hover, where the
+    // button cuts it off.
     fieldButtons().eq(1).find(".MuiTypography-root").first().should("have.attr", "title", "Responsible");
     fieldButtons()
       .eq(1)
       .should("contain", "Responsible")
       .and("have.attr", "aria-haspopup", "dialog")
-      .focus()
-      .type("{enter}");
+      .and("match", "button")
+      .click();
     cy.dataCy("metadataFieldDialog")
       .find('[role="dialog"]')
       .invoke("attr", "aria-labelledby")

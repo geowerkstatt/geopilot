@@ -9,9 +9,13 @@ interface StateIconFrameProps {
   children?: ReactNode;
 }
 
-/** The square the icon of a state stands in, the same for every step and event, so icons and titles line up. */
+/**
+ * The square the icon of a state stands in, the same for every step and event, so icons and titles line up. A span,
+ * because it stands inside the button of a step or an accordion header.
+ */
 export const StateIconFrame: FC<StateIconFrameProps> = ({ label, dataCy, children }) => (
   <Stack
+    component="span"
     role={label ? "img" : undefined}
     aria-label={label}
     data-cy={dataCy}
