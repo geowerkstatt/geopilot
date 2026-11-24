@@ -10,6 +10,9 @@ namespace Geopilot.Api.Processing;
 /// </summary>
 public class ProcessingJobCleanupService : BackgroundService
 {
+    // Enough to start looking: a restore can leave thousands of mismatches, and they are reported every run.
+    private const int ReportedJobIdLimit = 10;
+
     private readonly IProcessingJobStore jobStore;
     private readonly JobLifecycle lifecycle;
     private readonly IDirectoryProvider directoryProvider;
@@ -110,8 +113,10 @@ public class ProcessingJobCleanupService : BackgroundService
             // a delivery directory exists only once its delivery is saved, so one without a delivery holds a
             // delivery the database no longer knows, after restoring an older database for instance. It is
             // reported, never deleted (#947).
-            var deliveries = ByJob(await LoadDeliveriesAsync(dbContext));
+            var deliveryRows = await LoadDeliveriesAsync(dbContext);
+            var deliveries = ByJob(deliveryRows);
             var movedStagings = MoveStagedDeliveriesIntoPlace(deliveries);
+            ReportMismatches(deliveryRows, deliveries);
 
             // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
             // so retiring a job never cuts their retention short; a job that has not finished counts from its
@@ -243,6 +248,46 @@ public class ProcessingJobCleanupService : BackgroundService
 
         return moved;
     }
+
+    /// <summary>
+    /// Warns once per direction about delivery directories without a delivery and active deliveries without files,
+    /// every run until an operator reconciles them. Nothing is deleted or filled in: only an operator can tell which
+    /// side is right.
+    /// </summary>
+    private void ReportMismatches(IReadOnlyList<DeliveryRow> rows, IReadOnlyDictionary<Guid, JobDeliveries> deliveries)
+    {
+        var deliveryDirectories = EnumerateJobIds(directoryProvider.AssetDirectory);
+
+        var directoriesWithoutDelivery = deliveryDirectories
+            .Where(jobId => deliveries.GetValueOrDefault(jobId) == JobDeliveries.None)
+            .ToList();
+        if (directoriesWithoutDelivery.Count > 0)
+        {
+            logger.LogWarning(
+                "{Count} delivery directories have no delivery in the database, first job ids: {JobIds}. geopilot keeps them. After restoring an older database, reconcile them by hand.",
+                directoriesWithoutDelivery.Count,
+                FirstJobIds(directoriesWithoutDelivery));
+        }
+
+        // Newest first, since files restored from an older backup lack the latest deliveries. Files still waiting in
+        // staging are on their way, not missing.
+        var directoriesOnTheirWay = EnumerateJobIds(directoryProvider.AssetStagingDirectory);
+        var deliveriesWithoutDirectory = rows
+            .Where(row => !row.Deleted)
+            .Select(row => row.JobId)
+            .Distinct()
+            .Where(jobId => !deliveryDirectories.Contains(jobId) && !directoriesOnTheirWay.Contains(jobId))
+            .ToList();
+        if (deliveriesWithoutDirectory.Count > 0)
+        {
+            logger.LogWarning(
+                "{Count} deliveries have no delivery directory, first job ids: {JobIds}. Their files may be missing from Storage:AssetsDirectory, for example after restoring an older backup of it.",
+                deliveriesWithoutDirectory.Count,
+                FirstJobIds(deliveriesWithoutDirectory));
+        }
+    }
+
+    private static string FirstJobIds(IEnumerable<Guid> jobIds) => string.Join(", ", jobIds.Take(ReportedJobIdLimit));
 
     private bool RetireJob(Guid jobId, JobDeliveries deliveries)
     {

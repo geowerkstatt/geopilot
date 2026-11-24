@@ -169,6 +169,7 @@
 - The mandates offered for a delivery are listed alphabetically by their name in the selected language. Until now a mandate moved to the end of the list once it was edited.
 - A pipeline step whose output tagged `Download` or `Visualization` is not set (`null`) now fails with a message, as documented. Before, the step stayed successful without a reason, the following steps stayed pending and the job ended `Failed`. A fail condition of the step that covers the missing output takes precedence with its own message.
 - A file delivered under a name that has to be cleaned around two dots, such as `a.?.b.xtf`, is now stored under the name recorded for it, so it can be downloaded and no longer overwrites another file of the same delivery. Deliveries created before the update are not repaired.
+- After restoring an older database, geopilot no longer deletes the files of deliveries created after the backup. It keeps them and logs a warning with their job IDs at every cleanup run, the first at startup, and does the same for deliveries whose files are missing. See _Löschen von Lieferungen_ in the README.
 
 ## v3.0.341 - 2026-06-17
 

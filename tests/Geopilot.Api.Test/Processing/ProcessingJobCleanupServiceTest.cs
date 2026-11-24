@@ -542,6 +542,70 @@ public class ProcessingJobCleanupServiceTest
     }
 
     [TestMethod]
+    public async Task RunCleanupReportsADeliveryDirectoryWithoutDelivery()
+    {
+        var jobId = Guid.NewGuid();
+        CreateWithPayload(Path.Combine(tempAssetRoot, jobId.ToString()));
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns((ProcessingJob?)null);
+
+        await service.RunCleanupAsync();
+
+        VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal) && message.Contains("no delivery", StringComparison.Ordinal), Times.Once());
+    }
+
+    [TestMethod]
+    public async Task RunCleanupReportsAnActiveDeliveryWithoutDirectory()
+    {
+        // Seeded last, so it leads the list despite the deliveries other tests left without a directory here.
+        var jobId = Guid.NewGuid();
+        SeedDelivery(jobId);
+
+        await service.RunCleanupAsync();
+
+        VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal) && message.Contains("no delivery directory", StringComparison.Ordinal), Times.Once());
+    }
+
+    [TestMethod]
+    public async Task RunCleanupDoesNotReportADeliveryWaitingInStaging()
+    {
+        var jobId = Guid.NewGuid();
+        CreateWithPayload(Path.Combine(tempAssetStagingRoot, jobId.ToString()));
+        SeedDelivery(jobId);
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns((ProcessingJob?)null);
+
+        await service.RunCleanupAsync();
+
+        VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal), Times.Never());
+    }
+
+    [TestMethod]
+    public async Task RunCleanupDoesNotReportADeliveryBeingCreated()
+    {
+        var jobId = Guid.NewGuid();
+        CreateWithPayload(Path.Combine(tempAssetStagingRoot, jobId.ToString()));
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow));
+
+        await service.RunCleanupAsync();
+
+        VerifyWarning(message => message.Contains(jobId.ToString(), StringComparison.Ordinal), Times.Never());
+    }
+
+    [TestMethod]
+    public async Task RunCleanupReportsTheCountAndAtMostTenJobIds()
+    {
+        var jobIds = Enumerable.Range(0, 12).Select(_ => Guid.NewGuid()).ToList();
+        foreach (var jobId in jobIds)
+            CreateWithPayload(Path.Combine(tempAssetRoot, jobId.ToString()));
+
+        await service.RunCleanupAsync();
+
+        VerifyWarning(
+            message => message.StartsWith("12 delivery directories", StringComparison.Ordinal)
+                && jobIds.Count(jobId => message.Contains(jobId.ToString(), StringComparison.Ordinal)) == 10,
+            Times.Once());
+    }
+
+    [TestMethod]
     public async Task RunCleanupSkipsNonGuidFolders()
     {
         var nonGuidDir = Path.Combine(tempAssetRoot, "not-a-guid");
@@ -584,6 +648,16 @@ public class ProcessingJobCleanupServiceTest
         });
         context.SaveChanges();
     }
+
+    private void VerifyWarning(Func<string, bool> message, Times times)
+        => loggerMock.Verify(
+            logger => logger.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => message(state.ToString() ?? string.Empty)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            times);
 
     private static void CreateWithPayload(string directory)
     {
