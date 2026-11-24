@@ -690,6 +690,51 @@ namespace Geopilot.Api.Migrations
                     b.ToTable("RecordingSteps");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.UploadSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UploadSessions");
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.UploadSessionFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("text");
+
+                    b.Property<long>("DeclaredSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UploadSessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadSessionId");
+
+                    b.ToTable("UploadSessionFiles");
+                });
+
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -929,6 +974,15 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Recording");
                 });
 
+            modelBuilder.Entity("Geopilot.Api.Models.UploadSessionFile", b =>
+                {
+                    b.HasOne("Geopilot.Api.Models.UploadSession", null)
+                        .WithMany("Files")
+                        .HasForeignKey("UploadSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MachineClientOrganisation", b =>
                 {
                     b.HasOne("Geopilot.Api.Models.MachineClient", null)
@@ -1020,6 +1074,11 @@ namespace Geopilot.Api.Migrations
                     b.Navigation("Conditions");
 
                     b.Navigation("Inputs");
+                });
+
+            modelBuilder.Entity("Geopilot.Api.Models.UploadSession", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
