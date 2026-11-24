@@ -228,7 +228,7 @@ Für die [maschinelle Lieferung](./docs/MaschinelleLieferung.md) authentifiziere
 
 ### Pflicht-Claims
 
-Mit `Auth:RequiredClaims` verlangt geopilot bestimmte Claims mit einem exakten Wert, zum Beispiel den Tenant bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Bei JWT prüft geopilot das Access-Token direkt, bei opaken Tokens die Introspection-Antwort. Diese Prüfung gilt für Personen und für Maschinen-Clients.
+Mit `Auth:RequiredClaims` verlangt geopilot bestimmte Claims[^1] mit einem exakten Wert, zum Beispiel den Tenant bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Bei JWT prüft geopilot das Access-Token direkt, bei opaken Tokens die Introspection-Antwort. Diese Prüfung gilt für Personen und für Maschinen-Clients.
 
 Der Vergleich unterscheidet Gross- und Kleinschreibung. Ein Claim muss genau einen Textwert enthalten; Zahlen, Wahrheitswerte (Boolean) und Claims mit mehreren Werten schlagen immer fehl. Deshalb eignet sich `Auth:RequiredClaims` nicht für Rollen oder Gruppen. Fehlt ein Pflicht-Claim oder weicht sein Wert ab, antwortet die API mit 401 und legt keinen Benutzer an. geopilot schreibt dann eine Warnung mit dem Claim-Namen ins Log. Ohne Eintrag prüft geopilot keine zusätzlichen Claims.
 
@@ -448,3 +448,5 @@ Was ein [Kanal](./GLOSSARY.md#kanal) vom Betrieb braucht, steht in seiner Basis-
 Der Mail-Kanal braucht dort Server, Port und Absender und, wo der Server es verlangt, die Anmeldung. Das Passwort gehört in eine Umgebungsvariable oder einen Vault. Lokal fängt Mailpit aus dem Docker Compose die Mails ab: Die Entwicklungskonfiguration sendet dorthin, und die Mails stehen unter http://localhost:8025.
 
 Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Reaktionen betreiben](./docs/Reaktionen.md).
+
+[^1]: Je nach Identity Provider steht ein Claim erst mit einem Scope im Token.
