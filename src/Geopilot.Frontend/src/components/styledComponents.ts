@@ -46,12 +46,13 @@ export const CenteredContent = styled(Stack, {
   },
 }));
 
+// The cast restores the component prop of Stack, which styled() drops from the typing.
 export const GeopilotBox = styled(Stack)(({ theme }) => ({
   backgroundColor: theme.palette.background.content,
   border: `1px solid ${theme.palette.primary.light}`,
   borderRadius: theme.radius.default,
   padding: theme.spacing(2),
-}));
+})) as typeof Stack;
 
 export const BulletList = styled("ul")(({ theme }) => ({
   marginTop: theme.spacing(1),

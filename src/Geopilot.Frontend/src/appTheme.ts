@@ -26,6 +26,44 @@ const themeRadius: ThemeOptions["radius"] = {
 // letter spacing in em, it keeps the spacing of the input in px (or the pickers' own) and misses the shrunk label.
 const notchLegendSpacing = { "& legend": { letterSpacing: NEOGEO_LETTERSPACING } };
 
+interface OutlinedButtonColors {
+  border: string;
+  main: string;
+  dark: string;
+  hover: string;
+}
+
+// Keyboard focus draws its second pixel of border as an inset shadow, so the content does not shift.
+const outlinedButtonStyle = ({ border, main, dark, hover }: OutlinedButtonColors) => ({
+  color: main,
+  backgroundColor: themePalette.background.content,
+  border: `1px solid ${border}`,
+  borderRadius: themeRadius.default,
+  "&:hover": {
+    color: dark,
+    backgroundColor: hover,
+    borderColor: main,
+  },
+  "&.Mui-focusVisible": {
+    borderColor: main,
+    boxShadow: `inset 0 0 0 1px ${main}`,
+  },
+  "&.Mui-selected, &.Mui-selected:hover, &.active": {
+    backgroundColor: themePalette.primary.states.selected,
+  },
+  "&.Mui-disabled": {
+    color: themePalette.primary.states.disabledBackground,
+    borderColor: themePalette.primary.states.disabledBackground,
+  },
+});
+
+const outlinedPrimaryButton = outlinedButtonStyle({
+  border: themePalette.primary.light,
+  main: themePalette.primary.main,
+  dark: themePalette.primary.dark,
+  hover: themePalette.primary.states.hover,
+});
+
 export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
@@ -270,6 +308,7 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         color: "primary",
         variant: "outlined",
+        size: "large",
       },
       styleOverrides: {
         root: {
@@ -283,17 +322,6 @@ export const geopilotTheme = createTheme({
           "&.MuiButton-contained": {
             color: themePalette.primary.contrast,
           },
-          "&.MuiButton-outlined": {
-            backgroundColor: themePalette.primary.contrast,
-          },
-          "&.MuiButton-outlinedPrimary:hover": {
-            backgroundColor: themePalette.primary.states.hover,
-            borderColor: themePalette.primary.main,
-          },
-          "&.MuiButton-outlinedError:hover": {
-            backgroundColor: themePalette.error.hover,
-            borderColor: themePalette.error.main,
-          },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
@@ -303,15 +331,20 @@ export const geopilotTheme = createTheme({
               backgroundColor: themePalette.primary.states.disabledBackground,
               color: themePalette.primary.contrast,
             },
-            "&.MuiButton-outlined": {
-              color: themePalette.primary.states.disabledBackground,
-              borderColor: themePalette.primary.states.disabledBackground,
-            },
           },
           "&.MuiButton-sizeSmall .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(18) },
           "&.MuiButton-sizeMedium .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(20) },
           "&.MuiButton-sizeLarge .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(22) },
         },
+        outlined: ({ ownerState }) =>
+          ownerState.color === "error"
+            ? outlinedButtonStyle({
+                border: alpha(themePalette.error.main, 0.5),
+                main: themePalette.error.main,
+                dark: themePalette.error.dark,
+                hover: themePalette.error.hover,
+              })
+            : outlinedPrimaryButton,
         sizeSmall: {
           fontSize: px2rem(14),
           lineHeight: px2rem(22),
@@ -356,23 +389,8 @@ export const geopilotTheme = createTheme({
           },
         },
         colorPrimaryOutlined: {
-          color: themePalette.primary.main,
-          backgroundColor: themePalette.primary.contrast,
+          ...outlinedPrimaryButton,
           padding: `calc(${themeSpacing(1)} - 1px)`,
-          border: `1px solid ${themePalette.primary.light}`,
-          borderRadius: themeRadius.default,
-          "&:hover": {
-            border: `1px solid ${themePalette.primary.main}`,
-            backgroundColor: themePalette.primary.states.hover,
-          },
-          "&:disabled": {
-            color: themePalette.primary.states.disabledBackground,
-            backgroundColor: themePalette.primary.contrast,
-            border: `1px solid ${themePalette.primary.states.disabledBackground}`,
-          },
-          "&.active": {
-            backgroundColor: themePalette.primary.states.selected,
-          },
         },
       },
     },
@@ -392,7 +410,7 @@ export const geopilotTheme = createTheme({
               borderBottomLeftRadius: themeRadius.default,
               borderBottomRightRadius: themeRadius.default,
             },
-            "&:hover": {
+            "&:hover, &.Mui-focusVisible": {
               zIndex: 1,
             },
           },
@@ -577,17 +595,10 @@ export const geopilotTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          color: themePalette.primary.main,
-          borderColor: themePalette.primary.light,
+          ...outlinedPrimaryButton,
           textTransform: "none",
           // Grouped buttons share one border, which a background painted under the border would cover.
           backgroundClip: "padding-box",
-          "&:hover": {
-            backgroundColor: alpha(themePalette.primary.main, 0.04),
-          },
-          "&.Mui-selected, &.Mui-selected:hover": {
-            backgroundColor: themePalette.primary.states.selected,
-          },
         },
         sizeSmall: {
           fontSize: px2rem(14),
@@ -601,6 +612,11 @@ export const geopilotTheme = createTheme({
           fontSize: px2rem(16),
           lineHeight: px2rem(26),
         },
+      },
+    },
+    MuiToggleButtonGroup: {
+      defaultProps: {
+        color: "primary",
       },
     },
     MuiStack: { defaultProps: { spacing: 2, useFlexGap: true } },
@@ -658,11 +674,25 @@ export const geopilotTheme = createTheme({
             "&:first-of-type": { marginTop: 0 },
             "&:last-of-type": { marginBottom: 0 },
           },
+          // Only an accordion that expands has the icon, so only its header reacts to hover.
+          "&:has(.MuiAccordionSummary-root:hover .MuiAccordionSummary-expandIconWrapper)": {
+            borderColor: themePalette.primary.main,
+          },
+          // A collapsed item below a collapsed one shows the bottom border of that one as its top border.
+          "&:not(.Mui-expanded):has(+ .MuiAccordion-root:not(.Mui-expanded) .MuiAccordionSummary-root:hover .MuiAccordionSummary-expandIconWrapper)":
+            {
+              borderBottomColor: themePalette.primary.main,
+            },
         },
       },
     },
     MuiAccordionSummary: {
       styleOverrides: {
+        root: {
+          "&:not(:has(.MuiAccordionSummary-expandIconWrapper))": {
+            cursor: "default",
+          },
+        },
         expandIconWrapper: {
           color: themePalette.primary.main,
         },

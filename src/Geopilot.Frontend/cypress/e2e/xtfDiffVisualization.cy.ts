@@ -200,7 +200,7 @@ describe("XTF diff visualization", () => {
     cy.dataCy("diff-object-map").last().scrollIntoView();
     cy.get(".ol-viewport").should(viewport => expect(viewport[0].getBoundingClientRect().bottom).to.be.below(0));
     cy.dataCy("diff-object-map").last().click();
-    shouldBeFullyShown(cy.get(".ol-viewport"));
+    shouldBeFullyShown(cy.dataCy("map-visualization"));
   });
 
   it("shows a revealed object from its start when it is taller than the view", () => {

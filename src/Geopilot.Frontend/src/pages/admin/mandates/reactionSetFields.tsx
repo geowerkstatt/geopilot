@@ -106,7 +106,9 @@ const ReactionSetFields: FC<ReactionSetFieldsProps> = ({ mandate, reactionSets }
       </FormContainer>
       {groupByReaction(selectedSet?.mandateFields ?? []).map(fields => (
         <Fragment key={fields[0].reactionId}>
-          <Typography variant={"body1"}>{localized(fields[0].reactionDisplayName, fields[0].reactionId)}</Typography>
+          <Typography variant={"h4"} sx={{ marginTop: 1.5, marginBottom: 0 }}>
+            {localized(fields[0].reactionDisplayName, fields[0].reactionId)}
+          </Typography>
           {/* A reaction that asks for a single value gives it the whole width. */}
           <FormContainer sx={{ flexWrap: "wrap" }}>
             {fields.map(field => renderField(field, fields.length === 1))}
