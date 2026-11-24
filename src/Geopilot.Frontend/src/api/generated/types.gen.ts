@@ -152,6 +152,14 @@ export const ConditionPhase = { Pre: "pre", Post: "post" } as const;
 
 export type ConditionPhase = (typeof ConditionPhase)[keyof typeof ConditionPhase];
 
+export const ConfigOrigin = {
+  Base: "base",
+  Definition: "definition",
+  Mandate: "mandate",
+} as const;
+
+export type ConfigOrigin = (typeof ConfigOrigin)[keyof typeof ConfigOrigin];
+
 /**
  * A simple Coordinate representation.
  */
@@ -972,6 +980,21 @@ export type RecordingConditionResponse = {
 };
 
 /**
+ * The value of one channel parameter as an attempt ran with it.
+ */
+export type RecordingConfigValueResponse = {
+  /**
+   * The value as configured, not converted: a text, a number, a switch or a list. A secret that is set reads `**********`, a resource file is the path below the resources directory.
+   */
+  value?: unknown;
+  origin: ConfigOrigin;
+  /**
+   * For a resource file the SHA-256 of its content when the attempt started, as lowercase hex; null when the file is missing or lies outside the resources directory, and for any other parameter.
+   */
+  sha256?: string | null;
+};
+
+/**
  * One uploaded file of the run.
  */
 export type RecordingFileResponse = {
@@ -1108,6 +1131,12 @@ export type RecordingReactionEventResponse = {
    * The id of the reaction in its set.
    */
   reactionId: string;
+  /**
+   * The name of the reaction in the pipeline definition as it is now, or null when the definition no longer has the reaction.
+   */
+  reactionDisplayName?: {
+    [key: string]: string;
+  } | null;
   reactionKind: ReactionKind;
   /**
    * The channel that runs the reaction.
@@ -1137,6 +1166,16 @@ export type RecordingReactionEventResponse = {
    * The user who caused the event, such as the one who deleted the delivery, or null when the application did.
    */
   userId?: number | null;
+  /**
+   * For an attempt the version of the application that ran it, or null for an attempt recorded before the protocol kept it.
+   */
+  appVersion?: string | null;
+  /**
+   * For an attempt the configuration its channel ran with, per parameter, or null when the channel is unknown or the attempt was recorded before the protocol kept it.
+   */
+  config?: {
+    [key: string]: RecordingConfigValueResponse;
+  } | null;
 };
 
 /**

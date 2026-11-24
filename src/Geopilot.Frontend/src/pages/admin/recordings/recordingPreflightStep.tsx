@@ -6,6 +6,7 @@ import { RecordingResponse, ScanState } from "../../../api/generated";
 import { DetailTable, nameColumnWidth } from "../../../components/detailTable.tsx";
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { SummaryField } from "../deliveries/summaryField.tsx";
+import { EntryHeader } from "./entryHeader.tsx";
 import { formatFileSize, formatStepState, preflightStepState } from "./recordingFormat.ts";
 import { TechnicalText } from "./technicalText.tsx";
 
@@ -36,15 +37,13 @@ export const RecordingPreflightStep: FC<RecordingPreflightStepProps> = ({ run })
   };
 
   return (
-    <Accordion defaultExpanded disableGutters data-cy="recordingStep-preflight">
+    <Accordion disableGutters data-cy="recordingStep-preflight">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Stack direction="row" sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
-          <StepIcon step={1} state={state} variant="outlined" />
-          <Typography sx={{ flex: "1 1 0" }}>{t("preparation")}</Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {formatStepState(t, state)}
-          </Typography>
-        </Stack>
+        <EntryHeader
+          icon={<StepIcon step={1} state={state} variant="outlined" />}
+          title={<Typography>{t("preparation")}</Typography>}
+          aside={formatStepState(t, state)}
+        />
       </AccordionSummary>
       <AccordionDetails>
         <Stack>

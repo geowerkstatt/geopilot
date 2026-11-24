@@ -292,11 +292,7 @@ public class DeliveryController : ControllerBase
         var forwarded = reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp() is null or ReactionState.Done;
         var stacItem = forwarded ? new StacItemReference(StacConverter.CollectionId(delivery.Mandate.Id), StacConverter.ItemId(delivery.Id)) : null;
 
-        // The names come from the definition as it is now. Reaction ids are unique across all sets, and a reaction the
-        // definition no longer has keeps its id only.
-        var displayNames = pipelineFactory.ReactionSets
-            .SelectMany(set => set.AllReactions())
-            .ToDictionary(reaction => reaction.Id, reaction => reaction.DisplayName, StringComparer.Ordinal);
+        var displayNames = pipelineFactory.ReactionDisplayNames();
 
         return Ok(new DeliveryDetailResponse(
             delivery.Id,
