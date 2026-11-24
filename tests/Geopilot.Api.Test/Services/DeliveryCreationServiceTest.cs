@@ -69,7 +69,7 @@ public class DeliveryCreationServiceTest
         var supplier = Supplier.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
         mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
-        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        SetupStagedAssets(jobId);
 
         var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
 
@@ -78,6 +78,88 @@ public class DeliveryCreationServiceTest
         Assert.AreEqual(client.Id, delivery.DeliveredByClientId);
         Assert.IsNull(delivery.DeliveredByUserId, "A delivery has exactly one supplier; the database constraint says the same.");
         Assert.AreEqual("SILENTHARBOR", delivery.DeliveredByName, "The client's name is what the catalog shows as the deliverer.");
+    }
+
+    [TestMethod]
+    public async Task MovesTheFilesOnlyAfterTheDeliveryIsSaved()
+    {
+        var (jobId, supplier) = PrepareCreation(nameof(MovesTheFilesOnlyAfterTheDeliveryIsSaved));
+        var savedWhenMoved = false;
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        assetHandlerMock.Setup(a => a.PromoteJobAssets(jobId)).Callback(() => savedWhenMoved = context.Deliveries.AsNoTracking().Any(d => d.JobId == jobId));
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
+        Assert.IsTrue(savedWhenMoved, "A delivery directory may only exist together with its delivery.");
+        assetHandlerMock.Verify(a => a.PromoteJobAssets(jobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheFilesInStagingWhenRecordingFails()
+    {
+        var (jobId, supplier) = PrepareCreation(nameof(KeepsTheFilesInStagingWhenRecordingFails));
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ThrowsAsync(new IOException("staging unreadable"));
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.AssetRecordingFailed, result.Status);
+        assetHandlerMock.Verify(a => a.PromoteJobAssets(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheFilesInStagingWhenSavingFails()
+    {
+        var (jobId, supplier) = PrepareCreation(nameof(KeepsTheFilesInStagingWhenSavingFails));
+        using var aborted = new CancellationTokenSource();
+        assetHandlerMock
+            .Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
+            .Callback(() => aborted.Cancel())
+            .ReturnsAsync(new List<Asset> { new Asset() });
+
+        // The request is aborted between recording the assets and saving the delivery.
+        await Assert.ThrowsAsync<OperationCanceledException>(() => service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, aborted.Token));
+
+        Assert.IsFalse(context.Deliveries.AsNoTracking().Any(d => d.JobId == jobId));
+        assetHandlerMock.Verify(a => a.PromoteJobAssets(It.IsAny<Guid>()), Times.Never);
+
+        // A new request gets a new context, and the files still wait in staging for it.
+        context.ChangeTracker.Clear();
+        SetupStagedAssets(jobId);
+        var retry = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.Created, retry.Status);
+        assetHandlerMock.Verify(a => a.PromoteJobAssets(jobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ReportsCreatedWhenRenamingTheFilesFails()
+    {
+        var (jobId, supplier) = PrepareCreation(nameof(ReportsCreatedWhenRenamingTheFilesFails));
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        assetHandlerMock.Setup(a => a.PromoteJobAssets(jobId)).Throws(new IOException("a file in staging is open"));
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        // The delivery is saved; the next cleanup run moves its files out of staging.
+        Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
+        Assert.IsTrue(context.Deliveries.AsNoTracking().Any(d => d.Id == result.DeliveryId));
+    }
+
+    [TestMethod]
+    public async Task LeavesTheFilesOfAnAlreadyDeliveredJobAlone()
+    {
+        var (jobId, supplier) = PrepareCreation(nameof(LeavesTheFilesOfAnAlreadyDeliveredJobAlone));
+        SetupStagedAssets(jobId);
+        var first = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+        assetHandlerMock.Invocations.Clear();
+
+        var second = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.AlreadyDelivered, second.Status);
+        Assert.AreEqual(first.DeliveryId, second.DeliveryId);
+        assetHandlerMock.Verify(a => a.RecordJobAssetsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        assetHandlerMock.Verify(a => a.PromoteJobAssets(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -111,7 +193,7 @@ public class DeliveryCreationServiceTest
 
         // Permitted at its start, so only who asks now and what the mandate allows now decide.
         var jobId = SetupDeliverableJob(mandate.Id);
-        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        SetupStagedAssets(jobId);
 
         // The real mandate rules rather than a mock of one lookup, so this holds whichever lookup the creation uses.
         var creationService = new DeliveryCreationService(
@@ -322,12 +404,30 @@ public class DeliveryCreationServiceTest
         var supplier = Supplier.ForClient(client.Id);
         var jobId = SetupDeliverableJob(mandate.Id);
         mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
-        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        SetupStagedAssets(jobId);
 
         var result = await service.CreateAsync(jobId, fields ?? new DeliveryFields(null, null, null), supplier, CancellationToken.None);
 
         Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
         return result.DeliveryId ?? throw new AssertFailedException("A created delivery has an id.");
+    }
+
+    private (Guid JobId, Supplier Supplier) PrepareCreation(string mandateName)
+    {
+        var mandate = AddMandate(mandateName);
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
+        context.SaveChanges();
+
+        var supplier = Supplier.ForClient(client.Id);
+        var jobId = SetupDeliverableJob(mandate.Id);
+        mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
+        return (jobId, supplier);
+    }
+
+    private void SetupStagedAssets(Guid jobId)
+    {
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset> { new Asset() });
+        assetHandlerMock.Setup(a => a.PromoteJobAssets(jobId));
     }
 
     private Guid SetupDeliverableJob(int mandateId, bool mayDeliver = true)

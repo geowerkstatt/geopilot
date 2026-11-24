@@ -162,8 +162,25 @@ public class DeliveryCreationService : IDeliveryCreationService
                 $"Job with id <{jobId}> was already delivered.");
         }
 
+        // Only now, with the delivery saved: a delivery directory never exists without its delivery, so the cleanup
+        // can treat one without as something to report rather than to delete (#947).
+        MoveFilesIntoPlace(jobId);
+
         logger.LogInformation("Delivery for job with id <{JobId}> created.", jobId);
         return new DeliveryCreationResult(DeliveryCreationStatus.Created, entityEntry.Entity.Id);
+    }
+
+    private void MoveFilesIntoPlace(Guid jobId)
+    {
+        try
+        {
+            assetHandler.PromoteJobAssets(jobId);
+        }
+        catch (Exception e)
+        {
+            // The delivery stands: its files wait in staging, where ProcessingJobCleanupService picks them up.
+            logger.LogWarning(e, "Delivery for job <{JobId}> was saved, but its files could not be moved out of staging. The next cleanup run moves them.", jobId);
+        }
     }
 
     /// <summary>
