@@ -1,6 +1,6 @@
 import { FC, Fragment, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, Typography } from "@mui/material";
 import { DeliveryDetailResponse, DeliveryReactionResponse, ReactionKind, ReactionState } from "../../../api/generated";
 import { AdminDetailHeader } from "../../../components/adminDetailHeader.tsx";
@@ -12,6 +12,7 @@ import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import { useDeleteDelivery } from "../../../hooks/useDeleteDelivery.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { listQueryOf } from "../listQuery.ts";
 import { formatMetadataValue } from "./metadataValue.ts";
 import { SummaryField } from "./summaryField.tsx";
 
@@ -24,11 +25,16 @@ export const DeliveryDetail: FC = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { fetchApi } = useFetch();
   const { localized } = useLocalized();
   const { machineDeliveryEnabled } = useCapabilities();
   const confirmDelete = useDeleteDelivery();
   const [loaded, setLoaded] = useState<DeliveryDetailResponse>();
+
+  // Back shows the list with the filters and page it was left with; opened from anywhere else, the whole list.
+  const listQuery = listQueryOf(location.state);
+  const goToList = () => navigate({ pathname: overviewPath, search: listQuery });
 
   // From a delivery to its precursor the page stays mounted, so the previous delivery must not show meanwhile.
   const delivery = loaded?.id === Number(id) ? loaded : undefined;
@@ -59,7 +65,7 @@ export const DeliveryDetail: FC = () => {
   if (!delivery) {
     return (
       <Stack>
-        <AdminDetailHeader backLabel="backToDeliveries" onBack={() => navigate(overviewPath)} />
+        <AdminDetailHeader backLabel="backToDeliveries" onBack={goToList} />
         <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
           <CircularProgress />
         </Stack>
@@ -83,7 +89,7 @@ export const DeliveryDetail: FC = () => {
 
   return (
     <Stack>
-      <AdminDetailHeader backLabel="backToDeliveries" onBack={() => navigate(overviewPath)} id={delivery.id} />
+      <AdminDetailHeader backLabel="backToDeliveries" onBack={goToList} id={delivery.id} />
       <GeopilotBox>
         <Typography variant="h3" sx={{ marginTop: 0, marginBottom: 0 }}>
           {t("summary")}
@@ -182,7 +188,7 @@ export const DeliveryDetail: FC = () => {
           onClick={() =>
             confirmDelete(delivery.id, forwardedTo, deleted => {
               if (deleted) {
-                navigate(overviewPath);
+                goToList();
               }
             })
           }

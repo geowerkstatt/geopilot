@@ -1,13 +1,11 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Theme, useMediaQuery } from "@mui/material";
-import { MachineClient, Mandate, RecordingStateFilter, User } from "../../../api/generated";
+import { RecordingStateFilter } from "../../../api/generated";
 import { TranslationKey } from "../../../appInterfaces";
-import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { FilterBar } from "../../../components/filterBar.tsx";
 import { FormAutocomplete, FormInput, FormValueType } from "../../../components/form/form.ts";
-import useFetch from "../../../hooks/useFetch.ts";
-import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { FilterOption, toFilterOptions, useFilterOptions } from "../../../hooks/useFilterOptions.ts";
 import { emptyRecordingFilters, parseJobId, RecordingFilterValues } from "./recordingQuery.ts";
 
 interface RecordingFiltersProps {
@@ -15,12 +13,6 @@ interface RecordingFiltersProps {
   onChange: (values: RecordingFilterValues) => void;
   /** Called with a complete job id typed or pasted into the job id field, to open its run. */
   onJobIdEntered: (jobId: string) => void;
-}
-
-interface FilterOption {
-  id: number;
-  value: string;
-  name: string;
 }
 
 // The same names as the steps of the delivery wizard; a run without terminal state has none of them.
@@ -33,48 +25,14 @@ const stateLabelKey: Record<RecordingStateFilter, TranslationKey> = {
   [RecordingStateFilter.Open]: "recordingStateOpen",
 };
 
-const toOptions = (entries: Omit<FilterOption, "id">[]): FilterOption[] =>
-  entries.map((entry, index) => ({ ...entry, id: index }));
-
 /** The filters of the list of recordings: period, who started the job, mandate and state, plus a job id lookup. */
 export const RecordingFilters: FC<RecordingFiltersProps> = ({ values, onChange, onJobIdEntered }) => {
   const { t } = useTranslation();
-  const { fetchApi } = useFetch();
-  const { localized } = useLocalized();
-  const { machineDeliveryEnabled } = useCapabilities();
-  const [users, setUsers] = useState<User[]>([]);
-  const [machineClients, setMachineClients] = useState<MachineClient[]>([]);
-  const [mandates, setMandates] = useState<Mandate[]>([]);
+  const { userOrClientOptions, mandateOptions } = useFilterOptions();
   const [jobIdText, setJobIdText] = useState("");
   const narrow = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"), { noSsr: true });
 
-  useEffect(() => {
-    // useFetch shows why a list could not be loaded; the filter then offers fewer choices.
-    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" })
-      .then(setUsers)
-      .catch(() => undefined);
-    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" })
-      .then(setMandates)
-      .catch(() => undefined);
-  }, [fetchApi]);
-
-  useEffect(() => {
-    // The machine clients only exist where the installation offers machine delivery.
-    if (machineDeliveryEnabled) {
-      fetchApi<MachineClient[]>("/api/v1/machineclient", { errorMessageLabel: "machineClientsLoadingError" })
-        .then(setMachineClients)
-        .catch(() => undefined);
-    }
-  }, [fetchApi, machineDeliveryEnabled]);
-
-  const startedByOptions = toOptions([
-    ...users.map(user => ({ value: `user:${user.id}`, name: user.fullName })),
-    ...machineClients.map(client => ({ value: `machineClient:${client.id}`, name: client.name })),
-  ]);
-  const mandateOptions = toOptions(
-    mandates.map(mandate => ({ value: String(mandate.id), name: localized(mandate.name) })),
-  );
-  const stateOptions = toOptions(
+  const stateOptions = toFilterOptions(
     Object.values(RecordingStateFilter).map(state => ({ value: state, name: t(stateLabelKey[state]) })),
   );
 
@@ -134,7 +92,7 @@ export const RecordingFilters: FC<RecordingFiltersProps> = ({ values, onChange, 
         onChange={changeTime("to")}
         dataCy="recordingFilter-to"
       />
-      {listFilter("startedBy", "processedBy", startedByOptions, "recordingFilter-startedBy")}
+      {listFilter("startedBy", "processedBy", userOrClientOptions, "recordingFilter-startedBy")}
       {listFilter("mandateIds", "mandate", mandateOptions, "recordingFilter-mandate")}
       {listFilter("states", "processingState", stateOptions, "recordingFilter-state")}
     </FilterBar>

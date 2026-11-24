@@ -2,6 +2,7 @@ import "./app.css";
 import { FC, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import { useGeopilotAuth } from "./auth";
 import { useCapabilities } from "./components/capabilities/capabilitiesInterface.ts";
 import { CapabilitiesProvider } from "./components/capabilities/capabilitiesProvider.tsx";
@@ -58,68 +59,70 @@ const App: FC = () => {
             onTouchStart={event => stepSwipeRef.current?.onTouchStart(event)}
             onTouchEnd={event => stepSwipeRef.current?.onTouchEnd(event)}
             onWheel={event => stepSwipeRef.current?.onWheel(event)}>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <DeliveryProvider>
-                    <Delivery stepSwipeRef={stepSwipeRef} />
-                  </DeliveryProvider>
-                }
-              />
-              <Route path="/imprint" element={<Imprint />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/licenses" element={<Licenses />} />
-              {isLoading ? (
+            <NuqsAdapter>
+              <Routes>
                 <Route
-                  path="*"
+                  path="/"
                   element={
-                    <PageContent>
-                      <CircularProgress />
-                    </PageContent>
+                    <DeliveryProvider>
+                      <Delivery stepSwipeRef={stepSwipeRef} />
+                    </DeliveryProvider>
                   }
                 />
-              ) : (
-                <>
-                  {user ? (
-                    <Route path="user">
-                      <Route index element={<Navigate to="/user/deliveries" replace />} />
-                      <Route path="deliveries" element={<UserDeliveries />} />
-                    </Route>
-                  ) : (
-                    <Route path="user/*" element={<Navigate to="/" replace />} />
-                  )}
-                  {isAdmin ? (
-                    <Route
-                      path="admin"
-                      element={
-                        <CapabilitiesProvider>
-                          <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
-                        </CapabilitiesProvider>
-                      }>
-                      <Route index element={<Navigate to="/admin/deliveries" replace />} />
-                      <Route path="deliveries" element={<Deliveries />} />
-                      <Route path="deliveries/:id" element={<DeliveryDetail />} />
-                      <Route path="recordings" element={<Recordings />} />
-                      <Route path="recordings/:jobId" element={<RecordingDetail />} />
-                      <Route path="users" element={<Users />} />
-                      <Route path="users/:id" element={<UserDetail />} />
-                      <Route path="mandates" element={<Mandates />} />
-                      <Route path="mandates/:id" element={<MandateDetail />} />
-                      <Route path="organisations" element={<Organisations />} />
-                      <Route path="organisations/:id" element={<OrganisationDetail />} />
-                      <Route element={<MachineDeliveryRoutes />}>
-                        <Route path="machine-clients" element={<MachineClients />} />
-                        <Route path="machine-clients/:id" element={<MachineClientDetail />} />
+                <Route path="/imprint" element={<Imprint />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/licenses" element={<Licenses />} />
+                {isLoading ? (
+                  <Route
+                    path="*"
+                    element={
+                      <PageContent>
+                        <CircularProgress />
+                      </PageContent>
+                    }
+                  />
+                ) : (
+                  <>
+                    {user ? (
+                      <Route path="user">
+                        <Route index element={<Navigate to="/user/deliveries" replace />} />
+                        <Route path="deliveries" element={<UserDeliveries />} />
                       </Route>
-                    </Route>
-                  ) : (
-                    <Route path="admin/*" element={<Navigate to="/" replace />} />
-                  )}
-                </>
-              )}
-            </Routes>
+                    ) : (
+                      <Route path="user/*" element={<Navigate to="/" replace />} />
+                    )}
+                    {isAdmin ? (
+                      <Route
+                        path="admin"
+                        element={
+                          <CapabilitiesProvider>
+                            <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
+                          </CapabilitiesProvider>
+                        }>
+                        <Route index element={<Navigate to="/admin/deliveries" replace />} />
+                        <Route path="deliveries" element={<Deliveries />} />
+                        <Route path="deliveries/:id" element={<DeliveryDetail />} />
+                        <Route path="recordings" element={<Recordings />} />
+                        <Route path="recordings/:jobId" element={<RecordingDetail />} />
+                        <Route path="users" element={<Users />} />
+                        <Route path="users/:id" element={<UserDetail />} />
+                        <Route path="mandates" element={<Mandates />} />
+                        <Route path="mandates/:id" element={<MandateDetail />} />
+                        <Route path="organisations" element={<Organisations />} />
+                        <Route path="organisations/:id" element={<OrganisationDetail />} />
+                        <Route element={<MachineDeliveryRoutes />}>
+                          <Route path="machine-clients" element={<MachineClients />} />
+                          <Route path="machine-clients/:id" element={<MachineClientDetail />} />
+                        </Route>
+                      </Route>
+                    ) : (
+                      <Route path="admin/*" element={<Navigate to="/" replace />} />
+                    )}
+                  </>
+                )}
+              </Routes>
+            </NuqsAdapter>
             <Footer />
           </ScrollableContent>
         </ControlledNavigateProvider>

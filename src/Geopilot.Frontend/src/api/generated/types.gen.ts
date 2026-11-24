@@ -293,6 +293,20 @@ export type DeliveryDetailResponse = {
 };
 
 /**
+ * One page of deliveries, newest first.
+ */
+export type DeliveryPageResponse = {
+  /**
+   * How many deliveries match the filters, across all pages.
+   */
+  totalCount: number;
+  /**
+   * The deliveries on this page.
+   */
+  items: Array<DeliveryResponse>;
+};
+
+/**
  * How far a reaction to a delivery got.
  */
 export type DeliveryReactionResponse = {
@@ -1803,15 +1817,64 @@ export type GetApiV1CapabilitiesResponse = GetApiV1CapabilitiesResponses[keyof G
 export type GetApiV1DeliveryData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Only deliveries made at or after this time (UTC), and before Geopilot.Api.Contracts.DeliveryQuery.To if set.
+     */
+    From?: string;
+    /**
+     * Only deliveries made before this time (UTC), and at or after Geopilot.Api.Contracts.DeliveryQuery.From if set.
+     */
+    To?: string;
+    /**
+     * Only deliveries for one of these mandates. At most 100.
+     */
+    MandateIds?: Array<number>;
+    /**
+     * Only deliveries made by one of these persons, or by one of the Geopilot.Api.Contracts.DeliveryQuery.MachineClientIds. At most 100.
+     */
+    UserIds?: Array<number>;
+    /**
+     * Only deliveries made by one of these machine clients, or by one of the Geopilot.Api.Contracts.DeliveryQuery.UserIds. At most 100.
+     */
+    MachineClientIds?: Array<number>;
+    /**
+     * Only deliveries with a reaction of one of these kinds that gave up (Geopilot.Api.Models.ReactionState.Error), whose
+     * column in the list therefore shows Geopilot.Api.Models.ReactionState.Error too. Unlike the other states, a reaction stays
+     * on it until an administrator resets it. At most 100.
+     */
+    FailedReactionKinds?: Array<ReactionKind>;
+    /**
+     * Only deliveries whose id, written out, begins with these 1 to 9 digits: `12` matches 12, 120 and 1234, but
+     * not 312.
+     */
+    IdPrefix?: string;
+    /**
+     * The page to return, from 0 to 1,000,000, which keeps the offset of the page within a whole number.
+     */
+    Page?: number;
+    /**
+     * The number of deliveries per page, from 1 to 100.
+     */
+    PageSize?: number;
+  };
   url: "/api/v1/Delivery";
 };
 
+export type GetApiV1DeliveryErrors = {
+  /**
+   * The period ends before it starts, or the page, a filter or the id prefix is out of bounds.
+   */
+  400: ValidationProblemDetails;
+};
+
+export type GetApiV1DeliveryError = GetApiV1DeliveryErrors[keyof GetApiV1DeliveryErrors];
+
 export type GetApiV1DeliveryResponses = {
   /**
-   * A list of all deliveries.
+   * One page of deliveries, newest first.
    */
-  200: Array<DeliveryResponse>;
+  200: DeliveryPageResponse;
 };
 
 export type GetApiV1DeliveryResponse = GetApiV1DeliveryResponses[keyof GetApiV1DeliveryResponses];
