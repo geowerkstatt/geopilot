@@ -26,7 +26,7 @@ public class ProcessingService : IProcessingService
     /// <inheritdoc/>
     public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Supplier? supplier, DeliveryFields? deliveryFields)
     {
-        var upload = uploadStore.GetUpload(uploadId)
+        var upload = await uploadStore.GetUploadAsync(uploadId)
             ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
         var mandate = await mandateService.GetMandateForSupplierAsync(mandateId, supplier);

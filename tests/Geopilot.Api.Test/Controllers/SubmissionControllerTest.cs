@@ -300,8 +300,8 @@ public class SubmissionControllerTest
     [TestMethod]
     public async Task RefusesTheAttemptWhileTheInstallationRunsAllTheUploadsItTakes()
     {
-        var uploadStore = new UploadStore();
-        uploadStore.CreateUpload(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty);
+        var uploadStore = new UploadStore(context);
+        await uploadStore.CreateUploadAsync(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty);
         var controller = CreateController(UploadBackend.Direct, uploadStore: uploadStore, maxActiveJobs: 1);
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -523,7 +523,7 @@ public class SubmissionControllerTest
     [TestMethod]
     public async Task ReleasesTheUploadWhenTheJobCannotBeStarted()
     {
-        var store = new UploadStore();
+        var store = new UploadStore(context);
         var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         processingServiceMock
@@ -533,9 +533,10 @@ public class SubmissionControllerTest
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateWithFiles(CancellationToken.None));
 
-        Assert.AreEqual(
-            0,
-            store.GetActiveUploadCount(),
+        // By id, not by count: the sessions are shared with every other test in the database.
+        var releasedUploadId = (Guid)orchestrationMock.Invocations.Single(i => i.Method.Name == nameof(IUploadOrchestrationService.ReleaseUploadAsync)).Arguments[0];
+        Assert.IsNull(
+            await store.GetUploadAsync(releasedUploadId),
             "An upload session of an attempt that never started would count against MaxActiveJobs until the age based sweep runs.");
         Assert.IsEmpty(Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories), "The files of a failed attempt belong to nobody.");
     }
@@ -784,7 +785,7 @@ public class SubmissionControllerTest
         int maxGlobalActiveSizeMB = 10240)
     {
         var storage = CreateUploadStorage(backend);
-        var store = uploadStore ?? new UploadStore();
+        var store = uploadStore ?? new UploadStore(context);
 
         // Stands in for the real release: deletes the files and forgets the session, so a test can tell that a
         // refused attempt left neither behind.
@@ -794,7 +795,7 @@ public class SubmissionControllerTest
             .Returns<Guid>(async id =>
             {
                 await storage.DeletePrefixAsync($"uploads/{id}/");
-                store.RemoveUpload(id);
+                await store.RemoveUploadAsync(id);
             });
 
         var controller = new SubmissionController(

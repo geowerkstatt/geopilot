@@ -55,7 +55,8 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     {
         ValidateRequest(request);
 
-        var activeUploads = uploadStore.GetActiveUploadCount();
+        // shortcut: counted, not reserved; initiations at the limit can each pass it, a lock on the count if that matters.
+        var activeUploads = await uploadStore.GetActiveUploadCountAsync();
         if (activeUploads >= options.Value.MaxActiveJobs)
             throw new InvalidOperationException($"Maximum number of active uploads ({options.Value.MaxActiveJobs}) reached.");
 
@@ -81,7 +82,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
             fileUploadInfos.Add(new FileUploadInfo(file.FileName, presignedUrl, uploadStorage.UploadHeaders));
         }
 
-        uploadStore.CreateUpload(uploadId, uploadedFiles.ToImmutableList());
+        await uploadStore.CreateUploadAsync(uploadId, uploadedFiles.ToImmutableList());
 
         logger.LogInformation("Initiated upload <{UploadId}> with {FileCount} file(s).", uploadId, request.Files.Count);
 
@@ -91,7 +92,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     /// <inheritdoc/>
     public async Task<ScanResult> RunPreflightChecksAsync(Guid uploadId, CancellationToken cancellationToken = default)
     {
-        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
+        var upload = await uploadStore.GetUploadAsync(uploadId, cancellationToken) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
         if (upload.Files.Count == 0)
             throw new InvalidOperationException($"Upload <{uploadId}> has no files configured.");
@@ -134,9 +135,9 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IPipelineFile> RegisterJobFiles(Guid uploadId, Guid jobId)
+    public async Task<IReadOnlyList<IPipelineFile>> RegisterJobFilesAsync(Guid uploadId, Guid jobId, CancellationToken cancellationToken = default)
     {
-        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
+        var upload = await uploadStore.GetUploadAsync(uploadId, cancellationToken) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
         if (jobStore.GetJob(jobId) is null)
             throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
@@ -167,7 +168,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
         try
         {
             await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
-            uploadStore.RemoveUpload(uploadId);
+            await uploadStore.RemoveUploadAsync(uploadId);
             logger.LogInformation("Released the files of upload <{UploadId}>.", uploadId);
         }
         catch (Exception ex)

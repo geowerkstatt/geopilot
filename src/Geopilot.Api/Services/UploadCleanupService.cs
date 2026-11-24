@@ -10,7 +10,7 @@ namespace Geopilot.Api.Services;
 public partial class UploadCleanupService : BackgroundService
 {
     private readonly IUploadStorage uploadStorage;
-    private readonly IUploadStore uploadStore;
+    private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<UploadCleanupService> logger;
     private readonly UploadOptions options;
     private readonly ProcessingOptions processingOptions;
@@ -21,7 +21,7 @@ public partial class UploadCleanupService : BackgroundService
     /// </summary>
     public UploadCleanupService(
         IUploadStorage uploadStorage,
-        IUploadStore uploadStore,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<UploadCleanupService> logger,
         IOptions<UploadOptions> options,
         IOptions<ProcessingOptions> processingOptions)
@@ -30,7 +30,7 @@ public partial class UploadCleanupService : BackgroundService
         ArgumentNullException.ThrowIfNull(processingOptions);
 
         this.uploadStorage = uploadStorage;
-        this.uploadStore = uploadStore;
+        this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
         this.options = options.Value;
         this.processingOptions = processingOptions.Value;
@@ -86,6 +86,9 @@ public partial class UploadCleanupService : BackgroundService
 
         try
         {
+            using var scope = serviceScopeFactory.CreateScope();
+            var uploadStore = scope.ServiceProvider.GetRequiredService<IUploadStore>();
+
             var maxAge = TimeSpan.FromHours(options.CleanupAgeHours);
             var cutoff = DateTime.UtcNow - maxAge;
             var maxFileSizeBytes = (long)options.MaxFileSizeMB * 1024 * 1024;
@@ -111,7 +114,7 @@ public partial class UploadCleanupService : BackgroundService
                 if (group.Any(f => f.LastModified < cutoff))
                 {
                     await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
-                    uploadStore.RemoveUpload(uploadId);
+                    await uploadStore.RemoveUploadAsync(uploadId);
                     deletedPrefixes++;
                     logger.LogTrace("Deleted stale files of upload <{UploadId}>.", uploadId);
                     continue;
@@ -120,13 +123,13 @@ public partial class UploadCleanupService : BackgroundService
                 if (group.Any(f => f.Size > maxFileSizeBytes))
                 {
                     await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
-                    uploadStore.RemoveUpload(uploadId);
+                    await uploadStore.RemoveUploadAsync(uploadId);
                     deletedPrefixes++;
                     logger.LogTrace("Deleted oversized files of upload <{UploadId}>.", uploadId);
                     continue;
                 }
 
-                if (uploadStore.GetUpload(uploadId) == null)
+                if (await uploadStore.GetUploadAsync(uploadId) is null)
                 {
                     await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
                     deletedPrefixes++;
@@ -134,7 +137,7 @@ public partial class UploadCleanupService : BackgroundService
                 }
             }
 
-            var expiredSessions = ExpireSessionsWithoutFiles(filesByUploadId.Select(g => g.Key).ToHashSet());
+            var expiredSessions = await ExpireSessionsWithoutFilesAsync(uploadStore, filesByUploadId.Select(g => g.Key).ToHashSet());
 
             // Delete blobs outside the uploads/ prefix
             var allFiles = await uploadStorage.ListFilesAsync(string.Empty);
@@ -157,7 +160,7 @@ public partial class UploadCleanupService : BackgroundService
     }
 
     // Sessions without files never show up in the pass over the files, so they expire here.
-    private int ExpireSessionsWithoutFiles(HashSet<Guid?> uploadIdsWithFiles)
+    private async Task<int> ExpireSessionsWithoutFilesAsync(IUploadStore uploadStore, HashSet<Guid?> uploadIdsWithFiles)
     {
         // Cloud storage lists a file only once its upload is complete, so a session also waits out an upload
         // that was still running when its URLs expired.
@@ -165,11 +168,11 @@ public partial class UploadCleanupService : BackgroundService
         var cutoff = DateTime.UtcNow - (2 * uploadWindow);
         int expiredSessions = 0;
 
-        foreach (var upload in uploadStore.GetUploadsCreatedBefore(cutoff).Where(upload => !uploadIdsWithFiles.Contains(upload.Id)))
+        foreach (var uploadId in (await uploadStore.GetUploadIdsCreatedBeforeAsync(cutoff)).Where(id => !uploadIdsWithFiles.Contains(id)))
         {
-            uploadStore.RemoveUpload(upload.Id);
+            await uploadStore.RemoveUploadAsync(uploadId);
             expiredSessions++;
-            logger.LogTrace("Expired upload session <{UploadId}> without files.", upload.Id);
+            logger.LogTrace("Expired upload session <{UploadId}> without files.", uploadId);
         }
 
         return expiredSessions;

@@ -44,7 +44,7 @@ public static class DirectUploadEndpoint
     {
         var logger = loggerFactory.CreateLogger(typeof(DirectUploadEndpoint));
 
-        var upload = uploadStore.GetUpload(uploadId);
+        var upload = await uploadStore.GetUploadAsync(uploadId, cancellationToken);
         if (upload is null)
         {
             logger.LogTrace("Rejected upload for unknown upload id <{UploadId}>.", uploadId);

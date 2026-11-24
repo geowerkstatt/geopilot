@@ -68,7 +68,7 @@ public class PreflightBackgroundService : BackgroundService
 
             // Nothing is transferred here: each file is fetched from the upload storage the first time a step
             // reads it, so the job starts without waiting for the whole upload.
-            var pipelineFiles = orchestrationService.RegisterJobFiles(request.UploadId, request.JobId);
+            var pipelineFiles = await orchestrationService.RegisterJobFilesAsync(request.UploadId, request.JobId, cancellationToken);
             await lifecycle.PreflightPassedAsync(request.JobId, scanResult, pipelineFiles);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);

@@ -33,7 +33,7 @@ public class MandateServiceTest
         const string missingPipelineId = "missing-pipeline";
 
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        uploadStore = new UploadStore();
+        uploadStore = new UploadStore(context);
 
         var pipelineConfig = new PipelineConfig
         {
@@ -330,7 +330,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadIdAsNonAdmin()
     {
-        var uploadId = CreateUpload("Original.xtf");
+        var uploadId = await CreateUploadAsync("Original.xtf");
 
         var result = await mandateService.GetMandateSummariesAsync(editUser, uploadId);
 
@@ -346,7 +346,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadIdAsAdmin()
     {
-        var uploadId = CreateUpload("Original.xtf");
+        var uploadId = await CreateUploadAsync("Original.xtf");
 
         var result = await mandateService.GetMandateSummariesAsync(adminUser, uploadId);
 
@@ -362,7 +362,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadIdAsUnauthenticated()
     {
-        var uploadId = CreateUpload("Original.xtf");
+        var uploadId = await CreateUploadAsync("Original.xtf");
 
         var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
 
@@ -378,7 +378,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadIdAsUnauthenticatedReturnsPublic()
     {
-        var uploadId = CreateUpload("Original.csv");
+        var uploadId = await CreateUploadAsync("Original.csv");
 
         var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
 
@@ -394,7 +394,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadIdIgnoresCase()
     {
-        var uploadId = CreateUpload("Original.XTF");
+        var uploadId = await CreateUploadAsync("Original.XTF");
 
         var result = await mandateService.GetMandateSummariesAsync(editUser, uploadId);
 
@@ -423,7 +423,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateSummariesWithUploadWithoutFileExtensionsThrows()
     {
-        var uploadId = CreateUpload("noextension");
+        var uploadId = await CreateUploadAsync("noextension");
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateService.GetMandateSummariesAsync(editUser, uploadId));
     }
@@ -512,7 +512,7 @@ public class MandateServiceTest
     public async Task GetDeliverabilityAsyncRefusesAnUploadTheMandateDoesNotAccept()
     {
         var uploadId = Guid.NewGuid();
-        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+        await uploadStore.CreateUploadAsync(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
 
         var result = await mandateService.GetDeliverabilityAsync(xtfMandate, uploadId);
 
@@ -523,7 +523,7 @@ public class MandateServiceTest
     public async Task GetDeliverabilityAsyncChecksTheMandateBeforeTheFiles()
     {
         var uploadId = Guid.NewGuid();
-        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+        await uploadStore.CreateUploadAsync(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
 
         var result = await mandateService.GetDeliverabilityAsync(noDeliveryMandate, uploadId);
 
@@ -560,13 +560,13 @@ public class MandateServiceTest
         Assert.IsNull(await mandateService.GetMandateByKeyAsync(key, Supplier.ForUser(editUser.Id)));
     }
 
-    private Guid CreateUpload(params string[] fileNames)
+    private async Task<Guid> CreateUploadAsync(params string[] fileNames)
     {
         var uploadId = Guid.NewGuid();
         var files = fileNames
             .Select(name => new UploadedFileInfo(name, $"blobs/{name}", 1024))
             .ToImmutableList();
-        uploadStore.CreateUpload(uploadId, files);
+        await uploadStore.CreateUploadAsync(uploadId, files);
         return uploadId;
     }
 
