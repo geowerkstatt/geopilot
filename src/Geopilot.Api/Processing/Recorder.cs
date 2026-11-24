@@ -39,7 +39,7 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Supplier? supplier, UploadInfo upload)
+    public async Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Supplier? supplier, UploadInfo upload, string? bindings = null)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(mandate);
@@ -53,6 +53,7 @@ public class Recorder : IRecorder
             JobId = job.Id,
             PipelineId = pipelineId,
             Definition = pipelineFactory.GetDefinitionSnapshotJson(pipelineId),
+            Bindings = bindings,
             AppVersion = AppVersion,
             MandateId = mandate.Id,
             UserId = supplier?.UserId,

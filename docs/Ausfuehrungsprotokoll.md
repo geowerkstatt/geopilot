@@ -9,6 +9,7 @@ Das Protokoll wird nur geschrieben. Kein Ausführungspfad liest es, um Entscheid
 Pro [Verarbeitung](../GLOSSARY.md#verarbeitung) entsteht beim Start ein [Protokoll](../GLOSSARY.md#protokoll) (Tabelle `Recordings`) mit:
 
 - der gelaufenen [Pipeline](../GLOSSARY.md#pipeline) und einem **Definitions-Snapshot** (siehe unten),
+- den **Bindungen**, also dem, was geopilot beim Start aus der Datenbank an die Verarbeitung bindet (siehe unten),
 - Mandat und Urheber, entweder der Benutzer oder der Maschinen-Client (`UserId` oder `MachineClientId`, nie beide zugleich, was die Datenbank erzwingt; beide leer, wenn die Verarbeitung anonym auf einem öffentlichen Mandat gestartet wurde; anonym darf prozessiert, aber nicht geliefert werden, und wer geliefert hat, steht an der [Lieferung](../GLOSSARY.md#lieferung) selbst) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert. Die Art des Clients sagt, auf welchem Weg die Verarbeitung gestartet wurde, nicht von wem: eine Person, die die API direkt aufruft, etwa aus Swagger, ist ebenso `ApiClient` wie ein Maschinen-Client, und wer es war, steht in den beiden Id-Spalten,
 - bei einer maschinellen Lieferung der Kennung, die der Client für die Lieferung mitgeschickt hat (`ClientReference`), so wie sie kam, ohne Prüfung gegen frühere [Versuche](../GLOSSARY.md#versuch). Versuche mit derselben Kennung, demselben Urheber und demselben Mandat sind Versuche derselben Lieferung,
 - der **Lieferberechtigung** (`PermissionToDeliver`), also ob der Urheber auf dem Mandat abgeben darf, unabhängig davon, ob die Daten eine Lieferung zulassen: `Permitted`, wenn der Urheber Mitglied einer Organisation des Mandats ist und das Mandat Lieferungen annimmt, sonst `NotPermitted`, auch bei einem anonymen Start. Entschieden wird einmal beim Start. Protokolle, die entstanden, bevor geopilot diese Angabe festhielt, haben keine (`NULL`): unbekannt, nicht «nicht berechtigt»,
@@ -80,6 +81,14 @@ Daraus lässt sich der Preflight-Zustand einer [Verarbeitung](../GLOSSARY.md#ver
 
 Nicht erfasst sind die Inhalte von `${file()}`-Ressourcen (welchen Stand ein Schritt bekam, zeigt der SHA-256 in seinen Eingaben), die Modell-Repositories hinter `modelDirs` und die Version der ilitools-wrapper. Der Snapshot beantwortet "auf welcher Grundlage lief das", er macht den Lauf nicht wiederholbar.
 
+## Die Bindungen
+
+Manches, was die Prozessoren einer Verarbeitung bekommen, steht nicht in der Definition, sondern wird beispielsweise im Admin-Portal gepflegt. Wenn ein Prozessor der Pipeline eine Bindung entgegennimmt, liest geopilot sie beim Start der Verarbeitung einmal und bindet sie daran; eine spätere Änderung erreicht eine gestartete Verarbeitung nicht mehr. Was gebunden wurde, hält die `jsonb`-Spalte `Bindings` fest, ein Objekt mit einem Schlüssel pro Bindung:
+
+- `refMapping`: die [Zuordnung der Referenzdaten](Referenzdaten.md), alle Einträge, wie sie gebunden wurden (`scope`, `refDataUris`, `comment`). Jeder Validierungsschritt der Verarbeitung mit `refMappingFromPortal: true`, der lief, validierte mit genau diesen Einträgen; die übrigen Schritte ignorierten sie. Ist `RefMapping:Enabled` aus oder hat die Pipeline keinen Schritt, der diese Bindung annimmt, fehlt der Schlüssel. Ist der Schalter an, aber kein Eintrag erfasst, ist die Liste leer.
+
+Ohne Bindung ist die Spalte `NULL`.
+
 ## Abfrage
 
 Administratoren finden das Ausführungsprotokoll im Admin-Portal unter «[Protokolle](../GLOSSARY.md#protokoll)». Die Liste zeigt die Protokolle der Installation, neueste zuerst, mit Urheber, Mandat, Zustand, [Lieferung](../GLOSSARY.md#lieferung) und Dauer. Ist die maschinelle Lieferung eingerichtet, unterscheidet ein Symbol beim Urheber Benutzer:innen von Maschinen-Clients, und eine Spalte zählt die [Versuche](../GLOSSARY.md#versuch) einer Lieferung. Die Liste filtert nach Zeitraum, Urheber, Mandat und Zustand, bei Urheber, Mandat und Zustand auch nach mehreren zugleich; «Nicht abgeschlossen» findet die Protokolle ohne Terminal-Status. Eine Verarbeitungs-ID im Suchfeld öffnet ihr Protokoll direkt, auch wenn nie eine Lieferung daraus wurde, und die Seite einer Lieferung verlinkt ihr Protokoll. Die Seite eines Protokolls fasst es zusammen. Hatte seine Lieferung mehrere Versuche, listet sie darüber alle Versuche mit Start, Zustand und Lieferung, und ein Klick auf einen Versuch öffnet seine Seite. Unter der Zusammenfassung zeigt die Seite in Tabs den Ablauf, die Ereignisse der [Reaktionen](../GLOSSARY.md#reaktion) und die [Pipeline](../GLOSSARY.md#pipeline), wie sie beim Start konfiguriert war, lesbar oder als JSON. Die Ereignisse der Reaktionen stehen wie die Schritte im Ablauf untereinander, jedes mit der Reaktion (ihr Name aus der Pipeline-Definition, wie sie jetzt ist, daneben ihre Id), ihrer Art und was geschah: ein [Zustellversuch](../GLOSSARY.md#zustellversuch) mit seiner Nummer, wann er begann und wie lange er lief oder dass er noch läuft, eine Rücksetzung durch einen Admin oder eine Löschung mit ihrem Zeitpunkt. Ein Symbol zeigt den Ausgang eines Zustellversuchs, bei einer Rücksetzung oder Löschung den Zustand der Reaktion danach. Ein gescheiterter Zustellversuch erscheint als gescheitert, auch wenn noch ein weiterer folgt. Wartet eine Reaktion auf ihren nächsten Zustellversuch, steht dafür noch kein Eintrag da; wann er fällig ist, zeigt die Seite der Lieferung. Ein Zustellversuch lässt sich aufklappen und zeigt seinen Kanal mit der geopilot-Version, die Konfiguration und die Meldung. Der Ablauf zeigt wie bei der Abgabe zuerst die Vorbereitung mit den hochgeladenen Dateien, dem Virenscan und, wenn sie scheiterte, dem Grund, dann die Schritte. Endete die [Verarbeitung](../GLOSSARY.md#verarbeitung) sonst ausserhalb der Schritte, etwa im Timeout, steht der Grund darüber. Bei den Eingaben eines Schritts trägt eine gelieferte Datei den Hash aus der Vorbereitung, auch wo ein früherer Schritt sie unverändert weitergereicht hat: Gleicher Hash heisst, der Schritt bekam genau die gelieferte Datei. Eine Datei, die erst in der Verarbeitung entstand, hat keinen Hash und heisst dort «in der Verarbeitung erzeugt».
@@ -127,13 +136,20 @@ SELECT r."JobId", r."StartedAt", s."StepId", i."Sha256"
 FROM "RecordingInputs" i
 JOIN "RecordingSteps" s ON s."Id" = i."RecordingStepId"
 JOIN "Recordings" r ON r."Id" = s."RecordingId"
-WHERE i."Origin" IN ('Resource', 'Configuration') AND i."Reference" = 'dmav/refdata_mapping.xtf'
+WHERE i."Origin" IN ('Resource', 'Configuration') AND i."Reference" = 'model-repository.zip'
 ORDER BY r."StartedAt";
 
 -- Welche Verarbeitungen nutzten eine bestimmte Prozessor-Implementierung?
 SELECT r."JobId", r."StartedAt"
 FROM "Recordings" r
 WHERE r."Definition" @> '{"processes": [{"implementation": "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess"}]}';
+
+-- Welche Referenzdaten bekam Delivery X für ihren Scope?
+SELECT e ->> 'scope' AS "Scope", e -> 'refDataUris' AS "RefDataUris"
+FROM "Deliveries" d
+JOIN "Recordings" r ON r."JobId" = d."JobId"
+CROSS JOIN jsonb_array_elements(r."Bindings" -> 'refMapping') e
+WHERE d."Id" = 42 AND e ->> 'scope' = '449';
 
 -- Wie viele Protokolle blieben ohne Terminal-Status (Restart-Opfer)?
 SELECT count(*) FROM "Recordings" WHERE "TerminalState" IS NULL AND "StartedAt" < now() - interval '1 day';
