@@ -151,7 +151,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 {user.fullName[0].toUpperCase()}
               </Avatar>
             )}
-            {authLoaded && user === null && <Button variant="text" onClick={login} label="logIn" />}
+            {authLoaded && user === null && <Button variant="text" size="medium" onClick={login} label="logIn" />}
             {authLoaded && user === undefined && (
               <Skeleton variant="circular" sx={{ width: px2rem(40), height: px2rem(40) }} />
             )}

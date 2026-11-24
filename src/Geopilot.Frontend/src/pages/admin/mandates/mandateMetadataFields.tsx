@@ -3,7 +3,7 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { List, ListItem, ListItemButton, Stack, Typography } from "@mui/material";
+import { List, ListItem, Stack, Typography } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { FieldEvaluationType, MetadataField, MetadataFieldType } from "../../../api/generated";
 import { Button } from "../../../components/buttons.tsx";
@@ -58,11 +58,16 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
 
   return (
     <>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", marginTop: 1 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "end" }}>
         <Typography variant={"h4"} sx={{ margin: 0 }}>
           {t("metadataFields")}
         </Typography>
-        <Button startIcon={<AddIcon />} label={"addMetadataField"} onClick={() => setEditedIndex(fields.length)} />
+        <Button
+          size="medium"
+          startIcon={<AddIcon />}
+          label={"addMetadataField"}
+          onClick={() => setEditedIndex(fields.length)}
+        />
       </Stack>
       {fields.length > 0 ? (
         <List
@@ -71,14 +76,11 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
           sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           {fields.map((field, index) => (
             <ListItem key={field.key} disablePadding>
-              <ListItemButton
+              <Button
+                fullWidth
                 aria-haspopup="dialog"
                 onClick={() => setEditedIndex(index)}
-                sx={theme => ({
-                  gap: 2,
-                  border: `1px solid ${theme.palette.primary.light}`,
-                  borderRadius: theme.radius.default,
-                })}>
+                sx={{ gap: 2, justifyContent: "flex-start", textAlign: "left", paddingX: 2, paddingY: 1 }}>
                 <Typography noWrap title={localized(field.title)} sx={{ minWidth: 0 }}>
                   {localized(field.title)}
                 </Typography>
@@ -91,9 +93,9 @@ const MandateMetadataFields: FC<MandateMetadataFieldsProps> = ({ mandate }) => {
                       {t("metadataFieldRequired")}
                     </Typography>
                   )}
-                  <EditOutlinedIcon color="primary" />
+                  <EditOutlinedIcon />
                 </Stack>
-              </ListItemButton>
+              </Button>
             </ListItem>
           ))}
         </List>
