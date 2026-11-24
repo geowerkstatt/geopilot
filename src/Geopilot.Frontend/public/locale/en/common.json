@@ -361,7 +361,7 @@
   "stacAccessAdminsOnly": "Administrators only",
   "stacAccessPublic": "Public",
   "stacBrowser": "STAC Browser",
-  "stacItemAfterForwarding": "Only available after forwarding",
+  "stacItemAfterForwarding": "Only available once the delivery is forwarded",
   "startProcessing": "Start processing",
   "state": "State",
   "stepStateAfterDuration": "{{state}} after {{duration}}",

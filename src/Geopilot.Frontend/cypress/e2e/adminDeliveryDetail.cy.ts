@@ -86,7 +86,7 @@ describe("Admin delivery detail", () => {
     visit(delivery(9003, [transfer(ReactionState.Pending, { attempts: 0, nextAttemptAt: "2026-10-23T22:00:00Z" })]));
 
     cy.dataCy("summary-files").should("contain", "strassen.xtf").find("a").should("not.exist");
-    cy.dataCy("summary-stacBrowser").should("contain", "Only available after forwarding");
+    cy.dataCy("summary-stacBrowser").should("contain", "Only available once the delivery is forwarded");
     cy.dataCy("summary-precursor").should("not.exist");
     cy.dataCy("summary-partialDelivery").should("not.exist");
     getTableRowThatContains("reactions-table", "ablage").should("contain", "Waits until");

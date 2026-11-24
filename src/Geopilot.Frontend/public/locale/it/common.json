@@ -361,7 +361,7 @@
   "stacAccessAdminsOnly": "Solo amministratori",
   "stacAccessPublic": "Pubblico",
   "stacBrowser": "Browser STAC",
-  "stacItemAfterForwarding": "Disponibile solo dopo l'inoltro",
+  "stacItemAfterForwarding": "Disponibile solo quando la consegna è stata inoltrata",
   "startProcessing": "Avvia elaborazione",
   "state": "Stato",
   "stepStateAfterDuration": "{{state}} dopo {{duration}}",
