@@ -783,13 +783,18 @@ public class ProcessingJobCleanupServiceTest
         context.Recordings.Add(run);
         context.SaveChanges();
 
-        // Without a heartbeat argument the run has none, like a run recorded before the heartbeat existed.
+        // Without a heartbeat argument the run has none, like a run recorded before the heartbeat existed. Heartbeat and
+        // end come from the database clock, which the cleanup compares them with.
         context.Recordings
             .Where(r => r.Id == run.Id)
-            .ExecuteUpdate(setters => setters
-                .SetProperty(r => r.HeartbeatAt, heartbeatAgo is null ? (DateTime?)null : DateTime.UtcNow - heartbeatAgo)
-                .SetProperty(r => r.TerminalState, settledAgo is null ? (ProcessingState?)null : ProcessingState.Success)
-                .SetProperty(r => r.TerminalAt, settledAgo is null ? (DateTime?)null : DateTime.UtcNow - settledAgo));
+            .ExecuteUpdate(setters =>
+            {
+                setters.SetProperty(r => r.TerminalState, settledAgo is null ? (ProcessingState?)null : ProcessingState.Success);
+                if (heartbeatAgo is { } heartbeat)
+                    setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - heartbeat);
+                if (settledAgo is { } settled)
+                    setters.SetProperty(r => r.TerminalAt, r => DateTime.UtcNow - settled);
+            });
     }
 
     private (string Asset, string Download, string Visualization, string Pipeline) CreateJobDirectories(Guid jobId)

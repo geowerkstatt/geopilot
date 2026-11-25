@@ -192,6 +192,26 @@ public class DeliveryCreationServiceTest
     }
 
     [TestMethod]
+    [DataRow(1, DeliveryCreationStatus.Created, DisplayName = "Attempt alive by its heartbeat, as for its own instance")]
+    [DataRow(4, DeliveryCreationStatus.JobNotFound, DisplayName = "Attempt whose instance died before its delivery")]
+    public async Task CreatesTheDeliveryOfAnAttemptOnlyWhileItIsAlive(int heartbeatMinutesAgo, DeliveryCreationStatus expected)
+    {
+        var mandate = AddMandate(nameof(CreatesTheDeliveryOfAnAttemptOnlyWhileItIsAlive));
+        var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
+        context.SaveChanges();
+        var supplier = Supplier.ForClient(client.Id);
+
+        // Ended deliverable but undelivered: the attempt is not settled yet, so its heartbeat decides whether it answers.
+        var jobId = context.AddRun(mandate.Id, submissionMandateKey: "KEY", heartbeatAgo: TimeSpan.FromMinutes(heartbeatMinutesAgo));
+        mandateServiceMock.Setup(m => m.MayDeliverAsync(mandate.Id, supplier)).ReturnsAsync(true);
+        SetupStagedAssets(jobId);
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(expected, result.Status);
+    }
+
+    [TestMethod]
     public async Task RefusesARunThatIsNotDeliverable()
     {
         var mandate = AddMandate(nameof(RefusesARunThatIsNotDeliverable));

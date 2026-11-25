@@ -92,14 +92,26 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
-    public async Task StatusOfAQueuedRun()
+    public async Task StatusOfARunWaitingForAProcessingSlot()
+    {
+        var run = await AddRunAsync(heartbeatAgo: TimeSpan.Zero, queued: true, steps: ["validation"], stepState: StepState.Pending);
+
+        var response = await GetStatusAsync(run.JobId);
+
+        Assert.AreEqual(ProcessingState.Running, response.State, "A queued job is running while it waits for a slot.");
+        Assert.AreEqual(StepState.Running, response.Steps[0].State, "The preparation shows running until the first step starts.");
+        Assert.AreEqual(StepState.Pending, response.Steps[1].State);
+    }
+
+    [TestMethod]
+    public async Task StatusOfARunningRun()
     {
         var run = await AddRunAsync(heartbeatAgo: TimeSpan.Zero, queued: true, steps: ["validation"]);
 
         var response = await GetStatusAsync(run.JobId);
 
         Assert.AreEqual(ProcessingState.Running, response.State);
-        Assert.AreEqual(StepState.Success, response.Steps[0].State, "The preparation is over once the job is queued.");
+        Assert.AreEqual(StepState.Success, response.Steps[0].State, "The preparation is over once a step has started.");
         Assert.AreEqual("validation", response.Steps[1].Id);
         Assert.AreEqual(PipelineName, response.PipelineName);
     }
@@ -522,14 +534,16 @@ public sealed class ProcessingControllerTest
         return (ProcessingJobResponse)result.Value!;
     }
 
-    // Writes a run into the protocol only, the in-memory job store knows nothing of it. Times come from the database clock.
+    // Writes a run into the protocol only, the in-memory job store knows nothing of it. Its steps have started, unless
+    // they are Pending. Heartbeat and end come from the database clock.
     private async Task<Recording> AddRunAsync(
         TimeSpan? heartbeatAgo = null,
         bool queued = false,
         ProcessingState? terminalState = null,
         TimeSpan? terminalAgo = null,
         bool withDisplayName = true,
-        string[]? steps = null)
+        string[]? steps = null,
+        StepState? stepState = null)
     {
         var mandate = new Mandate { Name = TestHelpers.Localized(nameof(ProcessingControllerTest)), FileTypes = [".xtf"], PipelineId = "pipe_a" };
         context.Mandates.Add(mandate);
@@ -548,6 +562,7 @@ public sealed class ProcessingControllerTest
             PipelineDisplayName = withDisplayName ? PipelineName : null,
         };
         var order = 0;
+        var state = stepState ?? (terminalState is null ? StepState.Running : StepState.Success);
         foreach (var stepId in steps ?? [])
         {
             run.Steps.Add(new RecordingStep
@@ -555,8 +570,8 @@ public sealed class ProcessingControllerTest
                 Order = order++,
                 StepId = stepId,
                 DisplayName = TestHelpers.Localized(stepId),
-                State = terminalState is null ? StepState.Running : StepState.Success,
-                StartedAt = DateTime.UtcNow,
+                State = state,
+                StartedAt = state == StepState.Pending ? null : DateTime.UtcNow,
             });
         }
 
@@ -567,10 +582,12 @@ public sealed class ProcessingControllerTest
         var terminalSince = terminalAgo ?? TimeSpan.Zero;
         await context.Recordings
             .Where(r => r.Id == run.Id)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.HeartbeatAt, DateTime.UtcNow - heartbeat)
-                .SetProperty(r => r.TerminalState, terminalState)
-                .SetProperty(r => r.TerminalAt, terminalState == null ? (DateTime?)null : DateTime.UtcNow - terminalSince));
+            .ExecuteUpdateAsync(setters =>
+            {
+                setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - heartbeat);
+                if (terminalState is not null)
+                    setters.SetProperty(r => r.TerminalState, terminalState).SetProperty(r => r.TerminalAt, r => DateTime.UtcNow - terminalSince);
+            });
         return run;
     }
 }

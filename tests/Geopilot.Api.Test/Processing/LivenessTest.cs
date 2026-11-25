@@ -26,7 +26,8 @@ public class LivenessTest
     [TestCleanup]
     public void Cleanup() => context.Dispose();
 
-    // Heartbeat in minutes before the database clock (null: never beaten), delivery: 0 none, 1 present, 2 deleted.
+    // Heartbeat in minutes before the database clock (null: never beaten), delivery: 0 none, 1 present, 2 deleted,
+    // 3 refused or failed (DeliveryFailure).
     [TestMethod]
     [DataRow(ProcessingState.Success, null, null, 0, false, true, DisplayName = "settled without submission attempt is not alive")]
     [DataRow(null, 0, null, 0, true, true, DisplayName = "no terminal state and fresh heartbeat is alive")]
@@ -35,12 +36,13 @@ public class LivenessTest
     [DataRow(ProcessingState.Success, 4, "key", 0, false, false, DisplayName = "submission attempt pending with old heartbeat is dead")]
     [DataRow(ProcessingState.Success, 4, "key", 1, false, true, DisplayName = "submission attempt with delivery is settled")]
     [DataRow(ProcessingState.Success, 4, "key", 2, false, true, DisplayName = "submission attempt with deleted delivery is settled")]
+    [DataRow(ProcessingState.Success, 4, "key", 3, false, true, DisplayName = "submission attempt with delivery failure is settled")]
     public async Task AliveAndAnswerableFollowTheDatabaseClock(
         ProcessingState? terminal, int? heartbeatMinutesAgo, string? submissionKey, int delivery, bool alive, bool answerable)
     {
-        var run = await AddRunAsync(terminal, submissionKey, terminalHoursAgo: 0);
+        var run = await AddRunAsync(terminal, submissionKey, terminalHoursAgo: 0, deliveryFailure: delivery == 3 ? "No assets found." : null);
         await SetHeartbeatAsync(run, heartbeatMinutesAgo);
-        if (delivery > 0)
+        if (delivery is 1 or 2)
         {
             context.Deliveries.Add(new Delivery { JobId = run.JobId, Mandate = mandate, DeliveredByUser = user, Deleted = delivery == 2 });
             await context.SaveChangesAsync();
@@ -65,7 +67,7 @@ public class LivenessTest
         Assert.AreEqual(answerable, found);
     }
 
-    private async Task<Recording> AddRunAsync(ProcessingState? terminal, string? submissionKey, int terminalHoursAgo)
+    private async Task<Recording> AddRunAsync(ProcessingState? terminal, string? submissionKey, int terminalHoursAgo, string? deliveryFailure = null)
     {
         var run = new Recording
         {
@@ -78,6 +80,7 @@ public class LivenessTest
             UploadStorageLocation = "https://storage.example.com/uploads",
             SubmissionMandateKey = submissionKey,
             TerminalState = terminal,
+            DeliveryFailure = deliveryFailure,
         };
         context.Recordings.Add(run);
         await context.SaveChangesAsync();

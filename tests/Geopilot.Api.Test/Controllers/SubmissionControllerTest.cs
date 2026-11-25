@@ -700,8 +700,8 @@ public class SubmissionControllerTest
     }
 
     /// <summary>
-    /// Writes the run of an attempt into the protocol only, the in-memory job store knows nothing of it. Times come
-    /// from the database clock; a null <paramref name="terminalState"/> is a run still going.
+    /// Writes the run of an attempt into the protocol only, the in-memory job store knows nothing of it. Heartbeat and
+    /// end come from the database clock; a null <paramref name="terminalState"/> is a run still going.
     /// </summary>
     private async Task<Guid> AddAttemptAsync(
         ProcessingState? terminalState,
@@ -759,10 +759,12 @@ public class SubmissionControllerTest
         var heartbeat = heartbeatAgo ?? TimeSpan.Zero;
         await context.Recordings
             .Where(r => r.Id == run.Id)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.HeartbeatAt, DateTime.UtcNow - heartbeat)
-                .SetProperty(r => r.TerminalState, terminalState)
-                .SetProperty(r => r.TerminalAt, terminalState == null ? (DateTime?)null : DateTime.UtcNow - heartbeat));
+            .ExecuteUpdateAsync(setters =>
+            {
+                setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - heartbeat);
+                if (terminalState is not null)
+                    setters.SetProperty(r => r.TerminalState, terminalState).SetProperty(r => r.TerminalAt, r => DateTime.UtcNow - heartbeat);
+            });
         return run.JobId;
     }
 
