@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using System.Collections.Immutable;
 
 namespace Geopilot.Pipeline.Process;
 
@@ -65,6 +66,21 @@ public interface IPipelineProcessBuilder
     /// <param name="resourcesDirectory">The configured resources directory, or null when the deployment ships none.</param>
     /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
     IPipelineProcessBuilder ResourcesDirectory(string? resourcesDirectory);
+
+    /// <summary>
+    /// Sets what the host binds to the job, which <see cref="Build"/> hands to the constructor parameters of a
+    /// binding type. Internal, so the bindings stay off the package's public surface; an implementation outside
+    /// this assembly ignores them.
+    /// </summary>
+    /// <param name="jobBindings">The bindings of the job.</param>
+    /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
+    internal IPipelineProcessBuilder JobBindings(PipelineJobBindings jobBindings) => this;
+
+    /// <summary>
+    /// Gets the binding types used by the pipeline step of this builder.
+    /// </summary>
+    /// <returns>The binding types used by the current step of the pipeline.</returns>
+    internal IReadOnlySet<Type> GetBindingTypes() => ImmutableHashSet<Type>.Empty;
 
     /// <summary>
     /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check

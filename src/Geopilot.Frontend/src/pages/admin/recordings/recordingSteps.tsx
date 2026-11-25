@@ -28,6 +28,7 @@ import { DetailTable, nameColumnWidth } from "../../../components/detailTable.ts
 import { StepIcon } from "../../../components/stepIcon.tsx";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
+import { EntryHeader } from "./entryHeader.tsx";
 import { formatDuration, formatInputValue, formatStepState } from "./recordingFormat.ts";
 import { RecordingPreflightStep } from "./recordingPreflightStep.tsx";
 import { StepTitle } from "./stepTitle.tsx";
@@ -95,21 +96,21 @@ export const RecordingSteps: FC<RecordingStepsProps> = ({ run }) => {
           // A skipped step has times too, but they only span the check of its skip conditions.
           const duration = step.state !== StepState.Skipped && formatDuration(step.startedAt, step.finishedAt);
           return (
-            <Accordion key={step.stepId} defaultExpanded disableGutters data-cy={`recordingStep-${step.stepId}`}>
+            <Accordion key={step.stepId} disableGutters data-cy={`recordingStep-${step.stepId}`}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack
-                  direction="row"
-                  sx={{ alignItems: "center", gap: 2, flexWrap: "wrap", width: "100%", paddingRight: 2 }}>
-                  <StepIcon step={index + 2} state={step.state} variant="outlined" />
-                  <Typography sx={{ flex: "1 1 0" }}>
-                    <StepTitle id={step.stepId} displayName={step.displayName} />
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {duration
+                <EntryHeader
+                  icon={<StepIcon step={index + 2} state={step.state} variant="outlined" />}
+                  title={
+                    <Typography>
+                      <StepTitle id={step.stepId} displayName={step.displayName} />
+                    </Typography>
+                  }
+                  aside={
+                    duration
                       ? t("stepStateAfterDuration", { state: formatStepState(t, step.state), duration })
-                      : formatStepState(t, step.state)}
-                  </Typography>
-                </Stack>
+                      : formatStepState(t, step.state)
+                  }
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <Stack>

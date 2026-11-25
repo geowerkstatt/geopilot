@@ -919,6 +919,7 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task Download()
     {
+        WithoutDeleteWindow();
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
@@ -935,6 +936,7 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task DownloadOfAPublicMandateNeedsNoAdmin()
     {
+        WithoutDeleteWindow();
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
         var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
 
@@ -982,6 +984,7 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task DownloadOfAForwardedDeliveryDoesNotWaitForItsNotifications()
     {
+        WithoutDeleteWindow();
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
         var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
         context.DeliveryReactions.AddRange(
@@ -993,6 +996,39 @@ public class DeliveryControllerTest
 
         Assert.AreEqual("Test.xml", result?.FileDownloadName);
     }
+
+    [TestMethod]
+    [DataRow(1, 0, DisplayName = "Window still open")]
+    [DataRow(null, 2, DisplayName = "Window never closes")]
+    public async Task DownloadOfADeliveryWithoutTransfersIsNotFoundWhileItsDeleteWindowIsOpen(int? windowHours, int deliveredHoursAgo)
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = windowHours is { } hours ? TimeSpan.FromHours(hours) : null });
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        delivery.Date = DateTime.UtcNow.AddHours(-deliveredHoursAgo);
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
+        assetHandlerMock.Verify(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DownloadOfADeliveryWithoutTransfersIsFoundOnceItsDeleteWindowHasClosed()
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(1) });
+        assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
+        var delivery = CreateDeliveryWithAsset(context.Mandates.Single(m => m.StacAccess == StacAccess.Public));
+        delivery.Date = DateTime.UtcNow.AddHours(-2);
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
+
+        Assert.AreEqual("Test.xml", result?.FileDownloadName);
+    }
+
+    // Without uploader deletion there is no delete window, so a delivery is published as soon as its transfers are done.
+    private void WithoutDeleteWindow() => deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = false });
 
     private Delivery CreateDeliveryWithAsset(Mandate mandate)
     {
@@ -1244,6 +1280,7 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task GetByIdShowsWhatWasDelivered()
     {
+        WithoutDeleteWindow();
         deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         var supplier = context.Users.First(u => !u.IsAdmin);
         var precursor = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
@@ -1288,6 +1325,19 @@ public class DeliveryControllerTest
         Assert.IsNotNull(detail);
         Assert.IsNull(detail.StacItem);
         Assert.IsNull(detail.PrecursorDelivery);
+    }
+
+    [TestMethod]
+    public async Task GetByIdLinksNoStacItemWhileTheDeleteWindowIsOpen()
+    {
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(1) });
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        var delivery = AddDeliveryWithReactions();
+
+        var detail = ((await deliveryController.GetById(delivery.Id)) as ObjectResult)?.Value as DeliveryDetailResponse;
+
+        Assert.IsNotNull(detail);
+        Assert.IsNull(detail.StacItem, "a delivery without transfers is only published once its uploader can no longer delete it.");
     }
 
     [TestMethod]

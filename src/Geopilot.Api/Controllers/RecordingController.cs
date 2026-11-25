@@ -26,15 +26,17 @@ public class RecordingController : ControllerBase
     private readonly ILogger<RecordingController> logger;
     private readonly Context context;
     private readonly IProcessingService processingService;
+    private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecordingController"/> class.
     /// </summary>
-    public RecordingController(ILogger<RecordingController> logger, Context context, IProcessingService processingService)
+    public RecordingController(ILogger<RecordingController> logger, Context context, IProcessingService processingService, IPipelineFactory pipelineFactory)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
+        this.pipelineFactory = pipelineFactory;
     }
 
     /// <summary>
@@ -103,7 +105,7 @@ public class RecordingController : ControllerBase
         var outcome = RecordingOutcomes.Determine(run, IsRunning(run.JobId), delivery);
         var (forwardingState, notificationState) = await RecordingOutcomes.LoadReactionStatesAsync(context, delivery, cancellationToken);
         var attemptSummaries = attempts.Select(attempt => ToSummary(attempt, deliveries)).ToList();
-        return Ok(run.ToResponse(outcome, forwardingState, notificationState, attemptSummaries));
+        return Ok(run.ToResponse(outcome, forwardingState, notificationState, attemptSummaries, pipelineFactory.ReactionDisplayNames()));
     }
 
     /// <summary>

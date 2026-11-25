@@ -350,6 +350,39 @@ public class IlivalidatorClientIntegrationTest
 
     [TestMethod]
     [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task GeneratedRefMappingConformsToTheModel()
+    {
+        // The DMAV test world indexes IliVRefData_V1_0, so the tool checks the generated mapping against the model
+        // ilivalidator reads it with.
+        var mappingFile = GetTestPipelineFile("generated_refmapping.xtf");
+        var logFile = GetTestPipelineFile("validation_generated_refmapping.log");
+        var xtfLogFile = GetTestPipelineFile("validation_generated_refmapping.xtf");
+        await DeleteIfExistsAsync(mappingFile);
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+        await using (var stream = mappingFile.OpenWriteFileStream())
+        {
+            await RefMappingXtfWriter.WriteAsync(
+                [
+                    new RefMappingEntry("449", ["ilidata:dmav_Gemeinden95_V1_0", "ilidata:dmav_LFP3_449"], "Sauge\nzweite Zeile"),
+                    new RefMappingEntry("BE", ["ilidata:dmav_LFP2_BE"], null),
+                    new RefMappingEntry("<xml char&", ["ilidata:escape_test"], null),
+                ],
+                stream,
+                TestContext.CancellationToken);
+        }
+
+        var args = new IlivalidatorArgs();
+
+        var result = await ilivalidatorClient.ValidateAsync(args, mappingFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        Assert.IsTrue(result.Success, $"The generated mapping must conform to IliVRefData_V1_0:\n{log}");
+        Assert.Contains("IliVRefData_V1_0", log, "The tool log should name the model it validated against.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncThrowsOperationCanceledWhenCancelled()
     {
         var transferFile = GetTestPipelineFile("transfer.xtf");

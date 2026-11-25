@@ -2,6 +2,7 @@
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
+using Geopilot.Pipeline.Processes.RefMappingTest;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Ilitools;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,8 @@ public class PipelineFactoryTest
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
     private Mock<ILoggerFactory> loggerFactory;
+
+    private sealed record RefMappings(IReadOnlyList<RefMappingEntry> Entries) : IRefMappings;
 
     [TestInitialize]
     public void SetUp()
@@ -354,6 +357,57 @@ public class PipelineFactoryTest
         }
     }
 
+    [TestMethod]
+    public void CreatePipelineBindsTheRefMappingOfTheJob()
+    {
+        var refMapping = new List<RefMappingEntry> { new("449", ["ilidata:dmav_LFP3_449"], "Sauge") };
+
+        using var pipeline = CreateRefMappingPipelineFactory().CreatePipeline("ref_mapping", Guid.NewGuid(), new PipelineJobBindings(new RefMappings(refMapping)));
+
+        Assert.AreSame(refMapping, RefMappingsOf(pipeline)?.Entries);
+    }
+
+    [TestMethod]
+    public void CreatePipelineBindsAnEmptyRefMapping()
+    {
+        using var pipeline = CreateRefMappingPipelineFactory().CreatePipeline("ref_mapping", Guid.NewGuid(), new PipelineJobBindings(new RefMappings([])));
+
+        Assert.IsEmpty(RefMappingsOf(pipeline)?.Entries, "With the switch but without entries the process gets a binding, just an empty one.");
+    }
+
+    [TestMethod]
+    public void CreatePipelineWithoutRefMappingBindsNone()
+    {
+        using var pipeline = CreateRefMappingPipelineFactory().CreatePipeline("ref_mapping", Guid.NewGuid());
+
+        Assert.IsNull(RefMappingsOf(pipeline));
+    }
+
+    [TestMethod]
+    public void GetUsedBindingTypesWithRefMappingsReturnsType()
+    {
+        var bindingTypes = CreateRefMappingPipelineFactory().GetUsedBindingTypes("ref_mapping");
+
+        CollectionAssert.AreEquivalent(new[] { typeof(IRefMappings) }, bindingTypes.ToList());
+    }
+
+    [TestMethod]
+    public void GetUsedBindingTypesWithoutRefMappingsIsEmpty()
+    {
+        var factory = CreatePipelineFactory("xtfDiffPipeline");
+        var bindingTypes = factory.GetUsedBindingTypes("xtf_diff");
+
+        Assert.IsEmpty(bindingTypes);
+    }
+
+    [TestMethod]
+    public void ValidateDefinitionAcceptsAProcessTakingTheRefMapping()
+    {
+        var result = CreateRefMappingPipelineFactory().ValidateDefinition();
+
+        Assert.IsTrue(result.IsValid, result.ErrorMessage);
+    }
+
     [TestMethod(DisplayName = "Definition snapshot of an unknown pipeline throws")]
     public void GetDefinitionSnapshotJsonUnknownPipelineThrows()
     {
@@ -375,6 +429,35 @@ public class PipelineFactoryTest
             .PipelineTempDirectory(pipelineDirectory)
             .Build();
     }
+
+    private PipelineFactory CreateRefMappingPipelineFactory()
+    {
+        var yaml = """
+            processes:
+              - id: ref_mapping_process
+                implementation: Geopilot.Pipeline.Processes.RefMappingTest.RefMappingTestProcess
+            pipelines:
+              - id: ref_mapping
+                display_name:
+                  en: Ref mapping
+                steps:
+                  - id: ref_mapping_step
+                    display_name:
+                      en: Ref mapping
+                    process_id: ref_mapping_process
+            """;
+
+        return PipelineFactory
+            .Builder()
+            .Yaml(yaml)
+            .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactory.Object)
+            .PipelineTempDirectory(Path.Combine(Path.GetTempPath(), "Pipeline"))
+            .Build();
+    }
+
+    private static IRefMappings? RefMappingsOf(IPipeline pipeline)
+        => ((RefMappingTestProcess)((PipelineStep)pipeline.Steps.Single()).Process).RefMappings;
 
     // Loads this test assembly as a processor plugin, because GetProcessorType resolves only the built-in processes
     // from the app domain.

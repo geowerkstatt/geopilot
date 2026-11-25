@@ -1,5 +1,7 @@
 ﻿using Cronos;
+using Geopilot.Api.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 
 namespace Geopilot.Api;
 
@@ -8,6 +10,9 @@ namespace Geopilot.Api;
 /// </summary>
 public class DeliveryOptions : IValidatableObject
 {
+    // How far back to look for the last occurrence of the interval, shortest first.
+    private static readonly TimeSpan[] IntervalLookBacks = [TimeSpan.FromHours(1), TimeSpan.FromDays(1), TimeSpan.FromDays(32), TimeSpan.FromDays(367), TimeSpan.FromDays(5 * 366)];
+
     private string? deleteRestrictInterval;
 
     /// <summary>
@@ -70,6 +75,49 @@ public class DeliveryOptions : IValidatableObject
 
         // Min skips null: the earlier bound wins, and without any bound the window stays open.
         return new[] { durationEnd, intervalEnd }.Min();
+    }
+
+    /// <summary>
+    /// Gets a condition that holds for every delivery an uploader can no longer delete at <paramref name="utcNow"/>, by the
+    /// rule of <see cref="GetDeleteWindowEnd"/>, in a form a database query can apply. A window that never closes never
+    /// matches.
+    /// </summary>
+    /// <param name="utcNow">The moment to check, in UTC.</param>
+    public Expression<Func<Delivery, bool>> DeleteWindowClosedAt(DateTime utcNow)
+    {
+        if (!UploaderDeleteEnabled)
+        {
+            return delivery => delivery.Date <= utcNow;
+        }
+
+        // The duration has passed for a delivery older than it, the interval once it occurred after the delivery.
+        var byDuration = DeleteDuration.HasValue;
+        var durationCutoff = utcNow - DeleteDuration.GetValueOrDefault();
+        var lastOccurrence = DeleteRestrictIntervalExpression is { } interval ? GetLastOccurrence(interval, utcNow) : null;
+        var byInterval = lastOccurrence.HasValue;
+        var intervalCutoff = lastOccurrence.GetValueOrDefault(utcNow);
+        return delivery => (byDuration && delivery.Date <= durationCutoff) || (byInterval && delivery.Date < intervalCutoff);
+    }
+
+    // shortcut: looks back five years at most, so an interval that occurs less often closes no window here.
+    private DateTime? GetLastOccurrence(CronExpression interval, DateTime utcNow)
+    {
+        // Cronos only looks forward, so search back in growing steps rather than listing years of a frequent interval.
+        foreach (var lookBack in IntervalLookBacks)
+        {
+            DateTime? last = null;
+            foreach (var occurrence in interval.GetOccurrences(utcNow - lookBack, utcNow, TimeZone, fromInclusive: true, toInclusive: true))
+            {
+                last = occurrence;
+            }
+
+            if (last is not null)
+            {
+                return last;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

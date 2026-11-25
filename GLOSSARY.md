@@ -84,7 +84,7 @@ _Übersetzungen_: EN reaction, FR une réaction, IT una reazione
 
 ## Weitergabe
 
-Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `transfers` einsetzt. Sie beginnt, wenn die [Lieferung](#lieferung) abgeschlossen ist, und gehört zu ihr: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen noch nicht weitergegeben sind, sagt `UnforwardedDeliveryIds`.
+Eine [Reaktion](#reaktion), deren [Kanal](#kanal) ein [Reaktions-Satz](#reaktions-satz) unter `transfers` einsetzt. Sie beginnt, wenn die [Lieferung](#lieferung) abgeschlossen ist, und gehört zu ihr: Erst wenn alle Weitergaben einer Lieferung erfolgreich waren, ist sie weitergegeben, und erst dann zeigt sie der STAC-Katalog. Eine Lieferung ohne Weitergaben ist weitergegeben, sobald sie abgeschlossen ist. Steht eine Weitergabe auf `Error`, gilt die Lieferung nicht als weitergegeben. Im Code: `ReactionKind.Transfer`; welche Lieferungen eine offene Weitergabe haben, sagt `UnforwardedDeliveryIds`.
 
 _Übersetzungen_: EN forwarding, FR une transmission, IT un inoltro
 
