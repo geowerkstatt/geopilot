@@ -36,11 +36,7 @@ internal static class ConstructorBinding
     internal static bool TryGetConfiguredValue(ParameterInfo parameterInfo, Parameterization config, string subject, out object? convertedValue)
     {
         convertedValue = null;
-        if (string.IsNullOrEmpty(parameterInfo.Name) || !config.TryGetValue(parameterInfo.Name, out var rawValue))
-            return false;
-
-        // Code without nullable annotations declares nothing, so its reference-type parameters keep taking null.
-        if (rawValue is null && new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.NotNull)
+        if (!TryGetRawValue(parameterInfo, config, out var rawValue))
             return false;
 
         if (RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out convertedValue))
@@ -51,6 +47,31 @@ internal static class ConstructorBinding
 
         return false;
     }
+
+    /// <summary>
+    /// Reads the value the configuration sets for a constructor parameter, unconverted. Returns false when the parameter
+    /// is not configured, and for a configured null when the parameter is declared non-nullable.
+    /// </summary>
+    internal static bool TryGetRawValue(ParameterInfo parameterInfo, Parameterization config, out object? rawValue)
+    {
+        rawValue = null;
+        if (string.IsNullOrEmpty(parameterInfo.Name) || !config.TryGetValue(parameterInfo.Name, out rawValue))
+            return false;
+
+        // Code without nullable annotations declares nothing, so its reference-type parameters keep taking null.
+        return rawValue is not null || new NullabilityInfoContext().Create(parameterInfo).WriteState is not NullabilityState.NotNull;
+    }
+
+    /// <summary>
+    /// The text of a configured path, also when it was read back from JSON, such as from the snapshot of a delivery
+    /// reaction; <see langword="null"/> when the value is no text.
+    /// </summary>
+    internal static string? AsPath(object? rawValue) => rawValue switch
+    {
+        string text => text,
+        JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
+        _ => null,
+    };
 
     /// <summary>
     /// Resolves a parameter that names a file the deployment ships. Its configured value is the path of the file
@@ -68,13 +89,7 @@ internal static class ConstructorBinding
         if (string.IsNullOrEmpty(parameterInfo.Name) || !config.TryGetValue(parameterInfo.Name, out var rawValue) || rawValue is null)
             return false;
 
-        // A value read back from JSON, such as the snapshot of a delivery reaction, holds its text as JsonElement.
-        var path = rawValue switch
-        {
-            string text => text,
-            JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
-            _ => null,
-        };
+        var path = AsPath(rawValue);
         if (string.IsNullOrWhiteSpace(path))
             throw new InvalidOperationException($"{subject} initialization: The configured value <{FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> is not the path of a file below the resources directory.");
 
@@ -107,7 +122,7 @@ internal static class ConstructorBinding
         }
     }
 
-    private static string FormatTypeName(Type type)
+    internal static string FormatTypeName(Type type)
     {
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)

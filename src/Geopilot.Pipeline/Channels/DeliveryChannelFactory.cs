@@ -1,5 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace Geopilot.Pipeline.Channels;
 
@@ -8,7 +10,8 @@ namespace Geopilot.Pipeline.Channels;
 /// comes from exactly one of three places: the base configuration (<c>Pipeline:ChannelConfigs:&lt;implementation&gt;</c>),
 /// the pipeline definition (<c>default_config</c> of the channel with the reaction's <c>channel_config_overwrites</c>)
 /// or the mandate (<c>mandate_config</c>), the last only for parameters marked <see cref="MandateValueAttribute"/>.
-/// A parameter marked <see cref="BaseConfigValueAttribute"/> comes from the base configuration only. A parameter marked
+/// A parameter marked <see cref="BaseConfigValueAttribute"/> or <see cref="SecretConfigValueAttribute"/> comes from the
+/// base configuration only, and a secret is masked wherever the configuration is recorded. A parameter marked
 /// <see cref="ResourceFileAttribute"/> gets the text of the file its path names below the resources directory, resolved
 /// as for a process.
 /// </summary>
@@ -43,13 +46,13 @@ internal sealed class DeliveryChannelFactory
 
     /// <summary>
     /// Checks a reaction: the implementation is a channel with one public constructor, every key of the definition is a
-    /// parameter not marked as base configuration value, every declared mandate key a parameter marked as mandate value
-    /// that the definition does not set, every parameter marked as mandate value takes a text, a list of texts or a
-    /// switch, every value converts to its parameter, every file lies below the resources directory and goes to a
-    /// parameter that takes text, and, with a base configuration, every parameter that needs a value gets one. When all
-    /// that holds and the channel needs no value from the mandate, it is built once and discarded, so what its
-    /// constructor refuses shows as well. A key the base configuration pins is the concern of the definition
-    /// validation.
+    /// parameter not marked as base configuration value or secret, a secret takes a text and is no mandate value, every
+    /// declared mandate key a parameter marked as mandate value that the definition does not set, every parameter
+    /// marked as mandate value takes a text, a list of texts or a switch, every value converts to its parameter, every
+    /// file lies below the resources directory and goes to a parameter that takes text, and, with a base configuration,
+    /// every parameter that needs a value gets one. When all that holds and the channel needs no value from the
+    /// mandate, it is built once and discarded, so what its constructor refuses shows as well. A key the base
+    /// configuration pins is the concern of the definition validation.
     /// </summary>
     /// <param name="implementation">The fully qualified type name of the channel.</param>
     /// <param name="config">The values the pipeline definition sets: the default configuration of the channel with
@@ -86,8 +89,14 @@ internal sealed class DeliveryChannelFactory
                 .Where(config.ContainsKey)
                 .Select(key => $"Channel <{implementation}>: the mandate value '{key}' is already set in default_config. A value comes either from the pipeline definition or from the mandate."))
             .Concat(parameters
-                .Where(parameter => parameter.IsDefined(typeof(BaseConfigValueAttribute)) && config.ContainsKey(parameter.Name ?? string.Empty))
-                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [BaseConfigValue] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition."))
+                .Where(parameter => IsBaseConfigOnly(parameter) && config.ContainsKey(parameter.Name ?? string.Empty))
+                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [{(SecretConfigValues.IsSecret(parameter) ? "SecretConfigValue" : "BaseConfigValue")}] and can only be set in the base configuration (Pipeline:ChannelConfigs), not in the pipeline definition."))
+            .Concat(parameters
+                .Where(parameter => SecretConfigValues.IsSecret(parameter) && IsMandateValue(parameter))
+                .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [SecretConfigValue] and [MandateValue]. A secret comes from the base configuration (Pipeline:ChannelConfigs) only, never from a mandate."))
+            .Concat(parameters
+                .Select(parameter => SecretConfigValues.TypeError(parameter, Subject, implementation))
+                .OfType<string>())
             .Concat(parameters
                 .Where(parameter => IsMandateValue(parameter) && !MandateValueTypes.ContainsKey(parameter.ParameterType))
                 .Select(parameter => $"Channel <{implementation}>: the parameter '{parameter.Name}' is marked [MandateValue] but takes {parameter.ParameterType.Name}. A mandate value is a text (string), a list of texts (IReadOnlyList<string>) or a switch (bool)."))
@@ -152,13 +161,47 @@ internal sealed class DeliveryChannelFactory
         var baseConfig = BaseConfig(implementation);
         var definition = config ?? new Parameterization();
         var mandate = mandateValues ?? new Parameterization();
-        var none = new Parameterization();
 
-        // The base configuration comes first: where a channel writes and with which credentials is its decision.
         var arguments = constructor.GetParameters()
-            .Select(parameter => Bind(parameter, baseConfig, definition, IsMandateValue(parameter) ? mandate : none))
+            .Select(parameter => Bind(parameter, baseConfig, definition, mandate))
             .ToArray();
         return (IDeliveryChannel)constructor.Invoke(arguments);
+    }
+
+    /// <summary>
+    /// Describes the configuration an attempt runs with, for the execution protocol: per constructor parameter the
+    /// value from the place <see cref="Create"/> binds it from, together with that place. A value stands as configured,
+    /// not converted, a secret masked, and a resource file as its path with the hash of its content. A parameter no
+    /// place sets is left out. Converts and validates nothing, so it succeeds where <see cref="Create"/> fails on a
+    /// missing or refused value.
+    /// </summary>
+    /// <param name="implementation">The fully qualified type name of the channel.</param>
+    /// <param name="config">The values the pipeline definition set: the default configuration of the channel with
+    /// the reaction's overwrites.</param>
+    /// <param name="mandateValues">The values the mandate supplied.</param>
+    /// <returns>The value and its origin, per parameter name.</returns>
+    /// <exception cref="InvalidOperationException">The channel cannot be resolved.</exception>
+    public IReadOnlyDictionary<string, RecordedConfigValue> DescribeConfig(string implementation, Parameterization? config, Parameterization? mandateValues)
+    {
+        var constructor = GetConstructor(implementation);
+        var baseConfig = BaseConfig(implementation);
+        var definition = config ?? new Parameterization();
+        var mandate = mandateValues ?? new Parameterization();
+
+        var described = new Dictionary<string, RecordedConfigValue>(StringComparer.Ordinal);
+        foreach (var parameter in constructor.GetParameters())
+        {
+            if (parameter.Name is not { } name || FindSource(parameter, baseConfig, definition, mandate) is not { } source)
+                continue;
+
+            var value = source.Values[name];
+
+            // The hash of a short secret could be guessed back, so a secret file keeps it to itself.
+            var sha256 = parameter.IsDefined(typeof(ResourceFileAttribute)) && !SecretConfigValues.IsSecret(parameter) ? HashResourceFile(value) : null;
+            described[name] = new RecordedConfigValue(SecretConfigValues.ForProtocol(parameter, value), source.Origin, sha256);
+        }
+
+        return described;
     }
 
     private static ConstructorInfo GetConstructor(string implementation)
@@ -193,18 +236,62 @@ internal sealed class DeliveryChannelFactory
 
     private static bool IsMandateValue(ParameterInfo parameter) => parameter.IsDefined(typeof(MandateValueAttribute));
 
-    private object? Bind(ParameterInfo parameter, params Parameterization[] places)
+    private static bool IsBaseConfigOnly(ParameterInfo parameter)
+        => parameter.IsDefined(typeof(BaseConfigValueAttribute)) || SecretConfigValues.IsSecret(parameter);
+
+    /// <summary>
+    /// The first place that sets the parameter: the base configuration, then the definition, then, for a mandate value
+    /// only, the mandate. The base configuration comes first because where a channel writes and with which credentials
+    /// is its decision; the collision rules keep the places apart anyway. <see cref="Create"/> binds from the place
+    /// found here and <see cref="DescribeConfig"/> records it, so the two cannot disagree.
+    /// </summary>
+    private static (ConfigOrigin Origin, Parameterization Values)? FindSource(ParameterInfo parameter, Parameterization baseConfig, Parameterization definition, Parameterization mandate)
     {
-        foreach (var values in places)
-        {
-            if (TryBind(parameter, values, out var value))
-                return value;
-        }
+        if (Sets(baseConfig, parameter))
+            return (ConfigOrigin.Base, baseConfig);
+
+        if (Sets(definition, parameter))
+            return (ConfigOrigin.Definition, definition);
+
+        if (IsMandateValue(parameter) && Sets(mandate, parameter))
+            return (ConfigOrigin.Mandate, mandate);
+
+        return null;
+    }
+
+    // A resource file needs a path, so a configured null names none; any other value counts as binding reads it.
+    private static bool Sets(Parameterization values, ParameterInfo parameter)
+        => parameter.IsDefined(typeof(ResourceFileAttribute))
+            ? values.TryGetValue(parameter.Name ?? string.Empty, out var path) && path is not null
+            : ConstructorBinding.TryGetRawValue(parameter, values, out _);
+
+    private object? Bind(ParameterInfo parameter, Parameterization baseConfig, Parameterization definition, Parameterization mandate)
+    {
+        if (FindSource(parameter, baseConfig, definition, mandate) is { } source && TryBind(parameter, source.Values, out var value))
+            return value;
 
         if (ConstructorBinding.IsNullable(parameter))
             return null;
 
         throw new InvalidOperationException(MissingValueMessage(parameter));
+    }
+
+    // The hash of the file a resource parameter names, or null when there is no file to read below the resources directory.
+    private string? HashResourceFile(object? configuredPath)
+    {
+        var path = ConstructorBinding.AsPath(configuredPath);
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(resourcesDirectory))
+            return null;
+
+        try
+        {
+            using var stream = File.OpenRead(ResourceFileResolver.ResolveFullPath(resourcesDirectory, path));
+            return Convert.ToHexStringLower(SHA256.HashData(stream));
+        }
+        catch (Exception ex) when (ex is PipelineRunException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     // A parameter marked as resource file gets the text of the file its path names, any other its value.

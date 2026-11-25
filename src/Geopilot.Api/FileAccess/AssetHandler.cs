@@ -8,8 +8,8 @@ namespace Geopilot.Api.FileAccess;
 /// <summary>
 /// Provides functionality to record, delete and download asset files. The delivery consists of exactly
 /// the pipeline outputs the definition tagged for delivery: the runner staged those files below the asset
-/// directory, so this handler promotes the job's staged directory into place, hashes the files there and
-/// writes the corresponding <see cref="Asset"/> rows. Its asset type is derived from the file's origin: a
+/// directory, so this handler hashes them there into <see cref="Asset"/> rows and, once the delivery is
+/// saved, promotes the job's staged directory into place. Its asset type is derived from the file's origin: a
 /// file that entered as an upload becomes <see cref="AssetType.PrimaryData"/>, one produced by a step
 /// becomes <see cref="AssetType.ProcessedData"/>.
 /// </summary>
@@ -18,17 +18,19 @@ public class AssetHandler : IAssetHandler
     private readonly ILogger<AssetHandler> logger;
     private readonly IProcessingService processingService;
     private readonly IAssetFileStore assetFileStore;
+    private readonly IAssetStagingFileStore assetStagingFileStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IContentTypeProvider fileContentTypeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
-    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IAssetFileStore assetFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IAssetFileStore assetFileStore, IAssetStagingFileStore assetStagingFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
         this.processingService = processingService;
         this.assetFileStore = assetFileStore;
+        this.assetStagingFileStore = assetStagingFileStore;
         this.directoryProvider = directoryProvider;
         this.fileContentTypeProvider = fileContentTypeProvider;
     }
@@ -43,6 +45,9 @@ public class AssetHandler : IAssetHandler
 
         return await RecordStepDeliveryAssetsAsync(job, cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public void PromoteJobAssets(Guid jobId) => assetFileStore.PromoteStagedFiles(jobId);
 
     /// <inheritdoc/>
     public void DeleteJobAssets(Guid jobId)
@@ -83,17 +88,14 @@ public class AssetHandler : IAssetHandler
         if (job.Pipeline == null)
             return assets;
 
-        // Creating the delivery is what turns the staged payload into assets: one rename of the job directory,
-        // before anything is read from the asset store.
-        assetFileStore.PromoteStagedFiles(job.Id);
-
         foreach (var step in job.Pipeline.Steps)
         {
             foreach (var persisted in step.DeliveryFiles)
             {
-                // The promoted files are hashed in place, nothing is copied. A file that entered as an
-                // upload is primary data; one produced by a step is processed data.
-                using var stream = assetFileStore.OpenFile(job.Id, persisted.PersistedFileName);
+                // The files are hashed in staging, nothing is copied: they move into the delivery directory only once
+                // the delivery is saved. A file that entered as an upload is primary data; one produced by a step is
+                // processed data.
+                using var stream = assetStagingFileStore.OpenFile(job.Id, persisted.PersistedFileName);
                 assets.Add(new Asset()
                 {
                     AssetType = persisted.FromUpload ? AssetType.PrimaryData : AssetType.ProcessedData,

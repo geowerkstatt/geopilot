@@ -168,20 +168,14 @@ public class UserControllerTest
         Assert.IsTrue(resultValue.IsAdmin);
         Assert.AreEqual(UserState.Active, resultValue.State);
         Assert.HasCount(2, resultValue.Organisations);
-        for (var i = 0; i < 2; i++)
-        {
-            Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
-        }
+        CollectionAssert.AreEquivalent(testUser.Organisations.Select(o => o.Id).ToList(), resultValue.Organisations.Select(o => o.Id).ToList());
 
         testUser.Organisations = new List<Organisation> { new() { Id = 2 }, new() { Id = 3 } };
         result = await userController.Edit(testUser);
         resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
         Assert.IsNotNull(resultValue);
         Assert.HasCount(2, resultValue.Organisations);
-        for (var i = 0; i < 2; i++)
-        {
-            Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
-        }
+        CollectionAssert.AreEquivalent(testUser.Organisations.Select(o => o.Id).ToList(), resultValue.Organisations.Select(o => o.Id).ToList());
     }
 
     [TestMethod]

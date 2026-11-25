@@ -190,7 +190,7 @@ internal static class DtoMapperExtensions
     /// Maps a <see cref="Recording"/> including its children to a <see cref="RecordingResponse"/>.
     /// The definition snapshot is deliberately not part of the response; it is served by its own endpoint.
     /// </summary>
-    public static RecordingResponse ToResponse(this Recording run, RecordingOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState, List<RecordingSummaryResponse> attempts)
+    public static RecordingResponse ToResponse(this Recording run, RecordingOutcome outcome, ReactionState? forwardingState, ReactionState? notificationState, List<RecordingSummaryResponse> attempts, IReadOnlyDictionary<string, LocalizedText> reactionDisplayNames)
     {
         return new RecordingResponse(
             run.JobId,
@@ -224,6 +224,7 @@ internal static class DtoMapperExtensions
                 .Select(reactionEvent => new RecordingReactionEventResponse(
                     reactionEvent.DeliveryId,
                     reactionEvent.ReactionId,
+                    reactionDisplayNames.GetValueOrDefault(reactionEvent.ReactionId),
                     reactionEvent.ReactionKind,
                     reactionEvent.Implementation,
                     reactionEvent.Event,
@@ -232,7 +233,9 @@ internal static class DtoMapperExtensions
                     reactionEvent.FinishedAt,
                     reactionEvent.State,
                     reactionEvent.Message,
-                    reactionEvent.UserId))
+                    reactionEvent.UserId,
+                    reactionEvent.AppVersion,
+                    reactionEvent.Config?.ToDictionary(entry => entry.Key, entry => new RecordingConfigValueResponse(entry.Value.Value, entry.Value.Origin, entry.Value.Sha256))))
                 .ToList(),
             run.ToStarter(),
             run.ToMandateReference(),
