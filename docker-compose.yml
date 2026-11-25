@@ -135,6 +135,7 @@ services:
       Pipeline__Definition: /pipelines/pipelines.yaml
       Delivery__UploaderDeleteEnabled: true
       MachineDelivery__Enabled: true
+      RefMapping__Enabled: true
       Delivery__DeleteDuration: ""
       Delivery__DeleteRestrictInterval: ""
       Ilitools__IlitoolsWrapperAddress: http://ilitools-wrapper:5555

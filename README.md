@@ -109,6 +109,7 @@ volumes:
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
 Der STAC Browser ist über https://localhost:5173/browser erreichbar. Ohne Anmeldung zeigt er nur Mandate, deren STAC-Zugriff auf _Öffentlich_ steht (im Seed das öffentliche Mandat); angemeldete Administratoren sehen über das Cookie alle Mandate.
+Eine [Lieferung](./GLOSSARY.md#lieferung) erscheint dort erst, wenn ihr [Löschfenster](./GLOSSARY.md#löschfenster) geschlossen ist (siehe [Löschen von Lieferungen](#löschen-von-lieferungen)): mit `appsettings.Development.json` nach Mitternacht, im Docker-Compose-Stack nie.
 
 ### Debugging 🪲
 
@@ -225,6 +226,22 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 
 Für die [maschinelle Lieferung](./docs/MaschinelleLieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
 
+### Pflicht-Claims
+
+Mit `Auth:RequiredClaims` verlangt geopilot bestimmte Claims[^1] mit einem exakten Wert, zum Beispiel den Tenant bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Bei JWT prüft geopilot das Access-Token direkt, bei opaken Tokens die Introspection-Antwort. Diese Prüfung gilt für Personen und für Maschinen-Clients.
+
+Der Vergleich unterscheidet Gross- und Kleinschreibung. Ein Claim muss genau einen Textwert enthalten; Zahlen, Wahrheitswerte (Boolean) und Claims mit mehreren Werten schlagen immer fehl. Deshalb eignet sich `Auth:RequiredClaims` nicht für Rollen oder Gruppen. Fehlt ein Pflicht-Claim oder weicht sein Wert ab, antwortet die API mit 401 und legt keinen Benutzer an. geopilot schreibt dann eine Warnung mit dem Claim-Namen ins Log. Ohne Eintrag prüft geopilot keine zusätzlichen Claims.
+
+`Auth:RequiredClaims` erwartet eine Liste, damit Claim-Namen auch Doppelpunkte enthalten können:
+
+```json
+"RequiredClaims": [
+  { "Name": "urn:zitadel:iam:user:resourceowner:id", "Value": "123456789" }
+]
+```
+
+Die zugehörigen Umgebungsvariablen heissen `Auth__RequiredClaims__0__Name` und `Auth__RequiredClaims__0__Value`. geopilot startet nicht, wenn `Auth:RequiredClaims` keine gültige Liste ist, `Name` oder `Value` fehlt oder ein Claim-Name doppelt vorkommt.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
@@ -265,6 +282,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "PublicClientId": "geopilot-client", // Frontend client id (required)
     "Audience": "geopilot-api", // Access_Token audience (required for Jwt, optional for Opaque: when set, the introspection response must contain a matching aud)
     "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
+    "RequiredClaims": [], // List of { "Name", "Value" } claims every access token must contain (default: none, see Pflicht-Claims)
 
     // Opaque token options (required when AccessTokenFormat is Opaque)
     "IntrospectionUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token/introspect",
@@ -407,6 +425,10 @@ Ob Lieferanten ihre eigenen [Lieferungen](./GLOSSARY.md#lieferung) löschen dür
 
 Das [Löschfenster](./GLOSSARY.md#löschfenster) schliesst zum früheren der beiden Zeitpunkte; ohne `DeleteDuration` und ohne `DeleteRestrictInterval` schliesst es nie. `DeleteRestrictInterval` ist ein Cron-Ausdruck mit fünf Feldern und gilt in der Zeitzone des Servers: Das Docker-Image setzt `TZ=Europe/Zurich`, unter Windows gilt die Zeitzone des Systems. Welche Zone gilt, steht beim Start im Log. Eine Dauer von null oder weniger und ein ungültiger Cron-Ausdruck verhindern den Start.
 
+Der STAC-Katalog zeigt eine Lieferung erst, wenn ihr Löschfenster geschlossen ist, auch Admins, und erst dann lassen sich ihre Dateien herunterladen. Dürfen Lieferanten nicht löschen, ist das gleich nach der Abgabe der Fall; schliesst das Löschfenster nie, erscheint keine Lieferung. Massgebend ist die aktuelle Konfiguration: Wer das Löschfenster verlängert, nimmt bereits gezeigte Lieferungen wieder aus dem Katalog, bis das neue Fenster geschlossen ist.
+
+Die Dateien einer Lieferung liegen in ihrem Lieferverzeichnis `<Storage:AssetsDirectory>/<jobId>`. geopilot löscht ein Lieferverzeichnis nur, wenn die Datenbank seine Lieferung als gelöscht führt. Passen Datenbank und Lieferverzeichnisse nicht zusammen, etwa nach dem Restore einer älteren Datenbank, schreibt jeder Lauf des Aufräumdienstes (alle `Processing:JobCleanupInterval`, der erste beim Start) eine Warnung mit der Zahl und den ersten Job-IDs: für Lieferverzeichnisse ohne Lieferung (die Datenbank ist älter als die Dateien) und für Lieferungen ohne Lieferverzeichnis (die Dateien sind älter als die Datenbank). geopilot löscht und ergänzt dabei nichts. Den Abgleich macht ein Betreiber von Hand; bis dahin bleibt die Warnung.
+
 ## Weitergabe von Lieferungen
 
 Ist eine [Lieferung](./GLOSSARY.md#lieferung) abgeschlossen, kann geopilot sie weitergeben, etwa in eine [Ablage](./docs/pipeline/Kanaele/ablage.md) auf dem Server, aus der die Systeme des Empfängers sie übernehmen. Ist sie weitergegeben, kann geopilot darüber berichten, etwa mit einer [Info-Mail](./docs/pipeline/Kanaele/mail.md) an die Empfänger des Mandats, die mit einem Schalter auch an den Lieferanten geht. Was mit den Lieferungen eines Mandats geschieht, legt ein [Reaktions-Satz](./GLOSSARY.md#reaktions-satz) in der Pipeline-Definition fest (`channels` und `reaction_sets`, siehe [Reaktionen nach dem Abschluss](./docs/pipeline/Pipelines.md#reaktionen-nach-dem-abschluss)). In der Administration wählt ein Mandat einen Reaktions-Satz und füllt die Werte, die der Reaktions-Satz von ihm verlangt, etwa seinen Unterordner der Ablage oder die Empfänger der Info-Mail.
@@ -428,3 +450,5 @@ Was ein [Kanal](./GLOSSARY.md#kanal) vom Betrieb braucht, steht in seiner Basis-
 Der Mail-Kanal braucht dort Server, Port und Absender und, wo der Server es verlangt, die Anmeldung. Das Passwort gehört in eine Umgebungsvariable oder einen Vault. Lokal fängt Mailpit aus dem Docker Compose die Mails ab: Die Entwicklungskonfiguration sendet dorthin, und die Mails stehen unter http://localhost:8025.
 
 Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Reaktionen betreiben](./docs/Reaktionen.md).
+
+[^1]: Je nach Identity Provider steht ein Claim erst mit einem Scope im Token.

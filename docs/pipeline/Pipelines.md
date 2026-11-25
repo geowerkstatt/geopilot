@@ -219,6 +219,7 @@ Zum Programmstart wird validiert, ob die [Pipeline-Definition](../../GLOSSARY.md
 - Jeder Pflicht-Parameter eines Prozessors muss mit einem Wert konfiguriert sein, siehe [Parameter-Typen](#parameter-typen); ein Schlüssel ohne Wert (leer, `~` oder `null`) gilt als nicht gesetzt. Ein konfigurierter Wert muss sich in den Typ des Parameters konvertieren lassen.
 - Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
 - Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
+- Die Pipeline-Definition darf keinen Parameter setzen, den ein Prozess als geheim kennzeichnet, und geheim kann nur ein Text sein, siehe [Geheime Werte](#geheime-werte).
 - Die [Kanäle](../../GLOSSARY.md#kanal) unter `channels` und die [Reaktions-Sätze](../../GLOSSARY.md#reaktions-satz) unter `reaction_sets` werden geprüft, wie unter [Reaktionen nach dem Abschluss](#prüfung-beim-start) beschrieben.
 
 ## Konfiguration eines Pipeline-Prozessors
@@ -327,6 +328,17 @@ Zu entfernen ist im Regelfall der Eintrag in der Pipeline-Definition, denn die B
 
 Dass eine Kollision die Applikation anhält, statt dass die Basis-Konfiguration einfach gewinnt, ist Absicht: Ein Schlüssel gehört genau einer Schicht. Betriebs- und sicherheitsrelevante Parameter (URLs, Pfade, Hosts, Tokens, Timeouts) gehören ausschliesslich in die Basis-Konfiguration, wo keine Pipeline-Definition sie erreicht; alles, was pro Pipeline oder pro Schritt variiert, gehört ausschliesslich in die Definition. Steht ein Schlüssel auf beiden Schichten, ist diese Zuordnung falsch. Würde die Basis-Konfiguration stattdessen nur mit einer Warnung gewinnen, bliebe der Schlüssel über die `default_config` weiterhin als überschreibbar deklariert, und sobald die Basis-Konfiguration einmal fehlt (neue Umgebung, aufgeräumtes Compose-File), wäre er ohne Codeänderung überschreibbar.
 
+#### Geheime Werte
+
+Einen Parameter, der einen geheimen Wert nimmt, etwa einen Token oder ein Passwort, kennzeichnet ein Prozess oder ein Kanal mit `[SecretConfigValue]` (siehe [Plugin System](pluginSystem.md#geheime-werte)). Ein solcher Parameter nimmt seinen Wert nur aus der Basis-Konfiguration, am besten aus einer Umgebungsvariable oder einem Vault. Setzt ihn die Pipeline-Definition, startet die Applikation nicht, auch wenn die Basis-Konfiguration ihn gar nicht setzt:
+
+- bei einem Prozess in `default_config` oder in `process_config_overwrites`. Geprüft wird jeder Prozess unter `processes`, auch einer, den kein Schritt verwendet.
+- bei einem Kanal in seiner `default_config` oder in den `channel_config_overwrites` einer Reaktion. Geprüft wird jeder Kanal, den eine Reaktion verwendet. Als Wert des Mandats lässt sich ein geheimer Parameter nicht deklarieren.
+
+Geheim kann nur ein Text sein (`string`), eine Kennzeichnung an einem anderen Typ hält den Start ebenfalls an.
+
+Wo geopilot eine Konfiguration festhält, im Definitions-Snapshot eines Laufs wie in der Konfiguration eines Zustellversuchs (siehe [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md)), steht ein gesetzter geheimer Wert nur als `**********`; der Schlüssel bleibt, damit sichtbar ist, dass ein Wert gesetzt war. Ein leerer Wert bleibt leer. Nennt ein geheimer Parameter eines Kanals eine Datei, hält das Protokoll auch keinen Hash ihres Inhalts fest. Die eingebauten Prozesse haben keinen geheimen Parameter, das Passwort des [Mail-Kanals](Kanaele/mail.md) ist einer.
+
 #### Dateien als Konfiguration
 
 Ein Konfigurationsparameter vom Typ `IPipelineFile` nennt eine **Datei, die das Deployment mitbringt**. Konfiguriert wird ihr Pfad relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz im `input` auflöst:
@@ -347,7 +359,7 @@ Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, so
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds` und `toolVersion` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess`, welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `refMapping`, `modelDirs`, `allObjectsAccessible`, `pluginIds`, `toolVersion` und `refMappingFromPortal` übergeben, alle optional; was sie bewirken, beschreibt [XTF Validierung](Prozessoren/xtf-validierung.md). Alle sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` und `pluginIds` als semikolon-getrennter Wert.
 
 Zwei weitere, `modelRepository` und `refMappingFile`, sind vom Typ `IPipelineFile` und nennen je eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
@@ -356,6 +368,8 @@ Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitg
 Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um das Erstellen von Dateien innerhalb der Pipeline zu ermöglichen. Dabei wir sichergestellt, dass Dateien, welche mit dem `pipelineFileManager` erstellt wurden, nach dem Terminieren der Pipeline wieder abgeräumt werden.
 
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
+
+Auch `refMappings` ist keine Konfiguration: geopilot bindet beim Start des Jobs die [Zuordnung der Referenzdaten aus dem Admin-Portal](Prozessoren/xtf-validierung.md#zuordnung-aus-dem-admin-portal) an diesen Parameter, oder `null`, wenn `RefMapping:Enabled` aus ist. Der Prozessor verwendet sie nur, wenn der Schritt `refMappingFromPortal: true` setzt. Sein Typ ist intern; ein Plugin bekommt die Zuordnung nicht.
 
 ```csharp
 public XtfValidatorProcess(
@@ -367,6 +381,8 @@ public XtfValidatorProcess(
     string? toolVersion,
     IPipelineFile? modelRepository,
     IPipelineFile? refMappingFile,
+    bool? refMappingFromPortal,
+    IRefMappings? refMappings,
     IIlivalidatorClient ilivalidatorClient,
     IPipelineFileManager pipelineFileManager,
     ILogger logger)
@@ -597,7 +613,7 @@ reaction_sets:
   - `channels[X].default_config`: Optionale Standard-Konfiguration des Kanals, welche in den Reaktionen überschrieben werden kann. Welche Parameter ein Kanal kennt, steht auf seiner Seite.
 - `reaction_sets[X].id`: Die eindeutige Id des Reaktions-Satzes, auf die ein Mandat verweist. Sie besteht aus Kleinbuchstaben, Ziffern, `_` und `-`, beginnt mit einem Buchstaben oder einer Ziffer und hat höchstens 128 Zeichen.
 - `reaction_sets[X].display_name`: Der Name des Reaktions-Satzes in den Sprachen der Oberfläche, unter dem die Administration ihn einem Mandat anbietet.
-- `reaction_sets[X].transfers`: Optional. Die Weitergaben des Reaktions-Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Weitergaben gilt sie das gleich nach der Abgabe.
+- `reaction_sets[X].transfers`: Optional. Die Weitergaben des Reaktions-Satzes. Sie geben die Lieferung weiter, ohne bestimmte Reihenfolge. Sind alle erfolgreich, gilt die Lieferung als weitergegeben; ohne Weitergaben gilt sie das, sobald das Löschfenster schliesst.
 - `reaction_sets[X].notifications`: Optional. Die Benachrichtigungen des Reaktions-Satzes. Sie laufen, sobald die Lieferung weitergegeben ist, also frühestens nach dem Löschfenster, und ändern ihren Zustand nie: Scheitert eine Benachrichtigung, bleibt die Lieferung weitergegeben. Wiederholt werden sie wie die Weitergaben, und die Betriebssicht zeigt sie mit ihnen.
 - Ein Reaktions-Satz braucht mindestens eine Reaktion, eine Weitergabe oder eine Benachrichtigung. Beide sind gleich aufgebaut:
   - `id`: Die Id der Reaktion. Sie muss über alle Reaktions-Sätze hinweg eindeutig sein, auch zwischen Weitergaben und Benachrichtigungen, und folgt denselben Regeln wie die Id des Reaktions-Satzes.
@@ -610,7 +626,7 @@ Ein Kanal bekommt bei jedem Versuch die Dateien der Lieferung und ihre Metadaten
 
 Welche Reaktionen eine Lieferung bekommt und mit welchen Werten, steht bei ihrer Erstellung fest. Eine spätere Änderung am Reaktions-Satz oder an den Werten des Mandats gilt erst für neue Lieferungen. Die Basis-Konfiguration liest dagegen jeder Versuch neu.
 
-Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Bis dahin nennt sie auch das Item einer späteren Lieferung nicht als Vorgängerversion. Weil die Weitergaben erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet eine mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Weitergaben erscheint gleich nach der Abgabe, auch wenn ihr Reaktions-Satz Benachrichtigungen hat.
+Im STAC-Katalog erscheint eine Lieferung erst, wenn sie weitergegeben ist, auch für Administratoren, und erst dann lassen sich ihre Dateien herunterladen. Bis dahin nennt sie auch das Item einer späteren Lieferung nicht als Vorgängerversion. Weil die Weitergaben erst nach dem Löschfenster beginnen, ist das frühestens dann der Fall; endet eine mit `Error`, bleibt die Lieferung verborgen. Eine Lieferung ohne Weitergaben erscheint, sobald das Löschfenster schliesst, auch wenn ihr Reaktions-Satz Benachrichtigungen hat.
 
 Wird eine Lieferung gelöscht, enden ihre Reaktionen, die noch nicht erledigt sind, mit dem Zustand `Deleted`, auch eine laufende: Ihr Kanal scheitert an den gelöschten Dateien, oder sein Abschluss wird abgewiesen. Ein Lieferant löscht nur im Löschfenster, dann lief noch keine Reaktion. Hat trotzdem schon eine begonnen, etwa weil das Löschfenster nach der Abgabe verlängert oder das Löschen für Lieferanten erst später eingeschaltet wurde, darf er nicht mehr löschen. Löscht ein Administrator eine Lieferung, die schon weitergegeben ist, bleibt sie beim Ziel. Der Löschdialog der Administration nennt deshalb vorher die erfolgten Weitergaben, und das [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) hält fest, welche Reaktionen beim Löschen erledigt waren und wer gelöscht hat.
 
@@ -620,7 +636,7 @@ Eine Definition mit `channels` oder `reaction_sets` setzt eine Version von geopi
 
 Ein Kanal wird konfiguriert wie ein Prozessor: Die Namen der Konfiguration entsprechen den Parametern seines Konstruktors, welche auf seiner Seite dokumentiert sind. Die Werte kommen von drei Stellen, und jeder Schlüssel gehört genau einer davon:
 
-1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier. Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nie in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu.
+1. **Basis-Konfiguration**: In den Appsettings unter `Pipeline:ChannelConfigs`, pro Implementierung wie bei den Prozessoren (siehe [Appsettings](#appsettings)). Was sicherheitsrelevant ist, etwa ein Basisverzeichnis oder Zugangsdaten, gehört hierhin. Zugangsdaten stehen dabei nicht in einer appsettings-Datei, sondern kommen aus einer Umgebungsvariable oder einem Vault (siehe [Mail](Kanaele/mail.md)). Parameter, die ein Kanal dafür vorsieht, etwa das Basisverzeichnis der Ablage, nimmt er nur von hier, ebenso einen geheimen Wert wie das Passwort des Mail-Kanals (siehe [Geheime Werte](#geheime-werte)). Anders als `Pipeline:ProcessConfigs` gelangen diese Werte nicht in den Definitions-Snapshot des Ausführungsprotokolls, und jeder Versuch liest sie neu; dafür hält das Protokoll zu jedem Zustellversuch die Konfiguration fest, mit der sein Kanal lief, geheime Werte maskiert.
 2. **Pipeline-Definition**: Die Standard-Konfiguration unter `channels[X].default_config`, welche eine Reaktion unter `channel_config_overwrites` überschreiben kann. Wie bei den Schritten lassen sich nur Schlüssel überschreiben, welche die Standard-Konfiguration definiert.
 3. **Mandat**: Nur Parameter, die der Kanal dafür vorsieht, und davon nur die, welche der Reaktions-Satz unter `mandate_config` deklariert.
 
@@ -663,6 +679,7 @@ Die Kanäle und Reaktions-Sätze werden beim Start geprüft wie die Prozesse und
 - eine Reaktion einen Schlüssel überschreibt, den die Standard-Konfiguration ihres Kanals nicht definiert,
 - `mandate_config` einen Schlüssel zweimal deklariert, einen ohne `display_name`, einen, den der Kanal nicht als Wert des Mandats vorsieht, oder einen, den die Standard-Konfiguration des Kanals bereits setzt,
 - die Pipeline-Definition einen Schlüssel setzt, welcher bereits in der Basis-Konfiguration (`Pipeline:ChannelConfigs`) steht, auch bei einem Kanal, den keine Reaktion verwendet, oder einen, den der Kanal nur aus der Basis-Konfiguration nimmt,
+- ein Kanal einen geheimen Parameter hat, der keinen Text nimmt oder zugleich ein Wert des Mandats ist,
 - ein Wert, den der Kanal zwingend braucht, an keiner der drei Stellen steht, oder sich ein Wert der Basis-Konfiguration nicht in den Typ des Parameters umwandeln lässt,
 - der Kanal einer Reaktion seine Konfiguration abweist, etwa der Mail-Kanal ein Template ohne Titel. Dafür baut geopilot jeden Kanal einmal, der ohne Werte vom Mandat auskommt; einen, der welche braucht, prüft erst das Speichern eines Mandats,
 - ein Mandat einen Reaktions-Satz gewählt hat, den die Definition nicht mehr enthält,

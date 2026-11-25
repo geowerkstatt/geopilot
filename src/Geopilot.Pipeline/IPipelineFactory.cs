@@ -1,5 +1,7 @@
 ﻿using Geopilot.Pipeline.Channels;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
+using System.Collections.Immutable;
 
 namespace Geopilot.Pipeline;
 
@@ -66,6 +68,25 @@ public interface IPipelineFactory
     IPipeline CreatePipeline(string id, Guid jobId);
 
     /// <summary>
+    /// Creates a pipeline instance like <see cref="CreatePipeline(string, Guid)"/>, with what the host binds to the
+    /// job. Internal, so the bindings stay off the package's public surface; an implementation outside this
+    /// assembly ignores them.
+    /// </summary>
+    /// <param name="id">The id of the pipeline to be created.</param>
+    /// <param name="jobId">Job-Id for the pipeline.</param>
+    /// <param name="bindings">What the host binds to the job.</param>
+    /// <returns>A <see cref="Pipeline"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
+    internal IPipeline CreatePipeline(string id, Guid jobId, PipelineJobBindings bindings) => CreatePipeline(id, jobId);
+
+    /// <summary>
+    /// Gets the binding types used by the pipeline with the specified id.
+    /// </summary>
+    /// <param name="pipelineId">The id of the pipeline to check.</param>
+    /// <returns>The binding types used by any step in the specified pipeline.</returns>
+    internal IReadOnlySet<Type> GetUsedBindingTypes(string pipelineId) => ImmutableHashSet<Type>.Empty;
+
+    /// <summary>
     /// Validates the pipeline definition and the process configuration of every step, without constructing any
     /// process. The caller decides what an invalid definition means; the host refuses to start.
     /// </summary>
@@ -75,7 +96,8 @@ public interface IPipelineFactory
     /// <summary>
     /// Renders the definition snapshot of one pipeline as JSON: the pipeline as configured, the process
     /// catalog entries its steps reference, and the base configuration (appsettings
-    /// <c>Pipeline:ProcessConfigs</c>) effective for those implementations. The document is shaped like a
+    /// <c>Pipeline:ProcessConfigs</c>) effective for those implementations, limited to the keys that name a
+    /// constructor parameter and with secret values masked. The document is shaped like a
     /// minimal definition file restricted to that pipeline, so it records the exact basis a job executes on,
     /// unaffected by later edits to the definition file.
     /// </summary>

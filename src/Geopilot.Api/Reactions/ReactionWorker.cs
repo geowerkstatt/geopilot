@@ -140,9 +140,15 @@ public class ReactionWorker : BackgroundService
         using var timeLimit = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         timeLimit.CancelAfter(options.TimeLimit);
 
+        // The base configuration is read anew for every attempt, so a changed base directory or password applies to
+        // reactions that are already waiting. One factory per attempt, so the configuration the protocol records and
+        // the channel that runs read the same.
+        var channelFactory = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs, resourcesDirectory);
+        var config = DescribeConfig(channelFactory, reaction);
+
         var recorder = scope.ServiceProvider.GetRequiredService<IRecorder>();
-        await recorder.RecordReactionAttemptStartedAsync(reaction);
-        var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), reaction, timeLimit.Token, stoppingToken);
+        await recorder.RecordReactionAttemptStartedAsync(reaction, config);
+        var result = await AttemptAsync(context, scope.ServiceProvider.GetRequiredService<IAssetFileStore>(), channelFactory, reaction, timeLimit.Token, stoppingToken);
 
         ReactionState? state;
         try
@@ -161,7 +167,7 @@ public class ReactionWorker : BackgroundService
             return true;
         }
 
-        await recorder.RecordReactionAttemptFinishedAsync(reaction, state, result.Message);
+        await recorder.RecordReactionAttemptFinishedAsync(reaction, config, state, result.Message);
         LogOutcome(reaction, result.Message.GetDisplayText(), state);
         return true;
     }
@@ -170,7 +176,7 @@ public class ReactionWorker : BackgroundService
     /// Runs one attempt of a claimed reaction. Whatever goes wrong becomes a failed attempt with a reason the operators
     /// can read, so the attempt is always reported.
     /// </summary>
-    private async Task<ChannelResult> AttemptAsync(Context context, IAssetFileStore assetStore, DeliveryReaction reaction, CancellationToken timeLimit, CancellationToken stoppingToken)
+    private async Task<ChannelResult> AttemptAsync(Context context, IAssetFileStore assetStore, DeliveryChannelFactory channelFactory, DeliveryReaction reaction, CancellationToken timeLimit, CancellationToken stoppingToken)
     {
         try
         {
@@ -178,7 +184,7 @@ public class ReactionWorker : BackgroundService
             if (delivery is null)
                 return ChannelResult.Failure(DeliveryGoneMessage);
 
-            if (!TryCreateChannel(reaction, out var channel, out var refusal))
+            if (!TryCreateChannel(channelFactory, reaction, out var channel, out var refusal))
                 return ChannelResult.Failure(refusal);
 
             var files = delivery.FileNames
@@ -208,15 +214,35 @@ public class ReactionWorker : BackgroundService
     }
 
     /// <summary>
-    /// Creates the channel of a reaction from its snapshot and the base configuration as it is now, so a changed base
-    /// directory or password applies to reactions that are already waiting.
+    /// Describes what the channel of the attempt runs with, for the protocol: <see langword="null"/> for an unknown
+    /// channel, whose attempt then fails with the reason. Never throws, because recording the attempt must not keep it
+    /// from running.
     /// </summary>
-    private bool TryCreateChannel(DeliveryReaction reaction, [NotNullWhen(true)] out IDeliveryChannel? channel, [NotNullWhen(false)] out LocalizedText? refusal)
+    private IReadOnlyDictionary<string, RecordedConfigValue>? DescribeConfig(DeliveryChannelFactory channelFactory, DeliveryReaction reaction)
     {
         try
         {
-            channel = new DeliveryChannelFactory(pipelineOptions.CurrentValue.ChannelConfigs, resourcesDirectory)
-                .Create(reaction.Implementation, reaction.Config.Config, reaction.Config.Mandate.ToParameterization());
+            return channelFactory.DescribeConfig(reaction.Implementation, reaction.Config.Config, reaction.Config.Mandate.ToParameterization());
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "The configuration of attempt {Attempt} of the delivery reaction {ReactionId} of delivery {DeliveryId} could not be recorded.", reaction.Attempts, reaction.ReactionId, reaction.DeliveryId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates the channel of a reaction from its snapshot and the base configuration the factory reads.
+    /// </summary>
+    private static bool TryCreateChannel(DeliveryChannelFactory channelFactory, DeliveryReaction reaction, [NotNullWhen(true)] out IDeliveryChannel? channel, [NotNullWhen(false)] out LocalizedText? refusal)
+    {
+        try
+        {
+            channel = channelFactory.Create(reaction.Implementation, reaction.Config.Config, reaction.Config.Mandate.ToParameterization());
             refusal = null;
             return true;
         }
