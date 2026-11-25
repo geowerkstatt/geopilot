@@ -63,7 +63,7 @@ public class UploadPollingTest
 
         var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }), Options.Create(new RefMappingOptions()));
 
-        processingService = new ProcessingService(jobStore, uploadStore, mandateServiceMock.Object, lifecycle);
+        processingService = new ProcessingService(uploadStore, mandateServiceMock.Object, lifecycle);
 
         backgroundService = new PreflightBackgroundService(
             preflightChannel.Reader,
@@ -83,7 +83,7 @@ public class UploadPollingTest
     {
         var (jobId, _, _, _) = await CreateAndStartJobAsync();
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
@@ -115,7 +115,7 @@ public class UploadPollingTest
         // would let the run be delivered here, and a staging that nobody may deliver would be back.
         var (jobId, _, _, _) = await CreateAndStartJobAsync(mayDeliver);
 
-        var job = processingService.GetJob(jobId);
+        var job = jobStore.GetJob(jobId);
         Assert.IsNotNull(job);
         Assert.AreEqual(mayDeliver, job.MayDeliver);
     }
@@ -129,7 +129,7 @@ public class UploadPollingTest
         // attempt, geopilot would never create its delivery, and polling it would answer 404.
         var (jobId, _, _, _) = await CreateAndStartJobAsync(deliveryFields: fields);
 
-        var job = processingService.GetJob(jobId);
+        var job = jobStore.GetJob(jobId);
         Assert.IsNotNull(job);
         Assert.AreEqual(fields, job.DeliveryIntent?.Fields);
     }
@@ -144,7 +144,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
@@ -169,7 +169,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
@@ -190,7 +190,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);

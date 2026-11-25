@@ -43,7 +43,6 @@ public class ProcessingServiceTest
             Options.Create(new RefMappingOptions()));
 
         processingService = new ProcessingService(
-            processingJobStoreMock.Object,
             uploadStoreMock.Object,
             mandateServiceMock.Object,
             lifecycle);

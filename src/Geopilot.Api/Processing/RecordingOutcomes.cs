@@ -18,7 +18,7 @@ internal static class RecordingOutcomes
     /// Derives what became of the <paramref name="run"/>.
     /// </summary>
     /// <param name="run">The run with its steps.</param>
-    /// <param name="isRunning">Whether the job of the run is still pending or running in this instance.</param>
+    /// <param name="isRunning">Whether the run is alive in the protocol: unsettled, with a fresh heartbeat from whichever instance.</param>
     /// <param name="delivery">The delivery created for the run, live before deleted, or <see langword="null"/>.</param>
     internal static RecordingOutcome Determine(Recording run, bool isRunning, RecordingDelivery? delivery)
     {

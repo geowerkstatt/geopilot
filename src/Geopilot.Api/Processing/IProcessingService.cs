@@ -25,11 +25,6 @@ public interface IProcessingService
     Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, Supplier? supplier, DeliveryFields? deliveryFields);
 
     /// <summary>
-    /// Gets the processing job.
-    /// </summary>
-    ProcessingJob? GetJob(Guid jobId);
-
-    /// <summary>
     /// All file extensions supported for upload.
     /// All entries start with a "." like ".txt", ".xml" and may include ".*" (all files allowed).
     /// </summary>
