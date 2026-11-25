@@ -226,6 +226,22 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 
 Für die [maschinelle Lieferung](./docs/MaschinelleLieferung.md) authentifizieren sich Clients mit Client Credentials beim selben Identity Provider. Von ihrem Token verlangt geopilot nur `iss`, `aud` und `sub`; `email` und `name` braucht es nicht, weil ein Client kein Benutzer ist und die Weboberfläche nicht erreicht. Bei opaken Tokens nimmt geopilot die Kennung aus der Introspection-Antwort, aus `sub` oder ersatzweise aus `client_id`. Für eine registrierte Kennung fragt geopilot in beiden Formaten keine Userinfo ab. Registriert wird ein Client mit seinem `sub` in der Verwaltung unter _Maschinen-Clients_, seine Zugangsdaten verwaltet der Identity Provider. In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) ist der Service Account des Keycloak-Clients `geopilot-api` als Maschinen-Client geseedet; sein Token trägt die Audience über den Default-Scope `geopilot.api`.
 
+### Pflicht-Claims
+
+Mit `Auth:RequiredClaims` verlangt geopilot bestimmte Claims[^1] mit einem exakten Wert, zum Beispiel den Tenant bei Entra (`tid`) oder die Organisation bei ZITADEL (`urn:zitadel:iam:user:resourceowner:id`). Bei JWT prüft geopilot das Access-Token direkt, bei opaken Tokens die Introspection-Antwort. Diese Prüfung gilt für Personen und für Maschinen-Clients.
+
+Der Vergleich unterscheidet Gross- und Kleinschreibung. Ein Claim muss genau einen Textwert enthalten; Zahlen, Wahrheitswerte (Boolean) und Claims mit mehreren Werten schlagen immer fehl. Deshalb eignet sich `Auth:RequiredClaims` nicht für Rollen oder Gruppen. Fehlt ein Pflicht-Claim oder weicht sein Wert ab, antwortet die API mit 401 und legt keinen Benutzer an. geopilot schreibt dann eine Warnung mit dem Claim-Namen ins Log. Ohne Eintrag prüft geopilot keine zusätzlichen Claims.
+
+`Auth:RequiredClaims` erwartet eine Liste, damit Claim-Namen auch Doppelpunkte enthalten können:
+
+```json
+"RequiredClaims": [
+  { "Name": "urn:zitadel:iam:user:resourceowner:id", "Value": "123456789" }
+]
+```
+
+Die zugehörigen Umgebungsvariablen heissen `Auth__RequiredClaims__0__Name` und `Auth__RequiredClaims__0__Value`. geopilot startet nicht, wenn `Auth:RequiredClaims` keine gültige Liste ist, `Name` oder `Value` fehlt oder ein Claim-Name doppelt vorkommt.
+
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
@@ -266,6 +282,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "PublicClientId": "geopilot-client", // Frontend client id (required)
     "Audience": "geopilot-api", // Access_Token audience (required for Jwt, optional for Opaque: when set, the introspection response must contain a matching aud)
     "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
+    "RequiredClaims": [], // List of { "Name", "Value" } claims every access token must contain (default: none, see Pflicht-Claims)
 
     // Opaque token options (required when AccessTokenFormat is Opaque)
     "IntrospectionUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token/introspect",
@@ -431,3 +448,5 @@ Was ein [Kanal](./GLOSSARY.md#kanal) vom Betrieb braucht, steht in seiner Basis-
 Der Mail-Kanal braucht dort Server, Port und Absender und, wo der Server es verlangt, die Anmeldung. Das Passwort gehört in eine Umgebungsvariable oder einen Vault. Lokal fängt Mailpit aus dem Docker Compose die Mails ab: Die Entwicklungskonfiguration sendet dorthin, und die Mails stehen unter http://localhost:8025.
 
 Im Container gehört das Basisverzeichnis auf ein eigenes Volume, das für den Benutzer beschreibbar ist, unter dem geopilot läuft. Wiederholungen, Zeitlimit und Abfrageintervall stehen unter `Delivery:Reactions`. Wie sich der Stand ablesen und eine gescheiterte Weitergabe zurücksetzen lässt und was eine Installation unter IIS braucht, beschreibt [Reaktionen betreiben](./docs/Reaktionen.md).
+
+[^1]: Je nach Identity Provider steht ein Claim erst mit einem Scope im Token.

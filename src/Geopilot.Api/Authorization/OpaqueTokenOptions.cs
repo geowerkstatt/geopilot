@@ -33,6 +33,11 @@ public class OpaqueTokenOptions : AuthenticationSchemeOptions
     public string Audience { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the required claims that the introspection response must contain.
+    /// </summary>
+    public IReadOnlyList<RequiredClaim> RequiredClaims { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets a value indicating whether HTTPS is required for the introspection endpoint.
     /// Derived from the environment on startup (false in Development, true otherwise).
     /// </summary>
