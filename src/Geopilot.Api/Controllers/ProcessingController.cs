@@ -6,6 +6,7 @@ using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Web;
 
@@ -26,12 +27,15 @@ public class ProcessingController : ControllerBase
     private readonly IVisualizationFileStore visualizationFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
+    private readonly TimeSpan jobRetention;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IVisualizationFileStore visualizationFileStore, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IVisualizationFileStore visualizationFileStore, IContentTypeProvider contentTypeProvider, Context context, IOptions<ProcessingOptions> processingOptions)
     {
+        ArgumentNullException.ThrowIfNull(processingOptions);
+        jobRetention = processingOptions.Value.JobRetention;
         this.logger = logger;
         this.processingService = processingService;
         this.downloadFileStore = downloadFileStore;
@@ -109,18 +113,18 @@ public class ProcessingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
-    public IActionResult GetStatus(Guid jobId)
+    public async Task<IActionResult> GetStatus(Guid jobId, CancellationToken cancellationToken)
     {
         logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-        var job = processingService.GetJob(jobId);
-        if (job == null)
+        var run = await context.FindAnswerableRecordingAsync(jobId, jobRetention, cancellationToken);
+        if (run == null)
         {
             logger.LogTrace("No job information available for job id <{JobId}>", jobId);
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
+        return Ok(run.ToStatusResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
     }
 
     /// <summary>

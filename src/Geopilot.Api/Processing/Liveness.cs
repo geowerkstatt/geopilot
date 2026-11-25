@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Pipeline;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Geopilot.Api.Processing;
@@ -41,6 +42,23 @@ public static class Liveness
             Expression.AndAlso(settled, Expression.Invoke(settledWithinRetention, run)),
             Expression.Invoke(Alive(deliveries), run));
         return runs.Where(Expression.Lambda<Func<Recording, bool>>(body, run));
+    }
+
+    /// <summary>
+    /// Finds the run of <paramref name="jobId"/> with its steps and their artifacts, when a read path may answer for it
+    /// (see <see cref="WhereAnswerable"/>), otherwise <see langword="null"/>. The result is not tracked.
+    /// </summary>
+    public static Task<Recording?> FindAnswerableRecordingAsync(this Context context, Guid jobId, TimeSpan jobRetention, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.Recordings
+            .AsNoTracking()
+            .Include(r => r.Steps)
+            .ThenInclude(s => s.Artifacts)
+            .Where(r => r.JobId == jobId)
+            .WhereAnswerable(context.Deliveries.IgnoreQueryFilters(), jobRetention)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private static Expression<Func<Recording, bool>> Alive(IQueryable<Delivery> deliveries)
