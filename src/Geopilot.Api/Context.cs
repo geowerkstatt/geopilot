@@ -374,6 +374,11 @@ public class Context : DbContext
             run.HasIndex(r => new { r.StartedAt, r.Id });
             run.HasIndex(r => r.ClientReference).HasFilter("\"ClientReference\" IS NOT NULL");
 
+            // For the lookup of the open run of an upload.
+            run.HasIndex(r => r.UploadId).HasFilter("\"TerminalState\" IS NULL").HasDatabaseName("IX_Recordings_UploadId_Open");
+
+            run.Property(r => r.PipelineDisplayName).HasColumnType("jsonb").HasConversion((ValueConverter)localizedTextConverter, localizedTextComparer);
+            run.Property(r => r.SubmissionMandateKey).HasMaxLength(128);
             run.Property(r => r.Definition).HasColumnType("jsonb");
             run.Property(r => r.Bindings).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();

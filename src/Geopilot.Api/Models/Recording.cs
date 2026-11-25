@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Models;
 
@@ -126,6 +127,30 @@ public class Recording
     /// When the job was started (UTC). This is when the record is written.
     /// </summary>
     public DateTime StartedAt { get; set; }
+
+    /// <summary>
+    /// When the preflight passed and the job was queued for its run (UTC, instance clock).
+    /// <see langword="null"/> while the preflight runs, and for a run that never passed it.
+    /// </summary>
+    public DateTime? QueuedAt { get; set; }
+
+    /// <summary>
+    /// When the instance running the job last reported it alive (UTC, database clock). <see langword="null"/>
+    /// for a run recorded before the protocol kept it.
+    /// </summary>
+    public DateTime? HeartbeatAt { get; set; }
+
+    /// <summary>
+    /// The display name of the pipeline as configured when the job started, so another instance can show it
+    /// without the job. <see langword="null"/> for a run recorded before the protocol kept it.
+    /// </summary>
+    public LocalizedText? PipelineDisplayName { get; set; }
+
+    /// <summary>
+    /// The key of the mandate a machine delivery attempt addressed, as sent with it, or <see langword="null"/>
+    /// when the job carries no delivery intent.
+    /// </summary>
+    public string? SubmissionMandateKey { get; set; }
 
     /// <summary>
     /// The outcome of the malware scan of the uploaded files.

@@ -36,6 +36,14 @@ public interface IRecorder
     Task RecordScanOutcomeAsync(Guid jobId, Services.ScanResult scanResult);
 
     /// <summary>
+    /// Records the scan outcome and hashes like <see cref="RecordScanOutcomeAsync"/>, and that the job was queued
+    /// for its run. Soft.
+    /// </summary>
+    /// <param name="jobId">The job whose preflight passed.</param>
+    /// <param name="scanResult">The scan outcome.</param>
+    Task RecordPreflightPassedAsync(Guid jobId, Services.ScanResult scanResult);
+
+    /// <summary>
     /// Marks the run as failed before its pipeline ever ran (preflight failure). Soft.
     /// </summary>
     /// <param name="jobId">The job whose preflight failed.</param>

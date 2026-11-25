@@ -60,6 +60,8 @@ public class Recorder : IRecorder
             MachineClientId = supplier?.MachineClientId,
             ClientKind = ClassifyClient(),
             ClientReference = job.DeliveryIntent?.Fields.ClientReference,
+            PipelineDisplayName = job.Pipeline.DisplayName,
+            SubmissionMandateKey = job.DeliveryIntent?.MandateKey,
             PermissionToDeliver = job.MayDeliver ? PermissionToDeliver.Permitted : PermissionToDeliver.NotPermitted,
             UploadId = upload.Id,
             UploadStorageLocation = uploadStorage.StorageLocation,
@@ -86,10 +88,22 @@ public class Recorder : IRecorder
 
         context.Recordings.Add(run);
         await context.SaveChangesAsync();
+
+        // The database clock, so the instances agree on liveness; the instance clock may drift.
+        await context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow));
     }
 
     /// <inheritdoc/>
-    public async Task RecordScanOutcomeAsync(Guid jobId, ScanResult scanResult)
+    public Task RecordScanOutcomeAsync(Guid jobId, ScanResult scanResult)
+        => RecordScanAsync(jobId, scanResult, queued: false);
+
+    /// <inheritdoc/>
+    public Task RecordPreflightPassedAsync(Guid jobId, ScanResult scanResult)
+        => RecordScanAsync(jobId, scanResult, queued: true);
+
+    private async Task RecordScanAsync(Guid jobId, ScanResult scanResult, bool queued)
     {
         ArgumentNullException.ThrowIfNull(scanResult);
 
@@ -106,6 +120,8 @@ public class Recorder : IRecorder
                 ? ScanState.NotScanned
                 : scanResult.IsClean ? ScanState.Clean : ScanState.ThreatDetected;
             run.ScanDetails = scanResult.ThreatDetails;
+            if (queued)
+                run.QueuedAt = DateTime.UtcNow;
 
             if (scanResult.Hashes is { } hashes)
             {

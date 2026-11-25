@@ -340,6 +340,50 @@ public class RecorderTest
     }
 
     [TestMethod]
+    public async Task RecordJobStartedWritesPipelineNameAndHeartbeat()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual(job.Pipeline!.DisplayName, run.PipelineDisplayName);
+        Assert.IsNotNull(run.HeartbeatAt, "the heartbeat starts with the record, from the database clock.");
+        Assert.IsNull(run.SubmissionMandateKey);
+        Assert.IsNull(run.QueuedAt, "the job waits for its preflight, not for a slot.");
+    }
+
+    [TestMethod]
+    public async Task RecordJobStartedKeepsTheKeyOfAnAttempt()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload) with
+        {
+            DeliveryIntent = new DeliveryIntent(supplier, "machine-delivery", new DeliveryFields(null, null, null)),
+        };
+
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual("machine-delivery", run.SubmissionMandateKey);
+    }
+
+    [TestMethod]
+    public async Task RecordPreflightPassedSetsQueuedAt()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        await recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true));
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.IsNotNull(run.QueuedAt);
+        Assert.AreEqual(ScanState.Clean, run.ScanState);
+    }
+
+    [TestMethod]
     public async Task RecordScanOutcomeSetsStateAndHashes()
     {
         currentHttpContext = null;
@@ -736,6 +780,7 @@ public class RecorderTest
 
         var pipeline = new Mock<IPipeline>();
         pipeline.SetupGet(p => p.Id).Returns("pipe_a");
+        pipeline.SetupGet(p => p.DisplayName).Returns(TestHelpers.Localized("Pipeline A"));
         pipeline.SetupGet(p => p.Steps).Returns(steps.ToList());
 
         return new ProcessingJob(Guid.NewGuid(), uploadId, null, DateTime.UtcNow) { Pipeline = pipeline.Object };

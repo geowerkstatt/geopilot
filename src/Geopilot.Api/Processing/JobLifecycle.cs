@@ -195,7 +195,7 @@ public class JobLifecycle
     /// unnoticed.</exception>
     public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles)
     {
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordScanOutcomeAsync(jobId, scanResult));
+        await RecordProtocolAsync(jobId, recorder => recorder.RecordPreflightPassedAsync(jobId, scanResult));
         jobStore.EnqueueForProcessing(jobId, pipelineFiles);
     }
 
