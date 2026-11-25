@@ -58,7 +58,7 @@ _Vermeiden_: Deklaration, Anlieferung, Auslieferung
 
 ## Versuch
 
-Ein Anlauf eines Maschinen-Clients zu einer [Lieferung](#lieferung): Er übergibt Mandat, Lieferangaben und Daten und fragt ab, bis die Lieferung erstellt ist oder feststeht, dass keine entsteht. Lehnt die [Pipeline](#pipeline) die Daten ab, endet er als `rejected`; scheitert der Lauf oder weist geopilot die Lieferung ab, als `failed`. Ein Versuch lebt im Speicher und höchstens so lange wie seine [Verarbeitung](#verarbeitung), siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, abgefragt über den `SubmissionController`.
+Ein Anlauf eines Maschinen-Clients zu einer [Lieferung](#lieferung): Er übergibt Mandat, Lieferangaben und Daten und fragt ab, bis die Lieferung erstellt ist oder feststeht, dass keine entsteht. Lehnt die [Pipeline](#pipeline) die Daten ab, endet er als `rejected`; scheitert der Lauf oder weist geopilot die Lieferung ab, als `failed`. Ein Versuch steht im [Protokoll](#protokoll) seiner [Verarbeitung](#verarbeitung) und ist höchstens so lange abfragbar wie diese, siehe [Maschinelle Lieferung](docs/MaschinelleLieferung.md). Im Code: ein `ProcessingJob` mit `DeliveryIntent`, im Protokoll ein `Recording` mit `SubmissionMandateKey`, abgefragt über den `SubmissionController`.
 
 _Übersetzungen_: EN attempt, FR une tentative, IT un tentativo
 

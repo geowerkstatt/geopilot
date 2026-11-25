@@ -10,12 +10,9 @@ namespace Geopilot.Api.Processing;
 /// Stores, retrieves and updates <see cref="ProcessingJob"/> instances in memory in a thread-safe manner.
 /// </summary>
 /// <remarks>
-/// Jobs and the processing queue are process-local, so the API has to run as exactly one instance. A second
-/// instance does not see the jobs of the first one: a status request routed to the wrong instance answers 404,
-/// so jobs appear to vanish at random while their pipeline runs where nobody asks for it. The state is not
-/// persisted because a running <see cref="IPipeline"/> owns processor instances and temporary directories that
-/// cannot be serialized, so recovery would mean re-running a job from its uploaded files rather than resuming
-/// it. Running more than one instance therefore requires a persisted job store and shared file storage first.
+/// Holds what belongs to executing a job on this instance: the live <see cref="IPipeline"/>, the processing queue
+/// and the <see cref="DeliveryIntent"/> with its delivery fields. Status, downloads and the delivery creation read
+/// the execution protocol instead, so every instance answers for every job.
 /// </remarks>
 public class ProcessingJobStore : IProcessingJobStore
 {
