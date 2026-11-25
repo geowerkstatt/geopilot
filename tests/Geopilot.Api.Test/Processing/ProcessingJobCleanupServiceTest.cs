@@ -250,9 +250,7 @@ public class ProcessingJobCleanupServiceTest
         // The job has been submitted as a delivery; the asset directory must survive cleanup.
         SeedDelivery(jobId);
 
-        var oldJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-JobRetentionHours - 1));
-
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(oldJob);
+        SeedRun(jobId, settledAgo: TimeSpan.FromHours(JobRetentionHours + 1));
         jobStoreMock.Setup(s => s.RemoveJob(jobId)).Returns(true);
 
         await service.RunCleanupAsync();
@@ -269,9 +267,7 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)));
-
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
+        SeedRun(jobId, settledAgo: TimeSpan.FromHours(DownloadRetentionHours + 1));
 
         await service.RunCleanupAsync();
         Assert.IsTrue(Directory.Exists(assetDir), "Asset directory should still exist within JobRetention.");
@@ -287,9 +283,7 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
-        var partlyExpiredJob = FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Success, DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
-
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
+        SeedRun(jobId, settledAgo: TimeSpan.FromHours(VisualizationRetentionHours + 0.25));
 
         await service.RunCleanupAsync();
         Assert.IsTrue(Directory.Exists(assetDir), "Asset directory should still exist within JobRetention.");
@@ -305,15 +299,9 @@ public class ProcessingJobCleanupServiceTest
         var jobId = Guid.NewGuid();
         var (_, downloadDir, visualizationDir, _) = CreateJobDirectories(jobId);
 
-        // Created before the job retention ran out, but the run only just finished: downloads, visualizations and
+        // Started before the job retention ran out, but the run only just finished: downloads, visualizations and
         // the job itself all count from the end of the run.
-        var lateJob = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
-        {
-            State = ProcessingState.Success,
-            FinishedAt = DateTime.UtcNow,
-        };
-
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(lateJob);
+        SeedRun(jobId, startedAgo: TimeSpan.FromHours(JobRetentionHours + 1), settledAgo: TimeSpan.Zero);
 
         await service.RunCleanupAsync();
 
@@ -660,6 +648,108 @@ public class ProcessingJobCleanupServiceTest
         Assert.IsTrue(Directory.Exists(nonGuidDir));
         Assert.IsTrue(Directory.Exists(nonGuidPipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheFilesOfARunOnlyTheDatabaseKnows()
+    {
+        // Another instance executes the run: this instance's memory is empty.
+        var jobId = Guid.NewGuid();
+        var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
+        SeedRun(jobId, startedAgo: TimeSpan.FromHours(DownloadRetentionHours + 1), heartbeatAgo: TimeSpan.Zero);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(downloadDir));
+        Assert.IsTrue(Directory.Exists(visualizationDir));
+        Assert.IsTrue(Directory.Exists(assetDir));
+        Assert.IsTrue(Directory.Exists(pipelineDir));
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task RetiresADeadRunAfterRetentionFromItsLastHeartbeat()
+    {
+        var withinRetention = Guid.NewGuid();
+        var pastRetention = Guid.NewGuid();
+        var (_, withinDownload, _, withinPipeline) = CreateJobDirectories(withinRetention);
+        var (_, pastDownload, _, pastPipeline) = CreateJobDirectories(pastRetention);
+        SeedRun(withinRetention, startedAgo: TimeSpan.FromDays(3), heartbeatAgo: TimeSpan.FromHours(DownloadRetentionHours / 2));
+        SeedRun(pastRetention, startedAgo: TimeSpan.FromDays(3), heartbeatAgo: TimeSpan.FromHours(JobRetentionHours + 1));
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(withinDownload), "a dead run counts from its last heartbeat, not from its start");
+        Assert.IsTrue(Directory.Exists(withinPipeline));
+        Assert.IsFalse(Directory.Exists(pastDownload));
+        Assert.IsFalse(Directory.Exists(pastPipeline));
+        jobStoreMock.Verify(s => s.RemoveJob(pastRetention), Times.Once);
+        jobStoreMock.Verify(s => s.RemoveJob(withinRetention), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheWorkingDirectoryOfAJobInItsOwnMemory()
+    {
+        // The pipeline directory exists before the start record is committed: no run yet.
+        var jobId = Guid.NewGuid();
+        var pipelineDir = Path.Combine(tempPipelineRoot, jobId.ToString());
+        Directory.CreateDirectory(pipelineDir);
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow));
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(pipelineDir));
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DeletesADownloadDirectoryWithoutRun()
+    {
+        var jobId = Guid.NewGuid();
+        var downloadDir = Path.Combine(tempDownloadRoot, jobId.ToString());
+        var visualizationDir = Path.Combine(tempVisualizationRoot, jobId.ToString());
+        Directory.CreateDirectory(downloadDir);
+        Directory.CreateDirectory(visualizationDir);
+
+        await service.RunCleanupAsync();
+
+        Assert.IsFalse(Directory.Exists(downloadDir));
+        Assert.IsFalse(Directory.Exists(visualizationDir));
+    }
+
+    [TestMethod]
+    public async Task KeepsTheFilesOfARunningJobInItsOwnMemoryWhenTheDatabaseConsidersItsRunDead()
+    {
+        var jobId = Guid.NewGuid();
+        var (assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
+        SeedRun(jobId, startedAgo: TimeSpan.FromDays(3), heartbeatAgo: TimeSpan.FromDays(2));
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.UtcNow) { State = ProcessingState.Running });
+
+        await service.RunCleanupAsync();
+
+        Assert.IsTrue(Directory.Exists(downloadDir));
+        Assert.IsTrue(Directory.Exists(visualizationDir));
+        Assert.IsTrue(Directory.Exists(assetDir));
+        Assert.IsTrue(Directory.Exists(pipelineDir));
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    private void SeedRun(Guid jobId, TimeSpan? startedAgo = null, TimeSpan? heartbeatAgo = null, TimeSpan? settledAgo = null)
+    {
+        var run = NewRunRecord(DateTime.UtcNow - (startedAgo ?? settledAgo ?? TimeSpan.Zero));
+        run.JobId = jobId;
+        run.Steps.Clear();
+        context.Recordings.Add(run);
+        context.SaveChanges();
+
+        // A settled run stopped beating when it ended; a run without a heartbeat argument is not alive.
+        var lastBeat = heartbeatAgo ?? settledAgo ?? TimeSpan.FromDays(30);
+        context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdate(setters => setters
+                .SetProperty(r => r.HeartbeatAt, DateTime.UtcNow - lastBeat)
+                .SetProperty(r => r.TerminalState, settledAgo is null ? (ProcessingState?)null : ProcessingState.Success)
+                .SetProperty(r => r.TerminalAt, settledAgo is null ? (DateTime?)null : DateTime.UtcNow - settledAgo));
     }
 
     private (string Asset, string Download, string Visualization, string Pipeline) CreateJobDirectories(Guid jobId)

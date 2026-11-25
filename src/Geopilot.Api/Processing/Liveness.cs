@@ -31,6 +31,14 @@ public static class Liveness
         runs.Where(Alive(deliveries));
 
     /// <summary>
+    /// Runs that are settled: terminal, unless a submission attempt that may be delivered has neither a delivery nor a
+    /// failure yet. A run that is neither alive nor settled is dead.
+    /// <paramref name="deliveries"/> must include soft-deleted deliveries (<c>IgnoreQueryFilters()</c>).
+    /// </summary>
+    public static IQueryable<Recording> WhereSettled(this IQueryable<Recording> runs, IQueryable<Delivery> deliveries) =>
+        runs.Where(Settled(deliveries));
+
+    /// <summary>
     /// Runs a read path may answer for: alive, or settled with a <c>TerminalAt</c> within <paramref name="jobRetention"/>.
     /// </summary>
     public static IQueryable<Recording> WhereAnswerable(this IQueryable<Recording> runs, IQueryable<Delivery> deliveries, TimeSpan jobRetention)
