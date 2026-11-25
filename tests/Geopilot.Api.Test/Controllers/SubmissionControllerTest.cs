@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -434,22 +435,42 @@ public class SubmissionControllerTest
     public async Task EchoesTheClientReferenceInTheStatus()
     {
         var controller = CreateController();
-        var jobId = Guid.NewGuid();
-        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, clientReference: "AV-2026-0042"));
+        var jobId = await AddAttemptAsync(ProcessingState.Running, clientReference: "AV-2026-0042");
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         Assert.AreEqual("AV-2026-0042", response.ClientReference);
     }
 
     [TestMethod]
-    public async Task HidesAnAttemptOfAnotherCaller()
+    public async Task AttemptStatusFromAnotherInstance()
+    {
+        // The strict processing service has no GetJob set up: the attempt lives only in the protocol.
+        var controller = CreateController(withUrlHelper: true);
+        var jobId = await AddAttemptAsync(null, withStep: StepState.Warning);
+
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
+
+        var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
+        Assert.AreEqual(jobId, response.Id);
+        Assert.AreEqual(SubmissionState.Processing, response.State);
+        Assert.AreEqual(MandateKey, response.MandateKey);
+        var messages = response.Messages.Where(m => m.Step == "validation").ToList();
+        Assert.HasCount(2, messages);
+        Assert.IsTrue(messages.All(m => m.Severity == SubmissionMessageSeverity.Warning));
+        var download = response.Downloads.Single();
+        Assert.AreEqual("validation", download.Step);
+        Assert.AreEqual("errorLog.log", download.Name);
+    }
+
+    [TestMethod]
+    public async Task AttemptOfAnotherSupplierIsNotFound()
     {
         var controller = CreateController();
-        var jobId = SetupAttemptOfAnotherCaller();
+        var jobId = await AddAttemptAsync(ProcessingState.Failed, startedBy: await AddOtherSupplierAsync());
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result, "An attempt of another caller must be indistinguishable from one that does not exist.");
     }
@@ -459,29 +480,37 @@ public class SubmissionControllerTest
     {
         var downloadStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = SetupAttemptOfAnotherCaller();
+        var jobId = await AddAttemptAsync(ProcessingState.Failed, startedBy: await AddOtherSupplierAsync());
 
-        var result = await controller.GetDownload(jobId, "validation_errorLog.log");
+        var result = await controller.GetDownload(jobId, "validation_errorLog.log", CancellationToken.None);
 
         Assert.IsInstanceOfType<NotFoundObjectResult>(result);
         downloadStoreMock.Verify(s => s.Exists(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "A foreign attempt must be refused before its files are even looked for.");
     }
 
     [TestMethod]
-    public async Task HidesAJobThatIsNoAttempt()
+    public async Task WebRunIsNoAttempt()
     {
         var downloadStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
 
-        // A job started from the web interface carries no delivery intent, so it is no attempt of anybody.
-        var jobId = Guid.NewGuid();
-        processingServiceMock
-            .Setup(p => p.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, uploadId, mandate.Id, DateTime.UtcNow) { State = ProcessingState.Success });
+        // A run started from the web interface carries no mandate key of a delivery intent, so it is no attempt of anybody.
+        var jobId = await AddAttemptAsync(ProcessingState.Success, mandateKey: null);
 
-        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetSubmissionStatus(jobId));
-        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetDownload(jobId, "validation_errorLog.log"));
-        downloadStoreMock.Verify(s => s.Exists(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "A job that is no attempt must be refused before its files are even looked for.");
+        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetSubmissionStatus(jobId, CancellationToken.None));
+        Assert.IsInstanceOfType<NotFoundObjectResult>(await controller.GetDownload(jobId, "validation_errorLog.log", CancellationToken.None));
+        downloadStoreMock.Verify(s => s.Exists(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "A run that is no attempt must be refused before its files are even looked for.");
+    }
+
+    [TestMethod]
+    public async Task AttemptWhoseInstanceDiedBeforeTheDeliveryIsNotFound()
+    {
+        var controller = CreateController();
+        var jobId = await AddAttemptAsync(ProcessingState.Success, heartbeatAgo: TimeSpan.FromMinutes(4));
+
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
+
+        Assert.IsInstanceOfType<NotFoundObjectResult>(result, "Neither a delivery nor a failure was recorded and nobody is processing it any more.");
     }
 
     [TestMethod]
@@ -541,7 +570,7 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Running, false, null, SubmissionState.Processing, DisplayName = "Still running")]
+    [DataRow(null, false, null, SubmissionState.Processing, DisplayName = "Still running")]
     [DataRow(ProcessingState.Success, false, null, SubmissionState.Processing, DisplayName = "Run finished, delivery not written yet")]
     [DataRow(ProcessingState.Success, true, null, SubmissionState.Delivered, DisplayName = "Delivered")]
     [DataRow(ProcessingState.Warning, true, null, SubmissionState.Delivered, DisplayName = "Delivered despite warnings")]
@@ -550,12 +579,12 @@ public class SubmissionControllerTest
     [DataRow(ProcessingState.Cancelled, false, null, SubmissionState.Failed, DisplayName = "Run cancelled")]
     [DataRow(ProcessingState.Success, false, "the database went away", SubmissionState.Failed, DisplayName = "Delivery failed after a run that passed")]
     [DataRow(ProcessingState.Success, true, "the database went away", SubmissionState.Delivered, DisplayName = "Created by hand after geopilot could not")]
-    public async Task ReportsWhereTheAttemptStands(ProcessingState jobState, bool delivered, string? deliveryFailure, SubmissionState expected)
+    public async Task ReportsWhereTheAttemptStands(ProcessingState? terminalState, bool delivered, string? deliveryFailure, SubmissionState expected)
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered, deliveryFailure, jobState);
+        var jobId = await AddAttemptAsync(terminalState, delivered, deliveryFailure);
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         Assert.AreEqual(expected, response.State);
@@ -571,9 +600,9 @@ public class SubmissionControllerTest
     public async Task SaysWhyTheDeliveryFailed()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: false, deliveryFailure: "the database went away", ProcessingState.Success);
+        var jobId = await AddAttemptAsync(ProcessingState.Success, deliveryFailure: "the database went away");
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         var message = response.Messages.SingleOrDefault(m => m.Step == "delivery");
@@ -586,9 +615,9 @@ public class SubmissionControllerTest
     public async Task DropsTheFailureOnceTheCallerCreatedTheDeliveryItself()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, deliveryFailure: "the database went away", ProcessingState.Success);
+        var jobId = await AddAttemptAsync(ProcessingState.Success, delivered: true, deliveryFailure: "the database went away");
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         Assert.IsFalse(response.Messages.Any(m => m.Step == "delivery"), "A delivery that exists contradicts its failure.");
@@ -598,12 +627,12 @@ public class SubmissionControllerTest
     public async Task StaysDeliveredOnceItsDeliveryIsDeleted()
     {
         var controller = CreateController();
-        var jobId = SetupAttempt(delivered: true, deliveryFailure: null, ProcessingState.Success);
+        var jobId = await AddAttemptAsync(ProcessingState.Success, delivered: true);
         var delivery = context.Deliveries.Single(d => d.JobId == jobId);
         delivery.Deleted = true;
         context.SaveChanges();
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         Assert.AreEqual(SubmissionState.Delivered, response.State, "A delivery deleted later must not send the attempt back to processing.");
@@ -619,9 +648,9 @@ public class SubmissionControllerTest
     public async Task ReportsWhatAStepSaidWithItsOwnSeverity(StepState stepState, SubmissionMessageSeverity expected)
     {
         var controller = CreateController(withUrlHelper: true);
-        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Running, BuildStep(stepState));
+        var jobId = await AddAttemptAsync(null, withStep: stepState);
 
-        var result = await controller.GetSubmissionStatus(jobId);
+        var result = await controller.GetSubmissionStatus(jobId, CancellationToken.None);
 
         var response = Assert.IsInstanceOfType<SubmissionResponse>(Assert.IsInstanceOfType<OkObjectResult>(result).Value);
         var messages = response.Messages.Where(m => m.Step == "validation").ToList();
@@ -634,16 +663,16 @@ public class SubmissionControllerTest
     }
 
     [TestMethod]
-    public async Task ServesADownloadUnderTheNameTheStepGaveIt()
+    public async Task DownloadKeepsItsOriginalNameFromTheProtocol()
     {
         var downloadStoreMock = new Mock<IDownloadFileStore>();
         downloadStoreMock.Setup(s => s.Exists(It.IsAny<Guid>(), "validation_errorLog.log")).Returns(true);
         downloadStoreMock.Setup(s => s.OpenFile(It.IsAny<Guid>(), "validation_errorLog.log")).Returns(new MemoryStream(Encoding.UTF8.GetBytes("log")));
 
         var controller = CreateController(downloadFileStore: downloadStoreMock.Object);
-        var jobId = SetupAttempt(delivered: false, deliveryFailure: null, ProcessingState.Success, BuildStep(StepState.Error));
+        var jobId = await AddAttemptAsync(ProcessingState.Success, deliveryFailure: "no delivery", withStep: StepState.Error);
 
-        var result = await controller.GetDownload(jobId, "validation_errorLog.log");
+        var result = await controller.GetDownload(jobId, "validation_errorLog.log", CancellationToken.None);
 
         var file = Assert.IsInstanceOfType<FileStreamResult>(result);
         Assert.AreEqual(
@@ -652,58 +681,89 @@ public class SubmissionControllerTest
             "The storage name keeps two steps from colliding; what reaches the caller is the name the step gave the file.");
     }
 
-    private static Mock<IPipelineStep> BuildStep(StepState state)
-    {
-        var step = new Mock<IPipelineStep>();
-        step.SetupGet(s => s.Id).Returns("validation");
-        step.SetupGet(s => s.DisplayName).Returns(TestHelpers.Localized("Validation"));
-        step.SetupGet(s => s.State).Returns(state);
-        step.SetupGet(s => s.StatusMessage).Returns(TestHelpers.Localized("2 errors"));
-        step.SetupGet(s => s.ConditionMessage).Returns(TestHelpers.Localized("The validation was not successful."));
-        step.SetupGet(s => s.Downloads).Returns(new List<PersistedFile> { new("errorLog.log", "validation_errorLog.log") });
-        step.SetupGet(s => s.DeliveryFiles).Returns(Array.Empty<PersistedFile>());
-        step.SetupGet(s => s.Visualizations).Returns(Array.Empty<StepVisualization>());
-        return step;
-    }
-
     /// <summary>
     /// The job of an attempt, as the start returns it for a machine delivery.
     /// </summary>
-    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, Supplier? startedBy = null, string? clientReference = null)
+    private ProcessingJob NewAttemptJob(Guid jobId, Guid attemptUploadId, string? clientReference = null)
         => new(jobId, attemptUploadId, mandate.Id, DateTime.UtcNow)
         {
             MayDeliver = true,
-            DeliveryIntent = new DeliveryIntent(startedBy ?? supplier, MandateKey, new DeliveryFields(null, null, null, ClientReference: clientReference)),
+            DeliveryIntent = new DeliveryIntent(supplier, MandateKey, new DeliveryFields(null, null, null, ClientReference: clientReference)),
         };
 
-    private Guid SetupAttemptOfAnotherCaller()
+    private async Task<Supplier> AddOtherSupplierAsync()
     {
-        var jobId = Guid.NewGuid();
-        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(NewAttemptJob(jobId, uploadId, Supplier.ForUser(user.Id + 1)));
-        return jobId;
+        var other = new User { FullName = nameof(SubmissionControllerTest), AuthIdentifier = Guid.NewGuid().ToString() };
+        context.Users.Add(other);
+        await context.SaveChangesAsync();
+        return Supplier.ForUser(other.Id);
     }
 
-    private Guid SetupAttempt(bool delivered, string? deliveryFailure, ProcessingState jobState, Mock<IPipelineStep>? step = null)
+    /// <summary>
+    /// Writes the run of an attempt into the protocol only, the in-memory job store knows nothing of it. Times come
+    /// from the database clock; a null <paramref name="terminalState"/> is a run still going.
+    /// </summary>
+    private async Task<Guid> AddAttemptAsync(
+        ProcessingState? terminalState,
+        bool delivered = false,
+        string? deliveryFailure = null,
+        Supplier? startedBy = null,
+        string? mandateKey = MandateKey,
+        TimeSpan? heartbeatAgo = null,
+        string? clientReference = null,
+        StepState? withStep = null)
     {
-        var jobId = Guid.NewGuid();
+        var starter = startedBy ?? supplier;
+        var run = new Recording
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "test",
+            MandateId = mandate.Id,
+            UserId = starter.UserId,
+            MachineClientId = starter.MachineClientId,
+            SubmissionMandateKey = mandateKey,
+            ClientReference = clientReference,
+            DeliveryFailure = deliveryFailure,
+            UploadId = uploadId,
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = DateTime.UtcNow,
+            StartedAt = DateTime.UtcNow,
+            QueuedAt = DateTime.UtcNow,
+            PipelineDisplayName = TestHelpers.Localized("Pipeline"),
+        };
+
+        if (withStep is { } stepState)
+        {
+            var step = new RecordingStep
+            {
+                Order = 0,
+                StepId = "validation",
+                DisplayName = TestHelpers.Localized("Validation"),
+                State = stepState,
+                StartedAt = DateTime.UtcNow,
+                StatusMessage = TestHelpers.Localized("2 errors"),
+                ConditionMessage = TestHelpers.Localized("The validation was not successful."),
+            };
+            step.Artifacts.Add(new RecordingArtifact { Kind = ArtifactKind.Download, OriginalFileName = "errorLog.log", PersistedFileName = "validation_errorLog.log" });
+            run.Steps.Add(step);
+        }
+
+        context.Recordings.Add(run);
         if (delivered)
-        {
-            context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeliveredByUser = user });
-            context.SaveChanges();
-        }
+            context.Deliveries.Add(new Delivery { JobId = run.JobId, Mandate = mandate, DeliveredByUser = user });
 
-        IPipeline? pipeline = null;
-        if (step is not null)
-        {
-            var pipelineMock = new Mock<IPipeline>();
-            pipelineMock.SetupGet(p => p.DisplayName).Returns(TestHelpers.Localized("Pipeline"));
-            pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { step.Object });
-            pipeline = pipelineMock.Object;
-        }
+        await context.SaveChangesAsync();
 
-        var job = NewAttemptJob(jobId, uploadId) with { State = jobState, Pipeline = pipeline, DeliveryFailure = deliveryFailure };
-        processingServiceMock.Setup(p => p.GetJob(jobId)).Returns(job);
-        return jobId;
+        var heartbeat = heartbeatAgo ?? TimeSpan.Zero;
+        await context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(r => r.HeartbeatAt, DateTime.UtcNow - heartbeat)
+                .SetProperty(r => r.TerminalState, terminalState)
+                .SetProperty(r => r.TerminalAt, terminalState == null ? (DateTime?)null : DateTime.UtcNow - heartbeat));
+        return run.JobId;
     }
 
     private void SetupDirectMandate()
@@ -815,7 +875,8 @@ public class SubmissionControllerTest
                 MaxJobSizeMB = 10240,
                 MaxActiveJobs = maxActiveJobs,
                 MaxGlobalActiveSizeMB = maxGlobalActiveSizeMB,
-            }));
+            }),
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = TimeSpan.FromHours(1) }));
 
         controller.ControllerContext.HttpContext = new DefaultHttpContext { User = TestHelpers.CreateClaimsPrincipal(user) };
 

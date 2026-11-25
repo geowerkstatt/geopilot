@@ -61,6 +61,21 @@ public static class Liveness
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// The name the step gave the download stored as <paramref name="persistedFileName"/> for <paramref name="jobId"/>,
+    /// or <see langword="null"/> if the protocol knows no such download. Independent of the answer window: the file
+    /// store decides whether the file still exists.
+    /// </summary>
+    public static Task<string?> FindDownloadNameAsync(this Context context, Guid jobId, string persistedFileName, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.RecordingArtifacts
+            .AsNoTracking()
+            .Where(a => a.Kind == ArtifactKind.Download && a.PersistedFileName == persistedFileName && a.Step.Recording.JobId == jobId)
+            .Select(a => a.OriginalFileName)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private static Expression<Func<Recording, bool>> Alive(IQueryable<Delivery> deliveries)
     {
         Expression<Func<Recording, bool>> heartbeatIsFresh = r => r.HeartbeatAt != null && r.HeartbeatAt > DateTime.UtcNow - DeadAfter;

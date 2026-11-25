@@ -375,6 +375,53 @@ public class SubmissionHttpTest
             "Nothing may be read or stored for a resource this installation does not offer.");
     }
 
+    [TestMethod]
+    public async Task AnswersTheStatusOfAnAttemptThatLivesOnlyInTheProtocol()
+    {
+        using var installation = new MachineDeliveryTestApp(backend: UploadBackend.Cloud);
+        using var client = CreateAuthenticatedClient(installation);
+        var jobId = await AddAttemptToTheProtocolAsync(installation);
+
+        var response = await client.GetAsync($"/api/v1/submission/{jobId}");
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, "No job is in memory of this host: the answer has to come from the protocol.");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.AreEqual(MandateKey, body.GetProperty("mandateKey").GetString());
+        Assert.AreEqual("AV-HTTP-1", body.GetProperty("clientReference").GetString());
+    }
+
+    private static async Task<Guid> AddAttemptToTheProtocolAsync(MachineDeliveryTestApp installation)
+    {
+        using var scope = installation.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<Context>();
+        var user = await context.Users.SingleAsync(u => u.AuthIdentifier == JwtTestTokenBuilder.UserSub);
+        var mandate = await context.Mandates.SingleAsync(m => m.Key == MandateKey);
+        var run = new Recording
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "ili_validation",
+            Definition = "{}",
+            AppVersion = "test",
+            MandateId = mandate.Id,
+            UserId = user.Id,
+            SubmissionMandateKey = MandateKey,
+            ClientReference = "AV-HTTP-1",
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = DateTime.UtcNow,
+            StartedAt = DateTime.UtcNow,
+            QueuedAt = DateTime.UtcNow,
+        };
+        context.Recordings.Add(run);
+        await context.SaveChangesAsync();
+
+        // The heartbeat comes from the database clock, like every liveness comparison.
+        await context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.HeartbeatAt, DateTime.UtcNow));
+        return run.JobId;
+    }
+
     private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<Context> app, string? token = null)
     {
         var client = app.CreateClient();

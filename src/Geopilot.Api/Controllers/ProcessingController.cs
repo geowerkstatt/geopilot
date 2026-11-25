@@ -134,7 +134,7 @@ public class ProcessingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The specified file was found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or file cannot be found.", typeof(ProblemDetails), "application/json")]
-    public IActionResult Download(Guid jobId, string file)
+    public async Task<IActionResult> Download(Guid jobId, string file, CancellationToken cancellationToken)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
 
@@ -146,7 +146,7 @@ public class ProcessingController : ControllerBase
 
         var stream = downloadFileStore.OpenFile(jobId, file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        var downloadName = ResolveOriginalFileName(jobId, file) ?? Path.GetFileName(file);
+        var downloadName = await context.FindDownloadNameAsync(jobId, file, cancellationToken) ?? Path.GetFileName(file);
         return File(stream, contentType, downloadName);
     }
 
@@ -169,21 +169,6 @@ public class ProcessingController : ControllerBase
 
         var stream = visualizationFileStore.OpenFile(jobId, file);
         return File(stream, "application/json");
-    }
-
-    private string? ResolveOriginalFileName(Guid jobId, string persistedFileName)
-    {
-        // Each step keeps an in-memory mapping from persisted (random) name → original
-        // human-readable name. After the job ages out of the store we fall back to the
-        // persisted name; by then the temp dirs are usually gone anyway.
-        var job = processingService.GetJob(jobId);
-        if (job?.Pipeline == null)
-            return null;
-
-        return job.Pipeline.Steps
-            .SelectMany(s => s.Downloads)
-            .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
-            ?.OriginalFileName;
     }
 
     private Uri BuildDownloadUrl(Guid jobId, string fileName)

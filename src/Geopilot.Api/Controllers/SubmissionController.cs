@@ -55,6 +55,7 @@ public class SubmissionController : ControllerBase
     private readonly IDownloadFileStore downloadFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly UploadOptions uploadOptions;
+    private readonly TimeSpan jobRetention;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SubmissionController"/> class.
@@ -69,9 +70,11 @@ public class SubmissionController : ControllerBase
         IUploadOrchestrationService uploadOrchestration,
         IDownloadFileStore downloadFileStore,
         IContentTypeProvider contentTypeProvider,
-        IOptions<UploadOptions> uploadOptions)
+        IOptions<UploadOptions> uploadOptions,
+        IOptions<ProcessingOptions> processingOptions)
     {
         ArgumentNullException.ThrowIfNull(uploadOptions);
+        ArgumentNullException.ThrowIfNull(processingOptions);
 
         this.logger = logger;
         this.context = context;
@@ -83,6 +86,7 @@ public class SubmissionController : ControllerBase
         this.downloadFileStore = downloadFileStore;
         this.contentTypeProvider = contentTypeProvider;
         this.uploadOptions = uploadOptions.Value;
+        jobRetention = processingOptions.Value.JobRetention;
     }
 
     /// <summary>
@@ -180,7 +184,7 @@ public class SubmissionController : ControllerBase
         }
 
         logger.LogInformation("Accepted machine delivery <{JobId}> for mandate <{MandateId}>.", job.Id, mandate.Id);
-        return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, deliveryId: null));
+        return Accepted(BuildStatusUrl(job.Id), BuildAcceptedResponse(job));
     }
 
     /// <summary>
@@ -294,7 +298,7 @@ public class SubmissionController : ControllerBase
             accepted = true;
 
             logger.LogInformation("Accepted machine delivery <{JobId}> with {FileCount} files for mandate <{MandateId}>.", job.Id, storedFiles.Count, mandate.Id);
-            return Accepted(BuildStatusUrl(job.Id), BuildResponse(job, deliveryId: null));
+            return Accepted(BuildStatusUrl(job.Id), BuildAcceptedResponse(job));
         }
         catch (Exception ex) when (ex is InvalidDataException or RequestBodyException)
         {
@@ -321,18 +325,19 @@ public class SubmissionController : ControllerBase
     /// the delivery it created is the durable record.
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpGet("{id}", Name = nameof(GetSubmissionStatus))]
     [SwaggerResponse(StatusCodes.Status200OK, "The attempt was found.", typeof(SubmissionResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "This process knows no such attempt. It never existed, it expired with its job, or it belongs to another caller.")]
-    public async Task<IActionResult> GetSubmissionStatus(Guid id)
+    public async Task<IActionResult> GetSubmissionStatus(Guid id, CancellationToken cancellationToken)
     {
-        var job = await ResolveAttemptAsync(id);
-        if (job is null)
+        var run = await ResolveAttemptAsync(id, cancellationToken);
+        if (run is null)
             return NotFound($"No submission with id <{id}> found.");
 
-        return Ok(BuildResponse(job, await FindDeliveryIdAsync(id)));
+        return Ok(BuildResponse(run, await FindDeliveryIdAsync(id)));
     }
 
     /// <summary>
@@ -340,15 +345,16 @@ public class SubmissionController : ControllerBase
     /// </summary>
     /// <param name="id">The id of the attempt.</param>
     /// <param name="name">The storage name of the file, taken from the <c>url</c> of a download listed on the attempt. That URL, not this name, is what a client follows.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     [Authorize(Policy = GeopilotPolicies.Supplier)]
     [HttpGet("{id}/downloads/{name}", Name = nameof(GetDownload))]
     [SwaggerResponse(StatusCodes.Status200OK, "The file was found.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The caller is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The attempt or the file cannot be found.")]
-    public async Task<IActionResult> GetDownload(Guid id, string name)
+    public async Task<IActionResult> GetDownload(Guid id, string name, CancellationToken cancellationToken)
     {
-        var job = await ResolveAttemptAsync(id);
-        if (job is null)
+        var run = await ResolveAttemptAsync(id, cancellationToken);
+        if (run is null)
             return NotFound($"No submission with id <{id}> found.");
 
         if (!downloadFileStore.Exists(id, name))
@@ -358,27 +364,22 @@ public class SubmissionController : ControllerBase
 
         // Served under the name the step gave it, the one the attempt lists, not the storage name that keeps
         // two steps from colliding. ProcessingController does the same for the web interface.
-        var downloadName = ResolveOriginalFileName(job, name) ?? Path.GetFileName(name);
+        var downloadName = await context.FindDownloadNameAsync(id, name, cancellationToken) ?? Path.GetFileName(name);
         return File(stream, contentTypeProvider.GetContentTypeAsString(name), downloadName);
     }
 
-    private static string? ResolveOriginalFileName(ProcessingJob job, string persistedFileName)
-        => job.Pipeline?.Steps
-            .SelectMany(step => step.Downloads)
-            .FirstOrDefault(file => file.PersistedFileName == persistedFileName)
-            ?.OriginalFileName;
-
     /// <summary>
-    /// The job of an attempt, if the caller started it. Only a job started as a machine delivery is an attempt,
+    /// The run of an attempt, if the caller started it. Only a run started as a machine delivery is an attempt,
     /// and another caller must not learn its state.
     /// </summary>
-    private async Task<ProcessingJob?> ResolveAttemptAsync(Guid id)
+    private async Task<Recording?> ResolveAttemptAsync(Guid id, CancellationToken cancellationToken)
     {
-        if (processingService.GetJob(id) is not { DeliveryIntent: { } deliveryIntent } job)
+        var run = await context.FindAnswerableRecordingAsync(id, jobRetention, cancellationToken);
+        if (run?.SubmissionMandateKey is null)
             return null;
 
         var supplier = await context.GetSupplierAsync(User);
-        return deliveryIntent.Supplier == supplier ? job : null;
+        return run.UserId == supplier.UserId && run.MachineClientId == supplier.MachineClientId ? run : null;
     }
 
     /// <summary>
@@ -408,12 +409,28 @@ public class SubmissionController : ControllerBase
         return DeliveryFieldValidator.Validate(mandate, fields, precursor);
     }
 
-    private SubmissionResponse BuildResponse(ProcessingJob job, int? deliveryId)
-    {
-        // Both builders produce the download URL of this resource: visualizations are not part of the machine
-        // contract and are dropped right after, so they never need a URL of their own.
-        var jobResponse = job.ToResponse(BuildDownloadUrl, BuildDownloadUrl);
+    private SubmissionResponse BuildAcceptedResponse(ProcessingJob job)
+        => BuildResponse(
+            job.ToResponse(BuildDownloadUrl, BuildDownloadUrl),
+            DeriveState(job.State, job.DeliveryFailure, deliveryId: null),
+            job.DeliveryIntent?.MandateKey ?? string.Empty,
+            job.DeliveryIntent?.Fields.ClientReference,
+            job.DeliveryFailure,
+            deliveryId: null);
 
+    private SubmissionResponse BuildResponse(Recording run, int? deliveryId)
+        => BuildResponse(
+            run.ToStatusResponse(BuildDownloadUrl, BuildDownloadUrl),
+            DeriveState(run.TerminalState, run.DeliveryFailure, deliveryId),
+            run.SubmissionMandateKey ?? string.Empty,
+            run.ClientReference,
+            run.DeliveryFailure,
+            deliveryId);
+
+    private static SubmissionResponse BuildResponse(ProcessingJobResponse jobResponse, SubmissionState state, string mandateKey, string? clientReference, string? deliveryFailure, int? deliveryId)
+    {
+        // Both URL builders of the callers produce the download URL of this resource: visualizations are not part
+        // of the machine contract and are dropped here, so they never need a URL of their own.
         var messages = new List<SubmissionMessage>();
         var downloads = new List<SubmissionDownload>();
         foreach (var step in jobResponse.Steps)
@@ -429,18 +446,18 @@ public class SubmissionController : ControllerBase
         }
 
         // A delivery the caller created by hand after geopilot could not supersedes the failure.
-        if (deliveryId is null && job.DeliveryFailure is not null)
+        if (deliveryId is null && deliveryFailure is not null)
         {
             messages.Add(new SubmissionMessage(
                 "delivery",
                 SubmissionMessageSeverity.Error,
-                new Dictionary<string, string> { ["en"] = job.DeliveryFailure }));
+                new Dictionary<string, string> { ["en"] = deliveryFailure }));
         }
 
-        return new SubmissionResponse(job.Id, DeriveState(job, deliveryId), job.DeliveryIntent?.MandateKey ?? string.Empty, job.DeliveryIntent?.Fields.ClientReference, deliveryId, messages, downloads);
+        return new SubmissionResponse(jobResponse.JobId, state, mandateKey, clientReference, deliveryId, messages, downloads);
     }
 
-    private static SubmissionState DeriveState(ProcessingJob job, int? deliveryId)
+    private static SubmissionState DeriveState(ProcessingState? terminalState, string? deliveryFailure, int? deliveryId)
     {
         if (deliveryId is not null)
             return SubmissionState.Delivered;
@@ -448,10 +465,10 @@ public class SubmissionController : ControllerBase
         // A delivery geopilot could not create after a run the pipeline allowed is not the fault of the delivered
         // data, so it is a failure like any other: the client retries rather than corrects. Why it failed is in the
         // messages.
-        if (job.DeliveryFailure is not null)
+        if (deliveryFailure is not null)
             return SubmissionState.Failed;
 
-        return job.State switch
+        return terminalState switch
         {
             ProcessingState.DeliveryRestriction => SubmissionState.Rejected,
             ProcessingState.Failed or ProcessingState.Cancelled => SubmissionState.Failed,
