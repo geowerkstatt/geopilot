@@ -58,7 +58,7 @@ Zeilen `Reset` und `Deletion` haben weder `AppVersion` noch `Config`, ebenso Zus
 - **Danach weich:** Schreibfehler während des Laufs brechen die [Pipeline](../GLOSSARY.md#pipeline) nicht ab, sie werden als Warnung geloggt.
 - Alle Schritt-Zeilen werden mit dem Startdatensatz als `Pending` angelegt, beim Erreichen auf `Running` gesetzt und beim Abschluss aktualisiert. Das Protokoll einer unterbrochenen Verarbeitung zeigt so das volle Bild: erledigte Schritte tragen ihren Endzustand, der laufende steht auf `Running`, und ein Schritt, der `Pending` geblieben ist, wurde nie erreicht.
 - Die Eingaben eines Schritts werden geschrieben, sobald er sie gebunden hat und bevor sein Prozessor läuft. Das Protokoll einer unterbrochenen Verarbeitung zeigt so auch, womit der laufende Schritt arbeitete.
-- **Ein Protokoll ohne Terminal-Status bedeutet "[Ausgang](../GLOSSARY.md#ausgang) unbekannt":** die Instanz ist während des Laufs gestorben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, ein harter Abbruch hinterlässt keinen Terminal-Status. Beides ist zählbar und macht messbar, wie oft Neustarts laufende Verarbeitungen treffen (Re-Evaluations-Trigger von ADR 0010).
+- **Ein Protokoll ohne Terminal-Status bedeutet "[Ausgang](../GLOSSARY.md#ausgang) unbekannt":** Die Instanz wurde hart abgebrochen, oder das Herunterfahren konnte den Endzustand der Verarbeitung nicht mehr schreiben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, auch für eine Verarbeitung, die noch im Preflight oder in der Warteschlange war. Beides ist zählbar und macht messbar, wie oft Neustarts Verarbeitungen treffen (Re-Evaluations-Trigger von ADR 0010).
 - Ein [Zustellversuch](../GLOSSARY.md#zustellversuch) wird angelegt, sobald eine Instanz ihn beginnt, mit dem Zustand `Running`, und bei seiner Rückmeldung abgeschlossen. Steht ein Versuch ohne Ende auf `Running`, während keine Instanz ihn mehr ausführt, ist sein Ausgang unbekannt, wie bei einem Protokoll ohne Terminal-Status. So bleibt auch der letzte Versuch einer [Reaktion](../GLOSSARY.md#reaktion) stehen, die aufgegeben wurde, weil er sich nie zurückmeldete: Das Aufgeben selbst hält das Protokoll nicht fest. Ein leerer Zustand heisst, dass der Versuch seine Reaktion bei der Rückmeldung nicht mehr hielt; was er getan hat, sagt die Meldung.
 
 ## Wo ist der Preflight?
@@ -68,8 +68,9 @@ Die Weboberfläche zeigt die Vorbereitung (Vollständigkeitsprüfung, Virenscan)
 Daraus lässt sich der Preflight-Zustand einer [Verarbeitung](../GLOSSARY.md#verarbeitung) ableiten:
 
 - `Failed` und alle Schritte in `Pending`: im Preflight gescheitert, der Grund steht in `FailureReason`.
-- Kein Terminal-Status, alle Schritte `Pending`, `ScanState = NotScanned`: durch einen Neustart im Preflight unterbrochen.
-- Grenze ohne ClamAV: dort bleibt `ScanState` immer `NotScanned`, dann ist "im Preflight unterbrochen" von "kurz danach in der Warteschlange unterbrochen" nicht unterscheidbar. Beides ist ein Neustart, bevor der erste Schritt lief, und zählt gleich.
+- `Cancelled` mit `host shutdown` und alle Schritte in `Pending`: Das Herunterfahren hat die Verarbeitung vor ihrem ersten Schritt beendet, im Preflight oder in der Warteschlange.
+- Kein Terminal-Status, alle Schritte `Pending`, `ScanState = NotScanned`: durch einen harten Abbruch im Preflight unterbrochen.
+- Grenze ohne ClamAV: dort bleibt `ScanState` immer `NotScanned`, dann ist "im Preflight unterbrochen" von "kurz danach in der Warteschlange unterbrochen" nicht unterscheidbar. Beides ist ein harter Abbruch, bevor der erste Schritt lief, und zählt gleich.
 
 ## Der Definitions-Snapshot
 
@@ -151,8 +152,10 @@ JOIN "Recordings" r ON r."JobId" = d."JobId"
 CROSS JOIN jsonb_array_elements(r."Bindings" -> 'refMapping') e
 WHERE d."Id" = 42 AND e ->> 'scope' = '449';
 
--- Wie viele Protokolle blieben ohne Terminal-Status (Restart-Opfer)?
-SELECT count(*) FROM "Recordings" WHERE "TerminalState" IS NULL AND "StartedAt" < now() - interval '1 day';
+-- Wie viele Verarbeitungen trafen Neustarts (Restart-Opfer: ohne Terminal-Status oder vom Herunterfahren abgebrochen)?
+SELECT count(*) FROM "Recordings"
+WHERE ("TerminalState" IS NULL OR ("TerminalState" = 'Cancelled' AND "FailureReason" = 'host shutdown'))
+  AND "StartedAt" < now() - interval '1 day';
 
 -- Lieferbare Verarbeitungen ohne Lieferung: nicht berechtigt, gescheitert oder nie abgegeben?
 SELECT r."JobId", r."StartedAt", r."PermissionToDeliver", r."DeliveryFailure"
