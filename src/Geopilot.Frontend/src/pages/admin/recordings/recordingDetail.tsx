@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress, Link, Stack, SxProps, Tab, Tabs, Theme, Typography } from "@mui/material";
@@ -125,8 +125,21 @@ export const RecordingDetail: FC = () => {
   const tab = tabFromHash(location.hash);
   // Switching tabs replaces the entry, so the new entry keeps the query of the list the run was opened from.
   const listQuery = listQueryOf(location.state);
-  const showTab = (value: RecordingTab) =>
-    navigate({ hash: value }, { replace: true, state: listQueryState(listQuery) });
+  const showTab = useCallback(
+    (value: RecordingTab) => navigate({ hash: value }, { replace: true, state: listQueryState(listQuery) }),
+    [navigate, listQuery],
+  );
+  // Reactions wait without events until their first attempt, so a delivery with reactions offers the tab from the start.
+  const hasReactions =
+    !!shownRun && (shownRun.reactionEvents.length > 0 || !!shownRun.forwardingState || !!shownRun.notificationState);
+  // A run without reactions offers no tab for them, so the page must not stay on it.
+  const visibleTab = tab === "reactions" && !hasReactions ? "steps" : tab;
+  // The address always names the tab shown, so a link to another attempt opens that attempt on the same tab.
+  useEffect(() => {
+    if (shownRun && location.hash !== `#${visibleTab}`) {
+      showTab(visibleTab);
+    }
+  }, [shownRun, location.hash, visibleTab, showTab]);
 
   // Back shows the list with the filters and page it was left with; opened from anywhere else, the whole list.
   const goBack = () => navigate({ pathname: listPath, search: listQuery });
@@ -168,10 +181,6 @@ export const RecordingDetail: FC = () => {
       : run.startedBy?.machineClientId != null && machineDeliveryEnabled
         ? `/admin/machine-clients/${run.startedBy.machineClientId}`
         : undefined;
-  // Reactions wait without events until their first attempt, so a delivery with reactions offers the tab from the start.
-  const hasReactions = run.reactionEvents.length > 0 || !!run.forwardingState || !!run.notificationState;
-  // A run without reactions offers no tab for them, so the page must not stay on it.
-  const visibleTab = tab === "reactions" && !hasReactions ? "steps" : tab;
   const tabProps = (value: RecordingTab, label: string) => ({
     value,
     label,

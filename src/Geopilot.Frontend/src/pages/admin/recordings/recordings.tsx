@@ -1,8 +1,16 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Box, Stack } from "@mui/material";
-import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { Box, Stack, Tooltip } from "@mui/material";
+import {
+  GridActionsCell,
+  GridActionsCellItem,
+  GridColDef,
+  GridPaginationModel,
+  GridRenderCellParams,
+  GridRowId,
+} from "@mui/x-data-grid";
 import { useQueryStates } from "nuqs";
 import { RecordingOutcomeKind, RecordingPageResponse, RecordingSummaryResponse } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
@@ -72,7 +80,7 @@ export const Recordings: FC = () => {
     }
   };
 
-  const openRecording = (jobId: string) =>
+  const openRecording = (jobId: GridRowId) =>
     navigate(`/admin/recordings/${jobId}`, { state: listQueryState(serializeRecordingSearch({ page, ...filters })) });
 
   const columns: GridColDef<RecordingRow>[] = [
@@ -131,6 +139,27 @@ export const Recordings: FC = () => {
       valueGetter: (_value, row) => formatDuration(row.startedAt, row.terminalAt) ?? t("durationOpen"),
       width: 120,
     },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "",
+      flex: 0,
+      resizable: false,
+      cellClassName: "actions",
+      renderCell: params => (
+        <GridActionsCell {...params}>
+          <GridActionsCellItem
+            icon={
+              <Tooltip title={t("showDetails")} key={`details-${params.id}`}>
+                <VisibilityOutlinedIcon data-cy="details" color="primary" />
+              </Tooltip>
+            }
+            label={t("showDetails")}
+            onClick={() => openRecording(params.id)}
+          />
+        </GridActionsCell>
+      ),
+    },
   ];
 
   return (
@@ -149,7 +178,7 @@ export const Recordings: FC = () => {
           onPaginationModelChange={changePagination}
           disableColumnSorting
           disableColumnFilter
-          onSelect={jobId => openRecording(String(jobId))}
+          onSelect={openRecording}
         />
       </Box>
     </Stack>
