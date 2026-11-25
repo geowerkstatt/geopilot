@@ -110,7 +110,7 @@ public class ProcessingRunner : BackgroundService
                 // same rules the creation applies to the job (DeliveryCreationService). The job only turns
                 // deliverable once RunFinishedAsync below sets its state, so a creation never promotes a partial
                 // staging. It goes to the staging store, not the asset store: the asset directory holds deliveries
-                // only, and creating one promotes the staged files (AssetHandler.RecordJobAssetsAsync).
+                // only, and creating one promotes the staged files once it is saved (DeliveryCreationService.CreateAsync).
                 if (pipeline.State.IsDeliverable() && workItem.MayDeliver)
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 

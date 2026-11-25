@@ -46,7 +46,7 @@ _Übersetzungen_: EN permitted to deliver, FR autorisé à livrer, IT autorizzat
 
 ## Staging
 
-Wo die Lieferdateien einer [Verarbeitung](#verarbeitung) bis zur Abgabe der [Lieferung](#lieferung) warten. Endet der Lauf lieferbar und ist die Verarbeitung [lieferberechtigt](#lieferberechtigt), kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, ohne Abgabe geht es mit dem [Retirement](#retirement). Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
+Wo die Lieferdateien einer [Verarbeitung](#verarbeitung) bis zur Abgabe der [Lieferung](#lieferung) warten. Endet der Lauf lieferbar und ist die Verarbeitung [lieferberechtigt](#lieferberechtigt), kopiert der Runner die Dateien, die Schritte mit der Ausgabeaktion `Delivery` markieren, nach `<Storage:AssetsDirectory>/staging/<jobId>`. Die Abgabe benennt dieses Verzeichnis in das Lieferverzeichnis um, sobald die Lieferung gespeichert ist; ohne Abgabe geht es mit dem [Retirement](#retirement). Eine Staging-Umgebung ist nie gemeint. Im Code: `IAssetStagingFileStore`, gefüllt von `ProcessingRunner.ExtractDeliveryFilesAsync`, umbenannt von `IAssetFileStore.PromoteStagedFiles`.
 
 ## Lieferung
 

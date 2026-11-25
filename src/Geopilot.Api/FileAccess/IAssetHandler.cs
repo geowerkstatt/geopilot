@@ -8,12 +8,19 @@ namespace Geopilot.Api.FileAccess
     public interface IAssetHandler
     {
         /// <summary>
-        /// Promotes the job's staged delivery files into the asset store and records them as assets.
+        /// Hashes the job's staged delivery files and returns them as assets. Moves nothing: the files stay in
+        /// staging until <see cref="PromoteJobAssets"/>.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
         /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <returns>List of <see cref="Asset" /> representing the validation job assets in persistent storage.</returns>
+        /// <returns>List of <see cref="Asset" /> representing the staged delivery files of the job.</returns>
         Task<IEnumerable<Asset>> RecordJobAssetsAsync(Guid jobId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Moves the staged files of a saved delivery into its delivery directory. Does nothing when nothing is staged.
+        /// </summary>
+        /// <param name="jobId">The job id of the saved delivery.</param>
+        void PromoteJobAssets(Guid jobId);
 
         /// <summary>
         /// Deletes all job assets from persistent storage.

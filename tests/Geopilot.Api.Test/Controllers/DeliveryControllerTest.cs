@@ -621,6 +621,7 @@ public class DeliveryControllerTest
         assetHandlerMock
             .Setup(p => p.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
+        assetHandlerMock.Setup(p => p.PromoteJobAssets(jobId));
     }
 
     private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success, bool mayDeliver = true)
