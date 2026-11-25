@@ -7,8 +7,9 @@ namespace Geopilot.Api.Processing;
 /// <see cref="Liveness.HeartbeatInterval"/> it refreshes their heartbeat in one statement, with the database clock. It
 /// refreshes only runs the database still considers alive and aborts the job of every other one, so an instance that
 /// stood still for longer than <see cref="Liveness.DeadAfter"/> never revives a run another instance may already have
-/// started again. When the heartbeat cannot be written for <see cref="Liveness.AbortAfter"/>, measured with the clock
-/// of the instance since the last success, it aborts every job it holds before the others consider their runs dead.
+/// started again. When the heartbeat cannot be written, it aborts every job it holds at the last failed tick within
+/// <see cref="Liveness.AbortAfter"/> of the last success, measured with the monotonic clock of the instance, so before
+/// the others consider their runs dead.
 /// </summary>
 public class RecordingHeartbeatService : BackgroundService
 {
@@ -17,8 +18,9 @@ public class RecordingHeartbeatService : BackgroundService
     private readonly TimeProvider timeProvider;
     private readonly ILogger<RecordingHeartbeatService> logger;
 
-    // Only the ticks touch it, and they run one after the other.
-    private DateTimeOffset lastSuccess;
+    // A timestamp of the time provider, so a step of the wall clock does not move it. Only the ticks touch it, and
+    // they run one after the other.
+    private long lastSuccess;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecordingHeartbeatService"/> class.
@@ -31,7 +33,7 @@ public class RecordingHeartbeatService : BackgroundService
         this.serviceScopeFactory = serviceScopeFactory;
         this.timeProvider = timeProvider;
         this.logger = logger;
-        lastSuccess = timeProvider.GetUtcNow();
+        lastSuccess = timeProvider.GetTimestamp();
     }
 
     /// <inheritdoc/>
@@ -53,16 +55,18 @@ public class RecordingHeartbeatService : BackgroundService
     }
 
     /// <summary>
-    /// Refreshes the runs of the held jobs once and aborts the jobs whose run is no longer alive, or every held job once
-    /// the heartbeat has failed for <see cref="Liveness.AbortAfter"/>.
+    /// Refreshes the runs of the held jobs once and aborts the jobs whose run is no longer alive, or every held job at
+    /// the last failed tick within <see cref="Liveness.AbortAfter"/> of the last success.
     /// </summary>
     internal async Task TickAsync(CancellationToken cancellationToken)
     {
+        // Taken before the statement: the heartbeat it writes is younger, so the time measured from here is never short.
+        var started = timeProvider.GetTimestamp();
         var jobIds = lifecycle.HeldJobIds;
         if (jobIds.Count == 0)
         {
             // Nothing is kept alive, so nothing can be lost while the database is away.
-            lastSuccess = timeProvider.GetUtcNow();
+            lastSuccess = started;
             return;
         }
 
@@ -76,10 +80,12 @@ public class RecordingHeartbeatService : BackgroundService
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
-            var sinceLastSuccess = timeProvider.GetUtcNow() - lastSuccess;
-            if (sinceLastSuccess < Liveness.AbortAfter)
+            // Ticks come one interval apart, so a failure of the last tick within the limit has to abort: the next one
+            // could already come after the others consider the runs dead.
+            var sinceLastSuccess = timeProvider.GetElapsedTime(lastSuccess);
+            if (sinceLastSuccess + Liveness.HeartbeatInterval <= Liveness.AbortAfter)
             {
-                logger.LogWarning(ex, "The heartbeat of {Count} jobs could not be written; the last one was written {Elapsed} ago.", jobIds.Count, sinceLastSuccess);
+                logger.LogWarning(ex, "The heartbeat of {Count} jobs could not be written; the last success started {Elapsed} ago.", jobIds.Count, sinceLastSuccess);
                 return;
             }
 
@@ -88,7 +94,7 @@ public class RecordingHeartbeatService : BackgroundService
             return;
         }
 
-        lastSuccess = timeProvider.GetUtcNow();
+        lastSuccess = started;
 
         var lost = jobIds.Where(jobId => !refreshed.Contains(jobId)).ToList();
         foreach (var jobId in lost)

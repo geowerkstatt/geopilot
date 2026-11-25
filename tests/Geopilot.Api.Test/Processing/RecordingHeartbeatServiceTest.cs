@@ -72,16 +72,18 @@ public class RecordingHeartbeatServiceTest
     }
 
     /// <summary>
-    /// The clock of the instance, moved on by the test. The database clock stands still within the transaction of a
-    /// test, so the tests move a heartbeat back instead of the database clock forward.
+    /// The monotonic clock of the instance, moved on by the test. The database clock stands still within the
+    /// transaction of a test, so the tests move a heartbeat back instead of the database clock forward.
     /// </summary>
     private sealed class FakeTimeProvider : TimeProvider
     {
-        private DateTimeOffset now = new(2026, 11, 25, 12, 0, 0, TimeSpan.Zero);
+        private long timestamp;
 
-        public override DateTimeOffset GetUtcNow() => now;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
 
-        public void Advance(TimeSpan delta) => now += delta;
+        public override long GetTimestamp() => timestamp;
+
+        public void Advance(TimeSpan delta) => timestamp += delta.Ticks;
     }
 
     /// <summary>
@@ -94,9 +96,13 @@ public class RecordingHeartbeatServiceTest
 
         public int Queries { get; private set; }
 
+        // Runs while a query reaches the database, e.g. to let time pass during it.
+        public Action? DuringQuery { get; set; }
+
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
         {
             Queries++;
+            DuringQuery?.Invoke();
             if (Down)
                 throw new NpgsqlException("The connection to the database was lost.", new TimeoutException());
 
@@ -163,20 +169,44 @@ public class RecordingHeartbeatServiceTest
     {
         using var service = CreateService();
         var jobIds = new[] { await StartJobAsync(), await StartJobAsync() };
+        await service.TickAsync(CancellationToken.None);
         database.Down = true;
 
-        time.Advance(Liveness.AbortAfter - TimeSpan.FromSeconds(1));
+        // The database fails fast, so each failure comes a few ms short of the 30 s grid of the ticks. One interval
+        // before the last tick within Liveness.AbortAfter, the jobs go on.
+        var fewMilliseconds = TimeSpan.FromMilliseconds(5);
+        time.Advance(Liveness.AbortAfter - Liveness.HeartbeatInterval - fewMilliseconds);
         await service.TickAsync(CancellationToken.None);
-        Assert.IsFalse(jobIds.Any(jobId => lifecycle.AbortTokenOf(jobId).IsCancellationRequested), "Within the limit the jobs go on.");
+        Assert.IsFalse(jobIds.Any(jobId => lifecycle.AbortTokenOf(jobId).IsCancellationRequested), "The next tick still comes within the limit.");
 
-        time.Advance(TimeSpan.FromSeconds(1));
+        time.Advance(Liveness.HeartbeatInterval);
         await service.TickAsync(CancellationToken.None);
 
         foreach (var jobId in jobIds)
         {
-            Assert.IsTrue(lifecycle.AbortTokenOf(jobId).IsCancellationRequested, "The instance stops its jobs before the others consider their runs dead.");
+            Assert.IsTrue(lifecycle.AbortTokenOf(jobId).IsCancellationRequested, "The next tick would come after the limit, when the others may already consider the runs dead.");
             Assert.AreEqual("database unreachable", lifecycle.AbortReasonOf(jobId));
         }
+    }
+
+    [TestMethod]
+    public async Task LastSuccessCountsFromTheStartOfItsStatement()
+    {
+        using var service = CreateService();
+        var jobId = await StartJobAsync();
+
+        // The last successful statement takes ten seconds. It wrote the heartbeat after its start, so measuring from
+        // there is never late.
+        database.DuringQuery = () => time.Advance(TimeSpan.FromSeconds(10));
+        await service.TickAsync(CancellationToken.None);
+        database.DuringQuery = null;
+        database.Down = true;
+
+        // Two minutes and a few ms after the start of that statement, the next tick would come after the limit.
+        time.Advance(TimeSpan.FromMinutes(2) + TimeSpan.FromMilliseconds(5) - TimeSpan.FromSeconds(10));
+        await service.TickAsync(CancellationToken.None);
+
+        Assert.IsTrue(lifecycle.AbortTokenOf(jobId).IsCancellationRequested, "Counted from the end of the statement, the job would only stop after the limit.");
     }
 
     [TestMethod]
