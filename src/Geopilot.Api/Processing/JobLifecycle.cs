@@ -13,10 +13,10 @@ namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// The only writer of a processing job's state. Callers report what happened to a job (it was started, its
-/// preflight passed or failed, its run finished, its retention ran out) and the lifecycle carries out every
-/// consequence: the state change, the execution protocol, the disposal of the pipeline, the release of the upload
-/// and the machine delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what follows
-/// every event happens without asking.
+/// preflight passed, failed or was interrupted, its run finished, its retention ran out) and the lifecycle carries
+/// out every consequence: the state change, the execution protocol, the disposal of the pipeline, the release of the
+/// upload and the machine delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what
+/// follows every event happens without asking.
 /// </summary>
 public class JobLifecycle
 {
@@ -193,9 +193,16 @@ public class JobLifecycle
     /// <exception cref="InvalidOperationException">If the job is no longer pending or cannot be queued. The
     /// preflight reports such a job through <see cref="PreflightFailedAsync"/>, so it does not stay pending
     /// unnoticed.</exception>
+    /// <exception cref="RecordingUnavailableException">If the execution protocol could not record that the preflight
+    /// passed. The job is not queued then, and the preflight reports it through
+    /// <see cref="PreflightInterruptedAsync"/>.</exception>
     public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles)
     {
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordPreflightPassedAsync(jobId, scanResult));
+        // Not through RecordProtocolAsync, which would swallow the failure: the status of the job is read from this
+        // record, so a job the protocol cannot hold must not be queued.
+        using var scope = serviceScopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IRecorder>().RecordPreflightPassedAsync(jobId, scanResult);
+
         jobStore.EnqueueForProcessing(jobId, pipelineFiles);
     }
 
@@ -227,6 +234,29 @@ public class JobLifecycle
         DisposePipeline(jobId, job?.Pipeline);
 
         await ReleaseUploadAsync(jobId, job?.UploadId);
+    }
+
+    /// <summary>
+    /// Reports that the preflight of a job was interrupted because the execution protocol could not record that it
+    /// passed (see <see cref="RecordingUnavailableException"/>), and carries out what follows. Nothing is wrong with
+    /// the upload, so the job ends like after a timeout: the protocol gets its terminal state as far as the database
+    /// allows, the job turns <see cref="ProcessingState.Cancelled"/>, its pipeline is disposed, and its upload stays
+    /// for another start until the age-based sweep in UploadCleanupService collects it. Never throws, because the
+    /// caller is the preflight loop.
+    /// </summary>
+    /// <param name="jobId">The job whose preflight was interrupted.</param>
+    /// <param name="reason">Why, as written to the execution protocol.</param>
+    public async Task PreflightInterruptedAsync(Guid jobId, string reason)
+    {
+        var job = jobStore.GetJob(jobId);
+
+        await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, job?.Pipeline?.Steps ?? [], ProcessingState.Cancelled, reason));
+
+        if (!jobStore.TryMarkAsCancelled(jobId))
+            logger.LogWarning("Job <{JobId}> was not marked as cancelled: it is unknown or already in a terminal state.", jobId);
+
+        // The pipeline was instantiated up front but never queued, so no run will dispose it.
+        DisposePipeline(jobId, job?.Pipeline);
     }
 
     /// <summary>
@@ -347,6 +377,7 @@ public class JobLifecycle
         RunOutcome.TimedOut => $"Job timed out after {processingOptions.JobTimeout}.",
         RunOutcome.ShutDown => "host shutdown",
         RunOutcome.Crashed crashed => crashed.Reason,
+        RunOutcome.Interrupted interrupted => interrupted.Reason,
         RunOutcome.Completed { State: ProcessingState.Pending or ProcessingState.Running } completed => $"The pipeline returned in the non-terminal state <{completed.State}>.",
         _ => null,
     };
@@ -368,10 +399,11 @@ public class JobLifecycle
     /// Decides what an outcome means for its job. A run that failed or was restricted by its own logic, a
     /// crashing process included, would end the same way a second time, so its upload goes right away. So does
     /// the upload of a deliverable run, whose delivery files are staged by now. A run that was
-    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown) says nothing about the data, so its
-    /// upload stays for a second start until the age-based sweep in UploadCleanupService collects it. A failed
-    /// preflight always releases its upload right away (<see cref="PreflightFailedAsync"/>), so it needs no
-    /// decision.
+    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown, interrupted because the execution
+    /// protocol could not record it) says nothing about the data, so its upload stays for a second start until the
+    /// age-based sweep in UploadCleanupService collects it. A preflight that failed always releases its upload right
+    /// away (<see cref="PreflightFailedAsync"/>) and an interrupted one always keeps it
+    /// (<see cref="PreflightInterruptedAsync"/>), so neither needs a decision.
     /// </summary>
     internal static JobDecision Decide(RunOutcome runOutcome) => runOutcome switch
     {
@@ -383,7 +415,7 @@ public class JobLifecycle
 
         RunOutcome.Completed(ProcessingState.Failed) => new JobDecision(ProcessingState.Failed, ReleaseUpload: true),
 
-        RunOutcome.Completed(ProcessingState.Cancelled) or RunOutcome.TimedOut or RunOutcome.ShutDown => new JobDecision(ProcessingState.Cancelled, ReleaseUpload: false),
+        RunOutcome.Completed(ProcessingState.Cancelled) or RunOutcome.TimedOut or RunOutcome.ShutDown or RunOutcome.Interrupted => new JobDecision(ProcessingState.Cancelled, ReleaseUpload: false),
 
         // A pipeline that returns without a terminal state is a defect in our code, so it ends like a crash.
         RunOutcome.Crashed or RunOutcome.Completed(ProcessingState.Pending or ProcessingState.Running) => new JobDecision(ProcessingState.Failed, ReleaseUpload: true),

@@ -5,9 +5,12 @@ using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Npgsql;
 using System.Collections.Immutable;
+using System.Data.Common;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.Json;
@@ -19,6 +22,7 @@ public class RecorderTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
+    private FailingWrites failingWrites;
     private Context context;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Mock<IUploadStorage> uploadStorageMock;
@@ -32,7 +36,8 @@ public class RecorderTest
     [TestInitialize]
     public void Initialize()
     {
-        context = AssemblyInitialize.DbFixture.GetTestContext();
+        failingWrites = new FailingWrites();
+        context = AssemblyInitialize.DbFixture.GetTestContext(failingWrites);
 
         pipelineFactoryMock = new Mock<IPipelineFactory>();
         pipelineFactoryMock.Setup(f => f.GetDefinitionSnapshotJson(It.IsAny<string>())).Returns("{}");
@@ -60,6 +65,42 @@ public class RecorderTest
 
     [TestCleanup]
     public void Cleanup() => context.Dispose();
+
+    /// <summary>
+    /// Stands in for a database that fails writes: the next <see cref="Remaining"/> commands that are not queries fail
+    /// with <see cref="Failure"/> before they reach the database, so the transaction of the test stays usable, while
+    /// EF Core hands the failure on as it would one from the database.
+    /// </summary>
+    private sealed class FailingWrites : DbCommandInterceptor
+    {
+        public int Remaining { get; set; }
+
+        public Func<Exception> Failure { get; set; } = () => new NpgsqlException("The connection to the database was lost.", new TimeoutException());
+
+        public int Failed { get; private set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            FailIfDue(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            FailIfDue(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void FailIfDue(DbCommand command)
+        {
+            if (Remaining == 0 || command.CommandText.StartsWith("SELECT", StringComparison.Ordinal))
+                return;
+
+            Remaining--;
+            Failed++;
+            throw Failure();
+        }
+    }
 
     [TestMethod]
     public async Task RecordJobStartedWritesRunWithManifest()
@@ -499,6 +540,53 @@ public class RecorderTest
         await recorder.RecordDeliveryFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.Recordings.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a recording must be skipped, not fail.");
+    }
+
+    [TestMethod]
+    public async Task HardWriteRetriesAfterATransientFailure()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = 1;
+
+        // Without a row from the start record, the first attempt adds one before the database fails it, so the second
+        // attempt has to start over instead of adding it again.
+        await recorder.RecordStepStartedAsync(job.Id, StepMock("validation").Object, 0);
+
+        Assert.AreEqual(1, failingWrites.Failed);
+        Assert.AreEqual(StepState.Running, (await LoadStepRowAsync(job.Id, "validation")).State);
+    }
+
+    [TestMethod]
+    public async Task HardWriteGivesUpAfterThreeAttempts()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        var exception = await Assert.ThrowsExactlyAsync<RecordingUnavailableException>(
+            () => recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true)));
+
+        Assert.AreEqual(3, failingWrites.Failed);
+        Assert.Contains("preflight", exception.Message, "The reason names the write the protocol could not hold.");
+    }
+
+    [TestMethod]
+    public async Task HardWriteDoesNotRetryAFailureThatIsNotTransient()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+        failingWrites.Failure = () => new NpgsqlException("The statement is invalid.");
+
+        // Such a failure would only repeat, so it stays soft as before: logged, and the job goes on.
+        await recorder.RecordStepStartedAsync(job.Id, step.Object, 0);
+
+        Assert.AreEqual(1, failingWrites.Failed);
     }
 
     [TestMethod]

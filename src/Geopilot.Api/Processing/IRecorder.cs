@@ -9,11 +9,17 @@ namespace Geopilot.Api.Processing;
 /// <summary>
 /// Writes the execution protocol (<see cref="Recording"/> and children) while a job runs.
 ///
-/// Two write policies on purpose: <see cref="RecordJobStartedAsync"/> is hard and throws when the record
-/// cannot be written, because a job we cannot account for must not be accepted. Every later method is
-/// soft: it catches all its own errors and logs a warning, because a protocol failure must not tear down
-/// a running pipeline. A run whose terminal write failed keeps a null terminal state and reads as
-/// "outcome unknown", indistinguishable from a restart victim, which is the honest answer.
+/// The status of a job is read from the protocol, so each write is as hard as its readers need it.
+/// <see cref="RecordJobStartedAsync"/> is hard and throws when the record cannot be written, because a job we
+/// cannot account for must not be accepted. The writes the status depends on while the job runs (the passed
+/// preflight, the start and the completion of a step) are tried again after a transient database failure, three
+/// attempts in all, and then throw <see cref="RecordingUnavailableException"/>: the job cannot go on unrecorded,
+/// but nothing is wrong with its data, so it ends cancelled and keeps its upload. The writes that follow a run that
+/// already ended (the failed preflight, the terminal state, the failed delivery) are tried as often and then only
+/// logged; a run whose terminal write failed keeps a null terminal state and reads as "outcome unknown",
+/// indistinguishable from a restart victim, which is the honest answer. Every other write is soft, as is any
+/// failure that is not transient: it is logged as a warning, because a protocol failure must not tear down a
+/// running pipeline.
 /// </summary>
 public interface IRecorder
 {
@@ -37,14 +43,16 @@ public interface IRecorder
 
     /// <summary>
     /// Records the scan outcome and hashes like <see cref="RecordScanOutcomeAsync"/>, and that the job was queued
-    /// for its run. Soft.
+    /// for its run. Tried again after a transient failure.
     /// </summary>
     /// <param name="jobId">The job whose preflight passed.</param>
     /// <param name="scanResult">The scan outcome.</param>
+    /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
     Task RecordPreflightPassedAsync(Guid jobId, Services.ScanResult scanResult);
 
     /// <summary>
-    /// Marks the run as failed before its pipeline ever ran (preflight failure). Soft.
+    /// Marks the run as failed before its pipeline ever ran (preflight failure). Tried again after a transient
+    /// failure, then only logged.
     /// </summary>
     /// <param name="jobId">The job whose preflight failed.</param>
     /// <param name="failureReason">Why the preflight failed.</param>
@@ -52,11 +60,12 @@ public interface IRecorder
 
     /// <summary>
     /// Writes the step row the moment the pipeline reaches the step, so an interrupted run shows which
-    /// step was in flight. Soft.
+    /// step was in flight. Tried again after a transient failure.
     /// </summary>
     /// <param name="jobId">The job the step belongs to.</param>
     /// <param name="pipelineStep">The step about to run.</param>
     /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
     Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
 
     /// <summary>
@@ -72,28 +81,32 @@ public interface IRecorder
 
     /// <summary>
     /// Updates the step row with its terminal state, timing, messages, condition evaluations and the
-    /// artifacts persisted so far. Soft.
+    /// artifacts persisted so far. Tried again after a transient failure.
     /// </summary>
     /// <param name="jobId">The job the step belongs to.</param>
     /// <param name="pipelineStep">The completed step.</param>
     /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
     Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
 
     /// <summary>
     /// Writes the run's terminal state and reconciles every step row: steps that threw or were never
-    /// reached get their row here, and delivery artifacts extracted after the last step are added. Soft.
+    /// reached get their row here, and delivery artifacts extracted after the last step are added. Tried again
+    /// after a transient failure, then only logged.
     /// </summary>
     /// <param name="jobId">The finished job.</param>
     /// <param name="steps">All steps of the pipeline, in pipeline order.</param>
     /// <param name="terminalState">The state the job ended in.</param>
     /// <param name="failureReason">Why the run failed or was cancelled, when known.</param>
-    /// <param name="cancellationToken">Bounds the write; a cancelled write is logged like any other failed one.</param>
+    /// <param name="cancellationToken">Bounds the write and its pauses; a cancelled write is logged like any other
+    /// failed one.</param>
     Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Records why geopilot refused or could not create the delivery of a run, on the web or for a machine delivery,
     /// replacing an earlier reason. Only the recording of a run whose starter may deliver and whose data allow a
-    /// delivery, or whose outcome is not recorded yet, keeps it. Soft.
+    /// delivery, or whose outcome is not recorded yet, keeps it. Tried again after a transient failure, then only
+    /// logged.
     /// </summary>
     /// <param name="jobId">The job whose delivery could not be created.</param>
     /// <param name="reason">Why creating the delivery failed, in fixed messages: never a value of the delivery fields.</param>

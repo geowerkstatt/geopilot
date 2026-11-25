@@ -5,6 +5,7 @@ using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Reflection;
 using System.Text.Json;
 
@@ -14,6 +15,10 @@ namespace Geopilot.Api.Processing;
 public class Recorder : IRecorder
 {
     private static readonly string AppVersion = VersionOf(typeof(Recorder).Assembly) ?? string.Empty;
+
+    // The pause before each further attempt of a write that is tried again, so three attempts in all.
+    // shortcut: fixed pauses, wait longer or add jitter if outages outlast them or many jobs retry at once.
+    private static readonly IReadOnlyList<TimeSpan> RetryPauses = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)];
 
     private readonly Context context;
     private readonly IPipelineFactory pipelineFactory;
@@ -96,43 +101,13 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public Task RecordScanOutcomeAsync(Guid jobId, ScanResult scanResult)
-        => RecordScanAsync(jobId, scanResult, queued: false);
-
-    /// <inheritdoc/>
-    public Task RecordPreflightPassedAsync(Guid jobId, ScanResult scanResult)
-        => RecordScanAsync(jobId, scanResult, queued: true);
-
-    private async Task RecordScanAsync(Guid jobId, ScanResult scanResult, bool queued)
+    public async Task RecordScanOutcomeAsync(Guid jobId, ScanResult scanResult)
     {
         ArgumentNullException.ThrowIfNull(scanResult);
 
         try
         {
-            var run = await context.Recordings.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId);
-            if (run is null)
-            {
-                LogRunMissing(jobId);
-                return;
-            }
-
-            run.ScanState = !scanResult.Scanned
-                ? ScanState.NotScanned
-                : scanResult.IsClean ? ScanState.Clean : ScanState.ThreatDetected;
-            run.ScanDetails = scanResult.ThreatDetails;
-            if (queued)
-                run.QueuedAt = DateTime.UtcNow;
-
-            if (scanResult.Hashes is { } hashes)
-            {
-                foreach (var file in run.Files)
-                {
-                    if (hashes.TryGetValue(file.StorageKey, out var hash))
-                        file.Sha256 = hash;
-                }
-            }
-
-            await context.SaveChangesAsync();
+            await WriteScanAsync(jobId, scanResult, queued: false);
         }
         catch (Exception ex)
         {
@@ -141,9 +116,44 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordPreflightFailedAsync(Guid jobId, string failureReason)
+    public async Task RecordPreflightPassedAsync(Guid jobId, ScanResult scanResult)
     {
-        try
+        ArgumentNullException.ThrowIfNull(scanResult);
+
+        await WriteOrThrowAsync(jobId, "that the preflight passed", () => WriteScanAsync(jobId, scanResult, queued: true));
+    }
+
+    private async Task WriteScanAsync(Guid jobId, ScanResult scanResult, bool queued)
+    {
+        var run = await context.Recordings.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId);
+        if (run is null)
+        {
+            LogRunMissing(jobId);
+            return;
+        }
+
+        run.ScanState = !scanResult.Scanned
+            ? ScanState.NotScanned
+            : scanResult.IsClean ? ScanState.Clean : ScanState.ThreatDetected;
+        run.ScanDetails = scanResult.ThreatDetails;
+        if (queued)
+            run.QueuedAt = DateTime.UtcNow;
+
+        if (scanResult.Hashes is { } hashes)
+        {
+            foreach (var file in run.Files)
+            {
+                if (hashes.TryGetValue(file.StorageKey, out var hash))
+                    file.Sha256 = hash;
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <inheritdoc/>
+    public Task RecordPreflightFailedAsync(Guid jobId, string failureReason) =>
+        WriteOrLogAsync(jobId, async () =>
         {
             var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
             if (run is null)
@@ -156,12 +166,7 @@ public class Recorder : IRecorder
             run.TerminalAt = DateTime.UtcNow;
             run.FailureReason = failureReason;
             await context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            LogWriteFailed(jobId, ex);
-        }
-    }
+        });
 
     /// <inheritdoc/>
     public async Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order)
@@ -169,7 +174,7 @@ public class Recorder : IRecorder
         ArgumentNullException.ThrowIfNull(pipelineStep);
         var step = pipelineStep;
 
-        try
+        await WriteOrThrowAsync(jobId, $"that step <{step.Id}> started", async () =>
         {
             var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
             if (run is null)
@@ -186,11 +191,7 @@ public class Recorder : IRecorder
             row.State = StepState.Running;
             row.StartedAt = step.StartedAt ?? DateTime.UtcNow;
             await context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            LogWriteFailed(jobId, ex);
-        }
+        });
     }
 
     /// <inheritdoc/>
@@ -226,7 +227,7 @@ public class Recorder : IRecorder
         ArgumentNullException.ThrowIfNull(pipelineStep);
         var step = pipelineStep;
 
-        try
+        await WriteOrThrowAsync(jobId, $"that step <{step.Id}> completed", async () =>
         {
             var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
             if (run is null)
@@ -241,11 +242,7 @@ public class Recorder : IRecorder
 
             UpdateStepRow(row, step);
             await context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            LogWriteFailed(jobId, ex);
-        }
+        });
     }
 
     /// <inheritdoc/>
@@ -253,42 +250,40 @@ public class Recorder : IRecorder
     {
         ArgumentNullException.ThrowIfNull(steps);
 
-        try
-        {
-            var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
-            if (run is null)
+        await WriteOrLogAsync(
+            jobId,
+            async () =>
             {
-                LogRunMissing(jobId);
-                return;
-            }
+                var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
+                if (run is null)
+                {
+                    LogRunMissing(jobId);
+                    return;
+                }
 
-            // Reconcile every step: a step that threw got no completion callback, a step behind the
-            // failure was never reached, and delivery artifacts are extracted only after the last step.
-            for (var order = 0; order < steps.Count; order++)
-            {
-                var step = steps[order];
-                var row = await LoadStepRowAsync(run.Id, step.Id, cancellationToken);
-                if (row is null)
-                    row = CreateMissingStepRow(run.Id, jobId, step, order);
+                // Reconcile every step: a step that threw got no completion callback, a step behind the
+                // failure was never reached, and delivery artifacts are extracted only after the last step.
+                for (var order = 0; order < steps.Count; order++)
+                {
+                    var step = steps[order];
+                    var row = await LoadStepRowAsync(run.Id, step.Id, cancellationToken);
+                    if (row is null)
+                        row = CreateMissingStepRow(run.Id, jobId, step, order);
 
-                UpdateStepRow(row, step);
-            }
+                    UpdateStepRow(row, step);
+                }
 
-            run.TerminalState = terminalState;
-            run.TerminalAt = DateTime.UtcNow;
-            run.FailureReason = failureReason;
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            LogWriteFailed(jobId, ex);
-        }
+                run.TerminalState = terminalState;
+                run.TerminalAt = DateTime.UtcNow;
+                run.FailureReason = failureReason;
+                await context.SaveChangesAsync(cancellationToken);
+            },
+            cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task RecordDeliveryFailedAsync(Guid jobId, string reason)
-    {
-        try
+    public Task RecordDeliveryFailedAsync(Guid jobId, string reason) =>
+        WriteOrLogAsync(jobId, async () =>
         {
             // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The recording
             // tells whether the run allowed a delivery, which nobody checked for an expired job; a machine delivery is
@@ -301,12 +296,85 @@ public class Recorder : IRecorder
 
             if (updated == 0)
                 logger.LogDebug("No recording of a run that allowed a delivery exists for job <{JobId}>; skipping the delivery failure.", jobId);
+        });
+
+    /// <summary>
+    /// Writes what the status of a job in progress is read from. When the database stays unavailable through every
+    /// attempt it throws, so the job is interrupted rather than going on unrecorded. A failure that is not transient
+    /// would only repeat, so it is logged like the failure of a soft write.
+    /// </summary>
+    /// <param name="jobId">The job the write belongs to.</param>
+    /// <param name="write">What the write records, for the reason of the interruption.</param>
+    /// <param name="attempt">One attempt of the whole write, from loading the run to saving it.</param>
+    /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
+    private async Task WriteOrThrowAsync(Guid jobId, string write, Func<Task> attempt)
+    {
+        try
+        {
+            await WriteWithRetriesAsync(jobId, attempt);
+        }
+        catch (Exception ex) when (IsTransient(ex))
+        {
+            throw new RecordingUnavailableException(write, ex);
         }
         catch (Exception ex)
         {
             LogWriteFailed(jobId, ex);
         }
     }
+
+    /// <summary>
+    /// Writes what follows a run that already ended. Nothing is left to interrupt, so a failure is only logged, also
+    /// once the database stayed unavailable through every attempt.
+    /// </summary>
+    private async Task WriteOrLogAsync(Guid jobId, Func<Task> attempt, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await WriteWithRetriesAsync(jobId, attempt, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            LogWriteFailed(jobId, ex);
+        }
+    }
+
+    /// <summary>
+    /// Runs a write and tries it again after a transient failure, three attempts in all. Each further attempt starts
+    /// on an empty change tracker, so it neither finds nor saves again what the failed one left there.
+    /// </summary>
+    private async Task WriteWithRetriesAsync(Guid jobId, Func<Task> attempt, CancellationToken cancellationToken = default)
+    {
+        foreach (var pause in RetryPauses)
+        {
+            try
+            {
+                await attempt();
+                return;
+            }
+            catch (Exception ex) when (IsTransient(ex))
+            {
+                logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; trying again in {Pause}.", jobId, pause);
+            }
+
+            await Task.Delay(pause, cancellationToken);
+            context.ChangeTracker.Clear();
+        }
+
+        await attempt();
+    }
+
+    /// <summary>
+    /// Whether a write failed because the database was briefly unreachable or overloaded, so trying again may succeed.
+    /// EF Core wraps a failed save in a <see cref="DbUpdateException"/>, and the default execution strategy of the
+    /// PostgreSQL provider wraps every transient failure in an <see cref="InvalidOperationException"/> on top.
+    /// </summary>
+    private static bool IsTransient(Exception? exception) => exception switch
+    {
+        NpgsqlException { IsTransient: true } or TimeoutException => true,
+        DbUpdateException or InvalidOperationException => IsTransient(exception.InnerException),
+        _ => false,
+    };
 
     /// <inheritdoc/>
     public async Task RecordReactionAttemptStartedAsync(DeliveryReaction reaction, IReadOnlyDictionary<string, RecordedConfigValue>? config)

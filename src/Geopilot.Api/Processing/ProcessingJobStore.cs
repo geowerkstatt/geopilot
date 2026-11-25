@@ -68,7 +68,11 @@ public class ProcessingJobStore : IProcessingJobStore
 
     /// <inheritdoc/>
     public bool TryMarkAsFailed(Guid jobId) =>
-        TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
+        TryTransition(jobId, HasNotEnded, ProcessingState.Failed);
+
+    /// <inheritdoc/>
+    public bool TryMarkAsCancelled(Guid jobId) =>
+        TryTransition(jobId, HasNotEnded, ProcessingState.Cancelled);
 
     /// <inheritdoc/>
     public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
@@ -146,7 +150,7 @@ public class ProcessingJobStore : IProcessingJobStore
         }
     }
 
-    private static bool CanMarkAsFailed(ProcessingJob job) =>
+    private static bool HasNotEnded(ProcessingJob job) =>
         job.State is ProcessingState.Pending or ProcessingState.Running;
 
     private static bool CanCompletePipeline(ProcessingJob job) =>

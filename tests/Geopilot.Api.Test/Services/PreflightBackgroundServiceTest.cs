@@ -183,6 +183,35 @@ public class PreflightBackgroundServiceTest
     }
 
     [TestMethod]
+    public async Task UnrecordablePreflightKeepsTheUpload()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pipeline = new Mock<IPipeline>();
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+        var scanResult = new ScanResult(true);
+        var unavailable = new RecordingUnavailableException("that the preflight passed", new TimeoutException());
+
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(scanResult);
+        orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId)).Returns(new List<IPipelineFile>());
+        orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
+        runRecorderMock.Setup(r => r.RecordPreflightPassedAsync(jobId, scanResult)).ThrowsAsync(unavailable);
+        jobStoreMock.Setup(x => x.TryMarkAsCancelled(jobId)).Returns(true);
+
+        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
+
+        // The database interrupted the preflight, not the data: the job ends like after a timeout and keeps its upload.
+        jobStoreMock.Verify(x => x.TryMarkAsCancelled(jobId), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, unavailable.Message, It.IsAny<CancellationToken>()),
+            Times.Once);
+        pipeline.Verify(p => p.Dispose(), Times.Once);
+        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never, "The preflight did not fail.");
+    }
+
+    [TestMethod]
     public async Task ProcessRequestAsyncSkipsJobNoLongerPending()
     {
         var jobId = Guid.NewGuid();

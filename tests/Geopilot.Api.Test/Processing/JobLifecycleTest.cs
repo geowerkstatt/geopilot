@@ -74,6 +74,7 @@ public class JobLifecycleTest
             [new RunOutcome.Completed(ProcessingState.Running), ProcessingState.Failed, true, false, "The pipeline returned in the non-terminal state <Running>."],
             [new RunOutcome.TimedOut(), ProcessingState.Cancelled, false, false, "Job timed out after 00:05:00."],
             [new RunOutcome.ShutDown(), ProcessingState.Cancelled, false, false, "host shutdown"],
+            [new RunOutcome.Interrupted("The protocol could not record it."), ProcessingState.Cancelled, false, false, "The protocol could not record it."],
             [new RunOutcome.Crashed("My Dog ate the Storage Disk"), ProcessingState.Failed, true, false, "My Dog ate the Storage Disk"],
         ];
 
@@ -503,6 +504,25 @@ public class JobLifecycleTest
 
         // The rejected transition only logs: the pipeline and the upload still go.
         AssertUploadKept(uploadId, false);
+        pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task PreflightInterruptedCancelsTheJobAndKeepsItsUpload()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(passPreflight: false);
+
+        await lifecycle.PreflightInterruptedAsync(jobId, "The protocol could not record it.");
+
+        var job = jobStore.GetJob(jobId)!;
+        Assert.AreEqual(ProcessingState.Cancelled, job.State);
+        Assert.IsNotNull(job.FinishedAt);
+        AssertUploadKept(uploadId, true);
+
+        var run = await ReadRunAsync(jobId);
+        Assert.AreEqual(ProcessingState.Cancelled, run.TerminalState);
+        Assert.AreEqual("The protocol could not record it.", run.FailureReason);
+
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 

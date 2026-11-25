@@ -130,6 +130,12 @@ public class ProcessingRunner : BackgroundService
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
                 outcome = new RunOutcome.ShutDown();
             }
+            catch (RecordingUnavailableException ex)
+            {
+                // Ahead of the step check: the database interrupted the run, whatever state its steps were left in.
+                logger.LogError(ex, "Pipeline <{Pipeline}> was interrupted because the execution protocol could not record it.", pipeline.Id);
+                outcome = new RunOutcome.Interrupted(ex.Message);
+            }
             catch (Exception) when (StepThrew(pipeline))
             {
                 outcome = new RunOutcome.Completed(ProcessingState.Failed);
@@ -255,7 +261,8 @@ public class ProcessingRunner : BackgroundService
     /// <summary>
     /// Runs one protocol write against a fresh scope. The recorder swallows its own write failures;
     /// this additionally guards scope creation and resolution, because a protocol problem must never
-    /// tear down the running pipeline.
+    /// tear down the running pipeline. Only a <see cref="RecordingUnavailableException"/> of a write the
+    /// status depends on gets through: it leaves the pipeline and interrupts the run.
     /// </summary>
     private async Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record)
     {
@@ -265,7 +272,7 @@ public class ProcessingRunner : BackgroundService
             var recorder = scope.ServiceProvider.GetRequiredService<IRecorder>();
             await record(recorder);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not RecordingUnavailableException)
         {
             logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
         }

@@ -467,6 +467,35 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task CallbackThatCannotRecordInterruptsTheRun()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+        var unavailable = new RecordingUnavailableException("that step <step_1> started", new TimeoutException());
+        runRecorderMock
+            .Setup(r => r.RecordStepStartedAsync(jobId, step, 0))
+            .ThrowsAsync(unavailable);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(StepState.Pending, step.State, "The step whose start could not be recorded must not run.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, unavailable.Message, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // The database interrupted the run, not the data, so the upload stays for another start.
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task FileTaggedDownloadAndDeliveryKeepsThePrefixOnlyAsDownload()
     {
         var jobId = NewJob();

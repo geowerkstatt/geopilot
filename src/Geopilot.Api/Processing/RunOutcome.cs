@@ -35,4 +35,11 @@ public abstract record RunOutcome
     /// <paramref name="Reason"/> is the message that goes into the execution protocol.
     /// </summary>
     public sealed record Crashed(string Reason) : RunOutcome;
+
+    /// <summary>
+    /// The run was cut short because the execution protocol could not record it (see
+    /// <see cref="RecordingUnavailableException"/>). Like a timeout, this says nothing about the data.
+    /// <paramref name="Reason"/> is the message that goes into the execution protocol.
+    /// </summary>
+    public sealed record Interrupted(string Reason) : RunOutcome;
 }

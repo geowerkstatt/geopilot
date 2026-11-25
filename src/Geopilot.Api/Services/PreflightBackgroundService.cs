@@ -79,6 +79,12 @@ public class PreflightBackgroundService : BackgroundService
             // stay as they are; the run reads as "outcome unknown", like any other restart victim.
             logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
         }
+        catch (RecordingUnavailableException ex)
+        {
+            // The database interrupted the preflight, not the upload, so the job keeps it for another start.
+            logger.LogError(ex, "Preflight for job <{JobId}> was interrupted because the execution protocol could not record it.", request.JobId);
+            await lifecycle.PreflightInterruptedAsync(request.JobId, ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Preflight failed for job <{JobId}>.", request.JobId);
