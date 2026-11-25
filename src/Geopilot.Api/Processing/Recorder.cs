@@ -254,10 +254,22 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default)
+    public async Task<bool> RecordHeartbeatAsync(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        var refreshed = false;
+        await WriteOrLogAsync(
+            jobId,
+            async () => refreshed = (await context.RefreshHeartbeatsAsync([jobId], cancellationToken)).Contains(jobId),
+            cancellationToken);
+        return refreshed;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(steps);
 
+        var recorded = false;
         await WriteOrLogAsync(
             jobId,
             async () =>
@@ -285,8 +297,10 @@ public class Recorder : IRecorder
                 run.TerminalAt = DateTime.UtcNow;
                 run.FailureReason = failureReason;
                 await context.SaveChangesAsync(cancellationToken);
+                recorded = true;
             },
             cancellationToken);
+        return recorded;
     }
 
     /// <inheritdoc/>
@@ -296,8 +310,8 @@ public class Recorder : IRecorder
             async () =>
             {
                 // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The
-                // recording tells whether the run allowed a delivery, which nobody checked for an expired job; a machine
-                // delivery is created before the outcome is recorded, hence a missing terminal state (#1200).
+                // recording tells whether the run allowed a delivery, which nobody checked for an expired job; a run
+                // whose terminal write failed has no terminal state and keeps the reason as well.
                 var updated = await context.Recordings
                     .Where(r => r.JobId == jobId
                         && r.PermissionToDeliver == PermissionToDeliver.Permitted

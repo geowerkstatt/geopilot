@@ -16,11 +16,11 @@ namespace Geopilot.Api.Processing;
 /// attempts in all, and then throw <see cref="RecordingUnavailableException"/>: the job cannot go on unrecorded,
 /// but nothing is wrong with its data, so it ends cancelled and keeps its upload. Stopping the job (abort, timeout,
 /// shutdown) cuts their attempts short with an <see cref="OperationCanceledException"/>. The writes that follow a
-/// run that already ended (the failed preflight, the terminal state, the failed delivery) are tried as often and
-/// then only logged; a run whose terminal write failed keeps a null terminal state and reads as "outcome unknown",
-/// indistinguishable from a restart victim, which is the honest answer. Every other write is soft, as is any
-/// failure that is not transient: it is logged as a warning, because a protocol failure must not tear down a
-/// running pipeline.
+/// run that already ended (the heartbeat that confirms the run, the failed preflight, the terminal state, the failed
+/// delivery) are tried as often and then only logged; a run whose terminal write failed keeps a null terminal state
+/// and reads as "outcome unknown", indistinguishable from a restart victim, which is the honest answer. Every other
+/// write is soft, as is any failure that is not transient: it is logged as a warning, because a protocol failure must
+/// not tear down a running pipeline.
 /// </summary>
 public interface IRecorder
 {
@@ -97,6 +97,18 @@ public interface IRecorder
     Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Refreshes the heartbeat of the run of a job whose end is about to be carried out, if the run is still alive
+    /// by its heartbeat (see <see cref="Liveness.RefreshHeartbeatsAsync"/>). Tried again after a transient failure,
+    /// then only logged.
+    /// </summary>
+    /// <param name="jobId">The job whose run is confirmed.</param>
+    /// <param name="cancellationToken">Bounds the write and its pauses; a cancelled write is logged like any other
+    /// failed one.</param>
+    /// <returns>Whether the run was refreshed: <see langword="false"/> for a run the database considers dead, and
+    /// when the database stayed unavailable through every attempt.</returns>
+    Task<bool> RecordHeartbeatAsync(Guid jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Writes the run's terminal state and reconciles every step row: steps that threw or were never
     /// reached get their row here, and delivery artifacts extracted after the last step are added. Tried again
     /// after a transient failure, then only logged.
@@ -107,7 +119,8 @@ public interface IRecorder
     /// <param name="failureReason">Why the run failed or was cancelled, when known.</param>
     /// <param name="cancellationToken">Bounds the write and its pauses; a cancelled write is logged like any other
     /// failed one.</param>
-    Task RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
+    /// <returns>Whether the terminal state was written.</returns>
+    Task<bool> RecordRunFinishedAsync(Guid jobId, IReadOnlyList<IPipelineStep> steps, ProcessingState terminalState, string? failureReason, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Records why geopilot refused or could not create the delivery of a run, on the web or for a machine delivery,

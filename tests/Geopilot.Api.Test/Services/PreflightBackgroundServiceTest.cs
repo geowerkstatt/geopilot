@@ -30,7 +30,10 @@ public class PreflightBackgroundServiceTest
     {
         jobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>(MockBehavior.Strict);
+
+        // Like a healthy database: every run is still alive when its preflight ends.
         runRecorderMock = new Mock<IRecorder>();
+        runRecorderMock.Setup(r => r.RecordHeartbeatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         loggerMock = new Mock<ILogger<PreflightBackgroundService>>();
         pipelineFactoryMock = new Mock<IPipelineFactory>();
 

@@ -6,11 +6,14 @@ using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Npgsql;
 using System.Collections.Immutable;
+using System.Data.Common;
 using System.Text.Json;
 using System.Threading.Channels;
 
@@ -35,6 +38,7 @@ public class JobLifecycleTest
     // One per test: mandate keys are unique, and the tests run in parallel.
     private readonly string mandateKey = $"LIFECYCLE-{Guid.NewGuid()}";
 
+    private FlakyDatabase database;
     private Context context;
     private string uploadRoot;
     private DirectUploadStorage uploadStorage;
@@ -78,10 +82,19 @@ public class JobLifecycleTest
             [new RunOutcome.Crashed("My Dog ate the Storage Disk"), ProcessingState.Failed, true, false, "My Dog ate the Storage Disk"],
         ];
 
+    // How a test ends a job that is held, from its pipeline or its preflight.
+    public enum JobEnd
+    {
+        RunSucceeded,
+        PreflightFailed,
+        PreflightInterrupted,
+    }
+
     [TestInitialize]
     public void Initialize()
     {
-        context = AssemblyInitialize.DbFixture.GetTestContext();
+        database = new FlakyDatabase();
+        context = AssemblyInitialize.DbFixture.GetTestContext(database);
         uploadRoot = Path.Combine(Path.GetTempPath(), $"geopilot-lifecycle-test-{Guid.NewGuid():N}");
         uploadStorage = new DirectUploadStorage(Options.Create(new UploadDirectOptions { Directory = uploadRoot }), Mock.Of<ILogger<DirectUploadStorage>>());
         uploadStore = new UploadStore();
@@ -124,6 +137,33 @@ public class JobLifecycleTest
         context.Dispose();
         if (Directory.Exists(uploadRoot))
             Directory.Delete(uploadRoot, true);
+    }
+
+    /// <summary>
+    /// Stands in for a database that goes away for some statements: every command <see cref="Fails"/> picks fails before
+    /// it reaches the database, as on a lost connection, so the transaction of the test stays usable.
+    /// </summary>
+    private sealed class FlakyDatabase : DbCommandInterceptor
+    {
+        public Func<string, bool>? Fails { get; set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            FailIfPicked(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            FailIfPicked(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void FailIfPicked(DbCommand command)
+        {
+            if (Fails?.Invoke(command.CommandText) == true)
+                throw new NpgsqlException("The connection to the database was lost.", new TimeoutException());
+        }
     }
 
     [TestMethod]
@@ -637,6 +677,61 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
+    [DataRow(JobEnd.RunSucceeded)]
+    [DataRow(JobEnd.PreflightFailed)]
+    [DataRow(JobEnd.PreflightInterrupted)]
+    public async Task EndOfARunTheDatabaseConsidersDeadLeavesItDead(JobEnd end)
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(passPreflight: end == JobEnd.RunSucceeded, withDeliveryIntent: true);
+        var abortToken = lifecycle.AbortTokenOf(jobId);
+
+        // The instance stood still for longer than Liveness.DeadAfter, as in a frozen container, and wakes up to the end.
+        await SetHeartbeatAgeAsync(jobId, TimeSpan.FromMinutes(4));
+        await EndAsync(jobId, pipeline, end);
+
+        // Another instance may already process the same upload again: the run stays dead, and the job ends aborted.
+        Assert.IsNull((await ReadRunAsync(jobId)).TerminalState);
+        Assert.IsFalse(await IsAnswerableAsync(jobId), "The status of a dead run stays 404.");
+        creationService.Verify(d => d.CreateAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Supplier>(), It.IsAny<CancellationToken>()), Times.Never);
+        AssertUploadKept(uploadId, true);
+        Assert.IsTrue(abortToken.IsCancellationRequested, "The job is aborted.");
+        Assert.AreEqual(ProcessingState.Cancelled, jobStore.GetJob(jobId)!.State);
+        pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task EndOfARunThatIsStillAliveIsCarriedOut()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+
+        // The last beat came long before the end, yet within Liveness.DeadAfter.
+        await SetHeartbeatAgeAsync(jobId, TimeSpan.FromMinutes(2));
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        Assert.IsTrue(await HeartbeatIsNowAsync(jobId), "The end confirms the run with one more heartbeat.");
+        Assert.AreEqual(ProcessingState.Success, (await ReadRunAsync(jobId)).TerminalState);
+        Assert.AreEqual(ProcessingState.Success, jobStore.GetJob(jobId)!.State);
+        creationService.Verify(d => d.CreateAsync(jobId, Fields, supplier, It.IsAny<CancellationToken>()), Times.Once);
+        AssertUploadKept(uploadId, false);
+    }
+
+    [TestMethod]
+    public async Task RunFinishedKeepsTheUploadWhenItsEndCannotBeRecorded()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+
+        // The database goes away right after the run was confirmed, through every attempt of the terminal write.
+        database.Fails = sql => sql.StartsWith("UPDATE", StringComparison.Ordinal) && sql.Contains("\"TerminalState\"", StringComparison.Ordinal);
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+        database.Fails = null;
+
+        // Without its terminal state the run reads dead three minutes later, and its upload can be started again.
+        Assert.IsNull((await ReadRunAsync(jobId)).TerminalState);
+        creationService.Verify(d => d.CreateAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Supplier>(), It.IsAny<CancellationToken>()), Times.Never);
+        AssertUploadKept(uploadId, true);
+    }
+
+    [TestMethod]
     public async Task AbortCancelsTheTokenOfAHeldJobAndRemembersTheFirstReason()
     {
         var (jobId, _, pipeline) = await CreateJobAsync();
@@ -756,6 +851,26 @@ public class JobLifecycleTest
         context.ChangeTracker.Clear();
         return await context.Recordings.SingleAsync(r => r.JobId == jobId);
     }
+
+    private Task EndAsync(Guid jobId, Mock<IPipeline> pipeline, JobEnd end) => end switch
+    {
+        JobEnd.RunSucceeded => lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None),
+        JobEnd.PreflightFailed => lifecycle.PreflightFailedAsync(jobId, "IncompleteUpload: File missing.", new ScanResult(true)),
+        JobEnd.PreflightInterrupted => lifecycle.PreflightInterruptedAsync(jobId, "The protocol could not record it."),
+        _ => throw new ArgumentOutOfRangeException(nameof(end), end, null),
+    };
+
+    // Moves the last heartbeat back by the database clock, which stands still within the transaction of a test.
+    private async Task SetHeartbeatAgeAsync(Guid jobId, TimeSpan age) =>
+        await context.Recordings
+            .Where(r => r.JobId == jobId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - age));
+
+    private Task<bool> HeartbeatIsNowAsync(Guid jobId) =>
+        context.Recordings.AnyAsync(r => r.JobId == jobId && r.HeartbeatAt == DateTime.UtcNow);
+
+    private Task<bool> IsAnswerableAsync(Guid jobId) =>
+        context.Recordings.WhereAnswerable(context.Deliveries.IgnoreQueryFilters(), TimeSpan.FromDays(1)).AnyAsync(r => r.JobId == jobId);
 
     private async Task<RefMapping> AddRefMappingAsync()
     {

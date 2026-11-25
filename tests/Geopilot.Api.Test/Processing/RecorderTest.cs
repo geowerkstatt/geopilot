@@ -611,6 +611,48 @@ public class RecorderTest
     }
 
     [TestMethod]
+    [DataRow(1, true, DisplayName = "Alive")]
+    [DataRow(4, false, DisplayName = "Dead")]
+    public async Task RecordHeartbeatRefreshesOnlyARunThatIsStillAlive(int heartbeatMinutesAgo, bool alive)
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        var age = TimeSpan.FromMinutes(heartbeatMinutesAgo);
+        await context.Recordings.Where(r => r.JobId == job.Id).ExecuteUpdateAsync(s => s.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - age));
+
+        Assert.AreEqual(alive, await recorder.RecordHeartbeatAsync(job.Id));
+        Assert.AreEqual(alive, await context.Recordings.AnyAsync(r => r.JobId == job.Id && r.HeartbeatAt == DateTime.UtcNow), "Only a run that is still alive gets a heartbeat, from the database clock.");
+    }
+
+    [TestMethod]
+    public async Task RecordHeartbeatGivesUpAfterThreeAttempts()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        Assert.IsFalse(await recorder.RecordHeartbeatAsync(job.Id), "A run that cannot be confirmed counts as dead.");
+        Assert.AreEqual(3, failingWrites.Failed);
+    }
+
+    [TestMethod]
+    public async Task RecordRunFinishedReportsWhetherItWroteTheTerminalState()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        Assert.IsFalse(await recorder.RecordRunFinishedAsync(job.Id, [], ProcessingState.Success, null));
+        Assert.AreEqual(3, failingWrites.Failed);
+
+        failingWrites.Remaining = 0;
+        Assert.IsTrue(await recorder.RecordRunFinishedAsync(job.Id, [], ProcessingState.Success, null));
+    }
+
+    [TestMethod]
     public async Task ReactionAttemptStartedWritesARunningRowToTheRunOfTheDelivery()
     {
         var (run, delivery) = await SeedRunWithDeliveryAsync();

@@ -16,7 +16,7 @@ public static class Liveness
     public static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(30);
 
     /// <summary>A run without a heartbeat for this long is considered dead.</summary>
-    // shortcut: fixed, must stay above the heartbeat interval plus the retries of a heartbeat write.
+    // shortcut: fixed; a multiple of HeartbeatInterval so a missed beat kills no run, and above AbortAfter.
     public static readonly TimeSpan DeadAfter = TimeSpan.FromMinutes(3);
 
     /// <summary>An instance without a successful write for this long stops its own run.</summary>
@@ -67,6 +67,29 @@ public static class Liveness
             .WhereAnswerable(context.Deliveries.IgnoreQueryFilters(), jobRetention)
             .AsSplitQuery()
             .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Refreshes the heartbeat of the runs of <paramref name="jobIds"/> whose heartbeat is still fresh, in a single
+    /// statement with the database clock, and returns their job ids. A run whose heartbeat is older than
+    /// <see cref="DeadAfter"/>, or that has none, is left as it is and missing from the result, so no instance revives a
+    /// run the others consider dead.
+    /// </summary>
+    internal static async Task<IReadOnlySet<Guid>> RefreshHeartbeatsAsync(this Context context, IReadOnlyCollection<Guid> jobIds, CancellationToken cancellationToken)
+    {
+        var ids = jobIds.ToArray();
+
+        // Only the heartbeat half of WhereAlive: a held job whose run has settled meanwhile is still being carried out
+        // and must not be aborted. A scalar SqlQuery reads its column by the name Value.
+        var refreshed = await context.Database
+            .SqlQuery<Guid>($"""
+                UPDATE "Recordings" SET "HeartbeatAt" = now()
+                WHERE "JobId" = ANY({ids}) AND "HeartbeatAt" > now() - {DeadAfter}
+                RETURNING "JobId" AS "Value"
+                """)
+            .ToListAsync(cancellationToken);
+
+        return refreshed.ToHashSet();
     }
 
     /// <summary>

@@ -43,7 +43,12 @@ public class ProcessingRunnerTest
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
+        // Like a healthy database: every run is still alive at its end, and its end is recorded.
         runRecorderMock = new Mock<IRecorder>();
+        runRecorderMock.Setup(r => r.RecordHeartbeatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        runRecorderMock
+            .Setup(r => r.RecordRunFinishedAsync(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineStep>>(), It.IsAny<ProcessingState>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         creationServiceMock = new Mock<IDeliveryCreationService>();
 
         var serviceProvider = new Mock<IServiceProvider>();

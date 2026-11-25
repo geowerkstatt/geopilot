@@ -1,9 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-namespace Geopilot.Api.Processing;
+﻿namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Keeps the runs of the jobs this instance holds alive (see <see cref="Liveness"/>): every
+/// Keeps the runs of the jobs this instance holds and has not aborted alive (see <see cref="Liveness"/>): every
 /// <see cref="Liveness.HeartbeatInterval"/> it refreshes their heartbeat in one statement, with the database clock. It
 /// refreshes only runs the database still considers alive and aborts the job of every other one, so an instance that
 /// stood still for longer than <see cref="Liveness.DeadAfter"/> never revives a run another instance may already have
@@ -55,14 +53,16 @@ public class RecordingHeartbeatService : BackgroundService
     }
 
     /// <summary>
-    /// Refreshes the runs of the held jobs once and aborts the jobs whose run is no longer alive, or every held job at
-    /// the last failed tick within <see cref="Liveness.AbortAfter"/> of the last success.
+    /// Refreshes the runs of the held jobs that are not aborted once and aborts the jobs whose run is no longer alive, or
+    /// all of them at the last failed tick within <see cref="Liveness.AbortAfter"/> of the last success.
     /// </summary>
     internal async Task TickAsync(CancellationToken cancellationToken)
     {
         // Taken before the statement: the heartbeat it writes is younger, so the time measured from here is never short.
         var started = timeProvider.GetTimestamp();
-        var jobIds = lifecycle.HeldJobIds;
+
+        // An aborted job is left to die: nobody runs it any more, and its upload may be started again.
+        var jobIds = lifecycle.HeldJobIds.Where(jobId => lifecycle.AbortReasonOf(jobId) is null).ToList();
         if (jobIds.Count == 0)
         {
             // Nothing is kept alive, so nothing can be lost while the database is away.
@@ -100,30 +100,16 @@ public class RecordingHeartbeatService : BackgroundService
         foreach (var jobId in lost)
             logger.LogError("The database considers the run of job <{JobId}> dead; aborting the job.", jobId);
 
-        lifecycle.Abort(lost, "heartbeat lost");
+        lifecycle.Abort(lost, JobLifecycle.HeartbeatLost);
     }
 
     /// <summary>
-    /// Refreshes the heartbeat of the runs of <paramref name="jobIds"/> whose heartbeat is still fresh, in a single
-    /// statement with the database clock, and returns their job ids. A run whose heartbeat is older than
-    /// <see cref="Liveness.DeadAfter"/>, or that has none, is left as it is and missing from the result.
+    /// Refreshes the heartbeat of the runs of <paramref name="jobIds"/> that are still alive, once and without retries,
+    /// and returns their job ids (see <see cref="Liveness.RefreshHeartbeatsAsync"/>).
     /// </summary>
     internal async Task<IReadOnlySet<Guid>> BeatAsync(IReadOnlyCollection<Guid> jobIds, CancellationToken cancellationToken)
     {
         using var scope = serviceScopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<Context>();
-        var ids = jobIds.ToArray();
-
-        // Only the heartbeat half of Liveness.WhereAlive: a held job whose run has settled meanwhile is still being
-        // carried out and must not be aborted. A scalar SqlQuery reads its column by the name Value.
-        var refreshed = await context.Database
-            .SqlQuery<Guid>($"""
-                UPDATE "Recordings" SET "HeartbeatAt" = now()
-                WHERE "JobId" = ANY({ids}) AND "HeartbeatAt" > now() - {Liveness.DeadAfter}
-                RETURNING "JobId" AS "Value"
-                """)
-            .ToListAsync(cancellationToken);
-
-        return refreshed.ToHashSet();
+        return await scope.ServiceProvider.GetRequiredService<Context>().RefreshHeartbeatsAsync(jobIds, cancellationToken);
     }
 }

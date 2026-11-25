@@ -27,6 +27,7 @@ public class RecordingHeartbeatServiceTest
     private JobLifecycle lifecycle;
     private FakeTimeProvider time;
     private Mandate mandate;
+    private Mock<ILogger<RecordingHeartbeatService>> logger;
 
     [TestInitialize]
     public void Initialize()
@@ -62,6 +63,7 @@ public class RecordingHeartbeatServiceTest
             Options.Create(new RefMappingOptions()));
 
         time = new FakeTimeProvider();
+        logger = new Mock<ILogger<RecordingHeartbeatService>>();
     }
 
     [TestCleanup]
@@ -227,8 +229,31 @@ public class RecordingHeartbeatServiceTest
         Assert.IsFalse(lifecycle.AbortTokenOf(jobId).IsCancellationRequested, "The time without held jobs does not count against the limit.");
     }
 
+    [TestMethod]
+    public async Task AbortedJobIsNeitherKeptAliveNorAbortedAgain()
+    {
+        using var service = CreateService();
+        var abortedId = await StartJobAsync();
+        var diedAfterItsAbortId = await StartJobAsync();
+        var livingId = await StartJobAsync();
+        await SetHeartbeatAgeAsync(abortedId, TimeSpan.FromMinutes(1));
+        await SetHeartbeatAgeAsync(diedAfterItsAbortId, TimeSpan.FromMinutes(4));
+        lifecycle.Abort([abortedId, diedAfterItsAbortId], "database unreachable");
+
+        await service.TickAsync(CancellationToken.None);
+
+        // Nobody will run an aborted job, for instance one still waiting for a slot, so its run is left to die and its
+        // upload can be started again.
+        Assert.IsFalse(await HeartbeatIsNowAsync(abortedId), "An aborted job is not kept alive.");
+        Assert.IsTrue(await HeartbeatIsNowAsync(livingId));
+        logger.Verify(
+            l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception?>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never,
+            "The run of an aborted job dying is no news, at no tick.");
+    }
+
     private RecordingHeartbeatService CreateService() =>
-        new(lifecycle, services.GetRequiredService<IServiceScopeFactory>(), time, Mock.Of<ILogger<RecordingHeartbeatService>>());
+        new(lifecycle, services.GetRequiredService<IServiceScopeFactory>(), time, logger.Object);
 
     /// <summary>
     /// Starts a job through the lifecycle, which holds it from then on, with the start record written to the database.
