@@ -98,14 +98,8 @@ public class ProcessingJobCleanupService : BackgroundService
             var movedStagings = MoveStagedDeliveriesIntoPlace(deliveries);
             ReportMismatches(deliveryRows, deliveries, deliveryDirectories, stagingDirectories);
 
-            // The run in the database decides, so no instance deletes the files of a run another instance executes.
-            // An alive run keeps everything (reported when stuck). Any other run ends at its TerminalAt, or at its
-            // last heartbeat when dead; downloads and visualizations expire from there on their own retentions,
-            // the job (working directory, plus the delivery and staging rule from #947) on JobRetention.
-            // A job this instance holds as Pending or Running keeps everything too. Without a run, a download or
-            // visualization directory is orphaned and other directories go now, unless this instance's memory knows
-            // the job: its pipeline directory exists before the run is recorded, so it ages out in memory instead.
-            // Pipeline working directories survive a hard restart (nothing gets disposed), so they are candidates too.
+            // The run in the database decides, so no instance deletes the files of a run another instance executes,
+            // except for the local pipeline directory: it exists before its run is recorded, so memory counts as well.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetStagingDirectory));
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
@@ -119,14 +113,14 @@ public class ProcessingJobCleanupService : BackgroundService
             foreach (var jobId in downloadDirectories)
             {
                 if (FilesAreDue(jobId, runs, databaseNow, processingOptions.DownloadRetention)
-                    && DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId)))
+                    && DeleteExpired(jobId, directoryProvider.GetDownloadDirectoryPath))
                     cleanedDownloads++;
             }
 
             foreach (var jobId in visualizationDirectories)
             {
                 if (FilesAreDue(jobId, runs, databaseNow, processingOptions.VisualizationRetention)
-                    && DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId)))
+                    && DeleteExpired(jobId, directoryProvider.GetVisualizationDirectoryPath))
                     cleanedVisualizations++;
             }
 
@@ -371,6 +365,34 @@ public class ProcessingJobCleanupService : BackgroundService
     }
 
     private static bool IsRunningHere(ProcessingJob? job) => job?.State is ProcessingState.Pending or ProcessingState.Running;
+
+    /// <summary>
+    /// Deletes an expired directory of a job, guarded like <see cref="RetireJob"/> so a failure skips only this directory.
+    /// The cleanup of another instance may delete the same directory at the same moment, so one that is gone counts as
+    /// deleted.
+    /// </summary>
+    private bool DeleteExpired(Guid jobId, Func<Guid, string> directoryOf)
+    {
+        try
+        {
+            var directory = directoryOf(jobId);
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception) when (!Directory.Exists(directory))
+            {
+                // Gone meanwhile, which is all this run wanted.
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting an expired directory of job <{JobId}>.", jobId);
+            return false;
+        }
+    }
 
     private static bool DeleteIfExists(string directory)
     {

@@ -734,6 +734,47 @@ public class ProcessingJobCleanupServiceTest
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 
+    [TestMethod]
+    public async Task RunCleanupCountsADirectoryAnotherInstanceDeletedFirst()
+    {
+        // The cleanups of two instances find the files of the same orphaned job due, and the other one is faster.
+        var jobId = Guid.NewGuid();
+        var (_, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
+        directoryProviderMock
+            .Setup(d => d.GetDownloadDirectoryPath(jobId))
+            .Returns(() =>
+            {
+                if (Directory.Exists(downloadDir))
+                    Directory.Delete(downloadDir, recursive: true);
+                return downloadDir;
+            });
+
+        await service.RunCleanupAsync();
+
+        Assert.IsFalse(Directory.Exists(visualizationDir), "The run goes on.");
+        Assert.IsFalse(Directory.Exists(pipelineDir));
+        jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
+        VerifyLog(LogLevel.Information, message => message.Contains("expired download dirs: 1,", StringComparison.Ordinal), Times.Once(), "a directory that is gone counts as deleted");
+        VerifyLog(LogLevel.Error, _ => true, Times.Never());
+    }
+
+    [TestMethod]
+    public async Task RunCleanupGoesOnWhenADirectoryCannotBeDeleted()
+    {
+        var jobId = Guid.NewGuid();
+        var (_, _, visualizationDir, _) = CreateJobDirectories(jobId);
+        directoryProviderMock
+            .Setup(d => d.GetDownloadDirectoryPath(jobId))
+            .Throws(new IOException("The network mount is gone."));
+
+        await service.RunCleanupAsync();
+
+        // Only this directory waits for the next run.
+        Assert.IsFalse(Directory.Exists(visualizationDir));
+        VerifyLog(LogLevel.Error, message => message.Contains(jobId.ToString(), StringComparison.Ordinal), Times.AtLeastOnce());
+        VerifyLog(LogLevel.Error, message => message.StartsWith("Error during processing job cleanup", StringComparison.Ordinal), Times.Never());
+    }
+
     private void SeedRun(Guid jobId, TimeSpan? startedAgo = null, TimeSpan? heartbeatAgo = null, TimeSpan? settledAgo = null)
     {
         var run = NewRunRecord(DateTime.UtcNow - (startedAgo ?? settledAgo ?? TimeSpan.Zero));
@@ -781,9 +822,12 @@ public class ProcessingJobCleanupServiceTest
     }
 
     private void VerifyWarning(Func<string, bool> message, Times times, string? because = null)
+        => VerifyLog(LogLevel.Warning, message, times, because);
+
+    private void VerifyLog(LogLevel level, Func<string, bool> message, Times times, string? because = null)
         => loggerMock.Verify(
             logger => logger.Log(
-                LogLevel.Warning,
+                level,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((state, _) => message(state.ToString() ?? string.Empty)),
                 It.IsAny<Exception?>(),
