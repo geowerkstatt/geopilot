@@ -37,17 +37,16 @@ namespace Geopilot.Api.Migrations
                 nullable: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Recordings_UploadId_Open",
+                name: "IX_Recordings_UploadId",
                 table: "Recordings",
-                column: "UploadId",
-                filter: "\"TerminalState\" IS NULL");
+                column: "UploadId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_Recordings_UploadId_Open",
+                name: "IX_Recordings_UploadId",
                 table: "Recordings");
 
             migrationBuilder.DropColumn(

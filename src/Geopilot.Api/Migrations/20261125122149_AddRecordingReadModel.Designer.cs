@@ -425,9 +425,7 @@ namespace Geopilot.Api.Migrations
 
                     b.HasIndex("MandateId");
 
-                    b.HasIndex("UploadId")
-                        .HasDatabaseName("IX_Recordings_UploadId_Open")
-                        .HasFilter("\"TerminalState\" IS NULL");
+                    b.HasIndex("UploadId");
 
                     b.HasIndex("UserId");
 
