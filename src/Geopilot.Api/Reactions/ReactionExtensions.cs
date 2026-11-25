@@ -5,7 +5,7 @@ namespace Geopilot.Api.Reactions;
 /// <summary>
 /// Reads the state of deliveries from their reactions. A delivery counts as forwarded once all its transfers are
 /// <see cref="ReactionState.Done"/>, and right away when it has none (ADR 0015). Notifications do not count. Only a
-/// forwarded delivery gets its notifications and appears in the STAC catalog.
+/// forwarded delivery gets its notifications and, once its delete window has closed, appears in the STAC catalog.
 /// </summary>
 internal static class ReactionExtensions
 {

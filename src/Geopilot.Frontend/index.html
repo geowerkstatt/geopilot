@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- The API's Content-Security-Policy demands Trusted Types (WebApplicationExtensions); this holds the dev server and Cypress to it too. -->
+    <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'" />
         <link rel="icon" href="/logo.png"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>geopilot</title>

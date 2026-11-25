@@ -21,6 +21,8 @@ import OrganisationDetail from "./pages/admin/organisations/organisationDetail.t
 import Organisations from "./pages/admin/organisations/organisations.tsx";
 import { RecordingDetail } from "./pages/admin/recordings/recordingDetail.tsx";
 import { Recordings } from "./pages/admin/recordings/recordings.tsx";
+import { RefMappingDetail } from "./pages/admin/refMappings/refMappingDetail.tsx";
+import { RefMappings } from "./pages/admin/refMappings/refMappings.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
@@ -39,6 +41,12 @@ const MachineDeliveryRoutes: FC = () => {
   const { machineDeliveryEnabled } = useCapabilities();
 
   return machineDeliveryEnabled ? <Outlet /> : <Navigate to="/admin" replace />;
+};
+
+const RefMappingRoutes: FC = () => {
+  const { refMappingEnabled } = useCapabilities();
+
+  return refMappingEnabled ? <Outlet /> : <Navigate to="/admin" replace />;
 };
 
 const App: FC = () => {
@@ -114,6 +122,10 @@ const App: FC = () => {
                         <Route element={<MachineDeliveryRoutes />}>
                           <Route path="machine-clients" element={<MachineClients />} />
                           <Route path="machine-clients/:id" element={<MachineClientDetail />} />
+                        </Route>
+                        <Route element={<RefMappingRoutes />}>
+                          <Route path="refmappings" element={<RefMappings />} />
+                          <Route path="refmappings/:id" element={<RefMappingDetail />} />
                         </Route>
                       </Route>
                     ) : (

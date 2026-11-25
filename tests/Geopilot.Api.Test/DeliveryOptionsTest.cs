@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Api.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 
 namespace Geopilot.Api;
@@ -88,6 +89,35 @@ public class DeliveryOptionsTest
         };
 
         Assert.AreEqual(expected, options.DeleteWindowCloses);
+    }
+
+    [TestMethod]
+    [DataRow(false, null, null, DisplayName = "Uploaders cannot delete")]
+    [DataRow(true, "02:00:00", null, DisplayName = "Duration")]
+    [DataRow(true, null, "0 0 * * *", DisplayName = "Daily interval")]
+    [DataRow(true, "02:00:00", "0 0 * * *", DisplayName = "Duration and interval")]
+    [DataRow(true, null, "* * * * *", DisplayName = "Interval every minute")]
+    [DataRow(true, null, "0 0 1 * *", DisplayName = "Monthly interval")]
+    [DataRow(true, null, "0 0 1 1 *", DisplayName = "Yearly interval")]
+    [DataRow(true, null, null, DisplayName = "Window never closes")]
+    public void DeleteWindowClosedAtAgreesWithGetDeleteWindowEnd(bool uploaderDeleteEnabled, string? duration, string? interval)
+    {
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = uploaderDeleteEnabled,
+            DeleteDuration = duration == null ? null : TimeSpan.Parse(duration, CultureInfo.InvariantCulture),
+            DeleteRestrictInterval = interval,
+            TimeZone = Zurich,
+        };
+
+        // On the day summer time starts, every quarter hour from two days back to an hour ahead.
+        var now = ParseUtc("2026-03-29T12:00:00Z");
+        var closed = options.DeleteWindowClosedAt(now).Compile();
+        for (var deliveredAt = now.AddDays(-2); deliveredAt <= now.AddHours(1); deliveredAt = deliveredAt.AddMinutes(15))
+        {
+            var expected = options.GetDeleteWindowEnd(deliveredAt) <= now;
+            Assert.AreEqual(expected, closed(new Delivery { Date = deliveredAt }), $"delivered at {deliveredAt:O}");
+        }
     }
 
     [TestMethod]

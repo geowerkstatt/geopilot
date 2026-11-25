@@ -17,6 +17,7 @@ public class AssetHandlerTest
     private Mock<ILogger<AssetHandler>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
     private Mock<IAssetFileStore> assetFileStoreMock;
+    private Mock<IAssetStagingFileStore> assetStagingFileStoreMock;
     private AssetHandler assetHandler;
     private ProcessingJob job;
     private string assetDirectory;
@@ -29,7 +30,8 @@ public class AssetHandlerTest
         loggerMock = new Mock<ILogger<AssetHandler>>();
         validationServiceMock = new Mock<IProcessingService>();
         assetFileStoreMock = new Mock<IAssetFileStore>();
-        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
+        assetStagingFileStoreMock = new Mock<IAssetStagingFileStore>();
+        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, assetFileStoreMock.Object, assetStagingFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(job);
     }
@@ -37,7 +39,7 @@ public class AssetHandlerTest
     [TestMethod]
     public async Task RecordJobAssetsDeliveryFileFromUploadRecordsAsPrimaryData()
     {
-        SetupDeliveryFileOnDisk("uploaded.xtf");
+        SetupStagedFile("uploaded.xtf");
         SetJobPipeline(new PersistedFile("uploaded.xtf", "uploaded.xtf", FromUpload: true));
 
         var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
@@ -52,7 +54,7 @@ public class AssetHandlerTest
     [TestMethod]
     public async Task RecordJobAssetsDeliveryFileProducedByStepRecordsAsProcessedData()
     {
-        SetupDeliveryFileOnDisk("logfile.log");
+        SetupStagedFile("logfile.log");
         SetJobPipeline(new PersistedFile("validator_logfile.log", "logfile.log", FromUpload: false));
 
         var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
@@ -63,7 +65,7 @@ public class AssetHandlerTest
         Assert.AreEqual("logfile.log", asset.SanitizedFilename);
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), asset.FileHash);
 
-        // Delivery files are already in the asset store: the handler hashes them in place and never copies.
+        // Delivery files are already staged: the handler hashes them in staging and never copies.
         assetFileStoreMock.Verify(x => x.CreateFile(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
         assetFileStoreMock.Verify(x => x.GetPath(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
@@ -71,8 +73,8 @@ public class AssetHandlerTest
     [TestMethod]
     public async Task RecordJobAssetsMixedOriginsDerivesTypePerFile()
     {
-        SetupDeliveryFileOnDisk("uploaded.xtf");
-        SetupDeliveryFileOnDisk("report.pdf");
+        SetupStagedFile("uploaded.xtf");
+        SetupStagedFile("report.pdf");
         SetJobPipeline(
             new PersistedFile("uploaded.xtf", "uploaded.xtf", FromUpload: true),
             new PersistedFile("report.pdf", "report.pdf", FromUpload: false));
@@ -84,20 +86,27 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public async Task RecordJobAssetsPromotesTheStagedFilesBeforeReadingThem()
+    public async Task RecordJobAssetsHashesTheStagedFilesWithoutMovingThem()
     {
-        // Until promoted, the files exist only in the staging store: reading the asset store first would fail the creation.
-        var promoted = false;
-        assetFileStoreMock.Setup(x => x.PromoteStagedFiles(job.Id)).Callback(() => promoted = true);
-        assetFileStoreMock
-            .Setup(x => x.OpenFile(job.Id, "report.pdf"))
-            .Returns(() => promoted ? new MemoryStream(Encoding.UTF8.GetBytes(FileContent)) : throw new FileNotFoundException("not promoted yet"));
+        SetupStagedFile("report.pdf");
         SetJobPipeline(new PersistedFile("report.pdf", "report.pdf", FromUpload: false));
 
-        var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
+        var asset = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).Single();
 
-        Assert.HasCount(1, assets);
-        assetFileStoreMock.Verify(x => x.PromoteStagedFiles(job.Id), Times.Once);
+        CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), asset.FileHash);
+        assetFileStoreMock.Verify(x => x.PromoteStagedFiles(It.IsAny<Guid>()), Times.Never, "the delivery is not saved yet");
+        assetFileStoreMock.Verify(x => x.OpenFile(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task RecordJobAssetsIgnoresFilesLeftInTheDeliveryDirectory()
+    {
+        // Remnants of a deleted delivery are no payload: without staging the job cannot be delivered again.
+        assetStagingFileStoreMock.Setup(x => x.OpenFile(job.Id, "report.pdf")).Throws(new FileNotFoundException());
+        assetFileStoreMock.Setup(x => x.OpenFile(job.Id, "report.pdf")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(FileContent)));
+        SetJobPipeline(new PersistedFile("report.pdf", "report.pdf", FromUpload: false));
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None));
     }
 
     [TestMethod]
@@ -136,11 +145,9 @@ public class AssetHandlerTest
         return pipelineMock.Object;
     }
 
-    private void SetupDeliveryFileOnDisk(string persistedFileName)
+    private void SetupStagedFile(string persistedFileName)
     {
-        Directory.CreateDirectory(assetDirectory);
-        File.WriteAllText(Path.Combine(assetDirectory, persistedFileName), FileContent);
-        assetFileStoreMock
+        assetStagingFileStoreMock
             .Setup(x => x.OpenFile(job.Id, persistedFileName))
             .Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(FileContent)));
     }

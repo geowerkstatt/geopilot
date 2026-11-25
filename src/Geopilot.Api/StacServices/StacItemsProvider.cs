@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Reactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Stac;
 using Stac.Api.Interfaces;
 using Stac.Api.Services.Pagination;
@@ -17,16 +17,18 @@ public class StacItemsProvider : IItemsProvider
     private readonly IDbContextFactory<Context> contextFactory;
     private readonly StacConverter stacConverter;
     private readonly IHttpContextAccessor httpContextAccessor;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StacItemsProvider"/> class.
     /// </summary>
-    public StacItemsProvider(ILogger<StacItemsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter, IHttpContextAccessor httpContextAccessor)
+    public StacItemsProvider(ILogger<StacItemsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter, IHttpContextAccessor httpContextAccessor, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.contextFactory = contextFactory;
         this.stacConverter = stacConverter;
         this.httpContextAccessor = httpContextAccessor;
+        this.deliveryOptions = deliveryOptions;
     }
 
     private bool IsAdmin => StacAudienceFilter.IsAdmin(httpContextAccessor.HttpContext);
@@ -42,7 +44,7 @@ public class StacItemsProvider : IItemsProvider
         {
             try
             {
-                return db.MandatesInStac(isAdmin).FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Count > 0;
+                return db.MandatesInStac(isAdmin, deliveryOptions.Value).FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Count > 0;
             }
             catch (Exception ex)
             {
@@ -61,14 +63,15 @@ public class StacItemsProvider : IItemsProvider
         {
             var isAdmin = IsAdmin;
             using var db = contextFactory.CreateDbContext();
-            var delivery = db.DeliveriesInStac(isAdmin)
+            var delivery = db.DeliveriesInStac(isAdmin, deliveryOptions.Value)
                 .AsNoTracking()
                 .AsEnumerable()
                 .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && d.Mandate != null && stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First())
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
 
-            // The catalog hides a delivery until it is forwarded, so the item of its successor must not give its time away.
-            if (delivery.PrecursorDelivery is not null && db.DeliveryReactions.UnforwardedDeliveryIds().Contains(delivery.PrecursorDelivery.Id))
+            // The catalog hides a delivery until it shows it, so the item of its successor must not give its time away.
+            var precursorId = delivery.PrecursorDelivery?.Id;
+            if (precursorId is not null && !db.DeliveriesInStac(isAdmin, deliveryOptions.Value).Any(d => d.Id == precursorId))
             {
                 delivery.PrecursorDelivery = null;
             }
@@ -102,7 +105,7 @@ public class StacItemsProvider : IItemsProvider
         var collectionIds = stacApiContext.Collections?.ToList();
         var isAdmin = IsAdmin;
         using var db = contextFactory.CreateDbContext();
-        IEnumerable<Mandate> mandates = await db.MandatesInStac(isAdmin).AsNoTracking().ToListAsync(cancellationToken);
+        IEnumerable<Mandate> mandates = await db.MandatesInStac(isAdmin, deliveryOptions.Value).AsNoTracking().ToListAsync(cancellationToken);
 
         if (collectionIds?.Count > 0)
         {
