@@ -10,12 +10,15 @@ namespace Geopilot.Api.Processing;
 /// </summary>
 public static class Liveness
 {
+    /// <summary>How often an instance records that it is still processing a run.</summary>
     // shortcut: fixed interval, make it configurable if a deployment needs a different load on the database.
     public static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(30);
 
+    /// <summary>A run without a heartbeat for this long is considered dead.</summary>
     // shortcut: fixed, must stay above the heartbeat interval plus the retries of a heartbeat write.
     public static readonly TimeSpan DeadAfter = TimeSpan.FromMinutes(3);
 
+    /// <summary>An instance without a successful write for this long stops its own run.</summary>
     // shortcut: fixed, must stay below DeadAfter so an instance stops before others declare its run dead.
     public static readonly TimeSpan AbortAfter = TimeSpan.FromSeconds(150);
 
