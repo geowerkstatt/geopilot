@@ -15,9 +15,9 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile:
-      refMappingFile:
       pluginIds:
       toolVersion:
+      refMappingFromPortal:
   - id: xtf_error_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
     default_config:
@@ -610,9 +610,9 @@ pipelines:
         process_id: xtf_validator
         process_config_overwrites:
           validationProfile: dmav_v1_1_with_additional_rules
-          refMappingFile: dmav/refdata_mapping.xtf
           pluginIds: ilivalid-gwr@1.0.0-20260217.141026-7
           toolVersion: 1.15.1-INTERNAL-GEOWERKSTATT-SNAPSHOT
+          refMappingFromPortal: true
         conditions:
           post:
             restrict_delivery_conditions:

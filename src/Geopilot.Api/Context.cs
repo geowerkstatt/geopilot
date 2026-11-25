@@ -21,6 +21,12 @@ public class Context : DbContext
     public const string MandateKeyIndexName = "IX_Mandates_Key";
 
     /// <summary>
+    /// Name of the unique index over <see cref="RefMapping.Scope"/>, shared for the same reason as
+    /// <see cref="MandateKeyIndexName"/>.
+    /// </summary>
+    public const string RefMappingScopeIndexName = "IX_RefMappings_Scope";
+
+    /// <summary>
     /// Name of the unique index over <see cref="Delivery.JobId"/>. A violation of this index is how the
     /// creation learns that another caller created a delivery for the same job first, so the name is shared instead of
     /// repeated as a literal.
@@ -151,6 +157,11 @@ public class Context : DbContext
     public DbSet<Asset> Assets { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="RefMapping"/>, the entries of the reference data mapping.
+    /// </summary>
+    public DbSet<RefMapping> RefMappings { get; set; }
+
+    /// <summary>
     /// Set of all <see cref="DeliveryReaction"/>, the reactions to deliveries and the queue they are claimed from.
     /// </summary>
     public DbSet<DeliveryReaction> DeliveryReactions { get; set; }
@@ -266,6 +277,11 @@ public class Context : DbContext
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
 
+        modelBuilder.Entity<RefMapping>()
+            .HasIndex(r => r.Scope)
+            .IsUnique()
+            .HasDatabaseName(RefMappingScopeIndexName);
+
         // The snapshot holds dictionaries, so the comparer compares the JSON, as for the reaction set values of a mandate.
         var reactionSnapshotConverter = new ValueConverter<ReactionSnapshot, string>(
             snapshot => JsonSerializer.Serialize(snapshot, (JsonSerializerOptions?)null),
@@ -369,6 +385,7 @@ public class Context : DbContext
             run.HasIndex(r => r.ClientReference).HasFilter("\"ClientReference\" IS NOT NULL");
 
             run.Property(r => r.Definition).HasColumnType("jsonb");
+            run.Property(r => r.Bindings).HasColumnType("jsonb");
             run.Property(r => r.ClientKind).HasConversion<string>();
             run.Property(r => r.ClientReference).HasMaxLength(Recording.ClientReferenceMaxLength);
             run.Property(r => r.PermissionToDeliver).HasConversion<string>();

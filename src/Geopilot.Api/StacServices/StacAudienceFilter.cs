@@ -44,24 +44,37 @@ public static class StacVisibilityExtensions
     /// The mandates the caller sees, all of them for an administrator and only <see cref="StacAccess.Public"/> ones
     /// otherwise, each with the deliveries the catalog shows (see <see cref="DeliveriesInStac"/>).
     /// </summary>
-    public static IQueryable<Mandate> MandatesInStac(this Context context, bool isAdmin)
+    public static IQueryable<Mandate> MandatesInStac(this Context context, bool isAdmin, DeliveryOptions deliveryOptions)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
-        var mandates = context.MandatesWithIncludes.Include(m => m.Deliveries.Where(d => !unforwarded.Contains(d.Id)));
+        var shown = ShownDeliveryIds(context, deliveryOptions);
+        var mandates = context.MandatesWithIncludes.Include(m => m.Deliveries.Where(d => shown.Contains(d.Id)));
         return isAdmin ? mandates : mandates.Where(m => m.StacAccess == StacAccess.Public);
     }
 
     /// <summary>
-    /// The deliveries of the mandates the caller sees, each once it is forwarded: a delivery with transfers appears
-    /// when all of them are done, one without right away (ADR 0015). That holds for administrators as well.
+    /// The deliveries of the mandates the caller sees, each once its uploader can no longer delete it and all its
+    /// transfers are done. A delivery without transfers appears when its delete window closes, and never while that
+    /// window stays open. That holds for administrators as well.
     /// </summary>
-    public static IQueryable<Delivery> DeliveriesInStac(this Context context, bool isAdmin)
+    public static IQueryable<Delivery> DeliveriesInStac(this Context context, bool isAdmin, DeliveryOptions deliveryOptions)
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        var shown = ShownDeliveryIds(context, deliveryOptions);
+        return context.DeliveriesWithIncludes.Where(d => (isAdmin || d.Mandate.StacAccess == StacAccess.Public) && shown.Contains(d.Id));
+    }
+
+    // Nothing is published while it can still be taken back (ADR 0015): the uploader may still delete it, or a transfer is open.
+    private static IQueryable<int> ShownDeliveryIds(Context context, DeliveryOptions deliveryOptions)
+    {
+        ArgumentNullException.ThrowIfNull(deliveryOptions);
+
         var unforwarded = context.DeliveryReactions.UnforwardedDeliveryIds();
-        return context.DeliveriesWithIncludes.Where(d => (isAdmin || d.Mandate.StacAccess == StacAccess.Public) && !unforwarded.Contains(d.Id));
+        return context.Deliveries
+            .Where(deliveryOptions.DeleteWindowClosedAt(DateTime.UtcNow))
+            .Where(d => !unforwarded.Contains(d.Id))
+            .Select(d => d.Id);
     }
 }

@@ -172,6 +172,29 @@ public class OpaqueTokenSecurityTest
         Assert.AreEqual(1, testApp.UserInfoHttpCallCount);
     }
 
+    [TestMethod]
+    public async Task AnonymousEndpointTreatsTokenWithoutRequiredClaimAsNoToken()
+    {
+        const string adminOnlyCollection = "/api/stac/collections/coll_1";
+        using var appWithRequiredClaim = app.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Auth:RequiredClaims:0:Name", "tid");
+            builder.UseSetting("Auth:RequiredClaims:0:Value", "tenant-a");
+        });
+        using var clientWithRequiredClaim = appWithRequiredClaim.CreateClient();
+        using var acceptedRequest = CreateRequest(HttpMethod.Get, adminOnlyCollection, OpaqueTestApp.OpaqueAdminToken);
+        using var rejectedRequest = CreateRequest(HttpMethod.Get, adminOnlyCollection, OpaqueTestApp.OpaqueAdminToken);
+        using var anonymousRequest = CreateRequest(HttpMethod.Get, adminOnlyCollection);
+
+        var accepted = await client.SendAsync(acceptedRequest);
+        var rejected = await clientWithRequiredClaim.SendAsync(rejectedRequest);
+        var anonymous = await clientWithRequiredClaim.SendAsync(anonymousRequest);
+
+        Assert.AreEqual(HttpStatusCode.OK, accepted.StatusCode, "Without required claims, the admin token sees the collection.");
+        Assert.AreNotEqual(HttpStatusCode.OK, anonymous.StatusCode);
+        Assert.AreEqual(anonymous.StatusCode, rejected.StatusCode);
+    }
+
     private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string? token = null)
     {
         var request = new HttpRequestMessage(method, url);

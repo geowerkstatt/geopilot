@@ -61,7 +61,7 @@ public class UploadPollingTest
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
 
-        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }));
+        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }), Options.Create(new RefMappingOptions()));
 
         processingService = new ProcessingService(jobStore, uploadStore, mandateServiceMock.Object, lifecycle);
 
@@ -101,7 +101,8 @@ public class UploadPollingTest
                 It.Is<ProcessingJob>(job => job.Id == jobId),
                 mandate,
                 Supplier.ForUser(user.Id),
-                It.Is<UploadInfo>(upload => upload.Id == uploadId)),
+                It.Is<UploadInfo>(upload => upload.Id == uploadId),
+                It.IsAny<string?>()),
             Times.Once);
     }
 

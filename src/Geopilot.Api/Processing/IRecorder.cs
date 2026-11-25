@@ -25,7 +25,8 @@ public interface IRecorder
     /// <param name="mandate">The mandate the job was started for.</param>
     /// <param name="supplier">The user or machine client that started the job, or <see langword="null"/> when it was started anonymously on a public mandate.</param>
     /// <param name="upload">The upload whose files the job processes.</param>
-    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Supplier? supplier, UploadInfo upload);
+    /// <param name="bindings">What the host bound to the job as JSON (see <see cref="Recording.Bindings"/>), or <see langword="null"/> when it bound nothing.</param>
+    Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, Supplier? supplier, UploadInfo upload, string? bindings = null);
 
     /// <summary>
     /// Records the outcome of the malware scan and the per-file hashes it computed. Soft.
