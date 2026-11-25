@@ -14,6 +14,12 @@ describe("Recordings", () => {
     cy.dataCy("recordings-grid").find('[data-field="attemptCount"][role="gridcell"]').should("have.text", "2");
   });
 
+  it("opens a recording with the details button of its row", () => {
+    cy.dataCy("recordings-grid").find(".MuiDataGrid-row").should("have.css", "cursor", "pointer");
+    cy.dataCy("recordings-grid").find(".MuiDataGrid-row").first().find('[data-cy="details"]').click();
+    cy.location("pathname").should("eq", "/admin/recordings/6f7cdfa3-c20a-44bc-bc6c-8771bfadcc8a");
+  });
+
   it("filters by several states at once", () => {
     // The states in the order of RecordingStateFilter: failed is the fourth, open the sixth.
     cy.dataCy("recordingFilter-state").click();
