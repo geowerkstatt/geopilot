@@ -23,8 +23,9 @@ public class DeliveryCreationServiceTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
+    private static readonly TimeSpan JobRetention = TimeSpan.FromHours(1);
+
     private Context context;
-    private Mock<IProcessingService> processingServiceMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
@@ -34,18 +35,17 @@ public class DeliveryCreationServiceTest
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         service = new DeliveryCreationService(
             Mock.Of<ILogger<DeliveryCreationService>>(),
             context,
-            processingServiceMock.Object,
             mandateServiceMock.Object,
             assetHandlerMock.Object,
             pipelineFactoryMock.Object,
-            Options.Create(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(1) }));
+            Options.Create(new DeliveryOptions { UploaderDeleteEnabled = true, DeleteDuration = TimeSpan.FromHours(1) }),
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = JobRetention }));
     }
 
     [TestCleanup]
@@ -180,9 +180,47 @@ public class DeliveryCreationServiceTest
     }
 
     [TestMethod]
-    public async Task RefusesARunNobodyMayDeliver()
+    public async Task CreatesTheDeliveryOfARunFromAnotherInstance()
     {
-        var jobId = SetupDeliverableJob(mandateId: 1, mayDeliver: false);
+        // The job store of this instance is empty and the run's heartbeat is long stale: the settled protocol is the answer.
+        var (jobId, supplier) = PrepareCreation(nameof(CreatesTheDeliveryOfARunFromAnotherInstance));
+        SetupStagedAssets(jobId);
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), supplier, CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.Created, result.Status);
+    }
+
+    [TestMethod]
+    public async Task RefusesARunThatIsNotDeliverable()
+    {
+        var mandate = AddMandate(nameof(RefusesARunThatIsNotDeliverable));
+        context.SaveChanges();
+        var jobId = SetupDeliverableJob(mandate.Id, terminalState: ProcessingState.Failed);
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(1), CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.JobNotDeliverable, result.Status);
+    }
+
+    [TestMethod]
+    public async Task RefusesARunPastItsRetention()
+    {
+        var mandate = AddMandate(nameof(RefusesARunPastItsRetention));
+        context.SaveChanges();
+        var jobId = SetupDeliverableJob(mandate.Id, terminalAgo: JobRetention + TimeSpan.FromMinutes(1));
+
+        var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(1), CancellationToken.None);
+
+        Assert.AreEqual(DeliveryCreationStatus.JobNotFound, result.Status);
+    }
+
+    [TestMethod]
+    public async Task RefusesARunWithoutPermission()
+    {
+        var mandate = AddMandate(nameof(RefusesARunWithoutPermission));
+        context.SaveChanges();
+        var jobId = SetupDeliverableJob(mandate.Id, PermissionToDeliver.NotPermitted);
 
         var result = await service.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(1), CancellationToken.None);
 
@@ -216,11 +254,11 @@ public class DeliveryCreationServiceTest
         var creationService = new DeliveryCreationService(
             Mock.Of<ILogger<DeliveryCreationService>>(),
             context,
-            processingServiceMock.Object,
             new MandateService(context, Mock.Of<IUploadStore>(), Mock.Of<IPipelineService>()),
             assetHandlerMock.Object,
             pipelineFactoryMock.Object,
-            Options.Create(new DeliveryOptions()));
+            Options.Create(new DeliveryOptions()),
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = JobRetention }));
 
         var result = await creationService.CreateAsync(jobId, new DeliveryFields(null, null, null), Supplier.ForUser(caller.Id), CancellationToken.None);
 
@@ -461,12 +499,10 @@ public class DeliveryCreationServiceTest
         assetHandlerMock.Setup(a => a.PromoteJobAssets(jobId));
     }
 
-    private Guid SetupDeliverableJob(int mandateId, bool mayDeliver = true)
-    {
-        var jobId = Guid.NewGuid();
-        processingServiceMock
-            .Setup(s => s.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now) { State = ProcessingState.Success, MayDeliver = mayDeliver });
-        return jobId;
-    }
+    private Guid SetupDeliverableJob(
+        int mandateId,
+        PermissionToDeliver permission = PermissionToDeliver.Permitted,
+        ProcessingState terminalState = ProcessingState.Success,
+        TimeSpan? terminalAgo = null)
+        => context.AddRun(mandateId, terminalState, permission, terminalAgo);
 }

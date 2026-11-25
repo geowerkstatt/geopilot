@@ -15,7 +15,7 @@ public class DeliveryCreationService : IDeliveryCreationService
 {
     private readonly ILogger<DeliveryCreationService> logger;
     private readonly Context context;
-    private readonly IProcessingService processingService;
+    private readonly IOptions<ProcessingOptions> processingOptions;
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IPipelineFactory pipelineFactory;
@@ -27,15 +27,15 @@ public class DeliveryCreationService : IDeliveryCreationService
     public DeliveryCreationService(
         ILogger<DeliveryCreationService> logger,
         Context context,
-        IProcessingService processingService,
         IMandateService mandateService,
         IAssetHandler assetHandler,
         IPipelineFactory pipelineFactory,
-        IOptions<DeliveryOptions> deliveryOptions)
+        IOptions<DeliveryOptions> deliveryOptions,
+        IOptions<ProcessingOptions> processingOptions)
     {
         this.logger = logger;
         this.context = context;
-        this.processingService = processingService;
+        this.processingOptions = processingOptions;
         this.mandateService = mandateService;
         this.assetHandler = assetHandler;
         this.pipelineFactory = pipelineFactory;
@@ -48,14 +48,14 @@ public class DeliveryCreationService : IDeliveryCreationService
         ArgumentNullException.ThrowIfNull(fields);
         ArgumentNullException.ThrowIfNull(supplier);
 
-        var job = processingService.GetJob(jobId);
-        if (job == null)
+        var run = await context.FindAnswerableRecordingAsync(jobId, processingOptions.Value.JobRetention, cancellationToken);
+        if (run is null)
         {
             logger.LogTrace("No job information available for job with id <{JobId}>.", jobId);
             return new DeliveryCreationResult(DeliveryCreationStatus.JobNotFound, Message: $"No job information available for job with id <{jobId}>");
         }
 
-        if (!job.State.IsDeliverable())
+        if (run.TerminalState is not { } state || !state.IsDeliverable())
         {
             logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", jobId);
             return new DeliveryCreationResult(DeliveryCreationStatus.JobNotDeliverable, Message: $"Job with id <{jobId}> is not completed or delivery is not allowed.");
@@ -63,13 +63,13 @@ public class DeliveryCreationService : IDeliveryCreationService
 
         // Whether anybody may deliver the run was decided when it started: a run started anonymously, by a non-member
         // or on a mandate that takes no deliveries stays closed to delivery, whoever asks now.
-        if (!job.MayDeliver)
+        if (run.PermissionToDeliver != PermissionToDeliver.Permitted)
         {
             logger.LogTrace("Job with id <{JobId}> cannot be delivered by anybody.", jobId);
             return new DeliveryCreationResult(DeliveryCreationStatus.JobNotPermitted, Message: $"Job with id <{jobId}> cannot become a delivery: whoever started it may not deliver to its mandate, or the mandate takes no deliveries.");
         }
 
-        if (job.MandateId == null)
+        if (run.MandateId is null)
         {
             logger.LogTrace("Job with id <{JobId}> cannot be used to make a delivery.", jobId);
             return new DeliveryCreationResult(DeliveryCreationStatus.JobWithoutMandate, Message: $"Job with id <{jobId}> cannot be used to make a delivery.");
@@ -92,14 +92,14 @@ public class DeliveryCreationService : IDeliveryCreationService
         var user = supplier.UserId is int userId ? await context.Users.SingleAsync(u => u.Id == userId, cancellationToken) : null;
         var client = supplier.MachineClientId is int clientId ? await context.MachineClients.SingleAsync(c => c.Id == clientId, cancellationToken) : null;
 
-        var mandate = await mandateService.MayDeliverAsync(job.MandateId.Value, supplier)
-            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId, cancellationToken)
+        var mandate = await mandateService.MayDeliverAsync(run.MandateId.Value, supplier)
+            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == run.MandateId, cancellationToken)
             : null;
 
         if (mandate is null)
         {
-            logger.LogTrace("Mandate with id <{MandateId}> not found.", job.MandateId);
-            return new DeliveryCreationResult(DeliveryCreationStatus.MandateNotDeliverable, Message: $"Mandate with id <{job.MandateId}> not found.");
+            logger.LogTrace("Mandate with id <{MandateId}> not found.", run.MandateId);
+            return new DeliveryCreationResult(DeliveryCreationStatus.MandateNotDeliverable, Message: $"Mandate with id <{run.MandateId}> not found.");
         }
 
         var precursorDelivery = mandate.Deliveries.SingleOrDefault(d => d.Id == fields.PrecursorDeliveryId);

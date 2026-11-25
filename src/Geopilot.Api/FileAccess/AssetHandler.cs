@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api.FileAccess;
@@ -16,7 +17,7 @@ namespace Geopilot.Api.FileAccess;
 public class AssetHandler : IAssetHandler
 {
     private readonly ILogger<AssetHandler> logger;
-    private readonly IProcessingService processingService;
+    private readonly Context context;
     private readonly IAssetFileStore assetFileStore;
     private readonly IAssetStagingFileStore assetStagingFileStore;
     private readonly IDirectoryProvider directoryProvider;
@@ -25,10 +26,10 @@ public class AssetHandler : IAssetHandler
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
-    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IAssetFileStore assetFileStore, IAssetStagingFileStore assetStagingFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, Context context, IAssetFileStore assetFileStore, IAssetStagingFileStore assetStagingFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
-        this.processingService = processingService;
+        this.context = context;
         this.assetFileStore = assetFileStore;
         this.assetStagingFileStore = assetStagingFileStore;
         this.directoryProvider = directoryProvider;
@@ -38,12 +39,34 @@ public class AssetHandler : IAssetHandler
     /// <inheritdoc/>
     public async Task<IEnumerable<Asset>> RecordJobAssetsAsync(Guid jobId, CancellationToken cancellationToken)
     {
-        var job = processingService.GetJob(jobId);
-
-        if (job is null)
+        if (!await context.Recordings.AnyAsync(r => r.JobId == jobId, cancellationToken))
             throw new InvalidOperationException($"Processing job with id {jobId} not found.");
 
-        return await RecordStepDeliveryAssetsAsync(job, cancellationToken);
+        var deliveryFiles = await context.RecordingArtifacts
+            .AsNoTracking()
+            .Where(a => a.Kind == ArtifactKind.Delivery && a.Step.Recording.JobId == jobId)
+            .OrderBy(a => a.Step.Order)
+            .ThenBy(a => a.Id)
+            .Select(a => new { a.PersistedFileName, a.FromUpload })
+            .ToListAsync(cancellationToken);
+
+        var assets = new List<Asset>();
+        foreach (var file in deliveryFiles)
+        {
+            // The files are hashed in staging, nothing is copied: they move into the delivery directory only once
+            // the delivery is saved. A file that entered as an upload is primary data; one produced by a step is
+            // processed data.
+            using var stream = assetStagingFileStore.OpenFile(jobId, file.PersistedFileName);
+            assets.Add(new Asset()
+            {
+                AssetType = file.FromUpload == true ? AssetType.PrimaryData : AssetType.ProcessedData,
+                OriginalFilename = file.PersistedFileName,
+                SanitizedFilename = file.PersistedFileName,
+                FileHash = await SHA256.HashDataAsync(stream, cancellationToken),
+            });
+        }
+
+        return assets;
     }
 
     /// <inheritdoc/>
@@ -80,32 +103,5 @@ public class AssetHandler : IAssetHandler
             logger.LogError(e, message);
             throw new InvalidOperationException(message, e);
         }
-    }
-
-    private async Task<List<Asset>> RecordStepDeliveryAssetsAsync(ProcessingJob job, CancellationToken cancellationToken)
-    {
-        var assets = new List<Asset>();
-        if (job.Pipeline == null)
-            return assets;
-
-        foreach (var step in job.Pipeline.Steps)
-        {
-            foreach (var persisted in step.DeliveryFiles)
-            {
-                // The files are hashed in staging, nothing is copied: they move into the delivery directory only once
-                // the delivery is saved. A file that entered as an upload is primary data; one produced by a step is
-                // processed data.
-                using var stream = assetStagingFileStore.OpenFile(job.Id, persisted.PersistedFileName);
-                assets.Add(new Asset()
-                {
-                    AssetType = persisted.FromUpload ? AssetType.PrimaryData : AssetType.ProcessedData,
-                    OriginalFilename = persisted.PersistedFileName,
-                    SanitizedFilename = persisted.PersistedFileName,
-                    FileHash = await SHA256.HashDataAsync(stream, cancellationToken),
-                });
-            }
-        }
-
-        return assets;
     }
 }
