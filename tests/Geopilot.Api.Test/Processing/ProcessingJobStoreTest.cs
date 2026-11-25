@@ -205,6 +205,16 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
+    public void TryPipelineFinishedCancelsAPendingJob()
+    {
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: false);
+
+        Assert.IsTrue(store.TryPipelineFinished(job.Id, ProcessingState.Cancelled), "A host shutdown also ends a job whose run has not begun.");
+        Assert.AreEqual(ProcessingState.Cancelled, store.GetJob(job.Id)!.State);
+        Assert.IsNotNull(store.GetJob(job.Id)!.FinishedAt);
+    }
+
+    [TestMethod]
     [DataRow(ProcessingState.Pending)]
     [DataRow(ProcessingState.Running)]
     public void TryPipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)

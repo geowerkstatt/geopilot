@@ -19,6 +19,7 @@ public class PreflightBackgroundServiceTest
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<IRecorder> runRecorderMock;
     private Mock<ILogger<PreflightBackgroundService>> loggerMock;
+    private Channel<PreflightRequest> channel;
     private PreflightBackgroundService service;
 
     [TestInitialize]
@@ -42,7 +43,7 @@ public class PreflightBackgroundServiceTest
 
         // The real lifecycle, not a mock: it resolves the recorder and the orchestration from the same scope
         // factory, so these tests still see every consequence of a preflight.
-        var channel = Channel.CreateUnbounded<PreflightRequest>();
+        channel = Channel.CreateUnbounded<PreflightRequest>();
         var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStoreMock.Object, Mock.Of<IPipelineFactory>(), channel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }), Options.Create(new RefMappingOptions()));
 
         service = new PreflightBackgroundService(channel.Reader, scopeFactoryMock.Object, loggerMock.Object, lifecycle);
@@ -74,30 +75,65 @@ public class PreflightBackgroundServiceTest
     }
 
     [TestMethod]
-    public async Task ProcessRequestAsyncLeavesJobAndUploadUntouchedWhenTheHostShutsDown()
+    public async Task HostShutdownCancelsTheJobWhoseScanItInterruptsAndKeepsItsUpload()
     {
-        var jobId = Guid.NewGuid();
-        var uploadId = Guid.NewGuid();
-        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>(MockBehavior.Strict).Object);
-        using var shutdown = new CancellationTokenSource();
+        var (request, pipeline) = QueuePendingJob();
+        var scanStarted = new TaskCompletionSource();
 
         // The scan only ends when the shutdown cancels it, like a scan over several gigabytes would.
-        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RunPreflightChecksAsync(request.UploadId, It.IsAny<CancellationToken>()))
             .Returns<Guid, CancellationToken>(async (_, cancellationToken) =>
             {
+                scanStarted.SetResult();
                 await Task.Delay(Timeout.Infinite, cancellationToken);
                 return new ScanResult(true);
             });
 
-        var processing = service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId), shutdown.Token);
-        await shutdown.CancelAsync();
-        await processing.WaitAsync(TimeSpan.FromSeconds(10));
+        await service.StartAsync(CancellationToken.None);
+        await scanStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await service.StopAsync(CancellationToken.None);
 
-        // The strict mocks refuse any other call, so the job is neither failed nor queued and no file is released.
+        AssertEndedByShutdown(request.JobId);
+        pipeline.Verify(p => p.Dispose(), Times.Once);
         runRecorderMock.Verify(r => r.RecordPreflightFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
-        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(It.IsAny<Guid>(), It.IsAny<ScanResult>()), Times.Never);
+        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never, "The shutdown says nothing about the data, so the upload stays for another start.");
+    }
+
+    [TestMethod]
+    public async Task HostShutdownCancelsTheJobsQueuedBehindARunningScan()
+    {
+        var (scanned, _) = QueuePendingJob();
+        var (readAfterShutdown, _) = QueuePendingJob();
+        var (stillQueued, _) = QueuePendingJob();
+        var scanStarted = new TaskCompletionSource();
+        var scanGate = new TaskCompletionSource();
+        var registeredFiles = new List<IPipelineFile>();
+
+        // A scan that does not notice the shutdown and passes after it began. The service then still reads the next
+        // request from its queue, while the last one stays there.
+        orchestrationServiceMock
+            .Setup(x => x.RunPreflightChecksAsync(scanned.UploadId, It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                scanStarted.SetResult();
+                await scanGate.Task;
+                return new ScanResult(true);
+            });
+        orchestrationServiceMock.Setup(x => x.RegisterJobFiles(scanned.UploadId, scanned.JobId)).Returns(registeredFiles);
+        jobStoreMock.Setup(x => x.EnqueueForProcessing(scanned.JobId, registeredFiles)).Returns(CreatePendingJob(scanned.JobId, scanned.UploadId, new Mock<IPipeline>().Object) with { State = ProcessingState.Running });
+
+        await service.StartAsync(CancellationToken.None);
+        await scanStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var stopping = service.StopAsync(CancellationToken.None);
+        scanGate.SetResult();
+        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+
+        AssertEndedByShutdown(readAfterShutdown.JobId);
+        AssertEndedByShutdown(stillQueued.JobId);
+        jobStoreMock.Verify(x => x.EnqueueForProcessing(scanned.JobId, registeredFiles), Times.Once);
+        jobStoreMock.Verify(x => x.TryPipelineFinished(scanned.JobId, It.IsAny<ProcessingState>()), Times.Never, "A job queued for its run is the runner's to end.");
+        orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -214,6 +250,35 @@ public class PreflightBackgroundServiceTest
 
     private static ProcessingJob CreatePendingJob(Guid jobId, Guid uploadId, IPipeline pipeline)
         => new ProcessingJob(jobId, uploadId, 1, DateTime.Now) { Pipeline = pipeline };
+
+    /// <summary>
+    /// Queues the preflight request of a pending job with its pipeline attached, as <see cref="JobLifecycle.StartAsync"/>
+    /// leaves it, and lets the store cancel the job.
+    /// </summary>
+    private (PreflightRequest Request, Mock<IPipeline> Pipeline) QueuePendingJob()
+    {
+        var request = new PreflightRequest(Guid.NewGuid(), Guid.NewGuid());
+        var pipeline = new Mock<IPipeline>();
+        pipeline.SetupGet(p => p.JobId).Returns(request.JobId);
+        pipeline.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
+
+        jobStoreMock.Setup(x => x.GetJob(request.JobId)).Returns(CreatePendingJob(request.JobId, request.UploadId, pipeline.Object));
+        jobStoreMock.Setup(x => x.TryPipelineFinished(request.JobId, ProcessingState.Cancelled)).Returns(true);
+        channel.Writer.TryWrite(request);
+
+        return (request, pipeline);
+    }
+
+    /// <summary>
+    /// Asserts that the job ended the way a host shutdown ends a run: cancelled, also in the execution protocol.
+    /// </summary>
+    private void AssertEndedByShutdown(Guid jobId)
+    {
+        jobStoreMock.Verify(x => x.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, "host shutdown", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 
     private static IPipelineFile PipelineFileNamed(string originalFileName)
     {

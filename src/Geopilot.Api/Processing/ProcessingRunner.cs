@@ -19,7 +19,8 @@ namespace Geopilot.Api.Processing;
 /// delivery is allowed; creating the delivery promotes them into the asset store. They populate
 /// <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/> and
 /// <see cref="IPipelineStep.DeliveryFiles"/> respectively. However a run ends, the runner reports its outcome to
-/// <see cref="JobLifecycle"/>, which carries out what follows for the job.
+/// <see cref="JobLifecycle"/>, which carries out what follows for the job. A job still in the queue when the host
+/// shuts down is reported with <see cref="RunOutcome.ShutDown"/> right away.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -146,6 +147,34 @@ public class ProcessingRunner : BackgroundService
             // queue from draining and, by default, the host.
             await lifecycle.RunFinishedAsync(pipeline, outcome, cancellationToken);
         });
+    }
+
+    /// <summary>
+    /// Begins the drain window and ends the jobs still waiting in the processing queue right away, because none of
+    /// them starts in the window. Then waits for the running jobs.
+    /// </summary>
+    /// <param name="cancellationToken">Signals that the host no longer waits for the running jobs.</param>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // The base cancels the stopping token before it waits, so the loop no longer takes jobs from the queue.
+        var drained = base.StopAsync(cancellationToken);
+        await EndQueuedJobsAsync();
+        await drained;
+    }
+
+    /// <summary>
+    /// Ends every job in the processing queue the way a host shutdown ends a run, all at once, so together they take
+    /// no longer than one protocol write.
+    /// </summary>
+    private async Task EndQueuedJobsAsync()
+    {
+        var queued = new List<ProcessingWorkItem>();
+        while (jobStore.ProcessingQueue.TryRead(out var workItem))
+            queued.Add(workItem);
+
+        // A cancelled token tells the lifecycle that the host shuts down, which limits each protocol write to its budget.
+        var shutdown = new CancellationToken(canceled: true);
+        await Task.WhenAll(queued.Select(workItem => lifecycle.RunFinishedAsync(workItem.Pipeline, new RunOutcome.ShutDown(), shutdown)));
     }
 
     /// <summary>

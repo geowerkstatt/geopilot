@@ -58,8 +58,10 @@ public interface IProcessingJobStore
     /// <summary>
     /// Transitions the running job to the terminal state its pipeline ended in and reports whether it happened,
     /// instead of throwing when the transition is not allowed, for the reason given on
-    /// <see cref="TryMarkAsFailed"/>. The caller has to pass a state it already knows to be terminal: that
-    /// argument check still throws, because a wrong state is a defect at the call site.
+    /// <see cref="TryMarkAsFailed"/>. A job that is still pending can only move to
+    /// <see cref="ProcessingState.Cancelled"/>, which is how a host shutdown ends it before its run began. The
+    /// caller has to pass a state it already knows to be terminal: that argument check still throws, because a
+    /// wrong state is a defect at the call site.
     /// </summary>
     /// <param name="jobId">The job whose pipeline has finished.</param>
     /// <param name="pipelineState">
@@ -68,7 +70,7 @@ public interface IProcessingJobStore
     /// <see cref="ProcessingState.Failed"/>, or <see cref="ProcessingState.Cancelled"/>.
     /// </param>
     /// <returns><see langword="true"/> when the job was transitioned; <see langword="false"/> when it is
-    /// unknown or not in <see cref="ProcessingState.Running"/>, in which case it is left untouched.</returns>
+    /// unknown or the transition is not allowed, in which case it is left untouched.</returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="pipelineState"/> is not a terminal
     /// state, which is a defect at the call site rather than a job that moved on.</exception>
     bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState);

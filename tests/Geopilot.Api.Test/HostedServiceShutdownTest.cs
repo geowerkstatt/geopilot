@@ -32,6 +32,7 @@ public sealed class HostedServiceShutdownTest
 
         var shutdownTimeout = drainingApp.Services.GetRequiredService<IOptions<HostOptions>>().Value.ShutdownTimeout;
 
-        Assert.IsGreaterThan(TimeSpan.FromMinutes(1), shutdownTimeout, "The host must wait longer than the drain window.");
+        // On top of the window: the protocol writes of the preflight and of the runner, then the services after the runner.
+        Assert.IsGreaterThanOrEqualTo(TimeSpan.FromSeconds(75), shutdownTimeout, "The host must wait for the drain window plus 15 s.");
     }
 }
