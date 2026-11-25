@@ -420,7 +420,7 @@ Jede Instanz beantwortet den Status einer [Verarbeitung](./GLOSSARY.md#verarbeit
 
 Ob eine Verarbeitung noch läuft, sagt ein Heartbeat, den die ausführende Instanz alle 30 Sekunden in die Datenbank schreibt. Verglichen wird mit der Uhr der Datenbank, die Uhren der Instanzen müssen nicht übereinstimmen. Fällt eine Instanz aus, sind ihre laufenden Verarbeitungen verloren: Drei Minuten nach dem letzten Heartbeat antwortet ihr Status mit `404`. Der Upload bleibt und lässt sich erneut starten.
 
-Kann eine Instanz ihren Heartbeat nicht schreiben, bricht sie spätestens zweieinhalb Minuten nach dem letzten Erfolg alle ihre Verarbeitungen ab, bevor die anderen Instanzen sie für tot halten. Sie enden als `Cancelled`, und der Upload bleibt. Ein Datenbankausfall von mehr als zweieinhalb Minuten bricht damit alle laufenden Verarbeitungen ab, auch wenn nur eine Instanz läuft. Die Regeln beschreibt [Lebendigkeit](./docs/Ausfuehrungsprotokoll.md#lebendigkeit).
+Kann eine Instanz ihren Heartbeat nicht schreiben, bricht sie spätestens zweieinhalb Minuten nach dem letzten Erfolg alle ihre Verarbeitungen ab, bevor die anderen Instanzen sie für tot halten. Der Upload bleibt. Ist die Datenbank beim Abbruch wieder erreichbar, enden sie als `Cancelled`, sonst antwortet ihr Status drei Minuten nach dem letzten Heartbeat mit `404`. Ein Datenbankausfall von mehr als zweieinhalb Minuten bricht damit alle laufenden Verarbeitungen ab, auch wenn nur eine Instanz läuft. Die Regeln beschreibt [Lebendigkeit](./docs/Ausfuehrungsprotokoll.md#lebendigkeit).
 
 ## Löschen von Lieferungen
 
