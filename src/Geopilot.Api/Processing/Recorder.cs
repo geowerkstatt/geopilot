@@ -107,7 +107,7 @@ public class Recorder : IRecorder
 
         try
         {
-            await WriteScanAsync(jobId, scanResult, queued: false);
+            await WriteScanAsync(jobId, scanResult, queued: false, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -116,16 +116,16 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordPreflightPassedAsync(Guid jobId, ScanResult scanResult)
+    public async Task RecordPreflightPassedAsync(Guid jobId, ScanResult scanResult, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(scanResult);
 
-        await WriteOrThrowAsync(jobId, "that the preflight passed", () => WriteScanAsync(jobId, scanResult, queued: true));
+        await WriteOrThrowAsync(jobId, "that the preflight passed", () => WriteScanAsync(jobId, scanResult, queued: true, cancellationToken), cancellationToken);
     }
 
-    private async Task WriteScanAsync(Guid jobId, ScanResult scanResult, bool queued)
+    private async Task WriteScanAsync(Guid jobId, ScanResult scanResult, bool queued, CancellationToken cancellationToken)
     {
-        var run = await context.Recordings.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId);
+        var run = await context.Recordings.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
         if (run is null)
         {
             LogRunMissing(jobId);
@@ -148,7 +148,7 @@ public class Recorder : IRecorder
             }
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -169,29 +169,33 @@ public class Recorder : IRecorder
         });
 
     /// <inheritdoc/>
-    public async Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order)
+    public async Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pipelineStep);
         var step = pipelineStep;
 
-        await WriteOrThrowAsync(jobId, $"that step <{step.Id}> started", async () =>
-        {
-            var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
-            if (run is null)
+        await WriteOrThrowAsync(
+            jobId,
+            $"that step <{step.Id}> started",
+            async () =>
             {
-                LogRunMissing(jobId);
-                return;
-            }
+                var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
+                if (run is null)
+                {
+                    LogRunMissing(jobId);
+                    return;
+                }
 
-            var row = await context.RecordingSteps
-                .SingleOrDefaultAsync(s => s.RecordingId == run.Id && s.StepId == step.Id);
-            if (row is null)
-                row = CreateMissingStepRow(run.Id, jobId, step, order);
+                var row = await context.RecordingSteps
+                    .SingleOrDefaultAsync(s => s.RecordingId == run.Id && s.StepId == step.Id, cancellationToken);
+                if (row is null)
+                    row = CreateMissingStepRow(run.Id, jobId, step, order);
 
-            row.State = StepState.Running;
-            row.StartedAt = step.StartedAt ?? DateTime.UtcNow;
-            await context.SaveChangesAsync();
-        });
+                row.State = StepState.Running;
+                row.StartedAt = step.StartedAt ?? DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+            },
+            cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -222,27 +226,31 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public async Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order)
+    public async Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pipelineStep);
         var step = pipelineStep;
 
-        await WriteOrThrowAsync(jobId, $"that step <{step.Id}> completed", async () =>
-        {
-            var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId);
-            if (run is null)
+        await WriteOrThrowAsync(
+            jobId,
+            $"that step <{step.Id}> completed",
+            async () =>
             {
-                LogRunMissing(jobId);
-                return;
-            }
+                var run = await context.Recordings.SingleOrDefaultAsync(r => r.JobId == jobId, cancellationToken);
+                if (run is null)
+                {
+                    LogRunMissing(jobId);
+                    return;
+                }
 
-            var row = await LoadStepRowAsync(run.Id, step.Id);
-            if (row is null)
-                row = CreateMissingStepRow(run.Id, jobId, step, order);
+                var row = await LoadStepRowAsync(run.Id, step.Id, cancellationToken);
+                if (row is null)
+                    row = CreateMissingStepRow(run.Id, jobId, step, order);
 
-            UpdateStepRow(row, step);
-            await context.SaveChangesAsync();
-        });
+                UpdateStepRow(row, step);
+                await context.SaveChangesAsync(cancellationToken);
+            },
+            cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -282,21 +290,24 @@ public class Recorder : IRecorder
     }
 
     /// <inheritdoc/>
-    public Task RecordDeliveryFailedAsync(Guid jobId, string reason) =>
-        WriteOrLogAsync(jobId, async () =>
-        {
-            // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The recording
-            // tells whether the run allowed a delivery, which nobody checked for an expired job; a machine delivery is
-            // created before the outcome is recorded, hence a missing terminal state (#1200).
-            var updated = await context.Recordings
-                .Where(r => r.JobId == jobId
-                    && r.PermissionToDeliver == PermissionToDeliver.Permitted
-                    && (r.TerminalState == null || r.TerminalState == ProcessingState.Success || r.TerminalState == ProcessingState.Warning))
-                .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.DeliveryFailure, reason));
+    public Task RecordDeliveryFailedAsync(Guid jobId, string reason, CancellationToken cancellationToken = default) =>
+        WriteOrLogAsync(
+            jobId,
+            async () =>
+            {
+                // Bypasses the change tracker, which in a request may still hold a delivery whose save failed. The
+                // recording tells whether the run allowed a delivery, which nobody checked for an expired job; a machine
+                // delivery is created before the outcome is recorded, hence a missing terminal state (#1200).
+                var updated = await context.Recordings
+                    .Where(r => r.JobId == jobId
+                        && r.PermissionToDeliver == PermissionToDeliver.Permitted
+                        && (r.TerminalState == null || r.TerminalState == ProcessingState.Success || r.TerminalState == ProcessingState.Warning))
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.DeliveryFailure, reason), cancellationToken);
 
-            if (updated == 0)
-                logger.LogDebug("No recording of a run that allowed a delivery exists for job <{JobId}>; skipping the delivery failure.", jobId);
-        });
+                if (updated == 0)
+                    logger.LogDebug("No recording of a run that allowed a delivery exists for job <{JobId}>; skipping the delivery failure.", jobId);
+            },
+            cancellationToken);
 
     /// <summary>
     /// Writes what the status of a job in progress is read from. When the database stays unavailable through every
@@ -306,12 +317,19 @@ public class Recorder : IRecorder
     /// <param name="jobId">The job the write belongs to.</param>
     /// <param name="write">What the write records, for the reason of the interruption.</param>
     /// <param name="attempt">One attempt of the whole write, from loading the run to saving it.</param>
+    /// <param name="cancellationToken">Stops the job, and with it the write and its attempts.</param>
     /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
-    private async Task WriteOrThrowAsync(Guid jobId, string write, Func<Task> attempt)
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the job first.</exception>
+    private async Task WriteOrThrowAsync(Guid jobId, string write, Func<Task> attempt, CancellationToken cancellationToken)
     {
         try
         {
-            await WriteWithRetriesAsync(jobId, attempt);
+            await WriteWithRetriesAsync(jobId, attempt, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Not a failure of the write: the caller has to learn that its job stops.
+            throw;
         }
         catch (Exception ex) when (IsTransient(ex))
         {

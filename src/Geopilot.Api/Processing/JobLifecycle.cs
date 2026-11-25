@@ -47,7 +47,9 @@ public class JobLifecycle
             Interlocked.CompareExchange(ref reason, abortReason, null);
             try
             {
-                abort.Cancel();
+                // The token turns cancelled at once, its callbacks run on the thread pool: one that blocks or throws,
+                // such as the cancel request of a database command, must not hold up the heartbeat that aborts.
+                _ = abort.CancelAsync();
             }
             catch (ObjectDisposedException)
             {
@@ -59,9 +61,9 @@ public class JobLifecycle
     }
 
     /// <summary>
-    /// The jobs this instance still holds: from <see cref="StartAsync"/> until their end has been carried out
-    /// (<see cref="RunFinishedAsync"/>, <see cref="PreflightFailedAsync"/> or <see cref="PreflightInterruptedAsync"/>),
-    /// or until a start failed. A snapshot.
+    /// The jobs this instance still holds: from the moment <see cref="StartAsync"/> has recorded the start until their
+    /// end has been carried out (<see cref="RunFinishedAsync"/>, <see cref="PreflightFailedAsync"/> or
+    /// <see cref="PreflightInterruptedAsync"/>). A snapshot.
     /// </summary>
     public IReadOnlyCollection<Guid> HeldJobIds => heldJobs.Keys.ToArray();
 
@@ -169,7 +171,6 @@ public class JobLifecycle
                 deliveryFields);
 
         var job = jobStore.CreateJob(upload.Id, mayDeliver, deliveryIntent);
-        heldJobs[job.Id] = new HeldJob();
         IPipeline? pipeline = null;
         ProcessingJob jobWithPipeline;
         try
@@ -192,10 +193,11 @@ public class JobLifecycle
         {
             jobStore.RemoveJob(job.Id);
             DisposePipeline(job.Id, pipeline);
-            ReleaseHold(job.Id);
             throw;
         }
 
+        // Only now, with the first heartbeat written: the heartbeat aborts a held job whose run it cannot find alive.
+        heldJobs[job.Id] = new HeldJob();
         await preflightQueue.WriteAsync(new PreflightRequest(job.Id, upload.Id));
         return jobWithPipeline;
     }
@@ -275,6 +277,7 @@ public class JobLifecycle
     /// <param name="jobId">The job whose preflight passed.</param>
     /// <param name="scanResult">The outcome of the scan.</param>
     /// <param name="pipelineFiles">The uploaded files the run reads, registered but not fetched yet.</param>
+    /// <param name="cancellationToken">Stops the preflight while the outcome is recorded.</param>
     /// <exception cref="ArgumentException">If the job is unknown.</exception>
     /// <exception cref="InvalidOperationException">If the job is no longer pending or cannot be queued. The
     /// preflight reports such a job through <see cref="PreflightFailedAsync"/>, so it does not stay pending
@@ -282,12 +285,14 @@ public class JobLifecycle
     /// <exception cref="RecordingUnavailableException">If the execution protocol could not record that the preflight
     /// passed. The job is not queued then, and the preflight reports it through
     /// <see cref="PreflightInterruptedAsync"/>.</exception>
-    public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles)
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the preflight
+    /// before the outcome was recorded. The job is not queued then.</exception>
+    public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles, CancellationToken cancellationToken = default)
     {
         // Not through RecordProtocolAsync, which would swallow the failure: the status of the job is read from this
         // record, so a job the protocol cannot hold must not be queued.
         using var scope = serviceScopeFactory.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<IRecorder>().RecordPreflightPassedAsync(jobId, scanResult);
+        await scope.ServiceProvider.GetRequiredService<IRecorder>().RecordPreflightPassedAsync(jobId, scanResult, cancellationToken);
 
         jobStore.EnqueueForProcessing(jobId, pipelineFiles);
     }
@@ -295,8 +300,8 @@ public class JobLifecycle
     /// <summary>
     /// Reports that the preflight of a job failed and carries out what always follows: the failure, and the scan
     /// outcome if a scan ran, go into the execution protocol, the job turns <see cref="ProcessingState.Failed"/>,
-    /// its pipeline is disposed and its upload released right away. Never throws, because the caller is the
-    /// preflight loop.
+    /// its pipeline is disposed and its upload released right away, unless the job was aborted. Never throws, because
+    /// the caller is the preflight loop.
     /// </summary>
     /// <param name="jobId">The job whose preflight failed.</param>
     /// <param name="failureReason">Why the preflight failed, as written to the execution protocol.</param>
@@ -475,10 +480,12 @@ public class JobLifecycle
     /// <summary>
     /// Releases the uploaded files of the job. Only a known job carries the upload id. The release is a network
     /// call to the upload storage; the age-based sweep in UploadCleanupService picks up whatever it leaves behind.
+    /// A job that was aborted (<see cref="Abort"/>) keeps its upload whatever its outcome, even when the abort came
+    /// after the outcome: another instance may already process the same upload again.
     /// </summary>
     private async Task ReleaseUploadAsync(Guid jobId, Guid? uploadId)
     {
-        if (uploadId is not { } id)
+        if (uploadId is not { } id || AbortReasonOf(jobId) is not null)
             return;
 
         await CarryOutAsync(jobId, "release the upload", LogLevel.Error, services =>
@@ -490,10 +497,11 @@ public class JobLifecycle
     /// crashing process included, would end the same way a second time, so its upload goes right away. So does
     /// the upload of a deliverable run, whose delivery files are staged by now. A run that was
     /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown, interrupted because the execution
-    /// protocol could not record it) says nothing about the data, so its upload stays for a second start until the
-    /// age-based sweep in UploadCleanupService collects it. A preflight that failed always releases its upload right
-    /// away (<see cref="PreflightFailedAsync"/>) and an interrupted one always keeps it
-    /// (<see cref="PreflightInterruptedAsync"/>), so neither needs a decision.
+    /// protocol could not record it or the job was aborted) says nothing about the data, so its upload stays for a
+    /// second start until the age-based sweep in UploadCleanupService collects it. A preflight that failed always
+    /// releases its upload right away (<see cref="PreflightFailedAsync"/>) and an interrupted one always keeps it
+    /// (<see cref="PreflightInterruptedAsync"/>), so neither needs a decision. An aborted job keeps its upload in any
+    /// case (see <see cref="ReleaseUploadAsync"/>).
     /// </summary>
     internal static JobDecision Decide(RunOutcome runOutcome) => runOutcome switch
     {

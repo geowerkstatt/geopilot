@@ -574,6 +574,27 @@ public class RecorderTest
     }
 
     [TestMethod]
+    public async Task HardWriteStopsRetryingOnceItsJobIsStopped()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        using var stop = new CancellationTokenSource();
+        failingWrites.Remaining = int.MaxValue;
+        failingWrites.Failure = () =>
+        {
+            // The job is stopped while the database is away, as by the abort of the heartbeat.
+            stop.Cancel();
+            return new NpgsqlException("The connection to the database was lost.", new TimeoutException());
+        };
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true), stop.Token));
+
+        Assert.AreEqual(1, failingWrites.Failed, "A stopped job's write is not tried again.");
+    }
+
+    [TestMethod]
     public async Task HardWriteDoesNotRetryAFailureThatIsNotTransient()
     {
         currentHttpContext = null;

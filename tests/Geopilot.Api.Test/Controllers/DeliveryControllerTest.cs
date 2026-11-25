@@ -611,10 +611,10 @@ public class DeliveryControllerTest
     }
 
     private void AssertDeliveryFailureRecorded(Guid jobId, string reason)
-        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(jobId, reason), Times.Once());
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(jobId, reason, It.IsAny<CancellationToken>()), Times.Once());
 
     private void AssertNoDeliveryFailureRecorded()
-        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never());
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never());
 
     private void SetupJobPersistence(Guid jobId)
     {

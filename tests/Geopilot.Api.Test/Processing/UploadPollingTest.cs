@@ -160,7 +160,7 @@ public class UploadPollingTest
         var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
 
         orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UploadPreflightException(reason, "Preflight check failed."));
         orchestrationServiceMock
             .Setup(x => x.ReleaseUploadAsync(uploadId))
@@ -181,7 +181,7 @@ public class UploadPollingTest
         var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
 
         orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Unexpected error during processing."));
         orchestrationServiceMock
             .Setup(x => x.ReleaseUploadAsync(uploadId))
@@ -225,7 +225,7 @@ public class UploadPollingTest
 
     private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(new ScanResult(true));
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(new ScanResult(true));
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Returns(() => new List<IPipelineFile> { new Mock<IPipelineFile>().Object });
     }

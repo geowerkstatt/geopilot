@@ -14,9 +14,10 @@ namespace Geopilot.Api.Processing;
 /// cannot account for must not be accepted. The writes the status depends on while the job runs (the passed
 /// preflight, the start and the completion of a step) are tried again after a transient database failure, three
 /// attempts in all, and then throw <see cref="RecordingUnavailableException"/>: the job cannot go on unrecorded,
-/// but nothing is wrong with its data, so it ends cancelled and keeps its upload. The writes that follow a run that
-/// already ended (the failed preflight, the terminal state, the failed delivery) are tried as often and then only
-/// logged; a run whose terminal write failed keeps a null terminal state and reads as "outcome unknown",
+/// but nothing is wrong with its data, so it ends cancelled and keeps its upload. Stopping the job (abort, timeout,
+/// shutdown) cuts their attempts short with an <see cref="OperationCanceledException"/>. The writes that follow a
+/// run that already ended (the failed preflight, the terminal state, the failed delivery) are tried as often and
+/// then only logged; a run whose terminal write failed keeps a null terminal state and reads as "outcome unknown",
 /// indistinguishable from a restart victim, which is the honest answer. Every other write is soft, as is any
 /// failure that is not transient: it is logged as a warning, because a protocol failure must not tear down a
 /// running pipeline.
@@ -47,8 +48,10 @@ public interface IRecorder
     /// </summary>
     /// <param name="jobId">The job whose preflight passed.</param>
     /// <param name="scanResult">The scan outcome.</param>
+    /// <param name="cancellationToken">Stops the preflight, and with it the write and its attempts.</param>
     /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
-    Task RecordPreflightPassedAsync(Guid jobId, Services.ScanResult scanResult);
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the preflight first.</exception>
+    Task RecordPreflightPassedAsync(Guid jobId, Services.ScanResult scanResult, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marks the run as failed before its pipeline ever ran (preflight failure). Tried again after a transient
@@ -65,8 +68,10 @@ public interface IRecorder
     /// <param name="jobId">The job the step belongs to.</param>
     /// <param name="pipelineStep">The step about to run.</param>
     /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <param name="cancellationToken">Stops the run, and with it the write and its attempts.</param>
     /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
-    Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the run first.</exception>
+    Task RecordStepStartedAsync(Guid jobId, IPipelineStep pipelineStep, int order, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes what the step's process is given, once the step bound its inputs and before the process runs, so an
@@ -86,8 +91,10 @@ public interface IRecorder
     /// <param name="jobId">The job the step belongs to.</param>
     /// <param name="pipelineStep">The completed step.</param>
     /// <param name="order">The position of the step within the pipeline, starting at 0.</param>
+    /// <param name="cancellationToken">Stops the run, and with it the write and its attempts.</param>
     /// <exception cref="RecordingUnavailableException">If the database stayed unavailable through every attempt.</exception>
-    Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order);
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the run first.</exception>
+    Task RecordStepCompletedAsync(Guid jobId, IPipelineStep pipelineStep, int order, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes the run's terminal state and reconciles every step row: steps that threw or were never
@@ -110,7 +117,9 @@ public interface IRecorder
     /// </summary>
     /// <param name="jobId">The job whose delivery could not be created.</param>
     /// <param name="reason">Why creating the delivery failed, in fixed messages: never a value of the delivery fields.</param>
-    Task RecordDeliveryFailedAsync(Guid jobId, string reason);
+    /// <param name="cancellationToken">Bounds the write and its pauses; a cancelled write is logged like any other
+    /// failed one.</param>
+    Task RecordDeliveryFailedAsync(Guid jobId, string reason, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Writes the row of an attempt of a reaction the moment an instance claims it, into the recording its delivery comes

@@ -1,7 +1,10 @@
-﻿namespace Geopilot.Api.Processing;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Keeps the host's shutdown timeout in line with <see cref="ProcessingOptions.ShutdownDrainTimeout"/>.
+/// Keeps the host in line with <see cref="ProcessingOptions.ShutdownDrainTimeout"/>, the window in which the runner
+/// lets its running jobs finish.
 /// </summary>
 public static class ShutdownDrainExtensions
 {
@@ -24,5 +27,19 @@ public static class ShutdownDrainExtensions
             if (options.ShutdownTimeout < requiredShutdownTimeout)
                 options.ShutdownTimeout = requiredShutdownTimeout;
         });
+    }
+
+    /// <summary>
+    /// Registers the <see cref="ProcessingRunner"/> together with the <see cref="RecordingHeartbeatService"/>, which keeps
+    /// the runs of its jobs alive. Hosted services stop in reverse registration order, so the heartbeat comes first: it
+    /// stops after the runner and keeps a run alive that still computes in the drain window.
+    /// </summary>
+    public static IServiceCollection AddProcessingRunnerWithHeartbeat(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddHostedService<RecordingHeartbeatService>();
+        return services.AddHostedService<ProcessingRunner>();
     }
 }

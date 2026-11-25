@@ -585,6 +585,44 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
+    public async Task StartHoldsTheJobOnlyOnceItsStartIsRecorded()
+    {
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+        IReadOnlyCollection<Guid>? heldWhileRecording = null;
+        pipelineFactory
+            .Setup(f => f.GetDefinitionSnapshotJson(PipelineId))
+            .Returns(() =>
+            {
+                heldWhileRecording = lifecycle.HeldJobIds;
+                return "{}";
+            });
+
+        var job = await StartJobAsync(upload);
+
+        // A held job without its run in the database would look dead to the heartbeat, which would abort it.
+        Assert.IsNotNull(heldWhileRecording, "The recorder reads the definition while it writes the start record.");
+        Assert.IsEmpty(heldWhileRecording);
+        Assert.Contains(job.Id, lifecycle.HeldJobIds);
+    }
+
+    [TestMethod]
+    public async Task AbortedJobKeepsItsUploadWhateverItsOutcome()
+    {
+        var (finishedId, finishedUploadId, finishedPipeline) = await CreateJobAsync();
+        var (failedId, failedUploadId, _) = await CreateJobAsync(passPreflight: false);
+
+        // The abort comes after the outcome was decided, while its consequences are carried out.
+        lifecycle.Abort([finishedId, failedId], "heartbeat lost");
+        await lifecycle.RunFinishedAsync(finishedPipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+        await lifecycle.PreflightFailedAsync(failedId, "IncompleteUpload: File missing.", null);
+
+        // Another instance may already process the same upload again.
+        AssertUploadKept(finishedUploadId, true);
+        AssertUploadKept(failedUploadId, true);
+    }
+
+    [TestMethod]
     public async Task AbortCancelsTheTokenOfAHeldJobAndRemembersTheFirstReason()
     {
         var (jobId, _, pipeline) = await CreateJobAsync();

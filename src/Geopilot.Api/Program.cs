@@ -187,11 +187,12 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateOnStart();
 
 // Hosted services stop in reverse registration order. The reaction worker comes first, so it stops after the runner
-// has drained and still forwards a delivery created meanwhile; the runner comes ahead of the upload services, so the
-// preflight stops first and nothing is queued any more once the runner stops reading.
+// has drained and still forwards a delivery created meanwhile; the heartbeat comes ahead of the runner, so it keeps
+// the runs of a draining runner alive; the runner comes ahead of the upload services, so the preflight stops first and
+// nothing is queued any more once the runner stops reading.
 builder.Services.AddSingleton<ReactionStore>();
 builder.Services.AddHostedService<ReactionWorker>();
-builder.Services.AddHostedService<ProcessingRunner>();
+builder.Services.AddProcessingRunnerWithHeartbeat();
 var uploadBackend = builder.AddUploadServices();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
