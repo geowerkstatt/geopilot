@@ -238,6 +238,9 @@ public class RecordingHeartbeatServiceTest
         var livingId = await StartJobAsync();
         await SetHeartbeatAgeAsync(abortedId, TimeSpan.FromMinutes(1));
         await SetHeartbeatAgeAsync(diedAfterItsAbortId, TimeSpan.FromMinutes(4));
+
+        // Aged like the aborted one, so only the tick can make its heartbeat current again.
+        await SetHeartbeatAgeAsync(livingId, TimeSpan.FromMinutes(1));
         lifecycle.Abort([abortedId, diedAfterItsAbortId], "database unreachable");
 
         await service.TickAsync(CancellationToken.None);

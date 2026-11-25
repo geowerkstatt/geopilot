@@ -725,6 +725,9 @@ public class JobLifecycleTest
         await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
         database.Fails = null;
 
+        // The confirmation passed, so the job ended as it ran; a run found dead would have been cancelled.
+        Assert.AreEqual(ProcessingState.Success, jobStore.GetJob(jobId)?.State);
+
         // Without its terminal state the run reads dead three minutes later, and its upload can be started again.
         Assert.IsNull((await ReadRunAsync(jobId)).TerminalState);
         creationService.Verify(d => d.CreateAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Supplier>(), It.IsAny<CancellationToken>()), Times.Never);

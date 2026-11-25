@@ -418,7 +418,7 @@ public class SubmissionHttpTest
         // The heartbeat comes from the database clock, like every liveness comparison.
         await context.Recordings
             .Where(r => r.Id == run.Id)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.HeartbeatAt, DateTime.UtcNow));
+            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow));
         return run.JobId;
     }
 
