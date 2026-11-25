@@ -7,8 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Derives what became of a recorded job, for display only: no execution path decides anything from the protocol
-/// (ADR 0010).
+/// Derives what became of a recorded job, only for display in the administration.
 /// </summary>
 internal static class RecordingOutcomes
 {

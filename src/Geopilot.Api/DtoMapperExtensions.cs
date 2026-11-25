@@ -42,6 +42,8 @@ internal static class DtoMapperExtensions
     /// <param name="job">The processing job to map.</param>
     /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
     /// <param name="buildVisualizationUrl">Builds an absolute visualization-config URL for a (jobId, fileName) pair.</param>
+    // shortcut: maps the job a start just created for its 202, a second path beside ToStatusResponse; answer the 202
+    // from the start record too once the two can differ, for instance by a field only one of them maps.
     public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
     {
         var pipelineName = job.Pipeline?.DisplayName ?? LocalizedText.Empty;

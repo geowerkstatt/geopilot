@@ -6,8 +6,8 @@ namespace Geopilot.Api.Models;
 /// <summary>
 /// The execution protocol record of one processing job: an append-only account of what ran, on which
 /// definition version, for whom, and how it ended. Written by the processing services while the job runs
-/// and kept independently of the job's retention, so it survives restarts and cleanup. No execution path
-/// reads it back to make decisions (see ADR 0010).
+/// and kept independently of the job's retention, so it survives restarts and cleanup. Every instance reads the
+/// status and the delivery of a job from it, but no instance runs a job from it (see ADR 0020).
 /// </summary>
 public class Recording
 {
