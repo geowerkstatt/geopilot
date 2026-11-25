@@ -18,8 +18,8 @@ public interface IDirectoryProvider
 
     /// <summary>
     /// Gets the root directory for persisted assets of deliveries. Until
-    /// the delivery is created the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
-    /// belongs to a delivery, or to a creation that failed after promoting it and retires with the job.
+    /// the delivery is saved the payload waits in <see cref="AssetStagingDirectory"/>, so a job directory here
+    /// belongs to a saved delivery.
     /// </summary>
     string AssetDirectory { get; }
 
