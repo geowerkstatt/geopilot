@@ -742,12 +742,11 @@ public class ProcessingJobCleanupServiceTest
         context.Recordings.Add(run);
         context.SaveChanges();
 
-        // A settled run stopped beating when it ended; a run without a heartbeat argument is not alive.
-        var lastBeat = heartbeatAgo ?? settledAgo ?? TimeSpan.FromDays(30);
+        // Without a heartbeat argument the run has none, like a run recorded before the heartbeat existed.
         context.Recordings
             .Where(r => r.Id == run.Id)
             .ExecuteUpdate(setters => setters
-                .SetProperty(r => r.HeartbeatAt, DateTime.UtcNow - lastBeat)
+                .SetProperty(r => r.HeartbeatAt, heartbeatAgo is null ? (DateTime?)null : DateTime.UtcNow - heartbeatAgo)
                 .SetProperty(r => r.TerminalState, settledAgo is null ? (ProcessingState?)null : ProcessingState.Success)
                 .SetProperty(r => r.TerminalAt, settledAgo is null ? (DateTime?)null : DateTime.UtcNow - settledAgo));
     }
