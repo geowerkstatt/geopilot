@@ -4,7 +4,15 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, Stack, Tooltip, useTheme } from "@mui/material";
 import { styled } from "@mui/system";
-import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowId, GridRowParams } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  DataGridProps,
+  gridClasses,
+  GridColDef,
+  GridRenderCellParams,
+  GridRowId,
+  GridRowParams,
+} from "@mui/x-data-grid";
 import { TranslationKey } from "../../appInterfaces";
 import { Button } from "../buttons.tsx";
 
@@ -101,6 +109,9 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
     }
   };
 
+  // The pointer only shows where a click on a row does something, that is where the list passes onSelect.
+  const rowCursor = props.onSelect ? { [`& .${gridClasses.row}`]: { cursor: "pointer" } } : {};
+
   const handleAddClick = () => {
     if (props.onSelect) {
       props.onSelect(0);
@@ -117,7 +128,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
       <StyledDataGrid
         nonce={nonce}
         slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
-        sx={{ flex: "1", borderRadius: theme.radius.default }}
+        sx={{ flex: "1", borderRadius: theme.radius.default, ...rowCursor }}
         autoPageSize
         disableColumnSelector
         hideFooterSelectedRowCount
@@ -130,7 +141,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
     <StyledDataGrid
       nonce={nonce}
       slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
-      sx={{ borderRadius: theme.radius.default }}
+      sx={{ borderRadius: theme.radius.default, ...rowCursor }}
       autoPageSize
       disableColumnSelector
       hideFooterSelectedRowCount

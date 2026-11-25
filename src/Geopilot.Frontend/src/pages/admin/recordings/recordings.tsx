@@ -1,8 +1,16 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Box, Stack } from "@mui/material";
-import { GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import { Box, Stack, Tooltip } from "@mui/material";
+import {
+  GridActionsCell,
+  GridActionsCellItem,
+  GridColDef,
+  GridPaginationModel,
+  GridRenderCellParams,
+  GridRowId,
+} from "@mui/x-data-grid";
 import { RecordingOutcomeKind, RecordingPageResponse, RecordingSummaryResponse } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
@@ -60,6 +68,9 @@ export const Recordings: FC = () => {
       current = false;
     };
   }, [fetchApi, query, pageSize]);
+
+  const openRecording = (jobId: GridRowId) =>
+    navigate(`/admin/recordings/${jobId}`, { state: listQueryState(searchParams.toString()) });
 
   const changeFilters = (values: RecordingFilterValues) =>
     setSearchParams(toRecordingSearchParams(values, 0), { replace: true });
@@ -129,17 +140,32 @@ export const Recordings: FC = () => {
       valueGetter: (_value, row) => formatDuration(row.startedAt, row.terminalAt) ?? t("durationOpen"),
       width: 120,
     },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "",
+      flex: 0,
+      resizable: false,
+      cellClassName: "actions",
+      renderCell: params => (
+        <GridActionsCell {...params}>
+          <GridActionsCellItem
+            icon={
+              <Tooltip title={t("showDetails")} key={`details-${params.id}`}>
+                <VisibilityOutlinedIcon data-cy="details" color="primary" />
+              </Tooltip>
+            }
+            label={t("showDetails")}
+            onClick={() => openRecording(params.id)}
+          />
+        </GridActionsCell>
+      ),
+    },
   ];
 
   return (
     <Stack sx={{ height: "100%" }}>
-      <RecordingFilters
-        values={filters}
-        onChange={changeFilters}
-        onJobIdEntered={jobId =>
-          navigate(`/admin/recordings/${jobId}`, { state: listQueryState(searchParams.toString()) })
-        }
-      />
+      <RecordingFilters values={filters} onChange={changeFilters} onJobIdEntered={openRecording} />
       <Box sx={{ flex: "1 1 0", minHeight: 0 }}>
         <GeopilotDataGrid
           name="recordings"
@@ -153,7 +179,7 @@ export const Recordings: FC = () => {
           onPaginationModelChange={changePagination}
           disableColumnSorting
           disableColumnFilter
-          onSelect={jobId => navigate(`/admin/recordings/${jobId}`, { state: listQueryState(searchParams.toString()) })}
+          onSelect={openRecording}
         />
       </Box>
     </Stack>
