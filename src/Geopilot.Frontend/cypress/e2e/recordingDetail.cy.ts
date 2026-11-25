@@ -363,6 +363,39 @@ describe("Recording", () => {
     cy.dataCy("recordingTab-reactions").should("have.attr", "aria-selected", "true");
   });
 
+  it("names the tab shown in the address", () => {
+    cy.visit(`/admin/recordings/${jobId}`);
+
+    cy.location("hash").should("eq", "#steps");
+  });
+
+  it("opens an attempt without reactions on the steps and the next attempt on the tab chosen there", () => {
+    const earlierJobId = "3d0e7b52-9a41-4c8e-b6f3-2f5a1c9d7e80";
+    cy.fixture("recording.json").then(run => {
+      cy.intercept(
+        { method: "GET", pathname: `/api/v1/recording/${earlierJobId}` },
+        { ...run, ...run.attempts[1], forwardingState: null, notificationState: null, reactionEvents: [] },
+      );
+    });
+    cy.visit(`/admin/recordings/${jobId}#reactions`);
+    cy.dataCy("recordingTab-reactions").should("have.attr", "aria-selected", "true");
+
+    cy.dataCy(`recordingAttempt-${earlierJobId}`).click();
+
+    cy.location("hash").should("eq", "#steps");
+    cy.dataCy("recordingTab-reactions").should("not.exist");
+    cy.dataCy("recordingTab-steps").should("have.attr", "aria-selected", "true");
+
+    // The pipeline, unlike the steps, is no fallback, so it shows that the next attempt opens on the tab chosen last.
+    cy.dataCy("recordingTab-pipeline").click();
+    cy.location("hash").should("eq", "#pipeline");
+    cy.dataCy(`recordingAttempt-${jobId}`).click();
+
+    cy.location("pathname").should("eq", `/admin/recordings/${jobId}`);
+    cy.location("hash").should("eq", "#pipeline");
+    cy.dataCy("recordingTab-pipeline").should("have.attr", "aria-selected", "true");
+  });
+
   it("names the preparation where the preflight failed and says why within it", () => {
     cy.fixture("recording.json").then(run => {
       cy.intercept(
