@@ -540,6 +540,74 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
+    public async Task RunFinishedRecordsTheTerminalStateBeforeCreatingTheDelivery()
+    {
+        var (jobId, _, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+        ProcessingState? terminalStateWhenCreating = null;
+        creationService
+            .Setup(d => d.CreateAsync(jobId, Fields, supplier, It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                terminalStateWhenCreating = (await ReadRunAsync(jobId)).TerminalState;
+                return new DeliveryCreationResult(DeliveryCreationStatus.Created, DeliveryId: 42);
+            });
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        creationService.Verify(d => d.CreateAsync(jobId, Fields, supplier, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.AreEqual(ProcessingState.Success, terminalStateWhenCreating, "The delivery gate reads the terminal state, so it must be written first.");
+    }
+
+    [TestMethod]
+    public async Task JobIsHeldUntilItsConsequencesAreCarriedOut()
+    {
+        var (finishedId, _, finishedPipeline) = await CreateJobAsync();
+        var (failedId, _, _) = await CreateJobAsync(passPreflight: false);
+        var (interruptedId, _, _) = await CreateJobAsync(passPreflight: false);
+        CollectionAssert.IsSubsetOf(new[] { finishedId, failedId, interruptedId }, lifecycle.HeldJobIds.ToArray());
+
+        await lifecycle.RunFinishedAsync(finishedPipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+        Assert.DoesNotContain(finishedId, lifecycle.HeldJobIds);
+
+        await lifecycle.PreflightFailedAsync(failedId, "IncompleteUpload: File missing.", null);
+        Assert.DoesNotContain(failedId, lifecycle.HeldJobIds);
+
+        await lifecycle.PreflightInterruptedAsync(interruptedId, "The protocol could not record it.");
+        Assert.IsEmpty(lifecycle.HeldJobIds);
+
+        var upload = await CreateUploadAsync();
+        SetupPipeline();
+        pipelineFactory
+            .Setup(f => f.GetDefinitionSnapshotJson(PipelineId))
+            .Throws(new InvalidOperationException("The definition snapshot could not be read."));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => StartJobAsync(upload));
+        Assert.IsEmpty(lifecycle.HeldJobIds, "A start that failed holds no job.");
+    }
+
+    [TestMethod]
+    public async Task AbortCancelsTheTokenOfAHeldJobAndRemembersTheFirstReason()
+    {
+        var (jobId, _, pipeline) = await CreateJobAsync();
+        var otherId = Guid.NewGuid();
+        var token = lifecycle.AbortTokenOf(jobId);
+        Assert.IsFalse(token.IsCancellationRequested);
+        Assert.IsNull(lifecycle.AbortReasonOf(jobId));
+
+        lifecycle.Abort([jobId, otherId], "first");
+        lifecycle.Abort([jobId], "second");
+
+        Assert.IsTrue(token.IsCancellationRequested);
+        Assert.AreEqual("first", lifecycle.AbortReasonOf(jobId));
+        Assert.IsNull(lifecycle.AbortReasonOf(otherId), "A job that is not held is ignored.");
+        Assert.AreEqual(CancellationToken.None, lifecycle.AbortTokenOf(otherId));
+
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Interrupted("first"), CancellationToken.None);
+
+        Assert.AreEqual(CancellationToken.None, lifecycle.AbortTokenOf(jobId));
+        Assert.IsNull(lifecycle.AbortReasonOf(jobId));
+    }
+
+    [TestMethod]
     public async Task RetireRemovesTheJobAndKeepsTheUploadOfACancelledRun()
     {
         var (jobId, uploadId, pipeline) = await CreateJobAsync();

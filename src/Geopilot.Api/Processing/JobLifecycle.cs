@@ -7,6 +7,7 @@ using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -28,7 +29,82 @@ public class JobLifecycle
     private readonly RefMappingOptions refMappingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
 
+    private readonly ConcurrentDictionary<Guid, HeldJob> heldJobs = new();
+
     private sealed record RefMappings(IReadOnlyList<RefMappingEntry> Entries) : IRefMappings;
+
+    private sealed class HeldJob : IDisposable
+    {
+        private readonly CancellationTokenSource abort = new();
+        private string? reason;
+
+        public CancellationToken Token => abort.Token;
+
+        public string? Reason => Volatile.Read(ref reason);
+
+        public void Abort(string abortReason)
+        {
+            Interlocked.CompareExchange(ref reason, abortReason, null);
+            try
+            {
+                abort.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // The job was released meanwhile, so there is nothing left to abort.
+            }
+        }
+
+        public void Dispose() => abort.Dispose();
+    }
+
+    /// <summary>
+    /// The jobs this instance still holds: from <see cref="StartAsync"/> until their end has been carried out
+    /// (<see cref="RunFinishedAsync"/>, <see cref="PreflightFailedAsync"/> or <see cref="PreflightInterruptedAsync"/>),
+    /// or until a start failed. A snapshot.
+    /// </summary>
+    public IReadOnlyCollection<Guid> HeldJobIds => heldJobs.Keys.ToArray();
+
+    /// <summary>
+    /// The token that is cancelled when <see cref="Abort"/> is called for the job, or <see cref="CancellationToken.None"/>
+    /// for a job this instance does not hold.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <returns>The abort token of the job.</returns>
+    public CancellationToken AbortTokenOf(Guid jobId) =>
+        heldJobs.TryGetValue(jobId, out var held) ? held.Token : CancellationToken.None;
+
+    /// <summary>
+    /// The reason given to <see cref="Abort"/> for the job, or <see langword="null"/> if it was not aborted or is not held.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <returns>The reason, if any.</returns>
+    public string? AbortReasonOf(Guid jobId) =>
+        heldJobs.TryGetValue(jobId, out var held) ? held.Reason : null;
+
+    /// <summary>
+    /// Cancels the abort token of each held job in the list and remembers the reason (the first one, if a job is
+    /// aborted twice). Jobs that are not held are ignored.
+    /// </summary>
+    /// <param name="jobIds">The jobs to abort.</param>
+    /// <param name="reason">Why they are aborted.</param>
+    public void Abort(IEnumerable<Guid> jobIds, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        foreach (var jobId in jobIds)
+        {
+            if (heldJobs.TryGetValue(jobId, out var held))
+                held.Abort(reason);
+        }
+    }
+
+    private void ReleaseHold(Guid jobId)
+    {
+        if (heldJobs.TryRemove(jobId, out var held))
+            held.Dispose();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JobLifecycle"/> class.
@@ -93,6 +169,7 @@ public class JobLifecycle
                 deliveryFields);
 
         var job = jobStore.CreateJob(upload.Id, mayDeliver, deliveryIntent);
+        heldJobs[job.Id] = new HeldJob();
         IPipeline? pipeline = null;
         ProcessingJob jobWithPipeline;
         try
@@ -115,6 +192,7 @@ public class JobLifecycle
         {
             jobStore.RemoveJob(job.Id);
             DisposePipeline(job.Id, pipeline);
+            ReleaseHold(job.Id);
             throw;
         }
 
@@ -162,24 +240,32 @@ public class JobLifecycle
         ArgumentNullException.ThrowIfNull(runOutcome);
 
         var jobId = pipeline.JobId;
-        var job = jobStore.GetJob(jobId);
-        var decision = Decide(runOutcome);
+        try
+        {
+            var job = jobStore.GetJob(jobId);
+            var decision = Decide(runOutcome);
 
-        if (!jobStore.TryPipelineFinished(jobId, decision.State))
-            logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
+            if (!jobStore.TryPipelineFinished(jobId, decision.State))
+                logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
 
-        if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
-            await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
+            // The terminal state goes first: the delivery gate reads it from the protocol.
+            // During a shutdown a slow database must not use up the time the host grants for stopping.
+            // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
+            using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
+            await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, pipeline.Steps, decision.State, DescribeFailure(runOutcome), protocolCts.Token));
 
-        // During a shutdown a slow database must not use up the time the host grants for stopping.
-        // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
-        using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, pipeline.Steps, decision.State, DescribeFailure(runOutcome), protocolCts.Token));
+            if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
+                await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
 
-        DisposePipeline(jobId, pipeline);
+            DisposePipeline(jobId, pipeline);
 
-        if (decision.ReleaseUpload)
-            await ReleaseUploadAsync(jobId, job?.UploadId);
+            if (decision.ReleaseUpload)
+                await ReleaseUploadAsync(jobId, job?.UploadId);
+        }
+        finally
+        {
+            ReleaseHold(jobId);
+        }
     }
 
     /// <summary>
@@ -234,6 +320,8 @@ public class JobLifecycle
         DisposePipeline(jobId, job?.Pipeline);
 
         await ReleaseUploadAsync(jobId, job?.UploadId);
+
+        ReleaseHold(jobId);
     }
 
     /// <summary>
@@ -257,6 +345,8 @@ public class JobLifecycle
 
         // The pipeline was instantiated up front but never queued, so no run will dispose it.
         DisposePipeline(jobId, job?.Pipeline);
+
+        ReleaseHold(jobId);
     }
 
     /// <summary>
