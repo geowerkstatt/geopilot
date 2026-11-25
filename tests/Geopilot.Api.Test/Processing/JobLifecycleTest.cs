@@ -623,6 +623,20 @@ public class JobLifecycleTest
     }
 
     [TestMethod]
+    public async Task AbortedAttemptGetsNoDeliveryAndKeepsItsUpload()
+    {
+        var (jobId, uploadId, pipeline) = await CreateJobAsync(withDeliveryIntent: true);
+
+        // The abort comes after the run ended, before its delivery is created.
+        lifecycle.Abort([jobId], "heartbeat lost");
+        await lifecycle.RunFinishedAsync(pipeline.Object, new RunOutcome.Completed(ProcessingState.Success), CancellationToken.None);
+
+        // Another instance may already process the same upload again; without a delivery the attempt reads as lost.
+        creationService.Verify(d => d.CreateAsync(It.IsAny<Guid>(), It.IsAny<DeliveryFields>(), It.IsAny<Supplier>(), It.IsAny<CancellationToken>()), Times.Never);
+        AssertUploadKept(uploadId, true);
+    }
+
+    [TestMethod]
     public async Task AbortCancelsTheTokenOfAHeldJobAndRemembersTheFirstReason()
     {
         var (jobId, _, pipeline) = await CreateJobAsync();

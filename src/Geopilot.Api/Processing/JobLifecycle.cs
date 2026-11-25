@@ -227,10 +227,10 @@ public class JobLifecycle
 
     /// <summary>
     /// Reports that the pipeline of a job stopped running, however it ended, and carries out every consequence:
-    /// the job's terminal state, the machine delivery, the execution protocol, the disposal of the pipeline and,
-    /// as <see cref="Decide"/> says, the release of the upload. Apart from its argument checks it never throws:
-    /// each consequence is guarded on its own, because the caller is the processing loop, which an escaping
-    /// exception would stop.
+    /// the job's terminal state, the machine delivery (not for a job that was aborted), the execution protocol, the
+    /// disposal of the pipeline and, as <see cref="Decide"/> says, the release of the upload. Apart from its argument
+    /// checks it never throws: each consequence is guarded on its own, because the caller is the processing loop,
+    /// which an escaping exception would stop.
     /// </summary>
     /// <param name="pipeline">The pipeline whose run ended. It is disposed here.</param>
     /// <param name="runOutcome">How the run ended.</param>
@@ -256,7 +256,9 @@ public class JobLifecycle
             using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
             await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, pipeline.Steps, decision.State, DescribeFailure(runOutcome), protocolCts.Token));
 
-            if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
+            // Not for a job aborted meanwhile: another instance may already process the same upload again, and without
+            // a delivery the attempt reads as lost.
+            if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent && AbortReasonOf(jobId) is null)
                 await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
 
             DisposePipeline(jobId, pipeline);
