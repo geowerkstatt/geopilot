@@ -37,7 +37,8 @@ export const DetailTable: FC<DetailTableProps> = ({ columns, dataCy, children })
       <TableHead>
         <TableRow>
           {columns.map((column, index) => (
-            <TableCell key={index} sx={{ width: column.width }}>
+            // A column without a heading gets a plain cell, so a screen reader announces no empty column header.
+            <TableCell key={index} component={column.label ? undefined : "td"} sx={{ width: column.width }}>
               {column.label}
             </TableCell>
           ))}

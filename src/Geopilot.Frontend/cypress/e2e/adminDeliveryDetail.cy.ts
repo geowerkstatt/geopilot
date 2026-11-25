@@ -75,13 +75,18 @@ describe("Admin delivery detail", () => {
     cy.dataCy("summary-comment").should("contain", "Second delivery with the corrected profiles");
     getTableRowThatContains("reactions-table", "ablage").should("contain", "File drop").and("contain", "Ended");
     cy.dataCy("retryReaction").should("not.exist");
+
+    // The column of the reset button has no heading, so it leaves no empty column header to announce.
+    cy.dataCy("reactions-table")
+      .find("thead th")
+      .each(header => expect(header.text().trim()).not.to.equal(""));
   });
 
   it("links neither the files nor the STAC item before the delivery is forwarded", () => {
     visit(delivery(9003, [transfer(ReactionState.Pending, { attempts: 0, nextAttemptAt: "2026-10-23T22:00:00Z" })]));
 
     cy.dataCy("summary-files").should("contain", "strassen.xtf").find("a").should("not.exist");
-    cy.dataCy("summary-stacBrowser").should("contain", "Only available after forwarding");
+    cy.dataCy("summary-stacBrowser").should("contain", "Only available once the delivery is forwarded");
     cy.dataCy("summary-precursor").should("not.exist");
     cy.dataCy("summary-partialDelivery").should("not.exist");
     getTableRowThatContains("reactions-table", "ablage").should("contain", "Waits until");

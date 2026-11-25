@@ -158,27 +158,20 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                         return AuthenticateResult.Fail("Introspection response contains no audience.");
                     }
 
-                    var audienceMatches = false;
-                    if (audProp.ValueKind == JsonValueKind.String)
-                    {
-                        audienceMatches = string.Equals(audProp.GetString(), Options.Audience, StringComparison.Ordinal);
-                    }
-                    else if (audProp.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var element in audProp.EnumerateArray())
-                        {
-                            if (element.ValueKind == JsonValueKind.String && string.Equals(element.GetString(), Options.Audience, StringComparison.Ordinal))
-                            {
-                                audienceMatches = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!audienceMatches)
+                    if (!HasValue(audProp, Options.Audience))
                     {
                         Logger.LogWarning("Introspection response audience does not match configured audience {Audience}.", Options.Audience);
                         return AuthenticateResult.Fail("Introspection response audience does not match configured audience.");
+                    }
+                }
+
+                foreach (var required in Options.RequiredClaims)
+                {
+                    var hasClaim = root.TryGetProperty(required.Name, out var claim) && HasSingleValue(claim, required.Value);
+                    if (!hasClaim)
+                    {
+                        Logger.LogWarning("Introspection response does not have required claim {Claim} with the configured value.", required.Name);
+                        return AuthenticateResult.Fail($"Introspection response does not have required claim {required.Name} with the configured value.");
                     }
                 }
 
@@ -236,6 +229,24 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
 
         Response.StatusCode = StatusCodes.Status401Unauthorized;
         Response.Headers.Append(HeaderNames.WWWAuthenticate, "Bearer");
+    }
+
+    private static bool HasValue(JsonElement member, string value) => member.ValueKind switch
+    {
+        JsonValueKind.String => string.Equals(member.GetString(), value, StringComparison.Ordinal),
+        JsonValueKind.Array => member.EnumerateArray().Any(element =>
+            element.ValueKind == JsonValueKind.String && string.Equals(element.GetString(), value, StringComparison.Ordinal)),
+        _ => false,
+    };
+
+    /// <summary>
+    /// Matches a single JSON string or a one-element string array.
+    /// The JWT path treats both as one claim, so this check accepts both.
+    /// </summary>
+    private static bool HasSingleValue(JsonElement member, string value)
+    {
+        var single = member.ValueKind == JsonValueKind.Array && member.GetArrayLength() == 1 ? member[0] : member;
+        return single.ValueKind == JsonValueKind.String && string.Equals(single.GetString(), value, StringComparison.Ordinal);
     }
 
     /// <summary>
