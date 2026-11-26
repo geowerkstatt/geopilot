@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Box, Stack, Tooltip } from "@mui/material";
 import {
@@ -11,22 +11,24 @@ import {
   GridRenderCellParams,
   GridRowId,
 } from "@mui/x-data-grid";
+import { useQueryStates } from "nuqs";
 import { RecordingOutcomeKind, RecordingPageResponse, RecordingSummaryResponse } from "../../../api/generated";
 import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { listQueryState } from "../listQuery.ts";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 import { RecordingDeliveryLabel } from "./recordingDeliveryLabel.tsx";
 import { RecordingFilters } from "./recordingFilters.tsx";
 import { formatDuration } from "./recordingFormat.ts";
 import {
-  listQueryState,
-  readRecordingSearchParams,
   RecordingFilterValues,
+  recordingSearchParams,
+  recordingUrlKeys,
+  serializeRecordingSearch,
   toRecordingQuery,
-  toRecordingSearchParams,
 } from "./recordingQuery.ts";
 
 type RecordingRow = RecordingSummaryResponse & { attemptCount: number };
@@ -42,8 +44,7 @@ export const Recordings: FC = () => {
   const { localized } = useLocalized();
   const { machineDeliveryEnabled } = useCapabilities();
   // Filters and page live in the address, so going back from a run shows the same runs again.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { filters, page } = readRecordingSearchParams(searchParams);
+  const [{ page, ...filters }, setSearch] = useQueryStates(recordingSearchParams, { urlKeys: recordingUrlKeys });
   // The grid fits its page to its height like the other lists and reports the size once it has measured it. Until
   // then the size is 0, as in the grid itself, and nothing is loaded, so the list does not ask twice.
   const [pageSize, setPageSize] = useState(0);
@@ -69,20 +70,18 @@ export const Recordings: FC = () => {
     };
   }, [fetchApi, query, pageSize]);
 
-  const openRecording = (jobId: GridRowId) =>
-    navigate(`/admin/recordings/${jobId}`, { state: listQueryState(searchParams.toString()) });
-
-  const changeFilters = (values: RecordingFilterValues) =>
-    setSearchParams(toRecordingSearchParams(values, 0), { replace: true });
+  const changeFilters = (values: RecordingFilterValues) => setSearch({ ...values, page: 0 });
 
   const changePagination = (model: GridPaginationModel) => {
     setPageSize(model.pageSize);
-    // The grid also reports a new page size when its height changes, possibly to the handler of an earlier render,
-    // whose filters would undo the latest change.
+    // The grid also reports a new page size when its height changes; only the page goes into the address.
     if (model.page !== page) {
-      setSearchParams(toRecordingSearchParams(filters, model.page), { replace: true });
+      setSearch({ page: model.page });
     }
   };
+
+  const openRecording = (jobId: GridRowId) =>
+    navigate(`/admin/recordings/${jobId}`, { state: listQueryState(serializeRecordingSearch({ page, ...filters })) });
 
   const columns: GridColDef<RecordingRow>[] = [
     {

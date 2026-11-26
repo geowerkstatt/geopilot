@@ -1,13 +1,17 @@
+import { createLoader } from "nuqs";
+import { listQueryOf, listQueryState } from "../../src/pages/admin/listQuery";
 import {
   emptyRecordingFilters,
-  listQueryOf,
-  listQueryState,
   parseJobId,
-  readRecordingSearchParams,
+  recordingSearchParams,
+  recordingUrlKeys,
+  serializeRecordingSearch,
   tabFromHash,
   toRecordingQuery,
-  toRecordingSearchParams,
 } from "../../src/pages/admin/recordings/recordingQuery";
+
+// Reads the address of the list the way useQueryStates does.
+const loadRecordingSearch = createLoader(recordingSearchParams, { urlKeys: recordingUrlKeys });
 
 describe("recording query", () => {
   it("sends only the page without filters", () => {
@@ -64,43 +68,59 @@ describe("recording query", () => {
   });
 
   it("keeps filters and page in the address of the list", () => {
-    const filters = {
+    const search = {
       from: "2026-10-28T08:00",
       to: "2026-10-30T17:30",
       startedBy: ["user:12", "machineClient:3"],
       mandateIds: ["5"],
       states: ["failed", "open"],
+      page: 3,
     };
 
-    const params = toRecordingSearchParams(filters, 3);
+    expect(loadRecordingSearch(serializeRecordingSearch(search))).to.deep.equal(search);
+    expect(serializeRecordingSearch({ ...emptyRecordingFilters, page: 0 })).to.equal("");
+    expect(loadRecordingSearch("?page=abc")).to.deep.equal({ ...emptyRecordingFilters, page: 0 });
+  });
 
-    expect(readRecordingSearchParams(params)).to.deep.equal({ filters, page: 3 });
-    expect(toRecordingSearchParams(emptyRecordingFilters, 0).toString()).to.equal("");
-    expect(readRecordingSearchParams(new URLSearchParams("page=abc"))).to.deep.equal({
-      filters: emptyRecordingFilters,
-      page: 0,
+  it("reads an address of the list with repeated keys as before", () => {
+    const address = "?startedBy=user:12&startedBy=machineClient:3&mandate=5&mandate=7&state=failed&state=open&page=2";
+
+    const search = loadRecordingSearch(address);
+
+    expect(search).to.deep.equal({
+      ...emptyRecordingFilters,
+      startedBy: ["user:12", "machineClient:3"],
+      mandateIds: ["5", "7"],
+      states: ["failed", "open"],
+      page: 2,
     });
+    const written = new URLSearchParams(serializeRecordingSearch(search));
+    expect(written.getAll("state")).to.deep.equal(["failed", "open"]);
+    expect(written.getAll("mandate")).to.deep.equal(["5", "7"]);
+    expect(written.getAll("startedBy")).to.deep.equal(["user:12", "machineClient:3"]);
   });
 
   it("takes an unreadable time in the address as no filter", () => {
-    const params = new URLSearchParams({ from: "abc", to: "2026-13-45T99:99", state: "failed" });
-
-    const { filters, page } = readRecordingSearchParams(params);
+    const { page, ...filters } = loadRecordingSearch("?from=abc&to=2026-13-45T99:99&state=failed");
 
     expect(filters).to.deep.equal({ ...emptyRecordingFilters, states: ["failed"] });
     expect(toRecordingQuery(filters, page, 25)).to.equal("page=0&pageSize=25&states=failed");
   });
 
   it("drops the starters, mandates and states in the address that the API cannot take", () => {
-    const params = new URLSearchParams(
-      "startedBy=user:12&startedBy=foo&startedBy=machineClient:&startedBy=user:1234567890" +
+    const search = loadRecordingSearch(
+      "?startedBy=user:12&startedBy=foo&startedBy=machineClient:&startedBy=user:1234567890" +
         "&mandate=5&mandate=abc&mandate=-1&state=open&state=bogus",
     );
 
-    const { filters } = readRecordingSearchParams(params);
+    expect(search.startedBy).to.deep.equal(["user:12"]);
+    expect(search.mandateIds).to.deep.equal(["5"]);
+    expect(search.states).to.deep.equal(["open"]);
+  });
 
-    expect(filters.startedBy).to.deep.equal(["user:12"]);
-    expect(filters.mandateIds).to.deep.equal(["5"]);
-    expect(filters.states).to.deep.equal(["open"]);
+  it("shows the first page for a page in the address that the API cannot take", () => {
+    expect(loadRecordingSearch("?page=-2").page).to.equal(0);
+    expect(loadRecordingSearch("?page=1000001").page).to.equal(0);
+    expect(loadRecordingSearch("?page=1000000").page).to.equal(1_000_000);
   });
 });

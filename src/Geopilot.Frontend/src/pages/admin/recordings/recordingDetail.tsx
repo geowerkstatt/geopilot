@@ -11,12 +11,13 @@ import { UserOrClientLabel } from "../../../components/userOrClientLabel.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { SummaryField } from "../deliveries/summaryField.tsx";
+import { listQueryOf, listQueryState } from "../listQuery.ts";
 import { PipelineSnapshot } from "./pipelineSnapshot.tsx";
 import { ProcessingStateLabel } from "./processingStateLabel.tsx";
 import { RecordingAttemptList } from "./recordingAttemptList.tsx";
 import { RecordingDeliveryLabel } from "./recordingDeliveryLabel.tsx";
 import { formatDuration } from "./recordingFormat.ts";
-import { listQueryOf, listQueryState, parseJobId, RecordingTab, tabFromHash } from "./recordingQuery.ts";
+import { parseJobId, RecordingTab, tabFromHash } from "./recordingQuery.ts";
 import { RecordingReactionEvents } from "./recordingReactionEvents.tsx";
 import { RecordingSteps } from "./recordingSteps.tsx";
 

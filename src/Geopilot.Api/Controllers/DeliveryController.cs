@@ -196,20 +196,32 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all deliveries with how far their reactions got.
+    /// Lists the deliveries that match the <paramref name="query"/> with how far their reactions got, newest first,
+    /// one page at a time.
     /// </summary>
-    /// <returns>A list of <see cref="DeliveryResponse"/>.</returns>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<DeliveryResponse>), "application/json")]
-    public async Task<IActionResult> Get()
+    [SwaggerResponse(StatusCodes.Status200OK, "One page of deliveries, newest first.", typeof(DeliveryPageResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The period ends before it starts, or the page, a filter or the id prefix is out of bounds.", typeof(ValidationProblemDetails), "application/json")]
+    public async Task<IActionResult> Get([FromQuery] DeliveryQuery query, CancellationToken cancellationToken)
     {
-        var user = await context.GetUserByPrincipalAsync(User);
-        logger.LogInformation("User <{UserId}> accessed the list of all deliveries", user.AuthIdentifier);
+        ArgumentNullException.ThrowIfNull(query);
 
-        var deliveries = await context.Deliveries
-            .AsNoTracking()
-            .OrderBy(d => d.Id)
+        if (query.From > query.To)
+            ModelState.AddModelError(nameof(query.To), "The period must not end before it starts.");
+        if (!ModelState.IsValid)
+            return ValidationProblem(statusCode: StatusCodes.Status400BadRequest, modelStateDictionary: ModelState);
+
+        var user = await context.GetUserByPrincipalAsync(User);
+        logger.LogInformation("User <{UserId}> accessed the list of deliveries", user.AuthIdentifier);
+
+        var deliveries = FilterDeliveries(context.Deliveries.AsNoTracking(), context.DeliveryReactions, query);
+        var totalCount = await deliveries.CountAsync(cancellationToken);
+        var pageDeliveries = await deliveries
+            .OrderByDescending(d => d.Date)
+            .ThenByDescending(d => d.Id)
+            .Skip(query.Page * query.PageSize)
+            .Take(query.PageSize)
             .Select(d => new
             {
                 d.Id,
@@ -222,9 +234,9 @@ public class DeliveryController : ControllerBase
                     .Select(r => new { r.Kind, r.State })
                     .ToList(),
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        return Ok(deliveries
+        return Ok(new DeliveryPageResponse(totalCount, pageDeliveries
             .Select(d => new DeliveryResponse(
                 d.Id,
                 d.Date,
@@ -233,7 +245,45 @@ public class DeliveryController : ControllerBase
                 d.DeliveredByClientId,
                 d.Reactions.Where(r => r.Kind == ReactionKind.Transfer).Select(r => r.State).SummedUp(),
                 d.Reactions.Where(r => r.Kind == ReactionKind.Notification).Select(r => r.State).SummedUp()))
-            .ToList());
+            .ToList()));
+    }
+
+    private static IQueryable<Delivery> FilterDeliveries(IQueryable<Delivery> deliveries, IQueryable<DeliveryReaction> reactions, DeliveryQuery query)
+    {
+        var mandateIds = query.MandateIds;
+        var userIds = query.UserIds;
+        var machineClientIds = query.MachineClientIds;
+        var failedReactionKinds = query.FailedReactionKinds;
+
+        if (query.From?.AsUtc() is { } from)
+            deliveries = deliveries.Where(d => d.Date >= from);
+        if (query.To?.AsUtc() is { } to)
+            deliveries = deliveries.Where(d => d.Date < to);
+        if (mandateIds.Count > 0)
+            deliveries = deliveries.Where(d => mandateIds.Contains(d.Mandate.Id));
+        if (userIds.Count > 0 || machineClientIds.Count > 0)
+        {
+            deliveries = deliveries.Where(d =>
+                (d.DeliveredByUserId != null && userIds.Contains(d.DeliveredByUserId.Value))
+                || (d.DeliveredByClientId != null && machineClientIds.Contains(d.DeliveredByClientId.Value)));
+        }
+
+        // Error comes first when the column sums the reactions of a kind up, so a delivery matches exactly when the
+        // column of a chosen kind shows Error.
+        if (failedReactionKinds.Count > 0)
+        {
+            var failed = reactions
+                .Where(r => r.State == ReactionState.Error && failedReactionKinds.Contains(r.Kind))
+                .Select(r => r.DeliveryId);
+            deliveries = deliveries.Where(d => failed.Contains(d.Id));
+        }
+
+        // The id as text, by concatenation, since ToString with a culture does not translate to SQL. The prefix holds
+        // digits only, so it holds no wildcard either.
+        if (query.IdPrefix is { } idPrefix)
+            deliveries = deliveries.Where(d => EF.Functions.Like(string.Empty + d.Id, $"{idPrefix}%"));
+
+        return deliveries;
     }
 
     /// <summary>

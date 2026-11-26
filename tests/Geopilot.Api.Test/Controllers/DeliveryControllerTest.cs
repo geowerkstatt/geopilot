@@ -26,6 +26,8 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public class DeliveryControllerTest
 {
+    private static readonly DateTime ListWindow = new(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private Mock<IProcessingService> processingServiceMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
@@ -1049,28 +1051,253 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetAsAdminReturnsList()
+    public async Task GetCountsAllDeliveriesWithoutFilters()
     {
-        var admin = context.Users.First(u => u.IsAdmin);
-        deliveryController.SetupTestUser(admin);
+        var page = await ListAsync(new DeliveryQuery());
 
-        var response = (await deliveryController.Get()) as ObjectResult;
-        var list = response?.Value as List<DeliveryResponse>;
+        Assert.AreEqual(context.Deliveries.Count(), page.TotalCount);
+        Assert.HasCount(Math.Min(page.TotalCount, 25), page.Items, "without a page size the list takes 25 a page.");
+    }
 
-        Assert.IsNotNull(list);
-        Assert.HasCount(context.Deliveries.Count(), list);
+    [TestMethod]
+    public async Task GetReturnsTheNewestDeliveriesFirstOnePageAtATime()
+    {
+        var oldest = AddListedDelivery(minutes: 1);
+        var sameTimeFirst = AddListedDelivery(minutes: 2);
+        var sameTimeSecond = AddListedDelivery(minutes: 2);
+        var newest = AddListedDelivery(minutes: 3);
+
+        var first = await ListAsync(InListWindow(q => q.PageSize = 3));
+        var second = await ListAsync(InListWindow(q =>
+        {
+            q.PageSize = 3;
+            q.Page = 1;
+        }));
+
+        Assert.AreEqual(4, first.TotalCount);
+        Assert.AreEqual(4, second.TotalCount);
+        CollectionAssert.AreEqual(
+            new[] { newest.Id, sameTimeSecond.Id, sameTimeFirst.Id },
+            first.Ids(),
+            "deliveries made at the same time come with the higher id first.");
+        CollectionAssert.AreEqual(new[] { oldest.Id }, second.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersByPeriodWithTheStartIncludedAndTheEndExcluded()
+    {
+        AddListedDelivery(minutes: 9);
+        var atStart = AddListedDelivery(minutes: 10);
+        var beforeEnd = AddListedDelivery(minutes: 19);
+        AddListedDelivery(minutes: 20);
+
+        var page = await ListAsync(new DeliveryQuery { From = ListWindow.AddMinutes(10), To = ListWindow.AddMinutes(20) });
+
+        CollectionAssert.AreEquivalent(new[] { atStart.Id, beforeEnd.Id }, page.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetReadsAPeriodWithoutOffsetAsUtc()
+    {
+        var delivery = AddListedDelivery(minutes: 10);
+        var unspecified = DateTime.SpecifyKind(ListWindow.AddMinutes(10), DateTimeKind.Unspecified);
+
+        var page = await ListAsync(new DeliveryQuery { From = unspecified, To = unspecified.AddMinutes(1) });
+
+        CollectionAssert.AreEqual(new[] { delivery.Id }, page.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersByEveryChosenMandate()
+    {
+        var mandates = context.Mandates.OrderBy(m => m.Id).Take(3).ToList();
+        var first = AddListedDelivery(minutes: 1, d => d.Mandate = mandates[0]);
+        AddListedDelivery(minutes: 2, d => d.Mandate = mandates[1]);
+        var third = AddListedDelivery(minutes: 3, d => d.Mandate = mandates[2]);
+
+        var page = await ListAsync(InListWindow(q => q.MandateIds = [mandates[0].Id, mandates[2].Id]));
+
+        CollectionAssert.AreEquivalent(new[] { first.Id, third.Id }, page.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersBySupplierAsPersonAndAsMachineClient()
+    {
+        var users = context.Users.Where(u => !u.IsAdmin).OrderBy(u => u.Id).Take(2).ToList();
+        var chosenClient = AddMachineClient(MachineClientState.Active);
+        var otherClient = AddMachineClient(MachineClientState.Active);
+        var byChosenUser = AddListedDelivery(minutes: 1, d => d.DeliveredByUser = users[0]);
+        AddListedDelivery(minutes: 2, d => d.DeliveredByUser = users[1]);
+        var byChosenClient = AddListedDelivery(minutes: 3, d =>
+        {
+            d.DeliveredByUser = null;
+            d.DeliveredByClient = chosenClient;
+        });
+        AddListedDelivery(minutes: 4, d =>
+        {
+            d.DeliveredByUser = null;
+            d.DeliveredByClient = otherClient;
+        });
+
+        var both = await ListAsync(InListWindow(q =>
+        {
+            q.UserIds = [users[0].Id];
+            q.MachineClientIds = [chosenClient.Id];
+        }));
+        var personOnly = await ListAsync(InListWindow(q => q.UserIds = [users[0].Id]));
+        var clientOnly = await ListAsync(InListWindow(q => q.MachineClientIds = [chosenClient.Id]));
+
+        CollectionAssert.AreEquivalent(new[] { byChosenUser.Id, byChosenClient.Id }, both.Ids(), "persons and machine clients together make up the filter by supplier.");
+        CollectionAssert.AreEqual(new[] { byChosenUser.Id }, personOnly.Ids());
+        CollectionAssert.AreEqual(new[] { byChosenClient.Id }, clientOnly.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersByTheBeginningOfTheId()
+    {
+        // Ids far above those the database hands out while the tests run; 8642 stands for the 12 of the spec.
+        var same = AddListedDelivery(minutes: 1, d => d.Id = 8642);
+        var longer = AddListedDelivery(minutes: 2, d => d.Id = 86420);
+        var muchLonger = AddListedDelivery(minutes: 3, d => d.Id = 8642123);
+        AddListedDelivery(minutes: 4, d => d.Id = 18642);
+
+        var page = await ListAsync(InListWindow(q => q.IdPrefix = "8642"));
+
+        CollectionAssert.AreEquivalent(new[] { same.Id, longer.Id, muchLonger.Id }, page.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersByFailedForwardingOrNotifications()
+    {
+        var failedForwarding = AddListedDelivery(minutes: 1);
+        var failedNotification = AddListedDelivery(minutes: 2);
+        var failedBoth = AddListedDelivery(minutes: 3);
+        var underway = AddListedDelivery(minutes: 4);
+        var forwarded = AddListedDelivery(minutes: 5);
+        AddListedDelivery(minutes: 6);
+        context.DeliveryReactions.AddRange(
+            NewReaction(failedForwarding, "ablage", ReactionState.Error),
+            NewReaction(failedForwarding, "meldung", ReactionState.Pending, ReactionKind.Notification),
+            NewReaction(failedNotification, "ablage", ReactionState.Done),
+            NewReaction(failedNotification, "meldung", ReactionState.Error, ReactionKind.Notification),
+            NewReaction(failedBoth, "ablage", ReactionState.Error),
+            NewReaction(failedBoth, "meldung", ReactionState.Error, ReactionKind.Notification),
+            NewReaction(underway, "ablage", ReactionState.Running),
+            NewReaction(underway, "archiv", ReactionState.Pending, attempts: 3),
+            NewReaction(forwarded, "ablage", ReactionState.Done),
+            NewReaction(forwarded, "meldung", ReactionState.Done, ReactionKind.Notification));
+        context.SaveChanges();
+
+        var forwarding = await ListAsync(InListWindow(q => q.FailedReactionKinds = [ReactionKind.Transfer]));
+        var notifications = await ListAsync(InListWindow(q => q.FailedReactionKinds = [ReactionKind.Notification]));
+        var either = await ListAsync(InListWindow(q => q.FailedReactionKinds = [ReactionKind.Transfer, ReactionKind.Notification]));
+
+        CollectionAssert.AreEquivalent(new[] { failedForwarding.Id, failedBoth.Id }, forwarding.Ids(), "a failed notification is no failed forwarding, nor is a reaction that still tries.");
+        CollectionAssert.AreEquivalent(new[] { failedNotification.Id, failedBoth.Id }, notifications.Ids());
+        CollectionAssert.AreEquivalent(new[] { failedForwarding.Id, failedNotification.Id, failedBoth.Id }, either.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetFiltersFailedExactlyWhereTheColumnShowsIt()
+    {
+        ReactionState[] states = [ReactionState.Pending, ReactionState.Running, ReactionState.Error, ReactionState.Done];
+
+        // Every combination of the four states, none at all included, as transfers, and the states left over as
+        // notifications, so that mixing up the kinds shows.
+        var deliveries = Enumerable.Range(0, 1 << states.Length)
+            .Select(combination =>
+            {
+                var transfers = states.Where((_, index) => (combination & (1 << index)) != 0).ToArray();
+                var notifications = states.Except(transfers).ToArray();
+                var delivery = AddListedDelivery(minutes: combination);
+                context.DeliveryReactions.AddRange(transfers.Select(state => NewReaction(delivery, $"ablage_{state}", state)));
+                context.DeliveryReactions.AddRange(notifications.Select(state => NewReaction(delivery, $"meldung_{state}", state, ReactionKind.Notification)));
+                return (delivery.Id, Forwarding: transfers.SummedUp(), Notification: notifications.SummedUp(), Transfers: string.Join(",", transfers));
+            })
+            .ToList();
+        context.SaveChanges();
+
+        var column = (await ListAsync(InListWindow())).Items.ToDictionary(d => d.Id);
+        var failedForwarding = await ListAsync(InListWindow(q => q.FailedReactionKinds = [ReactionKind.Transfer]));
+        var failedNotifications = await ListAsync(InListWindow(q => q.FailedReactionKinds = [ReactionKind.Notification]));
+
+        foreach (var delivery in deliveries)
+        {
+            Assert.AreEqual(delivery.Forwarding, column[delivery.Id].ForwardingState, $"forwarding of transfers <{delivery.Transfers}>");
+            Assert.AreEqual(delivery.Notification, column[delivery.Id].NotificationState, $"notifications of all but <{delivery.Transfers}>");
+        }
+
+        CollectionAssert.AreEquivalent(deliveries.Where(d => d.Forwarding == ReactionState.Error).Select(d => d.Id).ToArray(), failedForwarding.Ids());
+        CollectionAssert.AreEquivalent(deliveries.Where(d => d.Notification == ReactionState.Error).Select(d => d.Id).ToArray(), failedNotifications.Ids());
+    }
+
+    [TestMethod]
+    public async Task GetNarrowsTheListByEveryFilterThatIsSet()
+    {
+        var mandates = context.Mandates.OrderBy(m => m.Id).Take(2).ToList();
+        var users = context.Users.Where(u => !u.IsAdmin).OrderBy(u => u.Id).Take(2).ToList();
+        Delivery AddFailed(int minutes, Action<Delivery>? differ = null, ReactionState transfer = ReactionState.Error)
+        {
+            var delivery = AddListedDelivery(minutes, d =>
+            {
+                d.Mandate = mandates[0];
+                d.DeliveredByUser = users[0];
+                differ?.Invoke(d);
+            });
+            context.DeliveryReactions.Add(NewReaction(delivery, "ablage", transfer));
+            context.SaveChanges();
+            return delivery;
+        }
+
+        var match = AddFailed(minutes: 10);
+        AddFailed(minutes: 5);
+        AddFailed(minutes: 11, d => d.Mandate = mandates[1]);
+        AddFailed(minutes: 12, d => d.DeliveredByUser = users[1]);
+        AddFailed(minutes: 13, transfer: ReactionState.Done);
+
+        var page = await ListAsync(new DeliveryQuery
+        {
+            From = ListWindow.AddMinutes(10),
+            To = ListWindow.AddMinutes(20),
+            MandateIds = [mandates[0].Id],
+            UserIds = [users[0].Id],
+            FailedReactionKinds = [ReactionKind.Transfer],
+        });
+        var byId = await ListAsync(InListWindow(q =>
+        {
+            q.IdPrefix = match.Id.ToString(CultureInfo.InvariantCulture);
+            q.FailedReactionKinds = [ReactionKind.Transfer];
+        }));
+
+        Assert.AreEqual(1, page.TotalCount);
+        Assert.AreEqual(match.Id, page.Items.Single().Id);
+        Assert.AreEqual(match.Id, byId.Items.Single().Id);
+    }
+
+    [TestMethod]
+    public async Task GetLeavesOutDeletedDeliveries()
+    {
+        var kept = AddListedDelivery(minutes: 1);
+        AddListedDelivery(minutes: 2, d => d.Deleted = true);
+
+        var page = await ListAsync(InListWindow());
+
+        Assert.AreEqual(1, page.TotalCount);
+        CollectionAssert.AreEqual(new[] { kept.Id }, page.Ids());
     }
 
     [TestMethod]
     public async Task GetListsEachDeliveryWithTheStatesOfItsForwardingAndNotifications()
     {
-        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
         var supplier = context.Users.First(u => !u.IsAdmin);
         var client = context.MachineClients.Add(new MachineClient { AuthIdentifier = Guid.NewGuid().ToString(), Name = "SILENTHARBOR" }).Entity;
-        var forwarded = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
-        var failed = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByClient = client };
-        var withoutReactions = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = supplier };
-        context.Deliveries.AddRange(forwarded, failed, withoutReactions);
+        var forwarded = AddListedDelivery(minutes: 1, d => d.DeliveredByUser = supplier);
+        var failed = AddListedDelivery(minutes: 2, d =>
+        {
+            d.DeliveredByUser = null;
+            d.DeliveredByClient = client;
+        });
+        var withoutReactions = AddListedDelivery(minutes: 3, d => d.DeliveredByUser = supplier);
         context.DeliveryReactions.AddRange(
             NewReaction(forwarded, "ablage", ReactionState.Done),
             NewReaction(forwarded, "meldung", ReactionState.Pending, ReactionKind.Notification),
@@ -1078,9 +1305,8 @@ public class DeliveryControllerTest
             NewReaction(failed, "archiv", ReactionState.Pending));
         context.SaveChanges();
 
-        var list = ((await deliveryController.Get()) as ObjectResult)?.Value as List<DeliveryResponse>;
+        var list = (await ListAsync(InListWindow())).Items;
 
-        Assert.IsNotNull(list);
         var byId = list.ToDictionary(d => d.Id);
         var forwardedResponse = byId[forwarded.Id];
         Assert.AreEqual(supplier.FullName, forwardedResponse.DeliveredByName);
@@ -1356,6 +1582,29 @@ public class DeliveryControllerTest
         Assert.AreEqual(StatusCodes.Status404NotFound, result?.StatusCode);
     }
 
+    private async Task<DeliveryPageResponse> ListAsync(DeliveryQuery query)
+    {
+        deliveryController.SetupTestUser(context.Users.First(u => u.IsAdmin));
+        return ActionResultAssert.IsOkObjectResult<DeliveryPageResponse>(await deliveryController.Get(query, CancellationToken.None));
+    }
+
+    // The deliveries of the list tests lie in a window of their own, so the seeded ones do not count.
+    private static DeliveryQuery InListWindow(Action<DeliveryQuery>? narrow = null)
+    {
+        var query = new DeliveryQuery { From = ListWindow, To = ListWindow.AddDays(1), PageSize = 100 };
+        narrow?.Invoke(query);
+        return query;
+    }
+
+    private Delivery AddListedDelivery(int minutes, Action<Delivery>? setup = null)
+    {
+        var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(u => !u.IsAdmin), Date = ListWindow.AddMinutes(minutes) };
+        setup?.Invoke(delivery);
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+        return delivery;
+    }
+
     private Delivery AddDeliveryWithReactions(params (string ReactionId, ReactionState State)[] reactions)
     {
         var delivery = new Delivery { JobId = Guid.NewGuid(), Mandate = context.Mandates.First(), DeliveredByUser = context.Users.First(u => !u.IsAdmin) };
@@ -1603,4 +1852,10 @@ public class DeliveryControllerTest
             .Setup(s => s.GetMandateForDeliveryAsync(mandateId, Supplier.ForUser(user.Id)))
             .ReturnsAsync(detachedMandate);
     }
+}
+
+// The ids on a page of the list, in their order.
+file static class DeliveryPageResponseExtensions
+{
+    internal static int[] Ids(this DeliveryPageResponse page) => page.Items.Select(d => d.Id).ToArray();
 }

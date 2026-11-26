@@ -1,4 +1,4 @@
-import type { DeliveryDetailResponse, DeliveryReactionResponse } from "@/api/generated";
+import type { DeliveryDetailResponse, DeliveryPageResponse, DeliveryReactionResponse } from "@/api/generated";
 import { FieldEvaluationType, MetadataFieldType, ReactionKind, ReactionState } from "@/api/generated";
 import { getTableRowThatContains, loginAsAdmin } from "./helpers/appHelpers";
 import { handlePrompt } from "./helpers/promptHelpers";
@@ -134,7 +134,10 @@ describe("Admin delivery detail", () => {
       delivery(9001, [transfer(ReactionState.Done)], { stacItem: { collectionId: "coll_1", itemId: "item_9001" } }),
     );
     cy.intercept("DELETE", "/api/v1/delivery/9001", { statusCode: 200 }).as("deleteDelivery");
-    cy.intercept("GET", "/api/v1/delivery", { statusCode: 200, body: [] }).as("deliveries");
+    cy.intercept(
+      { method: "GET", pathname: "/api/v1/delivery" },
+      { statusCode: 200, body: { totalCount: 0, items: [] } satisfies DeliveryPageResponse },
+    ).as("deliveries");
 
     cy.dataCy("delete-button").click();
     handlePrompt(
@@ -144,6 +147,26 @@ describe("Admin delivery detail", () => {
 
     cy.wait("@deleteDelivery");
     cy.location("pathname").should("eq", "/admin/deliveries");
+    // Opened without the list, the delivery leads back to the whole list.
+    cy.location("search").should("equal", "");
+    cy.wait("@deliveries");
+  });
+
+  it("leads back to the whole list when it was not opened from the list", () => {
+    visit(delivery(9004, []));
+    cy.intercept(
+      { method: "GET", pathname: "/api/v1/delivery" },
+      { statusCode: 200, body: { totalCount: 0, items: [] } satisfies DeliveryPageResponse },
+    ).as("deliveries");
+
+    cy.dataCy("backToDeliveries-button").click();
+
+    cy.location("pathname").should("eq", "/admin/deliveries");
+    cy.location("search").should("equal", "");
+    cy.wait("@deliveries").then(({ request }) => {
+      const query = new URL(request.url).searchParams;
+      expect([...query.keys()]).to.deep.equal(["page", "pageSize"]);
+    });
   });
 
   it("shows the metadata of the delivery", () => {

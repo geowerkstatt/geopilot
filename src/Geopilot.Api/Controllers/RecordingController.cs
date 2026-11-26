@@ -55,8 +55,8 @@ public class RecordingController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(statusCode: StatusCodes.Status400BadRequest, modelStateDictionary: ModelState);
 
-        var from = query.From is { } fromValue ? AsUtc(fromValue) : (DateTime?)null;
-        var to = query.To is { } toValue ? AsUtc(toValue) : (DateTime?)null;
+        var from = query.From?.AsUtc();
+        var to = query.To?.AsUtc();
         var latestRuns = FilterByState(
             LatestAttemptOfEachGroup(FilterByMandateAndStarter(context.Recordings.AsNoTracking(), query), from, to),
             query.States);
@@ -234,11 +234,6 @@ public class RecordingController : ControllerBase
         run.ToMandateReference(),
         run.TerminalState,
         RecordingOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId)));
-
-    // The API documents its times as UTC: a time without offset binds as unspecified and is read as UTC, not in the
-    // time zone of the host. The database compares timestamps with time zone and takes only UTC values.
-    private static DateTime AsUtc(DateTime value) =>
-        value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : value.ToUniversalTime();
 
     // A run without terminal state is either still running here or died with its instance.
     private bool IsRunning(Guid jobId) => processingService.GetJob(jobId)?.State is ProcessingState.Pending or ProcessingState.Running;
