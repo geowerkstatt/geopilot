@@ -82,7 +82,6 @@ Alle antworten nur innerhalb des heutigen Fensters: solange der Lauf lebt, und w
 - Keine Wiederaufnahme, kein Neustart eines Laufs, keine verteilte Warteschlange: Ein Job, dessen Instanz stirbt, bleibt verloren.
 - Die gemeinsame Ablage der Artefakte (#850). Für mehr als eine Instanz müssen Download-, Visualisierungs- und Asset-Verzeichnis samt Staging für alle Instanzen dieselben sein, über einen gemeinsamen Mount oder #850, im Direct-Modus auch das Upload-Verzeichnis. Das Arbeitsverzeichnis der Pipeline bleibt lokal.
 - Prozesslokal bleiben der Rate-Limiter der Initiierung und `Processing:MaxConcurrentJobs`, das bewusst pro Instanz gilt.
-- Die Multipart-Route legt ihre Session weiterhin erst nach den Dateien an (#1088).
 - Herunterfahren und Drain (#1024).
 
 ## Prüfung
