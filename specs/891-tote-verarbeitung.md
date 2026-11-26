@@ -2,7 +2,7 @@
 
 ## Begriffe
 
-- **Tot** (neu): Eine Verarbeitung, an der keine Instanz mehr arbeitet, bevor sie fertig ist. Ihr letzter Heartbeat ist älter als die Schwelle, und ihr fehlt der Endzustand oder, bei einem Versuch mit lieferbarem Lauf, die Lieferung oder der Grund in `DeliveryFailure`. Meist hat geopilot hart abgebrochen, etwa wegen Speichermangels oder eines ausgefallenen Servers. Vermeiden: verloren, hart abgeschossen (das ist die Ursache, nicht der Zustand).
+- **Tote Verarbeitung** (neu): Eine Verarbeitung, an der keine Instanz mehr arbeitet, bevor sie fertig ist. Ihr letzter Heartbeat ist älter als die Schwelle, und ihr fehlt der Endzustand oder, bei einem Versuch mit lieferbarem Lauf, die Lieferung oder der Grund in `DeliveryFailure`. Meist hat geopilot hart abgebrochen, etwa wegen Speichermangels oder eines ausgefallenen Servers. Vermeiden: verloren, hart abgeschossen (das ist die Ursache, nicht der Zustand).
 - **Laufausgang:** bekommt den Wert unbekannt (`unknown`) für eine tote Verarbeitung. Er wird nicht gespeichert, sondern beim Lesen abgeleitet.
 
 ## Umsetzung
