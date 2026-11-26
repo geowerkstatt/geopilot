@@ -6,7 +6,9 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Stack, Typography } from "@mui/material";
 import { StepResultResponse, StepState } from "../../api/generated";
 import { Button } from "../../components/buttons.tsx";
+import { ScrollMarginContext } from "../../components/scrollMargin/ScrollMarginContext.tsx";
 import { StepIcon } from "../../components/stepIcon.tsx";
+import { scrollIntoFullView } from "../../components/visualizations/scrollIntoFullView.ts";
 import { VisualizationLoader } from "../../components/visualizations/visualizationLoader.tsx";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -42,6 +44,7 @@ export const DeliveryProcessing = () => {
     steps: deliverySteps,
     continueToNextStep,
   } = useContext(DeliveryContext);
+  const { scrollMarginTop, scrollMarginBottom } = useContext(ScrollMarginContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
@@ -75,19 +78,11 @@ export const DeliveryProcessing = () => {
     setScrollToStep(steps.find(s => s.id === newlyExpanded[newlyExpanded.length - 1]) ?? null);
   }, [steps]);
 
-  useEffect(() => {
-    if (!scrollToStep) return;
-    // Scroll immediately if the step is not expandable
-    if (!stepIsExpandable(scrollToStep)) {
-      stepRefs.current[scrollToStep.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setScrollToStep(null);
-    }
-  }, [scrollToStep]);
-
   // Scroll after the accordion is expanded
   const handleStepExpanded = (stepId: string) => () => {
     if (scrollToStep?.id !== stepId) return;
-    stepRefs.current[stepId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const element = stepRefs.current[stepId];
+    if (element) scrollIntoFullView(element);
     setScrollToStep(null);
   };
 
@@ -138,7 +133,7 @@ export const DeliveryProcessing = () => {
             expanded={isExpanded}
             onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
             slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
-            sx={{ position: "relative" }}
+            sx={{ position: "relative", scrollMarginTop, scrollMarginBottom }}
             data-cy={`processing-step-${step.id}`}>
             <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
               <Stack direction="row" sx={{ alignItems: "center", flexWrap: "nowrap" }}>
