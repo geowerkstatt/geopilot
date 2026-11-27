@@ -40,7 +40,7 @@ public class UploadOptions
     public int MaxGlobalActiveSizeMB { get; set; }
 
     /// <summary>
-    /// The maximum number of active uploads.
+    /// The maximum number of active uploads, counted across all instances.
     /// </summary>
     public int MaxActiveJobs { get; set; }
 

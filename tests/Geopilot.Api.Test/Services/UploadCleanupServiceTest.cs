@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -15,6 +16,7 @@ public class UploadCleanupServiceTest
     private Mock<ILogger<UploadCleanupService>> loggerMock;
     private UploadOptions uploadOptions;
     private UploadCleanupService service;
+    private ServiceProvider services;
 
     [TestInitialize]
     public void Initialize()
@@ -23,16 +25,18 @@ public class UploadCleanupServiceTest
         uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<UploadCleanupService>>();
 
-        uploadStoreMock.Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>())).Returns(new List<UploadInfo>());
+        uploadStoreMock.Setup(s => s.GetUploadIdsCreatedBeforeAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<Guid>());
 
         uploadOptions = new UploadOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048, UploadUrlExpiryMinutes = 60 };
 
         var optionsMock = new Mock<IOptions<UploadOptions>>();
         optionsMock.Setup(o => o.Value).Returns(uploadOptions);
 
+        services = new ServiceCollection().AddSingleton(uploadStoreMock.Object).BuildServiceProvider();
+
         service = new UploadCleanupService(
             uploadStorageMock.Object,
-            uploadStoreMock.Object,
+            services.GetRequiredService<IServiceScopeFactory>(),
             loggerMock.Object,
             optionsMock.Object,
             Options.Create(new ProcessingOptions { JobRetention = TimeSpan.FromHours(24), JobTimeout = TimeSpan.FromMinutes(30) }));
@@ -43,6 +47,7 @@ public class UploadCleanupServiceTest
     {
         uploadStorageMock.VerifyAll();
         service.Dispose();
+        services.Dispose();
     }
 
     [TestMethod]
@@ -67,7 +72,7 @@ public class UploadCleanupServiceTest
         await service.RunCleanupAsync();
 
         uploadStorageMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"), Times.Once);
-        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(staleUploadId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -83,7 +88,7 @@ public class UploadCleanupServiceTest
                 ($"uploads/{recentUploadId}/test.xtf", 1024, recentTimestamp),
             });
 
-        uploadStoreMock.Setup(s => s.GetUpload(recentUploadId)).Returns(CreateUpload(recentUploadId));
+        uploadStoreMock.Setup(s => s.GetUploadAsync(recentUploadId, It.IsAny<CancellationToken>())).ReturnsAsync(CreateUpload(recentUploadId));
 
         SetupEmptyContainerListing();
 
@@ -119,8 +124,8 @@ public class UploadCleanupServiceTest
         await service.RunCleanupAsync();
 
         uploadStorageMock.Verify(s => s.DeletePrefixAsync(It.IsAny<string>()), Times.Exactly(2));
-        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId1), Times.Once);
-        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId2), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(staleUploadId1, It.IsAny<CancellationToken>()), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(staleUploadId2, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -226,7 +231,7 @@ public class UploadCleanupServiceTest
                 ($"uploads/{uploadId}/a\nb.xtf", 1024, recentTimestamp),
             });
 
-        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(CreateUpload(uploadId));
+        uploadStoreMock.Setup(s => s.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(CreateUpload(uploadId));
 
         SetupEmptyContainerListing();
 
@@ -257,7 +262,7 @@ public class UploadCleanupServiceTest
             .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"))
             .Returns(Task.CompletedTask);
 
-        uploadStoreMock.Setup(s => s.GetUpload(recentUploadId)).Returns(CreateUpload(recentUploadId));
+        uploadStoreMock.Setup(s => s.GetUploadAsync(recentUploadId, It.IsAny<CancellationToken>())).ReturnsAsync(CreateUpload(recentUploadId));
 
         SetupEmptyContainerListing();
 
@@ -289,7 +294,7 @@ public class UploadCleanupServiceTest
         await service.RunCleanupAsync();
 
         uploadStorageMock.Verify(s => s.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
-        uploadStoreMock.Verify(s => s.RemoveUpload(uploadId), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(uploadId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -305,7 +310,7 @@ public class UploadCleanupServiceTest
                 ($"uploads/{uploadId}/test.xtf", normalBytes, DateTime.UtcNow),
             });
 
-        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(CreateUpload(uploadId));
+        uploadStoreMock.Setup(s => s.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(CreateUpload(uploadId));
 
         SetupEmptyContainerListing();
 
@@ -326,7 +331,7 @@ public class UploadCleanupServiceTest
                 ($"uploads/{orphanUploadId}/test.xtf", 1024, DateTime.UtcNow),
             });
 
-        uploadStoreMock.Setup(s => s.GetUpload(orphanUploadId)).Returns((UploadInfo?)null);
+        uploadStoreMock.Setup(s => s.GetUploadAsync(orphanUploadId, It.IsAny<CancellationToken>())).ReturnsAsync((UploadInfo?)null);
 
         uploadStorageMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{orphanUploadId}/"))
@@ -380,9 +385,9 @@ public class UploadCleanupServiceTest
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
 
         uploadStoreMock
-            .Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>()))
-            .Callback<DateTime>(c => cutoff = c)
-            .Returns(new List<UploadInfo> { emptyUpload });
+            .Setup(s => s.GetUploadIdsCreatedBeforeAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Callback<DateTime, CancellationToken>((c, _) => cutoff = c)
+            .ReturnsAsync(new List<Guid> { emptyUpload.Id });
 
         SetupEmptyContainerListing();
 
@@ -392,7 +397,7 @@ public class UploadCleanupServiceTest
         Assert.IsNotNull(cutoff);
         var expectedCutoff = DateTime.UtcNow.AddMinutes(-2 * uploadOptions.UploadUrlExpiryMinutes);
         Assert.IsTrue((expectedCutoff - cutoff.Value).Duration() < TimeSpan.FromMinutes(1));
-        uploadStoreMock.Verify(s => s.RemoveUpload(emptyUpload.Id), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(emptyUpload.Id, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -408,17 +413,17 @@ public class UploadCleanupServiceTest
                 ($"uploads/{uploadId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-1)),
             });
 
-        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(upload);
+        uploadStoreMock.Setup(s => s.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(upload);
         uploadStoreMock
-            .Setup(s => s.GetUploadsCreatedBefore(It.IsAny<DateTime>()))
-            .Returns(new List<UploadInfo> { upload });
+            .Setup(s => s.GetUploadIdsCreatedBeforeAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Guid> { upload.Id });
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
         // A session with files goes with its files, once they are older than CleanupAgeHours.
-        uploadStoreMock.Verify(s => s.RemoveUpload(uploadId), Times.Never);
+        uploadStoreMock.Verify(s => s.RemoveUploadAsync(uploadId, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static UploadInfo CreateUpload(Guid uploadId) =>

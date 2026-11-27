@@ -288,7 +288,7 @@ public class SubmissionController : ControllerBase
             }
 
             var (mandate, deliveryFields) = target.Value;
-            uploadStore.CreateUpload(uploadId, storedFiles.ToImmutableList());
+            await uploadStore.CreateUploadAsync(uploadId, storedFiles.ToImmutableList(), cancellationToken);
 
             var job = await processingService.StartJobAsync(uploadId, mandate.Id, supplier, deliveryFields);
             accepted = true;
@@ -636,7 +636,8 @@ public class SubmissionController : ControllerBase
     /// </summary>
     private async Task<IActionResult?> RefuseWhileAtCapacityAsync()
     {
-        if (uploadStore.GetActiveUploadCount() >= uploadOptions.MaxActiveJobs)
+        // shortcut: counted, not reserved; attempts at the limit can each pass it, a lock on the count if that matters.
+        if (await uploadStore.GetActiveUploadCountAsync() >= uploadOptions.MaxActiveJobs)
             return AtCapacity($"This installation is already running the {uploadOptions.MaxActiveJobs} uploads it accepts at once.");
 
         // A multipart request declares no sizes, so its own length is the estimate. Without one (a chunked

@@ -39,7 +39,7 @@ public class MandateService : IMandateService
         mandates = FilterMandatesByResolvablePipeline(mandates);
 
         if (uploadId.HasValue)
-            mandates = FilterMandatesByUpload(mandates, uploadId.Value);
+            mandates = await FilterMandatesByUploadAsync(mandates, uploadId.Value);
 
         // A public mandate is listed for everyone, but only offers the delivery to the members of its organisations.
         var deliverableMandateIds = FilterPermittedMandates(context.Mandates, supplier).Select(m => m.Id);
@@ -104,8 +104,12 @@ public class MandateService : IMandateService
         if (!await mandates.AnyAsync())
             return MandateDeliverability.PipelineNotConfigured;
 
-        if (uploadId.HasValue && !await FilterMandatesByUpload(mandates, uploadId.Value).AnyAsync())
-            return MandateDeliverability.FilesNotAccepted;
+        if (uploadId.HasValue)
+        {
+            var acceptingMandates = await FilterMandatesByUploadAsync(mandates, uploadId.Value);
+            if (!await acceptingMandates.AnyAsync())
+                return MandateDeliverability.FilesNotAccepted;
+        }
 
         return MandateDeliverability.Deliverable;
     }
@@ -175,9 +179,9 @@ public class MandateService : IMandateService
         return mandates.Where(m => !string.IsNullOrEmpty(m.PipelineId) && pipelineIds.Contains(m.PipelineId));
     }
 
-    private IQueryable<Mandate> FilterMandatesByUpload(IQueryable<Mandate> mandates, Guid uploadId)
+    private async Task<IQueryable<Mandate>> FilterMandatesByUploadAsync(IQueryable<Mandate> mandates, Guid uploadId)
     {
-        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
+        var upload = await uploadStore.GetUploadAsync(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
         var fileExtensions = upload.Files
             .Select(f => Path.GetExtension(f.FileName))

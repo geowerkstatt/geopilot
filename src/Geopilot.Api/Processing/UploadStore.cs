@@ -1,47 +1,77 @@
-﻿using System.Collections.Concurrent;
+﻿using Geopilot.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// Stores, retrieves and removes <see cref="UploadInfo"/> instances in memory in a thread-safe manner.
+/// Stores, retrieves and removes <see cref="UploadInfo"/> instances as <see cref="UploadSession"/> rows.
 /// </summary>
 /// <remarks>
-/// Uploads are process-local, so the API has to run as exactly one instance. A second instance does not see
-/// the uploads of the first one: starting a job answers 404 for an upload that was initiated elsewhere, even
-/// though its files sit in cloud storage and would be readable from any instance. Only this bookkeeping is in
-/// memory, so scaling the API out means persisting it together with the processing job state.
+/// The sessions live in the database, so every instance of the API sees the same uploads and they survive a restart.
 /// </remarks>
 public class UploadStore : IUploadStore
 {
-    private readonly ConcurrentDictionary<Guid, UploadInfo> uploads = new();
+    private readonly Context context;
 
-    /// <inheritdoc/>
-    public UploadInfo CreateUpload(Guid id, ImmutableList<UploadedFileInfo> files)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UploadStore"/> class.
+    /// </summary>
+    public UploadStore(Context context)
     {
-        ArgumentNullException.ThrowIfNull(files);
-
-        var upload = new UploadInfo(
-            Id: id,
-            Files: files,
-            CreatedAt: DateTime.UtcNow);
-
-        if (!uploads.TryAdd(id, upload))
-            throw new InvalidOperationException($"An upload with id <{id}> already exists.");
-
-        return upload;
+        this.context = context;
     }
 
     /// <inheritdoc/>
-    public UploadInfo? GetUpload(Guid uploadId) => uploads.TryGetValue(uploadId, out var upload) ? upload : null;
+    public async Task<UploadInfo> CreateUploadAsync(Guid id, ImmutableList<UploadedFileInfo> files, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+
+        var session = new UploadSession
+        {
+            Id = id,
+            CreatedAt = DateTime.UtcNow,
+            Files = files.Select(file => new UploadSessionFile
+            {
+                FileName = file.FileName,
+                StorageKey = file.StorageKey,
+                DeclaredSize = file.ExpectedSize,
+                ContentType = file.ContentType,
+            }).ToList(),
+        };
+
+        context.UploadSessions.Add(session);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return new UploadInfo(id, files, session.CreatedAt);
+    }
 
     /// <inheritdoc/>
-    public bool RemoveUpload(Guid uploadId) => uploads.TryRemove(uploadId, out _);
+    public async Task<UploadInfo?> GetUploadAsync(Guid uploadId, CancellationToken cancellationToken = default)
+    {
+        var session = await context.UploadSessions
+            .AsNoTracking()
+            .Include(s => s.Files.OrderBy(f => f.Id))
+            .SingleOrDefaultAsync(s => s.Id == uploadId, cancellationToken);
+
+        return session is null ? null : ToUploadInfo(session);
+    }
 
     /// <inheritdoc/>
-    public IReadOnlyCollection<UploadInfo> GetUploadsCreatedBefore(DateTime cutoff)
-        => uploads.Values.Where(upload => upload.CreatedAt < cutoff).ToList();
+    public async Task<bool> RemoveUploadAsync(Guid uploadId, CancellationToken cancellationToken = default)
+        => await context.UploadSessions.Where(s => s.Id == uploadId).ExecuteDeleteAsync(cancellationToken) > 0;
 
     /// <inheritdoc/>
-    public int GetActiveUploadCount() => uploads.Count;
+    public async Task<IReadOnlyCollection<Guid>> GetUploadIdsCreatedBeforeAsync(DateTime cutoff, CancellationToken cancellationToken = default)
+        => await context.UploadSessions.Where(s => s.CreatedAt < cutoff).Select(s => s.Id).ToListAsync(cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<int> GetActiveUploadCountAsync(CancellationToken cancellationToken = default)
+        => context.UploadSessions.CountAsync(cancellationToken);
+
+    private static UploadInfo ToUploadInfo(UploadSession session)
+        => new(
+            session.Id,
+            session.Files.Select(f => new UploadedFileInfo(f.FileName, f.StorageKey, f.DeclaredSize, f.ContentType)).ToImmutableList(),
+            session.CreatedAt);
 }

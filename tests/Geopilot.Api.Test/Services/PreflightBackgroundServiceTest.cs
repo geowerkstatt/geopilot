@@ -60,7 +60,7 @@ public class PreflightBackgroundServiceTest
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(scanResult);
-        orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId)).Returns(registeredFiles);
+        orchestrationServiceMock.Setup(x => x.RegisterJobFilesAsync(uploadId, jobId)).ReturnsAsync(registeredFiles);
         jobStoreMock
             .Setup(x => x.EnqueueForProcessing(jobId, registeredFiles))
             .Returns(pendingJob with { State = ProcessingState.Running });
@@ -69,7 +69,7 @@ public class PreflightBackgroundServiceTest
 
         // The preflight runs the checks and hands the registered files on; what follows is JobLifecycleTest's.
         orchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(uploadId), Times.Once);
-        orchestrationServiceMock.Verify(x => x.RegisterJobFiles(uploadId, jobId), Times.Once);
+        orchestrationServiceMock.Verify(x => x.RegisterJobFilesAsync(uploadId, jobId), Times.Once);
         jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, registeredFiles), Times.Once);
     }
 
@@ -169,8 +169,8 @@ public class PreflightBackgroundServiceTest
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(scanResult);
-        orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
-            .Throws(new InvalidOperationException($"Upload <{uploadId}> has no files to register."));
+        orchestrationServiceMock.Setup(x => x.RegisterJobFilesAsync(uploadId, jobId))
+            .ThrowsAsync(new InvalidOperationException($"Upload <{uploadId}> has no files to register."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
         jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
 

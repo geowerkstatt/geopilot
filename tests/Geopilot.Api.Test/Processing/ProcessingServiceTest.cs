@@ -63,7 +63,7 @@ public class ProcessingServiceTest
     public async Task StartJobThrowsForUnknownUpload()
     {
         var uploadId = Guid.NewGuid();
-        uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns((UploadInfo?)null);
+        uploadStoreMock.Setup(x => x.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync((UploadInfo?)null);
 
         var exception = await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
         {
@@ -83,7 +83,7 @@ public class ProcessingServiceTest
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
 
-        uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
+        uploadStoreMock.Setup(x => x.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(upload);
         mandateServiceMock.Setup(x => x.GetMandateForSupplierAsync(mandateId, supplier)).ReturnsAsync((Mandate?)null);
 
         // Act & Assert
@@ -109,7 +109,7 @@ public class ProcessingServiceTest
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = TestHelpers.Localized(nameof(StartJobThrowsForMandateWithoutPipeline)), FileTypes = [".xtf"], PipelineId = null };
 
-        uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
+        uploadStoreMock.Setup(x => x.GetUploadAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(upload);
         mandateServiceMock.Setup(x => x.GetMandateForSupplierAsync(mandateId, supplier)).ReturnsAsync(mandate);
 
         // Act & Assert

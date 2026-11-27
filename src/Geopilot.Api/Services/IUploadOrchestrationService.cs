@@ -33,8 +33,9 @@ public interface IUploadOrchestrationService
     /// </summary>
     /// <param name="uploadId">The upload ID to take the files from.</param>
     /// <param name="jobId">The job ID to register the files on.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The files of the upload, in upload order.</returns>
-    IReadOnlyList<IPipelineFile> RegisterJobFiles(Guid uploadId, Guid jobId);
+    Task<IReadOnlyList<IPipelineFile>> RegisterJobFilesAsync(Guid uploadId, Guid jobId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the upload's blobs and forgets the upload session. Called once the files can no longer be

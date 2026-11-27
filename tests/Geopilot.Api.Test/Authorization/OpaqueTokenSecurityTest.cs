@@ -120,9 +120,10 @@ public class OpaqueTokenSecurityTest
     [TestMethod]
     public async Task ActiveAdminTokenOnMandateSummaryEndpointReturnsNon500()
     {
-        var uploadStore = app.Services.GetRequiredService<IUploadStore>();
+        using var scope = app.Services.CreateScope();
+        var uploadStore = scope.ServiceProvider.GetRequiredService<IUploadStore>();
         var uploadId = Guid.NewGuid();
-        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "key", 10)));
+        await uploadStore.CreateUploadAsync(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "key", 10)));
 
         try
         {
@@ -132,7 +133,7 @@ public class OpaqueTokenSecurityTest
         }
         finally
         {
-            uploadStore.RemoveUpload(uploadId);
+            await uploadStore.RemoveUploadAsync(uploadId);
         }
     }
 

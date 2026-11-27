@@ -23,6 +23,7 @@ public class UploadOrchestrationServiceTest
     private UploadStore uploadStore;
     private UploadOrchestrationService service;
     private string pipelineRoot;
+    private Context context;
 
     [TestInitialize]
     public void Initialize()
@@ -51,7 +52,8 @@ public class UploadOrchestrationServiceTest
         });
 
         jobStore = new ProcessingJobStore();
-        uploadStore = new UploadStore();
+        context = AssemblyInitialize.DbFixture.GetTestContext();
+        uploadStore = new UploadStore(context);
 
         service = new UploadOrchestrationService(
             uploadStorageMock.Object,
@@ -66,6 +68,7 @@ public class UploadOrchestrationServiceTest
     [TestCleanup]
     public void Cleanup()
     {
+        context.Dispose();
         uploadStorageMock.VerifyAll();
         scanServiceMock.VerifyAll();
 
@@ -95,7 +98,7 @@ public class UploadOrchestrationServiceTest
         Assert.AreEqual("https://storage.example.com/presigned-url", response.Files[0].UploadUrl);
         Assert.AreSame(uploadHeaders, response.Files[0].UploadHeaders);
 
-        var upload = uploadStore.GetUpload(response.UploadId);
+        var upload = await uploadStore.GetUploadAsync(response.UploadId);
         Assert.IsNotNull(upload);
         Assert.HasCount(1, upload.Files);
         Assert.AreEqual("test.xtf", upload.Files[0].FileName);
@@ -146,7 +149,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RunPreflightChecksAsyncSucceeds()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
@@ -159,14 +162,14 @@ public class UploadOrchestrationServiceTest
 
         var result = await service.RunPreflightChecksAsync(upload.Id);
 
-        Assert.IsNotNull(uploadStore.GetUpload(upload.Id));
+        Assert.IsNotNull(await uploadStore.GetUploadAsync(upload.Id));
         Assert.AreSame(scanResult, result, "the scan outcome must reach the caller so the protocol can record it.");
     }
 
     [TestMethod]
     public async Task RunPreflightChecksAsyncThrowsForMissingFile()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
@@ -179,7 +182,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RunPreflightChecksAsyncThrowsForIncompleteFile()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
@@ -192,7 +195,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RunPreflightChecksAsyncThrowsForThreatDetected()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
@@ -215,32 +218,32 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
-    public void RegisterJobFilesRecordsFilesWithoutTransferringAnything()
+    public async Task RegisterJobFilesRecordsFilesWithoutTransferringAnything()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
         var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
-        var files = service.RegisterJobFiles(upload.Id, job.Id);
+        var files = await service.RegisterJobFilesAsync(upload.Id, job.Id);
 
         Assert.HasCount(1, files);
         Assert.AreEqual("test.xtf", files[0].OriginalFileName);
         Assert.IsInstanceOfType<UploadPipelineFile>(files[0]);
 
         // The strict storage mock has no setup at all, so any transfer or deletion would have thrown.
-        Assert.IsNotNull(uploadStore.GetUpload(upload.Id), "the upload must stay available until the job is done with it");
+        Assert.IsNotNull(await uploadStore.GetUploadAsync(upload.Id), "the upload must stay available until the job is done with it");
     }
 
     [TestMethod]
     public async Task RegisterJobFilesMaterializesInsideTheJobsPipelineDirectory()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
         var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
 
         uploadStorageMock
             .Setup(s => s.DownloadAsync($"uploads/{upload.Id}/test.xtf", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var files = service.RegisterJobFiles(upload.Id, job.Id);
+        var files = await service.RegisterJobFilesAsync(upload.Id, job.Id);
         var materializedPath = await files[0].GetLocalPathAsync();
 
         // The fetched file has to land inside the job's pipeline directory, because that is what
@@ -257,13 +260,13 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RegisterJobFilesDisambiguatesFilesThatSanitizeToTheSameName()
     {
-        var upload = CreateUpload(("a:b.xtf", 1024), ("a*b.xtf", 2048));
+        var upload = await CreateUploadAsync(("a:b.xtf", 1024), ("a*b.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var registered = service.RegisterJobFiles(upload.Id, job.Id);
+        var registered = await service.RegisterJobFilesAsync(upload.Id, job.Id);
 
         // Sanitizing drops the invalid characters, so both names collapse to the same one.
         Assert.HasCount(2, registered);
@@ -277,13 +280,13 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
     {
-        var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
+        var upload = await CreateUploadAsync(("Data.xtf", 1024), ("data.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id, mayDeliver: false);
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var registered = service.RegisterJobFiles(upload.Id, job.Id);
+        var registered = await service.RegisterJobFilesAsync(upload.Id, job.Id);
 
         // The name is used as a file name twice, when materializing and in the asset store. On Windows and
         // macOS both spellings address the same file, so without disambiguation the second upload would
@@ -297,23 +300,23 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
-    public void RegisterJobFilesThrowsForUnknownUpload()
+    public async Task RegisterJobFilesThrowsForUnknownUpload()
     {
         var job = jobStore.CreateJob(Guid.NewGuid(), mayDeliver: false);
-        Assert.ThrowsExactly<ArgumentException>(() => service.RegisterJobFiles(Guid.NewGuid(), job.Id));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.RegisterJobFilesAsync(Guid.NewGuid(), job.Id));
     }
 
     [TestMethod]
-    public void RegisterJobFilesThrowsForUnknownJob()
+    public async Task RegisterJobFilesThrowsForUnknownJob()
     {
-        var upload = CreateUpload("test.xtf", 1024);
-        Assert.ThrowsExactly<ArgumentException>(() => service.RegisterJobFiles(upload.Id, Guid.NewGuid()));
+        var upload = await CreateUploadAsync("test.xtf", 1024);
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.RegisterJobFilesAsync(upload.Id, Guid.NewGuid()));
     }
 
     [TestMethod]
     public async Task ReleaseUploadAsyncDeletesThePrefixAndForgetsTheUpload()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"))
@@ -322,13 +325,13 @@ public class UploadOrchestrationServiceTest
         await service.ReleaseUploadAsync(upload.Id);
 
         uploadStorageMock.Verify(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"), Times.Once);
-        Assert.IsNull(uploadStore.GetUpload(upload.Id));
+        Assert.IsNull(await uploadStore.GetUploadAsync(upload.Id));
     }
 
     [TestMethod]
     public async Task ReleaseUploadAsyncSwallowsStorageFailures()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"))
@@ -341,7 +344,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task RunPreflightChecksAsyncThrowsForOversizedFile()
     {
-        var upload = CreateUpload("test.xtf", 1024);
+        var upload = await CreateUploadAsync("test.xtf", 1024);
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
@@ -365,7 +368,7 @@ public class UploadOrchestrationServiceTest
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         // Create one upload to hit the limit.
-        uploadStore.CreateUpload(Guid.NewGuid(), ImmutableList.Create(new UploadedFileInfo("f.xtf", "uploads/f.xtf", 100)));
+        await uploadStore.CreateUploadAsync(Guid.NewGuid(), ImmutableList.Create(new UploadedFileInfo("f.xtf", "uploads/f.xtf", 100)));
 
         var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
@@ -387,16 +390,16 @@ public class UploadOrchestrationServiceTest
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
     }
 
-    private UploadInfo CreateUpload(string fileName, long size)
-        => CreateUpload((fileName, size));
+    private Task<UploadInfo> CreateUploadAsync(string fileName, long size)
+        => CreateUploadAsync((fileName, size));
 
-    private UploadInfo CreateUpload(params (string FileName, long Size)[] files)
+    private Task<UploadInfo> CreateUploadAsync(params (string FileName, long Size)[] files)
     {
         var uploadId = Guid.NewGuid();
         var uploadedFiles = files
             .Select(f => new UploadedFileInfo(f.FileName, $"uploads/{uploadId}/{f.FileName}", f.Size))
             .ToImmutableList();
-        return uploadStore.CreateUpload(uploadId, uploadedFiles);
+        return uploadStore.CreateUploadAsync(uploadId, uploadedFiles);
     }
 
     private void SetupGlobalLimitChecks()

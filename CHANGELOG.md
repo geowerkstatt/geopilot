@@ -69,6 +69,7 @@
 
 ### Changed
 
+- Upload sessions are kept in the database instead of the memory of the application. An upload initiated before a restart can still be processed afterwards, and the cleanup no longer deletes its files after a restart. `Upload:MaxActiveJobs` now counts the active uploads of all instances together.
 - The tables of the execution protocol, their key columns, keys and indexes and its API route are renamed after the protocol of a job, a recording: `PipelineRuns`, `PipelineRunFiles`, `PipelineRunSteps`, `PipelineRunInputs`, `PipelineRunConditions`, `PipelineRunArtifacts` and `PipelineRunReactionEvents` are now `Recordings`, `RecordingFiles`, `RecordingSteps`, `RecordingInputs`, `RecordingConditions`, `RecordingArtifacts` and `RecordingReactionEvents`, the columns `PipelineRunId` and `PipelineRunStepId` are now `RecordingId` and `RecordingStepId`, and `api/v1/pipelinerun` is now `api/v1/recording`, without a redirect. The update renames them and keeps every recorded protocol. Queries and scripts of your own against the protocol have to be adapted. See `docs/Ausfuehrungsprotokoll.md`.
 - Where machine delivery is offered, the delivery overview and the page of a delivery in the administration show an icon before the name of whoever delivered, telling a user from a machine client.
 - The delivery overview of the administration moved from `/admin/delivery-overview` to `/admin/deliveries`, beside the new `/admin/recordings`. Bookmarks to the old address have to be updated.

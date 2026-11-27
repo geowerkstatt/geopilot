@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -213,10 +214,14 @@ public class DirectUploadEndpointTest
                 {
                     ["ConnectionStrings:Context"] = TestDatabaseFixture.ConnectionString,
                     ["Pipeline:Definition"] = pipelineDefinition,
-                    ["Upload:CleanupIntervalMinutes"] = "1440",
                     ["Upload:UploadUrlExpiryMinutes"] = urlExpiryMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 });
             });
+
+            // No sweep: it runs once at startup, and with a short URL lifetime it would expire the sessions that
+            // parallel tests keep in the shared database, because their files are not in this host's directory.
+            builder.ConfigureTestServices(services =>
+                services.Remove(services.Single(d => d.ImplementationType == typeof(UploadCleanupService))));
         }
     }
 
