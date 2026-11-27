@@ -233,6 +233,11 @@ public class SubmissionController : ControllerBase
 
         try
         {
+            // The session comes before the body, so the sweep finds an owner for every file from the moment it
+            // lands, and the release in the finally covers it on every failure. Its file list stays empty until
+            // the last file is stored, so the direct upload endpoint takes nothing for it meanwhile.
+            uploadStore.CreateUpload(uploadId, ImmutableList<UploadedFileInfo>.Empty);
+
             var reader = new MultipartReader(boundary, Request.Body)
             {
                 // Bound what a single part may write before it is refused: without this a file over the limit
@@ -288,7 +293,7 @@ public class SubmissionController : ControllerBase
             }
 
             var (mandate, deliveryFields) = target.Value;
-            uploadStore.CreateUpload(uploadId, storedFiles.ToImmutableList());
+            uploadStore.SetFiles(uploadId, storedFiles.ToImmutableList());
 
             var job = await processingService.StartJobAsync(uploadId, mandate.Id, supplier, deliveryFields);
             accepted = true;

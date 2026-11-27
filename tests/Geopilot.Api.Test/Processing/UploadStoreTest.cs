@@ -48,6 +48,27 @@ public class UploadStoreTest
     }
 
     [TestMethod]
+    public void SetFilesReplacesTheFilesAndKeepsCreatedAt()
+    {
+        var id = Guid.NewGuid();
+        var created = store.CreateUpload(id, ImmutableList<UploadedFileInfo>.Empty);
+        var files = ImmutableList.Create(new UploadedFileInfo("test.xtf", $"uploads/{id}/test.xtf", 42));
+
+        store.SetFiles(id, files);
+
+        var upload = store.GetUpload(id);
+        Assert.IsNotNull(upload);
+        Assert.AreSame(files, upload.Files);
+        Assert.AreEqual(created.CreatedAt, upload.CreatedAt, "The age of the session decides when it expires, so replacing its files must not reset it.");
+    }
+
+    [TestMethod]
+    public void SetFilesThrowsIfUploadDoesNotExist()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => store.SetFiles(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty));
+    }
+
+    [TestMethod]
     public void CreateUploadThrowsIfIdAlreadyExists()
     {
         var id = Guid.NewGuid();
