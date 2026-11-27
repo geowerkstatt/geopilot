@@ -51,6 +51,8 @@ public static class DirectUploadEndpoint
             return Results.NotFound();
         }
 
+        // An upload the multipart route of the machine delivery holds lists no files until they are all stored,
+        // so nothing can be written into it from here meanwhile.
         var file = upload.Files.FirstOrDefault(f => string.Equals(f.FileName, fileName, StringComparison.Ordinal));
         if (file is null)
         {

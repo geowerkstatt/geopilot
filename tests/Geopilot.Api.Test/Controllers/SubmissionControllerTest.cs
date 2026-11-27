@@ -27,6 +27,11 @@ public class SubmissionControllerTest
 {
     private const string MandateKey = "GRUMPYFALCON";
 
+    /// <summary>
+    /// What the multipart reader of the controller buffers from the body at once (its private DefaultBufferSize).
+    /// </summary>
+    private const int MultipartReaderBufferSize = 4 * 1024;
+
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IProcessingService> processingServiceMock;
     private Mock<IUploadOrchestrationService> orchestrationMock;
@@ -362,7 +367,8 @@ public class SubmissionControllerTest
     [TestMethod]
     public async Task RefusesAFileLargerThanTheInstallationAccepts()
     {
-        var controller = CreateController(UploadBackend.Direct, maxFileSizeMB: 0);
+        var store = new UploadStore();
+        var controller = CreateController(UploadBackend.Direct, uploadStore: store, maxFileSizeMB: 0);
         SetupDirectMandate();
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -370,9 +376,7 @@ public class SubmissionControllerTest
 
         var refused = Assert.IsInstanceOfType<ObjectResult>(result);
         Assert.AreEqual(StatusCodes.Status413PayloadTooLarge, refused.StatusCode);
-        Assert.IsEmpty(
-            Directory.GetFiles(uploadRoot, "data.xtf", SearchOption.AllDirectories),
-            "The file that was too large must not stay behind.");
+        AssertLeftNeitherSessionNorFiles(store);
     }
 
     [TestMethod]
@@ -381,7 +385,8 @@ public class SubmissionControllerTest
         mandate.EvaluateComment = FieldEvaluationType.Required;
         context.SaveChanges();
 
-        var controller = CreateController(UploadBackend.Direct);
+        var store = new UploadStore();
+        var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -389,9 +394,7 @@ public class SubmissionControllerTest
 
         var problem = Assert.IsInstanceOfType<ObjectResult>(result).Value as ValidationProblemDetails;
         Assert.IsNotNull(problem, "A violated field rule must be reported per field here too.");
-        Assert.IsEmpty(
-            Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories),
-            "The fields are checked before the files, so nothing may have been written.");
+        AssertLeftNeitherSessionNorFiles(store);
     }
 
     [TestMethod]
@@ -502,7 +505,8 @@ public class SubmissionControllerTest
     [TestMethod]
     public async Task RefusesABodyThatEndsBeforeItSaidItWould()
     {
-        var controller = CreateController(UploadBackend.Direct);
+        var store = new UploadStore();
+        var controller = CreateController(UploadBackend.Direct, uploadStore: store);
         SetupDirectMandate();
         SetMultipartBody(controller, MandateKey, [("data.xtf", "content")]);
 
@@ -518,6 +522,7 @@ public class SubmissionControllerTest
         Assert.IsInstanceOfType<BadRequestObjectResult>(
             result,
             "What the caller sent wrong must not be reported as a server error; a server error is for what the installation can fix.");
+        AssertLeftNeitherSessionNorFiles(store);
     }
 
     [TestMethod]
@@ -533,11 +538,39 @@ public class SubmissionControllerTest
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => controller.CreateWithFiles(CancellationToken.None));
 
-        Assert.AreEqual(
-            0,
-            store.GetActiveUploadCount(),
-            "An upload session of an attempt that never started would count against MaxActiveJobs until the age based sweep runs.");
-        Assert.IsEmpty(Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories), "The files of a failed attempt belong to nobody.");
+        AssertLeftNeitherSessionNorFiles(store);
+    }
+
+    [TestMethod]
+    public async Task KeepsTheFilesOfATransferTheSweepRunsInto()
+    {
+        var store = new UploadStore();
+        var controller = CreateController(UploadBackend.Direct, withUrlHelper: true, uploadStore: store);
+        SetupDirectMandate();
+        processingServiceMock
+            .Setup(p => p.StartJobAsync(It.IsAny<Guid>(), mandate.Id, supplier, It.IsAny<DeliveryFields?>()))
+            .ReturnsAsync((Guid upload, int mandateId, Supplier supplier, DeliveryFields? fields) => NewAttemptJob(Guid.NewGuid(), upload));
+
+        // The multipart reader buffers a chunk of the body at once and asks for more only once it has drained it.
+        // With a second file larger than a chunk, the first chunk holds the whole first file, so the sweep runs
+        // when the first file is stored and closed and the second is being written.
+        var second = new string('x', 3 * MultipartReaderBufferSize);
+        SetMultipartBody(controller, MandateKey, [("first.xtf", "first"), ("second.xtf", second)]);
+        var request = controller.ControllerContext.HttpContext.Request;
+        using var cleanup = CreateCleanupService(store);
+        var body = new SweepingBody(((MemoryStream)request.Body).ToArray(), sweepAt: MultipartReaderBufferSize, cleanup.RunCleanupAsync);
+        request.Body = body;
+
+        var result = await controller.CreateWithFiles(CancellationToken.None);
+
+        Assert.IsInstanceOfType<AcceptedResult>(result);
+        Assert.IsTrue(body.HasSwept, "The sweep has to run while the second file is being received, otherwise this proves nothing.");
+        foreach (var (fileName, content) in new[] { ("first.xtf", "first"), ("second.xtf", second) })
+        {
+            var stored = Directory.GetFiles(uploadRoot, fileName, SearchOption.AllDirectories).SingleOrDefault();
+            Assert.IsNotNull(stored, $"The sweep must not take <{fileName}> from a transfer that is still running.");
+            Assert.AreEqual(content, await File.ReadAllTextAsync(stored));
+        }
     }
 
     [TestMethod]
@@ -760,6 +793,23 @@ public class SubmissionControllerTest
             ? new DirectUploadStorage(Options.Create(new UploadDirectOptions { Directory = uploadRoot }), Mock.Of<ILogger<DirectUploadStorage>>())
             : Mock.Of<IUploadStorage>();
 
+    /// <summary>
+    /// The real sweep over the store of the controller and the directory it writes to, which is the same storage.
+    /// </summary>
+    private UploadCleanupService CreateCleanupService(IUploadStore store)
+        => new(
+            CreateUploadStorage(UploadBackend.Direct),
+            store,
+            Mock.Of<ILogger<UploadCleanupService>>(),
+            Options.Create(new UploadOptions { CleanupAgeHours = 24, MaxFileSizeMB = 2048, UploadUrlExpiryMinutes = 60 }),
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(30) }));
+
+    private void AssertLeftNeitherSessionNorFiles(UploadStore store)
+    {
+        Assert.AreEqual(0, store.GetActiveUploadCount(), "The session of an attempt that never started would count against MaxActiveJobs until the sweep expires it.");
+        Assert.IsEmpty(Directory.GetFiles(uploadRoot, "*", SearchOption.AllDirectories), "The files of a refused or failed attempt belong to nobody.");
+    }
+
     private SubmissionRequest NewRequest(string? clientReference = null)
         => new() { MandateKey = MandateKey, UploadId = uploadId, ClientReference = clientReference };
 
@@ -830,5 +880,73 @@ public class SubmissionControllerTest
         }
 
         return controller;
+    }
+
+    /// <summary>
+    /// A request body that runs the sweep when the reader asks for bytes at or beyond <c>sweepAt</c>, that is,
+    /// once it has consumed everything before that offset.
+    /// </summary>
+    private sealed class SweepingBody : Stream
+    {
+        private readonly MemoryStream inner;
+        private readonly long sweepAt;
+        private readonly Func<Task> sweep;
+
+        public SweepingBody(byte[] body, long sweepAt, Func<Task> sweep)
+        {
+            inner = new MemoryStream(body);
+            this.sweepAt = sweepAt;
+            this.sweep = sweep;
+        }
+
+        public bool HasSwept { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, count);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (!HasSwept && inner.Position >= sweepAt)
+            {
+                HasSwept = true;
+                await sweep();
+            }
+
+            return await inner.ReadAsync(buffer, cancellationToken);
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                inner.Dispose();
+
+            base.Dispose(disposing);
+        }
     }
 }
