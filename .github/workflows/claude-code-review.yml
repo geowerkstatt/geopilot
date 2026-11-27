@@ -40,7 +40,7 @@ jobs:
           anthropic_service_account_id: svac_01CqkAtrbNN9a6vU3EWy96iN
           anthropic_workspace_id: wrkspc_012NWo5qD5JhsypBuHN8Sqg1
           # Cost cap comes from the repo variable CLAUDE_REVIEW_MAX_BUDGET_USD; unset means no cap.
-          # The review itself is the project skill in .claude/skills/pr-review.
+          # The review itself is the project skill in .claude/skills/automatic-pr-review.
           claude_args: |
             --model opus
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)"
