@@ -352,6 +352,9 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("FailureReason")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("HeartbeatAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid");
 
@@ -364,9 +367,15 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("PermissionToDeliver")
                         .HasColumnType("text");
 
+                    b.Property<string>("PipelineDisplayName")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("PipelineId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("QueuedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ScanDetails")
                         .HasColumnType("text");
@@ -377,6 +386,10 @@ namespace Geopilot.Api.Migrations
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SubmissionMandateKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<DateTime?>("TerminalAt")
                         .HasColumnType("timestamp with time zone");
@@ -408,6 +421,8 @@ namespace Geopilot.Api.Migrations
                     b.HasIndex("MachineClientId");
 
                     b.HasIndex("MandateId");
+
+                    b.HasIndex("UploadId");
 
                     b.HasIndex("UserId");
 

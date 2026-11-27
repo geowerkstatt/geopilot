@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Processing;
+﻿using Geopilot.Api.Models;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Moq;
@@ -57,6 +58,25 @@ public class DtoMapperExtensionsTest
         var job = BuildJob(jobState, BuildPipeline(pipelineState));
 
         var preflight = job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl).Steps[0];
+
+        Assert.AreEqual(expected, preflight.State);
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Failed, false, StepState.Error, DisplayName = "Failed before any step started")]
+    [DataRow(ProcessingState.Failed, true, StepState.Success, DisplayName = "Failed with a started step")]
+    [DataRow(ProcessingState.Cancelled, false, StepState.Success, DisplayName = "Cancelled in preflight")]
+    public void PreflightStateOfAStatusFollowsTheProtocol(ProcessingState terminalState, bool stepStarted, StepState expected)
+    {
+        // The protocol has no pipeline state: only a failure before any step started is the preflight's.
+        var run = new Recording
+        {
+            JobId = Guid.NewGuid(),
+            TerminalState = terminalState,
+            Steps = [new RecordingStep { StepId = "step_a", State = stepStarted ? StepState.Error : StepState.Pending, StartedAt = stepStarted ? DateTime.UtcNow : null }],
+        };
+
+        var preflight = run.ToStatusResponse(BuildDownloadUrl, BuildVisualizationUrl).Steps[0];
 
         Assert.AreEqual(expected, preflight.State);
     }

@@ -76,18 +76,21 @@ public class ProcessingRunner : BackgroundService
         await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), parallelOptions, async (workItem, _) =>
         {
             var pipeline = workItem.Pipeline;
+
+            // Taken once: the lifecycle disposes its source when it lets go of the job at the end of RunFinishedAsync.
+            var abortToken = lifecycle.AbortTokenOf(pipeline.JobId);
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token, abortToken);
 
             // Record each step in the execution protocol the moment it is reached, so an interrupted
             // run shows which step was in flight.
             pipeline.OnStepStarted = (step, stepCancellationToken)
-                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepStartedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
+                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepStartedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step), stepCancellationToken), stepCancellationToken);
 
             // Record what a step's process is given before it runs, so an interrupted run shows what the step in
             // flight was working on.
             pipeline.OnStepInputsBound = (step, inputs, stepCancellationToken)
-                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepInputsAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step), inputs));
+                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepInputsAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step), inputs), stepCancellationToken);
 
             // Persist each step's downloadable files the moment the step finishes, so the supplier can
             // download them while later steps run (and so they survive a later step failing or timing out).
@@ -95,7 +98,7 @@ public class ProcessingRunner : BackgroundService
             pipeline.OnStepCompleted = async (step, stepResult, stepCancellationToken) =>
             {
                 await ExtractStepDownloadsAsync(pipeline.JobId, step, stepResult, stepCancellationToken);
-                await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepCompletedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
+                await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepCompletedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step), stepCancellationToken), stepCancellationToken);
             };
 
             // The outcome is collected per branch and reported once below. A hard kill leaves the run without
@@ -103,6 +106,9 @@ public class ProcessingRunner : BackgroundService
             RunOutcome outcome;
             try
             {
+                // A job aborted while it waited for a free slot does not start.
+                abortToken.ThrowIfCancellationRequested();
+
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
 
                 // Stage the delivery payload only when the run is deliverable and somebody may deliver it, by the
@@ -113,7 +119,17 @@ public class ProcessingRunner : BackgroundService
                 if (pipeline.State.IsDeliverable() && workItem.MayDeliver)
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
+                // Also when a step ignored the abort and ran to its end.
+                abortToken.ThrowIfCancellationRequested();
                 outcome = new RunOutcome.Completed(pipeline.State);
+            }
+            catch (Exception ex) when (abortToken.IsCancellationRequested)
+            {
+                // Ahead of every other case, whatever the run did meanwhile: another instance may already process the
+                // same upload again, so the job ends like after a timeout and keeps its upload.
+                var reason = lifecycle.AbortReasonOf(pipeline.JobId) ?? "aborted";
+                logger.LogError(ex, "Pipeline <{Pipeline}> of job <{JobId}> was aborted: {Reason}.", pipeline.Id, pipeline.JobId, reason);
+                outcome = new RunOutcome.Interrupted(reason);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
@@ -129,6 +145,12 @@ public class ProcessingRunner : BackgroundService
                 // stop (Cancelled, "host shutdown") from a hard kill (no terminal state at all).
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
                 outcome = new RunOutcome.ShutDown();
+            }
+            catch (RecordingUnavailableException ex)
+            {
+                // Ahead of the step check: the database interrupted the run, whatever state its steps were left in.
+                logger.LogError(ex, "Pipeline <{Pipeline}> was interrupted because the execution protocol could not record it.", pipeline.Id);
+                outcome = new RunOutcome.Interrupted(ex.Message);
             }
             catch (Exception) when (StepThrew(pipeline))
             {
@@ -255,9 +277,11 @@ public class ProcessingRunner : BackgroundService
     /// <summary>
     /// Runs one protocol write against a fresh scope. The recorder swallows its own write failures;
     /// this additionally guards scope creation and resolution, because a protocol problem must never
-    /// tear down the running pipeline.
+    /// tear down the running pipeline. Only a <see cref="RecordingUnavailableException"/> of a write the
+    /// status depends on gets through: it leaves the pipeline and interrupts the run. So does the cancellation of a
+    /// write once <paramref name="cancellationToken"/> stops the run, so that no further step starts.
     /// </summary>
-    private async Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record)
+    private async Task RecordProtocolAsync(Guid jobId, Func<IRecorder, Task> record, CancellationToken cancellationToken)
     {
         try
         {
@@ -265,7 +289,11 @@ public class ProcessingRunner : BackgroundService
             var recorder = scope.ServiceProvider.GetRequiredService<IRecorder>();
             await record(recorder);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not RecordingUnavailableException)
         {
             logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
         }

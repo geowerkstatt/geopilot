@@ -61,23 +61,44 @@ public class PreflightBackgroundService : BackgroundService
             return;
         }
 
+        // Taken once: the lifecycle disposes its source when it lets go of the job.
+        var abortToken = lifecycle.AbortTokenOf(request.JobId);
+        using var preflightCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, abortToken);
+
         ScanResult? scanResult = null;
         try
         {
-            scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId, cancellationToken);
+            // A job aborted while it waited in the queue is not checked any more.
+            abortToken.ThrowIfCancellationRequested();
+
+            scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId, preflightCts.Token);
 
             // Nothing is transferred here: each file is fetched from the upload storage the first time a step
             // reads it, so the job starts without waiting for the whole upload.
             var pipelineFiles = orchestrationService.RegisterJobFiles(request.UploadId, request.JobId);
-            await lifecycle.PreflightPassedAsync(request.JobId, scanResult, pipelineFiles);
+            await lifecycle.PreflightPassedAsync(request.JobId, scanResult, pipelineFiles, preflightCts.Token);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
+        }
+        catch (Exception ex) when (abortToken.IsCancellationRequested)
+        {
+            // Ahead of every other case, whatever the preflight found meanwhile: another instance may already
+            // process the same upload again, so the job keeps it.
+            var reason = lifecycle.AbortReasonOf(request.JobId) ?? "aborted";
+            logger.LogError(ex, "Preflight for job <{JobId}> was aborted: {Reason}.", request.JobId, reason);
+            await lifecycle.PreflightInterruptedAsync(request.JobId, reason);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Host shutdown: only the process ends, nothing is wrong with the upload. Job, files and protocol
             // stay as they are; the run reads as "outcome unknown", like any other restart victim.
             logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
+        }
+        catch (RecordingUnavailableException ex)
+        {
+            // The database interrupted the preflight, not the upload, so the job keeps it for another start.
+            logger.LogError(ex, "Preflight for job <{JobId}> was interrupted because the execution protocol could not record it.", request.JobId);
+            await lifecycle.PreflightInterruptedAsync(request.JobId, ex.Message);
         }
         catch (Exception ex)
         {

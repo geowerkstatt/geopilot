@@ -142,7 +142,7 @@ Alles, was ein Schritt über die Ausgabeaktion `Download` bereitstellt, steht in
 
 ## Lebensdauer
 
-Ein [Versuch](../GLOSSARY.md#versuch) lebt im Prozess, nicht in der Datenbank. Er ist höchstens so lange abfragbar wie seine [Verarbeitung](../GLOSSARY.md#verarbeitung) (`Processing:JobRetention` ab dem Ende des Laufs, standardmässig ein Tag), und ein Neustart der Instanz beendet ihn. Danach antwortet der Statusendpunkt mit `404`.
+Ein [Versuch](../GLOSSARY.md#versuch) steht in der Datenbank, im [Protokoll](Ausfuehrungsprotokoll.md) seiner [Verarbeitung](../GLOSSARY.md#verarbeitung). Abfragbar ist er, solange seine Verarbeitung läuft, und danach während `Processing:JobRetention` ab dem Ende des Laufs (standardmässig ein Tag), auf jeder Instanz und auch nach einem Neustart der Applikation. Danach antwortet der Statusendpunkt mit `404`. Ebenso drei Minuten, nachdem die Instanz, die den Versuch ausführte, mitten im Lauf ausgefallen ist: Dann ist der Versuch verloren und sein Ausgang unbekannt (siehe [Lebendigkeit](Ausfuehrungsprotokoll.md#lebendigkeit)).
 
 **Der dauerhafte Griff ist die `deliveryId`.** Die [Lieferung](../GLOSSARY.md#lieferung) ist eine echte Entität, sie überlebt Neustarts und Aufräumläufe. Ein Client, der die Antwort verloren hat, klärt den Ausgang nicht selbst: eine Lieferungsliste gibt es für Clients nicht. In der Weboberfläche sieht die Lieferung, wer die Administration bedient, und unter *Meine Lieferungen* jede für den Client [verantwortliche Person](../GLOSSARY.md#verantwortliche-person); einer Person der zuständigen Organisation zeigt sie `GET api/v1/delivery/summary?mandateId=`.
 

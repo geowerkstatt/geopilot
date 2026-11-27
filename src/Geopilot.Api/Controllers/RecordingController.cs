@@ -25,17 +25,15 @@ public class RecordingController : ControllerBase
 {
     private readonly ILogger<RecordingController> logger;
     private readonly Context context;
-    private readonly IProcessingService processingService;
     private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecordingController"/> class.
     /// </summary>
-    public RecordingController(ILogger<RecordingController> logger, Context context, IProcessingService processingService, IPipelineFactory pipelineFactory)
+    public RecordingController(ILogger<RecordingController> logger, Context context, IPipelineFactory pipelineFactory)
     {
         this.logger = logger;
         this.context = context;
-        this.processingService = processingService;
         this.pipelineFactory = pipelineFactory;
     }
 
@@ -71,9 +69,11 @@ public class RecordingController : ControllerBase
             .ToListAsync(cancellationToken);
 
         var attemptCounts = await CountAttemptsAsync(pageRuns, cancellationToken);
-        var deliveries = await RecordingOutcomes.LoadDeliveriesAsync(context, pageRuns.Select(r => r.JobId).ToList(), cancellationToken);
+        var pageJobIds = pageRuns.Select(r => r.JobId).ToList();
+        var deliveries = await RecordingOutcomes.LoadDeliveriesAsync(context, pageJobIds, cancellationToken);
+        var alive = await LoadAliveJobIdsAsync(pageJobIds, cancellationToken);
         var items = pageRuns
-            .Select(run => new RecordingGroupResponse(ToSummary(run, deliveries), attemptCounts.GetValueOrDefault(GroupKeyOf(run), 1)))
+            .Select(run => new RecordingGroupResponse(ToSummary(run, deliveries, alive), attemptCounts.GetValueOrDefault(GroupKeyOf(run), 1)))
             .ToList();
 
         return Ok(new RecordingPageResponse(totalCount, items));
@@ -100,11 +100,13 @@ public class RecordingController : ControllerBase
             return Problem($"No execution protocol found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
 
         var attempts = await LoadAttemptsOfDeliveryAsync(run, cancellationToken);
-        var deliveries = await RecordingOutcomes.LoadDeliveriesAsync(context, attempts.Select(r => r.JobId).ToList(), cancellationToken);
+        var attemptJobIds = attempts.Select(r => r.JobId).ToList();
+        var deliveries = await RecordingOutcomes.LoadDeliveriesAsync(context, attemptJobIds, cancellationToken);
+        var alive = await LoadAliveJobIdsAsync(attemptJobIds, cancellationToken);
         var delivery = deliveries.GetValueOrDefault(run.JobId);
-        var outcome = RecordingOutcomes.Determine(run, IsRunning(run.JobId), delivery);
+        var outcome = RecordingOutcomes.Determine(run, alive.Contains(run.JobId), delivery);
         var (forwardingState, notificationState) = await RecordingOutcomes.LoadReactionStatesAsync(context, delivery, cancellationToken);
-        var attemptSummaries = attempts.Select(attempt => ToSummary(attempt, deliveries)).ToList();
+        var attemptSummaries = attempts.Select(attempt => ToSummary(attempt, deliveries, alive)).ToList();
         return Ok(run.ToResponse(outcome, forwardingState, notificationState, attemptSummaries, pipelineFactory.ReactionDisplayNames()));
     }
 
@@ -226,20 +228,30 @@ public class RecordingController : ControllerBase
     private static IQueryable<Recording> WithSummaryIncludes(IQueryable<Recording> runs)
         => runs.Include(r => r.Steps).Include(r => r.User).Include(r => r.MachineClient).Include(r => r.Mandate);
 
-    private RecordingSummaryResponse ToSummary(Recording run, IReadOnlyDictionary<Guid, RecordingDelivery> deliveries) => new(
+    private static RecordingSummaryResponse ToSummary(Recording run, IReadOnlyDictionary<Guid, RecordingDelivery> deliveries, IReadOnlySet<Guid> alive) => new(
         run.JobId,
         run.StartedAt,
         run.TerminalAt,
         run.ToStarter(),
         run.ToMandateReference(),
         run.TerminalState,
-        RecordingOutcomes.Determine(run, IsRunning(run.JobId), deliveries.GetValueOrDefault(run.JobId)));
+        RecordingOutcomes.Determine(run, alive.Contains(run.JobId), deliveries.GetValueOrDefault(run.JobId)));
 
     // The API documents its times as UTC: a time without offset binds as unspecified and is read as UTC, not in the
     // time zone of the host. The database compares timestamps with time zone and takes only UTC values.
     private static DateTime AsUtc(DateTime value) =>
         value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : value.ToUniversalTime();
 
-    // A run without terminal state is either still running here or died with its instance.
-    private bool IsRunning(Guid jobId) => processingService.GetJob(jobId)?.State is ProcessingState.Pending or ProcessingState.Running;
+    // A run without terminal state is running while its heartbeat is fresh, on whichever instance, and otherwise died.
+    // One query for all runs a request summarises.
+    private async Task<IReadOnlySet<Guid>> LoadAliveJobIdsAsync(IReadOnlyCollection<Guid> jobIds, CancellationToken cancellationToken)
+    {
+        var alive = await context.Recordings
+            .AsNoTracking()
+            .Where(r => jobIds.Contains(r.JobId))
+            .WhereAlive(context.Deliveries.IgnoreQueryFilters())
+            .Select(r => r.JobId)
+            .ToListAsync(cancellationToken);
+        return alive.ToHashSet();
+    }
 }

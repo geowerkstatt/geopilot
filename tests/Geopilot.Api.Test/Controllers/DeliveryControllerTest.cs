@@ -26,7 +26,6 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public class DeliveryControllerTest
 {
-    private Mock<IProcessingService> processingServiceMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
@@ -43,7 +42,6 @@ public class DeliveryControllerTest
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         creationLoggerMock = new Mock<ILogger<DeliveryCreationService>>();
-        processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
@@ -52,7 +50,7 @@ public class DeliveryControllerTest
 
         // The creation service is wired up for real, not mocked: these tests cover the delivery rules, which
         // moved into it, and mocking it here would leave those rules untested.
-        var creationService = new DeliveryCreationService(creationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object);
+        var creationService = new DeliveryCreationService(creationLoggerMock.Object, context, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), deliveryOptionsMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = TimeSpan.FromHours(1) }));
         authorizationServiceMock = new Mock<IAuthorizationService>();
         authorizationServiceMock
             .Setup(s => s.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), GeopilotPolicies.Admin))
@@ -70,7 +68,6 @@ public class DeliveryControllerTest
         // Dispose first: a failing VerifyAll would otherwise leave the test transaction open, and its uncommitted
         // rows block every parallel test that inserts the same unique key until that test times out.
         context.Dispose();
-        processingServiceMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         assetHandlerMock.VerifyAll();
         loggerMock.VerifyAll();
@@ -129,9 +126,6 @@ public class DeliveryControllerTest
     public async Task CreateFailsJobNotFound()
     {
         var guid = Guid.NewGuid();
-        processingServiceMock
-            .Setup(s => s.GetJob(guid))
-            .Returns(default(ProcessingJob?));
         deliveryController.SetupTestUser(context.Users.First());
 
         var deliveriesCount = context.Deliveries.Count();
@@ -564,9 +558,10 @@ public class DeliveryControllerTest
     public async Task CreateRecordsAnUnexpectedErrorAndRethrowsIt()
     {
         deliveryController.SetupTestUser(context.Users.First());
-        var jobId = Guid.NewGuid();
-        var failure = new InvalidOperationException("The job store went away.");
-        processingServiceMock.Setup(s => s.GetJob(jobId)).Throws(failure);
+        var failure = new InvalidOperationException("The mandate lookup went away.");
+        var mandateId = context.Mandates.First().Id;
+        var jobId = context.AddRun(mandateId);
+        mandateServiceMock.Setup(s => s.MayDeliverAsync(mandateId, It.IsAny<Supplier>())).ThrowsAsync(failure);
 
         var thrown = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => deliveryController.Create(new DeliveryRequest { JobId = jobId }));
 
@@ -611,10 +606,10 @@ public class DeliveryControllerTest
     }
 
     private void AssertDeliveryFailureRecorded(Guid jobId, string reason)
-        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(jobId, reason), Times.Once());
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(jobId, reason, It.IsAny<CancellationToken>()), Times.Once());
 
     private void AssertNoDeliveryFailureRecorded()
-        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never());
+        => recorderMock.Verify(r => r.RecordDeliveryFailedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never());
 
     private void SetupJobPersistence(Guid jobId)
     {
@@ -626,26 +621,9 @@ public class DeliveryControllerTest
 
     private Guid SetupProcessingJob(int? mandateId = null, ProcessingState jobState = ProcessingState.Success, bool mayDeliver = true)
     {
-        var guid = Guid.NewGuid();
-
-        // The pipeline always reports Success, so a refused delivery shows that the gate reads the job state:
-        // the job only becomes deliverable once its delivery files are staged.
-        var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
-        pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-
-        var job = new ProcessingJob(guid, Guid.NewGuid(), mandateId, DateTime.Now)
-        {
-            Pipeline = pipelineMock.Object,
-            State = jobState,
-            MayDeliver = mayDeliver,
-        };
-
-        processingServiceMock
-            .Setup(s => s.GetJob(guid))
-            .Returns(job);
-        return guid;
+        // Pending and Running are runs that have not settled: the protocol holds no terminal state for them.
+        ProcessingState? terminalState = jobState is ProcessingState.Pending or ProcessingState.Running ? null : jobState;
+        return context.AddRun(mandateId, terminalState, mayDeliver ? PermissionToDeliver.Permitted : PermissionToDeliver.NotPermitted);
     }
 
     [TestMethod]

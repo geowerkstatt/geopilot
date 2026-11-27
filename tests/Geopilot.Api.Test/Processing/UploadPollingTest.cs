@@ -45,7 +45,9 @@ public class UploadPollingTest
         uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
+        // Like a healthy database: every run is still alive when its preflight ends.
         runRecorderMock = new Mock<IRecorder>();
+        runRecorderMock.Setup(r => r.RecordHeartbeatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
@@ -63,7 +65,7 @@ public class UploadPollingTest
 
         var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactoryMock.Object, preflightChannel.Writer, scopeFactoryMock.Object, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }), Options.Create(new RefMappingOptions()));
 
-        processingService = new ProcessingService(jobStore, uploadStore, mandateServiceMock.Object, lifecycle);
+        processingService = new ProcessingService(uploadStore, mandateServiceMock.Object, lifecycle);
 
         backgroundService = new PreflightBackgroundService(
             preflightChannel.Reader,
@@ -83,7 +85,7 @@ public class UploadPollingTest
     {
         var (jobId, _, _, _) = await CreateAndStartJobAsync();
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
@@ -115,7 +117,7 @@ public class UploadPollingTest
         // would let the run be delivered here, and a staging that nobody may deliver would be back.
         var (jobId, _, _, _) = await CreateAndStartJobAsync(mayDeliver);
 
-        var job = processingService.GetJob(jobId);
+        var job = jobStore.GetJob(jobId);
         Assert.IsNotNull(job);
         Assert.AreEqual(mayDeliver, job.MayDeliver);
     }
@@ -129,7 +131,7 @@ public class UploadPollingTest
         // attempt, geopilot would never create its delivery, and polling it would answer 404.
         var (jobId, _, _, _) = await CreateAndStartJobAsync(deliveryFields: fields);
 
-        var job = processingService.GetJob(jobId);
+        var job = jobStore.GetJob(jobId);
         Assert.IsNotNull(job);
         Assert.AreEqual(fields, job.DeliveryIntent?.Fields);
     }
@@ -144,7 +146,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
@@ -160,7 +162,7 @@ public class UploadPollingTest
         var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
 
         orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UploadPreflightException(reason, "Preflight check failed."));
         orchestrationServiceMock
             .Setup(x => x.ReleaseUploadAsync(uploadId))
@@ -169,7 +171,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
@@ -181,7 +183,7 @@ public class UploadPollingTest
         var (jobId, uploadId, _, _) = await CreateAndStartJobAsync();
 
         orchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Unexpected error during processing."));
         orchestrationServiceMock
             .Setup(x => x.ReleaseUploadAsync(uploadId))
@@ -190,7 +192,7 @@ public class UploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = processingService.GetJob(jobId);
+        var polledJob = jobStore.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
@@ -225,7 +227,7 @@ public class UploadPollingTest
 
     private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(new ScanResult(true));
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId, It.IsAny<CancellationToken>())).ReturnsAsync(new ScanResult(true));
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Returns(() => new List<IPipelineFile> { new Mock<IPipelineFile>().Object });
     }

@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
@@ -68,5 +70,53 @@ internal static class TestHelpers
         context.SaveChanges();
 
         return (user, mandate);
+    }
+
+    /// <summary>
+    /// Writes a run into the execution protocol only, the in-memory job store knows nothing of it. Without a
+    /// <paramref name="terminalState"/> the run is alive (fresh heartbeat), otherwise its heartbeat is stale, like that
+    /// of a run another instance executed, unless <paramref name="heartbeatAgo"/> says otherwise. With a
+    /// <paramref name="submissionMandateKey"/> the run is a machine delivery attempt. Heartbeat and end come from the
+    /// database clock.
+    /// </summary>
+    public static Guid AddRun(
+        this Context context,
+        int? mandateId,
+        ProcessingState? terminalState = ProcessingState.Success,
+        PermissionToDeliver permission = PermissionToDeliver.Permitted,
+        TimeSpan? terminalAgo = null,
+        string? submissionMandateKey = null,
+        TimeSpan? heartbeatAgo = null)
+    {
+        var run = new Recording
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "test",
+            MandateId = mandateId,
+            PermissionToDeliver = permission,
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = DateTime.UtcNow,
+            StartedAt = DateTime.UtcNow,
+            SubmissionMandateKey = submissionMandateKey,
+            TerminalState = terminalState,
+        };
+        context.Recordings.Add(run);
+        context.SaveChanges();
+
+        var heartbeat = heartbeatAgo ?? (terminalState is null ? TimeSpan.Zero : TimeSpan.FromMinutes(10));
+        var settledSince = terminalAgo ?? TimeSpan.Zero;
+        context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdate(setters =>
+            {
+                setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - heartbeat);
+                if (terminalState is not null)
+                    setters.SetProperty(r => r.TerminalAt, r => DateTime.UtcNow - settledSince);
+            });
+        context.Entry(run).State = EntityState.Detached;
+        return run.JobId;
     }
 }

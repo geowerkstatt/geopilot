@@ -5,9 +5,12 @@ using Geopilot.Pipeline;
 using Geopilot.Pipeline.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Npgsql;
 using System.Collections.Immutable;
+using System.Data.Common;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.Json;
@@ -19,6 +22,7 @@ public class RecorderTest
 {
     private const string FileDrop = "Geopilot.Pipeline.Channels.FileDrop.FileDropChannel";
 
+    private FailingWrites failingWrites;
     private Context context;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Mock<IUploadStorage> uploadStorageMock;
@@ -32,7 +36,8 @@ public class RecorderTest
     [TestInitialize]
     public void Initialize()
     {
-        context = AssemblyInitialize.DbFixture.GetTestContext();
+        failingWrites = new FailingWrites();
+        context = AssemblyInitialize.DbFixture.GetTestContext(failingWrites);
 
         pipelineFactoryMock = new Mock<IPipelineFactory>();
         pipelineFactoryMock.Setup(f => f.GetDefinitionSnapshotJson(It.IsAny<string>())).Returns("{}");
@@ -60,6 +65,42 @@ public class RecorderTest
 
     [TestCleanup]
     public void Cleanup() => context.Dispose();
+
+    /// <summary>
+    /// Stands in for a database that fails writes: the next <see cref="Remaining"/> commands that are not queries fail
+    /// with <see cref="Failure"/> before they reach the database, so the transaction of the test stays usable, while
+    /// EF Core hands the failure on as it would one from the database.
+    /// </summary>
+    private sealed class FailingWrites : DbCommandInterceptor
+    {
+        public int Remaining { get; set; }
+
+        public Func<Exception> Failure { get; set; } = () => new NpgsqlException("The connection to the database was lost.", new TimeoutException());
+
+        public int Failed { get; private set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            FailIfDue(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command, CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            FailIfDue(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void FailIfDue(DbCommand command)
+        {
+            if (Remaining == 0 || command.CommandText.StartsWith("SELECT", StringComparison.Ordinal))
+                return;
+
+            Remaining--;
+            Failed++;
+            throw Failure();
+        }
+    }
 
     [TestMethod]
     public async Task RecordJobStartedWritesRunWithManifest()
@@ -340,6 +381,50 @@ public class RecorderTest
     }
 
     [TestMethod]
+    public async Task RecordJobStartedWritesPipelineNameAndHeartbeat()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual(job.Pipeline!.DisplayName, run.PipelineDisplayName);
+        Assert.IsNotNull(run.HeartbeatAt, "the heartbeat starts with the record, from the database clock.");
+        Assert.IsNull(run.SubmissionMandateKey);
+        Assert.IsNull(run.QueuedAt, "the job waits for its preflight, not for a slot.");
+    }
+
+    [TestMethod]
+    public async Task RecordJobStartedKeepsTheKeyOfAnAttempt()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload) with
+        {
+            DeliveryIntent = new DeliveryIntent(supplier, "machine-delivery", new DeliveryFields(null, null, null)),
+        };
+
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual("machine-delivery", run.SubmissionMandateKey);
+    }
+
+    [TestMethod]
+    public async Task RecordPreflightPassedSetsQueuedAt()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+
+        await recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true));
+
+        var run = await context.Recordings.AsNoTracking().SingleAsync(r => r.JobId == job.Id);
+        Assert.IsNotNull(run.QueuedAt);
+        Assert.AreEqual(ScanState.Clean, run.ScanState);
+    }
+
+    [TestMethod]
     public async Task RecordScanOutcomeSetsStateAndHashes()
     {
         currentHttpContext = null;
@@ -455,6 +540,116 @@ public class RecorderTest
         await recorder.RecordDeliveryFailedAsync(unknownJobId, "boom");
 
         Assert.IsFalse(await context.Recordings.AnyAsync(r => r.JobId == unknownJobId), "soft writes without a recording must be skipped, not fail.");
+    }
+
+    [TestMethod]
+    public async Task HardWriteRetriesAfterATransientFailure()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = 1;
+
+        // Without a row from the start record, the first attempt adds one before the database fails it, so the second
+        // attempt has to start over instead of adding it again.
+        await recorder.RecordStepStartedAsync(job.Id, StepMock("validation").Object, 0);
+
+        Assert.AreEqual(1, failingWrites.Failed);
+        Assert.AreEqual(StepState.Running, (await LoadStepRowAsync(job.Id, "validation")).State);
+    }
+
+    [TestMethod]
+    public async Task HardWriteGivesUpAfterThreeAttempts()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        var exception = await Assert.ThrowsExactlyAsync<RecordingUnavailableException>(
+            () => recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true)));
+
+        Assert.AreEqual(3, failingWrites.Failed);
+        Assert.Contains("preflight", exception.Message, "The reason names the write the protocol could not hold.");
+    }
+
+    [TestMethod]
+    public async Task HardWriteStopsRetryingOnceItsJobIsStopped()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        using var stop = new CancellationTokenSource();
+        failingWrites.Remaining = int.MaxValue;
+        failingWrites.Failure = () =>
+        {
+            // The job is stopped while the database is away, as by the abort of the heartbeat.
+            stop.Cancel();
+            return new NpgsqlException("The connection to the database was lost.", new TimeoutException());
+        };
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => recorder.RecordPreflightPassedAsync(job.Id, new ScanResult(IsClean: true), stop.Token));
+
+        Assert.AreEqual(1, failingWrites.Failed, "A stopped job's write is not tried again.");
+    }
+
+    [TestMethod]
+    public async Task HardWriteDoesNotRetryAFailureThatIsNotTransient()
+    {
+        currentHttpContext = null;
+        var step = StepMock("validation");
+        var job = NewJob(out var upload, step.Object);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+        failingWrites.Failure = () => new NpgsqlException("The statement is invalid.");
+
+        // Such a failure would only repeat, so it stays soft as before: logged, and the job goes on.
+        await recorder.RecordStepStartedAsync(job.Id, step.Object, 0);
+
+        Assert.AreEqual(1, failingWrites.Failed);
+    }
+
+    [TestMethod]
+    [DataRow(1, true, DisplayName = "Alive")]
+    [DataRow(4, false, DisplayName = "Dead")]
+    public async Task RecordHeartbeatRefreshesOnlyARunThatIsStillAlive(int heartbeatMinutesAgo, bool alive)
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        var age = TimeSpan.FromMinutes(heartbeatMinutesAgo);
+        await context.Recordings.Where(r => r.JobId == job.Id).ExecuteUpdateAsync(s => s.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - age));
+
+        Assert.AreEqual(alive, await recorder.RecordHeartbeatAsync(job.Id));
+        Assert.AreEqual(alive, await context.Recordings.AnyAsync(r => r.JobId == job.Id && r.HeartbeatAt == DateTime.UtcNow), "Only a run that is still alive gets a heartbeat, from the database clock.");
+    }
+
+    [TestMethod]
+    public async Task RecordHeartbeatGivesUpAfterThreeAttempts()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        Assert.IsFalse(await recorder.RecordHeartbeatAsync(job.Id), "A run that cannot be confirmed counts as dead.");
+        Assert.AreEqual(3, failingWrites.Failed);
+    }
+
+    [TestMethod]
+    public async Task RecordRunFinishedReportsWhetherItWroteTheTerminalState()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, supplier, upload);
+        failingWrites.Remaining = int.MaxValue;
+
+        Assert.IsFalse(await recorder.RecordRunFinishedAsync(job.Id, [], ProcessingState.Success, null));
+        Assert.AreEqual(3, failingWrites.Failed);
+
+        failingWrites.Remaining = 0;
+        Assert.IsTrue(await recorder.RecordRunFinishedAsync(job.Id, [], ProcessingState.Success, null));
     }
 
     [TestMethod]
@@ -736,6 +931,7 @@ public class RecorderTest
 
         var pipeline = new Mock<IPipeline>();
         pipeline.SetupGet(p => p.Id).Returns("pipe_a");
+        pipeline.SetupGet(p => p.DisplayName).Returns(TestHelpers.Localized("Pipeline A"));
         pipeline.SetupGet(p => p.Steps).Returns(steps.ToList());
 
         return new ProcessingJob(Guid.NewGuid(), uploadId, null, DateTime.UtcNow) { Pipeline = pipeline.Object };

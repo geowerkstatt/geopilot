@@ -7,19 +7,25 @@ using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// The only writer of a processing job's state. Callers report what happened to a job (it was started, its
-/// preflight passed or failed, its run finished, its retention ran out) and the lifecycle carries out every
-/// consequence: the state change, the execution protocol, the disposal of the pipeline, the release of the upload
-/// and the machine delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what follows
-/// every event happens without asking.
+/// preflight passed, failed or was interrupted, its run finished, its retention ran out) and the lifecycle carries
+/// out every consequence: the state change, the execution protocol, the disposal of the pipeline, the release of the
+/// upload and the machine delivery. Which of them an outcome triggers is decided by <see cref="Decide"/>; what
+/// follows every event happens without asking.
 /// </summary>
 public class JobLifecycle
 {
+    /// <summary>
+    /// Why a job is aborted whose run the database no longer considers alive.
+    /// </summary>
+    internal const string HeartbeatLost = "heartbeat lost";
+
     private readonly ILogger<JobLifecycle> logger;
     private readonly IProcessingJobStore jobStore;
     private readonly IPipelineFactory pipelineFactory;
@@ -28,7 +34,84 @@ public class JobLifecycle
     private readonly RefMappingOptions refMappingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
 
+    private readonly ConcurrentDictionary<Guid, HeldJob> heldJobs = new();
+
     private sealed record RefMappings(IReadOnlyList<RefMappingEntry> Entries) : IRefMappings;
+
+    private sealed class HeldJob : IDisposable
+    {
+        private readonly CancellationTokenSource abort = new();
+        private string? reason;
+
+        public CancellationToken Token => abort.Token;
+
+        public string? Reason => Volatile.Read(ref reason);
+
+        public void Abort(string abortReason)
+        {
+            Interlocked.CompareExchange(ref reason, abortReason, null);
+            try
+            {
+                // The token turns cancelled at once, its callbacks run on the thread pool: one that blocks or throws,
+                // such as the cancel request of a database command, must not hold up the heartbeat that aborts.
+                _ = abort.CancelAsync();
+            }
+            catch (ObjectDisposedException)
+            {
+                // The job was released meanwhile, so there is nothing left to abort.
+            }
+        }
+
+        public void Dispose() => abort.Dispose();
+    }
+
+    /// <summary>
+    /// The jobs this instance still holds: from the moment <see cref="StartAsync"/> has recorded the start until their
+    /// end has been carried out (<see cref="RunFinishedAsync"/>, <see cref="PreflightFailedAsync"/> or
+    /// <see cref="PreflightInterruptedAsync"/>). A snapshot.
+    /// </summary>
+    public IReadOnlyCollection<Guid> HeldJobIds => heldJobs.Keys.ToArray();
+
+    /// <summary>
+    /// The token that is cancelled when <see cref="Abort"/> is called for the job, or <see cref="CancellationToken.None"/>
+    /// for a job this instance does not hold.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <returns>The abort token of the job.</returns>
+    public CancellationToken AbortTokenOf(Guid jobId) =>
+        heldJobs.TryGetValue(jobId, out var held) ? held.Token : CancellationToken.None;
+
+    /// <summary>
+    /// The reason given to <see cref="Abort"/> for the job, or <see langword="null"/> if it was not aborted or is not held.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <returns>The reason, if any.</returns>
+    public string? AbortReasonOf(Guid jobId) =>
+        heldJobs.TryGetValue(jobId, out var held) ? held.Reason : null;
+
+    /// <summary>
+    /// Cancels the abort token of each held job in the list and remembers the reason (the first one, if a job is
+    /// aborted twice). Jobs that are not held are ignored.
+    /// </summary>
+    /// <param name="jobIds">The jobs to abort.</param>
+    /// <param name="reason">Why they are aborted.</param>
+    public void Abort(IEnumerable<Guid> jobIds, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        foreach (var jobId in jobIds)
+        {
+            if (heldJobs.TryGetValue(jobId, out var held))
+                held.Abort(reason);
+        }
+    }
+
+    private void ReleaseHold(Guid jobId)
+    {
+        if (heldJobs.TryRemove(jobId, out var held))
+            held.Dispose();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JobLifecycle"/> class.
@@ -118,6 +201,8 @@ public class JobLifecycle
             throw;
         }
 
+        // Only now, with the first heartbeat written: the heartbeat aborts a held job whose run it cannot find alive.
+        heldJobs[job.Id] = new HeldJob();
         await preflightQueue.WriteAsync(new PreflightRequest(job.Id, upload.Id));
         return jobWithPipeline;
     }
@@ -147,39 +232,56 @@ public class JobLifecycle
 
     /// <summary>
     /// Reports that the pipeline of a job stopped running, however it ended, and carries out every consequence:
-    /// the job's terminal state, the machine delivery, the execution protocol, the disposal of the pipeline and,
-    /// as <see cref="Decide"/> says, the release of the upload. Apart from its argument checks it never throws:
-    /// each consequence is guarded on its own, because the caller is the processing loop, which an escaping
-    /// exception would stop.
+    /// the job's terminal state, the machine delivery (not for a job that was aborted), the execution protocol, the
+    /// disposal of the pipeline and, as <see cref="Decide"/> says, the release of the upload. A run the database no
+    /// longer considers alive ends like an aborted one and stays dead (see <see cref="ConfirmRunAsync"/>), and a run
+    /// whose terminal state could not be written keeps its upload. Apart from its argument checks it never throws:
+    /// each consequence is guarded on its own, because the caller is the processing loop, which an escaping exception
+    /// would stop.
     /// </summary>
     /// <param name="pipeline">The pipeline whose run ended. It is disposed here.</param>
     /// <param name="runOutcome">How the run ended.</param>
     /// <param name="cancellationToken">Signals a host shutdown: it cuts the machine delivery short and limits the
-    /// protocol write to a short budget.</param>
+    /// protocol writes to a short budget.</param>
     public async Task RunFinishedAsync(IPipeline pipeline, RunOutcome runOutcome, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(runOutcome);
 
         var jobId = pipeline.JobId;
-        var job = jobStore.GetJob(jobId);
-        var decision = Decide(runOutcome);
+        try
+        {
+            var job = jobStore.GetJob(jobId);
 
-        if (!jobStore.TryPipelineFinished(jobId, decision.State))
-            logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
+            // During a shutdown a slow database must not use up the time the host grants for stopping.
+            // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
+            using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
+            var runAlive = await ConfirmRunAsync(jobId, protocolCts.Token);
+            var decision = Decide(runAlive ? runOutcome : new RunOutcome.Interrupted(AbortReasonOf(jobId) ?? HeartbeatLost));
 
-        if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
-            await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
+            if (!jobStore.TryPipelineFinished(jobId, decision.State))
+                logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
 
-        // During a shutdown a slow database must not use up the time the host grants for stopping.
-        // shortcut: fixed budget, derive it from the remaining shutdown time if 5 s turns out wrong.
-        using var protocolCts = cancellationToken.IsCancellationRequested ? new CancellationTokenSource(TimeSpan.FromSeconds(5)) : new CancellationTokenSource();
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, pipeline.Steps, decision.State, DescribeFailure(runOutcome), protocolCts.Token));
+            // The terminal state goes first: the delivery gate reads it from the protocol.
+            var recorded = false;
+            if (runAlive)
+                await RecordProtocolAsync(jobId, async recorder => recorded = await recorder.RecordRunFinishedAsync(jobId, pipeline.Steps, decision.State, DescribeFailure(runOutcome), protocolCts.Token));
 
-        DisposePipeline(jobId, pipeline);
+            // Not for a job aborted meanwhile: another instance may already process the same upload again, and without
+            // a delivery the attempt reads as lost.
+            if (recorded && decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent && AbortReasonOf(jobId) is null)
+                await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);
 
-        if (decision.ReleaseUpload)
-            await ReleaseUploadAsync(jobId, job?.UploadId);
+            DisposePipeline(jobId, pipeline);
+
+            // Without its terminal state the run reads dead soon, so its upload stays for another start.
+            if (recorded && decision.ReleaseUpload)
+                await ReleaseUploadAsync(jobId, job?.UploadId);
+        }
+        finally
+        {
+            ReleaseHold(jobId);
+        }
     }
 
     /// <summary>
@@ -189,44 +291,116 @@ public class JobLifecycle
     /// <param name="jobId">The job whose preflight passed.</param>
     /// <param name="scanResult">The outcome of the scan.</param>
     /// <param name="pipelineFiles">The uploaded files the run reads, registered but not fetched yet.</param>
+    /// <param name="cancellationToken">Stops the preflight while the outcome is recorded.</param>
     /// <exception cref="ArgumentException">If the job is unknown.</exception>
     /// <exception cref="InvalidOperationException">If the job is no longer pending or cannot be queued. The
     /// preflight reports such a job through <see cref="PreflightFailedAsync"/>, so it does not stay pending
     /// unnoticed.</exception>
-    public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles)
+    /// <exception cref="RecordingUnavailableException">If the execution protocol could not record that the preflight
+    /// passed. The job is not queued then, and the preflight reports it through
+    /// <see cref="PreflightInterruptedAsync"/>.</exception>
+    /// <exception cref="OperationCanceledException">If <paramref name="cancellationToken"/> stopped the preflight
+    /// before the outcome was recorded. The job is not queued then.</exception>
+    public async Task PreflightPassedAsync(Guid jobId, ScanResult scanResult, IReadOnlyList<IPipelineFile> pipelineFiles, CancellationToken cancellationToken = default)
     {
-        await RecordProtocolAsync(jobId, recorder => recorder.RecordScanOutcomeAsync(jobId, scanResult));
+        // Not through RecordProtocolAsync, which would swallow the failure: the status of the job is read from this
+        // record, so a job the protocol cannot hold must not be queued.
+        using var scope = serviceScopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IRecorder>().RecordPreflightPassedAsync(jobId, scanResult, cancellationToken);
+
         jobStore.EnqueueForProcessing(jobId, pipelineFiles);
     }
 
     /// <summary>
     /// Reports that the preflight of a job failed and carries out what always follows: the failure, and the scan
     /// outcome if a scan ran, go into the execution protocol, the job turns <see cref="ProcessingState.Failed"/>,
-    /// its pipeline is disposed and its upload released right away. Never throws, because the caller is the
-    /// preflight loop.
+    /// its pipeline is disposed and its upload released right away, unless the job was aborted. A run the database no
+    /// longer considers alive ends like an interrupted preflight instead and stays dead (see
+    /// <see cref="ConfirmRunAsync"/>). Never throws, because the caller is the preflight loop.
     /// </summary>
     /// <param name="jobId">The job whose preflight failed.</param>
     /// <param name="failureReason">Why the preflight failed, as written to the execution protocol.</param>
     /// <param name="scanResult">The outcome of the scan if one ran, otherwise <see langword="null"/>.</param>
     public async Task PreflightFailedAsync(Guid jobId, string failureReason, ScanResult? scanResult)
     {
-        var job = jobStore.GetJob(jobId);
-
-        await RecordProtocolAsync(jobId, async recorder =>
+        try
         {
-            if (scanResult is not null)
-                await recorder.RecordScanOutcomeAsync(jobId, scanResult);
+            var job = jobStore.GetJob(jobId);
+            var runAlive = await ConfirmRunAsync(jobId, CancellationToken.None);
 
-            await recorder.RecordPreflightFailedAsync(jobId, failureReason);
-        });
+            await RecordProtocolAsync(jobId, async recorder =>
+            {
+                if (scanResult is not null)
+                    await recorder.RecordScanOutcomeAsync(jobId, scanResult);
 
-        if (!jobStore.TryMarkAsFailed(jobId))
-            logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", jobId);
+                if (runAlive)
+                    await recorder.RecordPreflightFailedAsync(jobId, failureReason);
+            });
 
-        // The pipeline was instantiated up front but never queued, so no run will dispose it.
-        DisposePipeline(jobId, job?.Pipeline);
+            var marked = runAlive ? jobStore.TryMarkAsFailed(jobId) : jobStore.TryMarkAsCancelled(jobId);
+            if (!marked)
+                logger.LogWarning("Job <{JobId}> was not marked as ended: it is unknown or already in a terminal state.", jobId);
 
-        await ReleaseUploadAsync(jobId, job?.UploadId);
+            // The pipeline was instantiated up front but never queued, so no run will dispose it.
+            DisposePipeline(jobId, job?.Pipeline);
+
+            if (runAlive)
+                await ReleaseUploadAsync(jobId, job?.UploadId);
+        }
+        finally
+        {
+            ReleaseHold(jobId);
+        }
+    }
+
+    /// <summary>
+    /// Reports that the preflight of a job was interrupted because the execution protocol could not record that it
+    /// passed (see <see cref="RecordingUnavailableException"/>), and carries out what follows. Nothing is wrong with
+    /// the upload, so the job ends like after a timeout: the protocol gets its terminal state as far as the database
+    /// allows and the run is still alive (see <see cref="ConfirmRunAsync"/>), the job turns
+    /// <see cref="ProcessingState.Cancelled"/>, its pipeline is disposed, and its upload stays for another start until
+    /// the age-based sweep in UploadCleanupService collects it. Never throws, because the caller is the preflight loop.
+    /// </summary>
+    /// <param name="jobId">The job whose preflight was interrupted.</param>
+    /// <param name="reason">Why, as written to the execution protocol.</param>
+    public async Task PreflightInterruptedAsync(Guid jobId, string reason)
+    {
+        try
+        {
+            var job = jobStore.GetJob(jobId);
+
+            if (await ConfirmRunAsync(jobId, CancellationToken.None))
+                await RecordProtocolAsync(jobId, recorder => recorder.RecordRunFinishedAsync(jobId, job?.Pipeline?.Steps ?? [], ProcessingState.Cancelled, reason));
+
+            if (!jobStore.TryMarkAsCancelled(jobId))
+                logger.LogWarning("Job <{JobId}> was not marked as cancelled: it is unknown or already in a terminal state.", jobId);
+
+            // The pipeline was instantiated up front but never queued, so no run will dispose it.
+            DisposePipeline(jobId, job?.Pipeline);
+        }
+        finally
+        {
+            ReleaseHold(jobId);
+        }
+    }
+
+    /// <summary>
+    /// Confirms the run of a job whose end is about to be carried out with one more heartbeat, which only a run that is
+    /// still alive gets. Otherwise the job is aborted: an instance that stood still for longer than
+    /// <see cref="Liveness.DeadAfter"/>, a frozen container for instance, must neither revive a run the others consider
+    /// dead nor release an upload another instance may already process again.
+    /// </summary>
+    /// <returns>Whether the run is still alive; <see langword="false"/> also when the database stayed unavailable.</returns>
+    private async Task<bool> ConfirmRunAsync(Guid jobId, CancellationToken cancellationToken)
+    {
+        var alive = false;
+        await RecordProtocolAsync(jobId, async recorder => alive = await recorder.RecordHeartbeatAsync(jobId, cancellationToken));
+        if (alive)
+            return true;
+
+        logger.LogError("The run of job <{JobId}> could not be confirmed alive; aborting the job, which keeps its upload and records no end.", jobId);
+        Abort([jobId], HeartbeatLost);
+        return false;
     }
 
     /// <summary>
@@ -347,6 +521,7 @@ public class JobLifecycle
         RunOutcome.TimedOut => $"Job timed out after {processingOptions.JobTimeout}.",
         RunOutcome.ShutDown => "host shutdown",
         RunOutcome.Crashed crashed => crashed.Reason,
+        RunOutcome.Interrupted interrupted => interrupted.Reason,
         RunOutcome.Completed { State: ProcessingState.Pending or ProcessingState.Running } completed => $"The pipeline returned in the non-terminal state <{completed.State}>.",
         _ => null,
     };
@@ -354,10 +529,12 @@ public class JobLifecycle
     /// <summary>
     /// Releases the uploaded files of the job. Only a known job carries the upload id. The release is a network
     /// call to the upload storage; the age-based sweep in UploadCleanupService picks up whatever it leaves behind.
+    /// A job that was aborted (<see cref="Abort"/>) keeps its upload whatever its outcome, even when the abort came
+    /// after the outcome: another instance may already process the same upload again.
     /// </summary>
     private async Task ReleaseUploadAsync(Guid jobId, Guid? uploadId)
     {
-        if (uploadId is not { } id)
+        if (uploadId is not { } id || AbortReasonOf(jobId) is not null)
             return;
 
         await CarryOutAsync(jobId, "release the upload", LogLevel.Error, services =>
@@ -368,10 +545,12 @@ public class JobLifecycle
     /// Decides what an outcome means for its job. A run that failed or was restricted by its own logic, a
     /// crashing process included, would end the same way a second time, so its upload goes right away. So does
     /// the upload of a deliverable run, whose delivery files are staged by now. A run that was
-    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown) says nothing about the data, so its
-    /// upload stays for a second start until the age-based sweep in UploadCleanupService collects it. A failed
-    /// preflight always releases its upload right away (<see cref="PreflightFailedAsync"/>), so it needs no
-    /// decision.
+    /// <see cref="ProcessingState.Cancelled"/> (job timeout, host shutdown, interrupted because the execution
+    /// protocol could not record it or the job was aborted) says nothing about the data, so its upload stays for a
+    /// second start until the age-based sweep in UploadCleanupService collects it. A preflight that failed always
+    /// releases its upload right away (<see cref="PreflightFailedAsync"/>) and an interrupted one always keeps it
+    /// (<see cref="PreflightInterruptedAsync"/>), so neither needs a decision. An aborted job keeps its upload in any
+    /// case (see <see cref="ReleaseUploadAsync"/>).
     /// </summary>
     internal static JobDecision Decide(RunOutcome runOutcome) => runOutcome switch
     {
@@ -383,7 +562,7 @@ public class JobLifecycle
 
         RunOutcome.Completed(ProcessingState.Failed) => new JobDecision(ProcessingState.Failed, ReleaseUpload: true),
 
-        RunOutcome.Completed(ProcessingState.Cancelled) or RunOutcome.TimedOut or RunOutcome.ShutDown => new JobDecision(ProcessingState.Cancelled, ReleaseUpload: false),
+        RunOutcome.Completed(ProcessingState.Cancelled) or RunOutcome.TimedOut or RunOutcome.ShutDown or RunOutcome.Interrupted => new JobDecision(ProcessingState.Cancelled, ReleaseUpload: false),
 
         // A pipeline that returns without a terminal state is a defect in our code, so it ends like a crash.
         RunOutcome.Crashed or RunOutcome.Completed(ProcessingState.Pending or ProcessingState.Running) => new JobDecision(ProcessingState.Failed, ReleaseUpload: true),

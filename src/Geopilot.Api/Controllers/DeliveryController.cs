@@ -124,7 +124,7 @@ public class DeliveryController : ControllerBase
         if (HttpContext.RequestAborted.IsCancellationRequested)
             return;
 
-        await recorder.RecordDeliveryFailedAsync(jobId, reason);
+        await recorder.RecordDeliveryFailedAsync(jobId, reason, HttpContext.RequestAborted);
     }
 
     /// <summary>

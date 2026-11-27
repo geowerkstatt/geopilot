@@ -7,7 +7,6 @@ namespace Geopilot.Api.Processing;
 /// </summary>
 public class ProcessingService : IProcessingService
 {
-    private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
     private readonly IMandateService mandateService;
     private readonly JobLifecycle lifecycle;
@@ -15,9 +14,8 @@ public class ProcessingService : IProcessingService
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingService"/> class.
     /// </summary>
-    public ProcessingService(IProcessingJobStore jobStore, IUploadStore uploadStore, IMandateService mandateService, JobLifecycle lifecycle)
+    public ProcessingService(IUploadStore uploadStore, IMandateService mandateService, JobLifecycle lifecycle)
     {
-        this.jobStore = jobStore;
         this.uploadStore = uploadStore;
         this.mandateService = mandateService;
         this.lifecycle = lifecycle;
@@ -36,9 +34,6 @@ public class ProcessingService : IProcessingService
         var mayDeliver = await mandateService.MayDeliverAsync(mandateId, supplier);
         return await lifecycle.StartAsync(upload, mandate, mandate.PipelineId, supplier, mayDeliver, deliveryFields);
     }
-
-    /// <inheritdoc/>
-    public ProcessingJob? GetJob(Guid jobId) => jobStore.GetJob(jobId);
 
     /// <inheritdoc/>
     public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()

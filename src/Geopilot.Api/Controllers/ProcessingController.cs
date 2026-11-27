@@ -6,6 +6,7 @@ using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Web;
 
@@ -26,12 +27,15 @@ public class ProcessingController : ControllerBase
     private readonly IVisualizationFileStore visualizationFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
+    private readonly TimeSpan jobRetention;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IVisualizationFileStore visualizationFileStore, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IVisualizationFileStore visualizationFileStore, IContentTypeProvider contentTypeProvider, Context context, IOptions<ProcessingOptions> processingOptions)
     {
+        ArgumentNullException.ThrowIfNull(processingOptions);
+        jobRetention = processingOptions.Value.JobRetention;
         this.logger = logger;
         this.processingService = processingService;
         this.downloadFileStore = downloadFileStore;
@@ -109,18 +113,18 @@ public class ProcessingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
-    public IActionResult GetStatus(Guid jobId)
+    public async Task<IActionResult> GetStatus(Guid jobId, CancellationToken cancellationToken)
     {
         logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-        var job = processingService.GetJob(jobId);
-        if (job == null)
+        var run = await context.FindAnswerableRecordingAsync(jobId, jobRetention, cancellationToken);
+        if (run == null)
         {
             logger.LogTrace("No job information available for job id <{JobId}>", jobId);
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
+        return Ok(run.ToStatusResponse(BuildDownloadUrl, BuildVisualizationUrl).WithRunningStepWhileJobRuns());
     }
 
     /// <summary>
@@ -130,7 +134,7 @@ public class ProcessingController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The specified file was found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or file cannot be found.", typeof(ProblemDetails), "application/json")]
-    public IActionResult Download(Guid jobId, string file)
+    public async Task<IActionResult> Download(Guid jobId, string file, CancellationToken cancellationToken)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
 
@@ -142,7 +146,7 @@ public class ProcessingController : ControllerBase
 
         var stream = downloadFileStore.OpenFile(jobId, file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        var downloadName = ResolveOriginalFileName(jobId, file) ?? Path.GetFileName(file);
+        var downloadName = await context.FindDownloadNameAsync(jobId, file, cancellationToken) ?? Path.GetFileName(file);
         return File(stream, contentType, downloadName);
     }
 
@@ -165,21 +169,6 @@ public class ProcessingController : ControllerBase
 
         var stream = visualizationFileStore.OpenFile(jobId, file);
         return File(stream, "application/json");
-    }
-
-    private string? ResolveOriginalFileName(Guid jobId, string persistedFileName)
-    {
-        // Each step keeps an in-memory mapping from persisted (random) name → original
-        // human-readable name. After the job ages out of the store we fall back to the
-        // persisted name; by then the temp dirs are usually gone anyway.
-        var job = processingService.GetJob(jobId);
-        if (job?.Pipeline == null)
-            return null;
-
-        return job.Pipeline.Steps
-            .SelectMany(s => s.Downloads)
-            .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
-            ?.OriginalFileName;
     }
 
     private Uri BuildDownloadUrl(Guid jobId, string fileName)

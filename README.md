@@ -411,6 +411,17 @@ volumes:
 - **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
 - **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.
 
+## Mehrere Instanzen
+
+Jede Instanz beantwortet den Status einer [Verarbeitung](./GLOSSARY.md#verarbeitung), liefert ihre Downloads und Visualisierungen aus und nimmt die Abgabe ihrer [Lieferung](./GLOSSARY.md#lieferung) an, auch wenn die Verarbeitung auf einer anderen Instanz läuft: Gelesen wird aus dem [Ausführungsprotokoll](./docs/Ausfuehrungsprotokoll.md) in der Datenbank. Ausgeführt wird eine Verarbeitung nur auf der Instanz, die sie angenommen hat. Mehr als eine Instanz setzt voraus:
+
+- Download-, Visualisierungs- und Asset-Verzeichnis samt [Staging](./GLOSSARY.md#staging) (`Storage:DownloadDirectory`, `Storage:VisualizationDirectory`, `Storage:AssetsDirectory`) sind für alle Instanzen dieselben, über einen gemeinsamen Mount, im Direct-Modus auch das Upload-Verzeichnis (`Upload:Direct:Directory`). Das Arbeitsverzeichnis der Pipeline (`Storage:PipelineDirectory`) bleibt lokal.
+- Der Rate-Limiter der Initiierung (`Upload:RateLimitRequests` pro `Upload:RateLimitWindowMinutes`) und `Processing:MaxConcurrentJobs` gelten pro Instanz: Zwei Instanzen nehmen bis zu doppelt so viele Initiierungen an und führen doppelt so viele Pipelines gleichzeitig aus.
+
+Ob eine Verarbeitung noch läuft, sagt ein Heartbeat, den die ausführende Instanz alle 30 Sekunden in die Datenbank schreibt. Verglichen wird mit der Uhr der Datenbank, die Uhren der Instanzen müssen nicht übereinstimmen. Fällt eine Instanz aus, sind ihre laufenden Verarbeitungen verloren: Drei Minuten nach dem letzten Heartbeat antwortet ihr Status mit `404`. Der Upload bleibt und lässt sich erneut starten.
+
+Kann eine Instanz ihren Heartbeat nicht schreiben, bricht sie spätestens zweieinhalb Minuten nach dem letzten Erfolg alle ihre Verarbeitungen ab, bevor die anderen Instanzen sie für tot halten. Der Upload bleibt. Ist die Datenbank beim Abbruch wieder erreichbar, enden sie als `Cancelled`, sonst antwortet ihr Status drei Minuten nach dem letzten Heartbeat mit `404`. Ein Datenbankausfall von mehr als zweieinhalb Minuten bricht damit alle laufenden Verarbeitungen ab, auch wenn nur eine Instanz läuft. Die Regeln beschreibt [Lebendigkeit](./docs/Ausfuehrungsprotokoll.md#lebendigkeit).
+
 ## Löschen von Lieferungen
 
 Ob Lieferanten ihre eigenen [Lieferungen](./GLOSSARY.md#lieferung) löschen dürfen, und die eines Maschinen-Clients, für den sie verantwortlich sind, steuert der Abschnitt `Delivery` (Standard: nein). Admins dürfen immer löschen, ohne Frist.

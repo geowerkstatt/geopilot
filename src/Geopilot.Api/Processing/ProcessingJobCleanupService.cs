@@ -85,30 +85,6 @@ public class ProcessingJobCleanupService : BackgroundService
             int cleanedVisualizations = 0;
             int retiredJobs = 0;
 
-            // Downloads expire on a separate (typically much shorter) retention so the
-            // user-facing artifacts don't linger past their useful window.
-            foreach (var jobId in EnumerateJobIds(directoryProvider.DownloadDirectory))
-            {
-                var job = jobStore.GetJob(jobId);
-                if (job is null || HasExpiredSinceFinished(job, now, processingOptions.DownloadRetention))
-                {
-                    if (DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId)))
-                        cleanedDownloads++;
-                }
-            }
-
-            // Visualizations expire on their own (typically shortest) retention: a visualization is only
-            // needed while the user views the job result in the browser.
-            foreach (var jobId in EnumerateJobIds(directoryProvider.VisualizationDirectory))
-            {
-                var job = jobStore.GetJob(jobId);
-                if (job is null || HasExpiredSinceFinished(job, now, processingOptions.VisualizationRetention))
-                {
-                    if (DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId)))
-                        cleanedVisualizations++;
-                }
-            }
-
             // Delivery and staging directories follow the deliveries in the database alone, deleted ones included:
             // a delivery directory exists only once its delivery is saved, so one without a delivery holds a
             // delivery the database no longer knows, after restoring an older database for instance. It is
@@ -122,40 +98,36 @@ public class ProcessingJobCleanupService : BackgroundService
             var movedStagings = MoveStagedDeliveriesIntoPlace(deliveries);
             ReportMismatches(deliveryRows, deliveries, deliveryDirectories, stagingDirectories);
 
-            // The in-memory job entry ages out on JobRetention, counted from the end of its run like the downloads,
-            // so retiring a job never cuts their retention short; a job that has not finished counts from its
-            // creation, which is how a stuck one shows up below. Its upload is not released here: it went when
-            // the job ended, or it stays on purpose until its upload session expires (a cancelled run, see
-            // JobLifecycle.Decide). A delivery directory goes only once all deliveries of its job are deleted,
-            // the fallback for files DeliveryController.Delete could not remove. A staged payload without an
-            // active delivery belongs to a deliverable run that was never delivered: once the in-memory job is
-            // gone nobody can create its delivery any more, so it retires with the job.
-            // Pipeline working directories are normally removed by Pipeline.Dispose, but survive a hard restart
-            // (nothing gets disposed), so they count as retirement candidates too.
+            // The run in the database decides, so no instance deletes the files of a run another instance executes,
+            // except for the local pipeline directory: it exists before its run is recorded, so memory counts as well.
             var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetStagingDirectory));
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
             retiredCandidates.UnionWith(jobStore.GetJobIds());
+            var downloadDirectories = EnumerateJobIds(directoryProvider.DownloadDirectory);
+            var visualizationDirectories = EnumerateJobIds(directoryProvider.VisualizationDirectory);
+
+            var databaseNow = await dbContext.Database.SqlQuery<DateTime>($"SELECT now() AS \"Value\"").SingleAsync();
+            var runs = await LoadRunsAsync(dbContext, retiredCandidates.Union(downloadDirectories).Union(visualizationDirectories).ToList());
+
+            foreach (var jobId in downloadDirectories)
+            {
+                if (FilesAreDue(jobId, runs, databaseNow, processingOptions.DownloadRetention)
+                    && DeleteExpired(jobId, directoryProvider.GetDownloadDirectoryPath))
+                    cleanedDownloads++;
+            }
+
+            foreach (var jobId in visualizationDirectories)
+            {
+                if (FilesAreDue(jobId, runs, databaseNow, processingOptions.VisualizationRetention)
+                    && DeleteExpired(jobId, directoryProvider.GetVisualizationDirectoryPath))
+                    cleanedVisualizations++;
+            }
+
             foreach (var jobId in retiredCandidates)
             {
-                var job = jobStore.GetJob(jobId);
-                if (job != null && now - (job.FinishedAt ?? job.CreatedAt) <= processingOptions.JobRetention)
+                if (!IsRetirable(jobId, runs, databaseNow, now))
                     continue;
-
-                // A job still pending or running past its retention is stuck, not stale: its preflight or
-                // its pipeline is hanging. Retiring it would delete its working directory and drop the job from
-                // under a run that may yet continue. Leave it; UploadCleanupService's age-based sweep is the
-                // backstop for its upload.
-                if (job != null && job.State is ProcessingState.Pending or ProcessingState.Running)
-                {
-                    logger.LogWarning(
-                        "Job <{JobId}> is still <{State}> after {Age} and past the retention of {Retention}; not retiring it. Check whether preflight or the pipeline is stuck.",
-                        jobId,
-                        job.State,
-                        now - job.CreatedAt,
-                        processingOptions.JobRetention);
-                    continue;
-                }
 
                 if (RetireJob(jobId, deliveries.GetValueOrDefault(jobId, JobDeliveries.None)))
                     retiredJobs++;
@@ -317,12 +289,110 @@ public class ProcessingJobCleanupService : BackgroundService
         return false;
     }
 
+    private static async Task<Dictionary<Guid, KnownRun>> LoadRunsAsync(Context dbContext, IReadOnlyList<Guid> jobIds)
+    {
+        var deliveries = dbContext.Deliveries.IgnoreQueryFilters();
+        var known = dbContext.Recordings.AsNoTracking().Where(r => jobIds.Contains(r.JobId));
+        var rows = await known
+            .Select(r => new { r.JobId, r.StartedAt, r.HeartbeatAt, r.TerminalAt })
+            .ToListAsync();
+        var alive = (await known.WhereAlive(deliveries).Select(r => r.JobId).ToListAsync()).ToHashSet();
+        var settled = (await known.WhereSettled(deliveries).Select(r => r.JobId).ToListAsync()).ToHashSet();
+
+        return rows.ToDictionary(
+            row => row.JobId,
+            row => new KnownRun(
+                row.StartedAt,
+                alive.Contains(row.JobId),
+                settled.Contains(row.JobId) && row.TerminalAt is { } terminalAt ? terminalAt : row.HeartbeatAt ?? row.StartedAt));
+    }
+
     /// <summary>
-    /// Whether a job's files on a <paramref name="retention"/> are due. Counted from the end of the run, so a job
-    /// that waited long in the queue keeps them for the full window, and a job still running keeps them.
+    /// Whether the download or visualization files of a job on a <paramref name="retention"/> are due, counted from the
+    /// end of its run. A job without a run is orphaned; a running one, here or elsewhere, keeps them.
     /// </summary>
-    private static bool HasExpiredSinceFinished(ProcessingJob job, DateTime now, TimeSpan retention) =>
-        job.FinishedAt is { } finishedAt && now - finishedAt > retention;
+    private bool FilesAreDue(Guid jobId, IReadOnlyDictionary<Guid, KnownRun> runs, DateTime databaseNow, TimeSpan retention)
+    {
+        if (IsRunningHere(jobStore.GetJob(jobId)))
+            return false;
+        if (!runs.TryGetValue(jobId, out var run))
+            return true;
+        return !run.Alive && databaseNow - run.End > retention;
+    }
+
+    /// <summary>
+    /// Whether a job is past the job retention and may be retired. A job still running past it is stuck, not stale:
+    /// retiring it would delete its working directory from under a run that may yet continue. It is reported and kept;
+    /// UploadCleanupService's age-based sweep is the backstop for its upload.
+    /// </summary>
+    private bool IsRetirable(Guid jobId, IReadOnlyDictionary<Guid, KnownRun> runs, DateTime databaseNow, DateTime now)
+    {
+        var retention = processingOptions.JobRetention;
+        var job = jobStore.GetJob(jobId);
+        if (job is not null && IsRunningHere(job))
+        {
+            if (now - job.CreatedAt > retention)
+            {
+                logger.LogWarning(
+                    "Job <{JobId}> is still <{State}> after {Age} and past the retention of {Retention}; not retiring it. Check whether preflight or the pipeline is stuck.",
+                    jobId,
+                    job.State,
+                    now - job.CreatedAt,
+                    retention);
+            }
+
+            return false;
+        }
+
+        if (runs.TryGetValue(jobId, out var run))
+        {
+            if (!run.Alive)
+                return databaseNow - run.End > retention;
+
+            if (databaseNow - run.StartedAt > retention)
+            {
+                logger.LogWarning(
+                    "Job <{JobId}> is still running after {Age} and past the retention of {Retention}; not retiring it. Check whether preflight or the pipeline is stuck.",
+                    jobId,
+                    databaseNow - run.StartedAt,
+                    retention);
+            }
+
+            return false;
+        }
+
+        return job is null || now - (job.FinishedAt ?? job.CreatedAt) > retention;
+    }
+
+    private static bool IsRunningHere(ProcessingJob? job) => job?.State is ProcessingState.Pending or ProcessingState.Running;
+
+    /// <summary>
+    /// Deletes an expired directory of a job, guarded like <see cref="RetireJob"/> so a failure skips only this directory.
+    /// The cleanup of another instance may delete the same directory at the same moment, so one that is gone counts as
+    /// deleted.
+    /// </summary>
+    private bool DeleteExpired(Guid jobId, Func<Guid, string> directoryOf)
+    {
+        try
+        {
+            var directory = directoryOf(jobId);
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception) when (!Directory.Exists(directory))
+            {
+                // Gone meanwhile, which is all this run wanted.
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting an expired directory of job <{JobId}>.", jobId);
+            return false;
+        }
+    }
 
     private static bool DeleteIfExists(string directory)
     {
@@ -343,4 +413,7 @@ public class ProcessingJobCleanupService : BackgroundService
     }
 
     private sealed record DeliveryRow(Guid JobId, bool Deleted);
+
+    // End: TerminalAt of a settled run, else the last heartbeat (or the start) of a dead one. Meaningless while alive.
+    private sealed record KnownRun(DateTime StartedAt, bool Alive, DateTime End);
 }

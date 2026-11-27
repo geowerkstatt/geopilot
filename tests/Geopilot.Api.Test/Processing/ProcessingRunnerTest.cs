@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Collections.Immutable;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Test.Processing;
@@ -41,7 +43,12 @@ public class ProcessingRunnerTest
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
+        // Like a healthy database: every run is still alive at its end, and its end is recorded.
         runRecorderMock = new Mock<IRecorder>();
+        runRecorderMock.Setup(r => r.RecordHeartbeatAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        runRecorderMock
+            .Setup(r => r.RecordRunFinishedAsync(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineStep>>(), It.IsAny<ProcessingState>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         creationServiceMock = new Mock<IDeliveryCreationService>();
 
         var serviceProvider = new Mock<IServiceProvider>();
@@ -120,6 +127,29 @@ public class ProcessingRunnerTest
         {
             await gate.WaitAsync(cancellationToken);
             return new EmptyResult();
+        }
+    }
+
+    /// <summary>
+    /// Ignores its token, like a process that cannot be cancelled: it ends only when the gate opens, and then either
+    /// returns or fails in its own terms, like a client that reports a cut connection with an exception of its own.
+    /// </summary>
+    private sealed class StubbornProcess
+    {
+        private readonly Task gate;
+        private readonly bool fails;
+
+        public StubbornProcess(Task gate, bool fails)
+        {
+            this.gate = gate;
+            this.fails = fails;
+        }
+
+        [PipelineProcessRun]
+        public async Task<EmptyResult> RunAsync()
+        {
+            await gate;
+            return fails ? throw new IOException("The connection was cut.") : new EmptyResult();
         }
     }
 
@@ -417,8 +447,8 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
-        runRecorderMock.Verify(r => r.RecordStepStartedAsync(jobId, step, 0), Times.Once);
-        runRecorderMock.Verify(r => r.RecordStepCompletedAsync(jobId, step, 0), Times.Once);
+        runRecorderMock.Verify(r => r.RecordStepStartedAsync(jobId, step, 0, It.IsAny<CancellationToken>()), Times.Once);
+        runRecorderMock.Verify(r => r.RecordStepCompletedAsync(jobId, step, 0, It.IsAny<CancellationToken>()), Times.Once);
         runRecorderMock.Verify(
             r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null, It.IsAny<CancellationToken>()),
             Times.Once);
@@ -450,7 +480,7 @@ public class ProcessingRunnerTest
     {
         var jobId = NewJob();
         runRecorderMock
-            .Setup(r => r.RecordStepStartedAsync(It.IsAny<Guid>(), It.IsAny<IPipelineStep>(), It.IsAny<int>()))
+            .Setup(r => r.RecordStepStartedAsync(It.IsAny<Guid>(), It.IsAny<IPipelineStep>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("protocol database down"));
 
         var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
@@ -464,6 +494,35 @@ public class ProcessingRunnerTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State, "a protocol write failure must not tear down the pipeline.");
         store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Success), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task CallbackThatCannotRecordInterruptsTheRun()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+        var unavailable = new RecordingUnavailableException("that step <step_1> started", new TimeoutException());
+        runRecorderMock
+            .Setup(r => r.RecordStepStartedAsync(jobId, step, 0, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(unavailable);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(StepState.Pending, step.State, "The step whose start could not be recorded must not run.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, unavailable.Message, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // The database interrupted the run, not the data, so the upload stays for another start.
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -789,6 +848,119 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task AbortedQueuedJobEndsCancelledAndKeepsItsUpload()
+    {
+        var store = new ProcessingJobStore();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        var (lifecycle, job) = await StartQueuedJobAsync(store, step);
+
+        // The heartbeat aborts the job while it waits for a free slot.
+        lifecycle.Abort([job.Id], "heartbeat lost");
+
+        using var runner = CreateRunner(store, lifecycle: lifecycle);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => store.GetJob(job.Id)?.State != ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        Assert.AreEqual(StepState.Pending, step.State, "An aborted job must not start once a slot is free.");
+        AssertAbortedAndKeptItsUpload(store, job.Id, "heartbeat lost");
+    }
+
+    [TestMethod]
+    public async Task AbortedRunningJobEndsCancelledAndKeepsItsUpload()
+    {
+        var store = new ProcessingJobStore();
+        var gate = new TaskCompletionSource();
+        var step = BuildBlockingStep("step_1", gate.Task);
+        var (lifecycle, job) = await StartQueuedJobAsync(store, step);
+
+        using var runner = CreateRunner(store, lifecycle: lifecycle);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
+            lifecycle.Abort([job.Id], "database unreachable");
+            await WaitUntilAsync(() => store.GetJob(job.Id)?.State != ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        Assert.AreEqual(StepState.Cancelled, step.State, "The abort reaches the step through the token of the run.");
+        AssertAbortedAndKeptItsUpload(store, job.Id, "database unreachable");
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "step returns")]
+    [DataRow(true, DisplayName = "step throws")]
+    public async Task AbortedJobKeepsItsUploadWhateverItsStepDoesThen(bool stepThrows)
+    {
+        var store = new ProcessingJobStore();
+        var gate = new TaskCompletionSource();
+        var step = BuildStubbornStep("step_1", gate.Task, stepThrows);
+        var (lifecycle, job) = await StartQueuedJobAsync(store, step);
+
+        using var runner = CreateRunner(store, lifecycle: lifecycle);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => step.State == StepState.Running, TimeSpan.FromSeconds(10));
+
+            // The step ignores the abort and ends in its own way once the gate opens.
+            lifecycle.Abort([job.Id], "heartbeat lost");
+            gate.SetResult();
+            await WaitUntilAsync(() => store.GetJob(job.Id)?.State != ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        AssertAbortedAndKeptItsUpload(store, job.Id, "heartbeat lost");
+    }
+
+    [TestMethod]
+    public async Task AbortDuringAProtocolWriteKeepsTheStepFromRunning()
+    {
+        var store = new ProcessingJobStore();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        var (lifecycle, job) = await StartQueuedJobAsync(store, step);
+
+        // The start of the step cannot be written at first, and the abort comes while the write pauses before its
+        // next attempt, which would then succeed.
+        runRecorderMock
+            .Setup(r => r.RecordStepStartedAsync(job.Id, step, 0, It.IsAny<CancellationToken>()))
+            .Returns<Guid, IPipelineStep, int, CancellationToken>(async (_, _, _, cancellationToken) =>
+            {
+                lifecycle.Abort([job.Id], "heartbeat lost");
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            });
+
+        using var runner = CreateRunner(store, lifecycle: lifecycle);
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => store.GetJob(job.Id)?.State != ProcessingState.Running, TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        Assert.AreEqual(StepState.Pending, step.State, "The step whose start was being written when the abort came must not run.");
+        AssertAbortedAndKeptItsUpload(store, job.Id, "heartbeat lost");
+    }
+
+    [TestMethod]
     public async Task DeliveryFilesAreStagedWhenPipelineSucceedsAndDeliveryAllowed()
     {
         var jobId = NewJob();
@@ -1104,7 +1276,7 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
-    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default)
+    private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default, JobLifecycle? lifecycle = null)
     {
         var options = Options.Create(new ProcessingOptions
         {
@@ -1113,10 +1285,49 @@ public class ProcessingRunnerTest
             ShutdownDrainTimeout = shutdownDrainTimeout,
         });
 
-        // The real lifecycle, not a mock: it resolves the recorder, the orchestration and the creation service
-        // from the same scope factory, so the runner's tests still see every consequence of a run.
-        var lifecycle = new JobLifecycle(Mock.Of<ILogger<JobLifecycle>>(), jobStore, Mock.Of<IPipelineFactory>(), Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactory, options, Options.Create(new RefMappingOptions()));
+        lifecycle ??= CreateLifecycle(jobStore, options, Mock.Of<IPipelineFactory>());
         return new ProcessingRunner(Mock.Of<ILogger<ProcessingRunner>>(), jobStore, lifecycle, scopeFactory, options);
+    }
+
+    /// <summary>
+    /// The real lifecycle, not a mock: it resolves the recorder, the orchestration and the creation service from the
+    /// same scope factory, so the runner's tests still see every consequence of a run.
+    /// </summary>
+    private JobLifecycle CreateLifecycle(IProcessingJobStore jobStore, IOptions<ProcessingOptions> options, IPipelineFactory pipelineFactory)
+        => new(Mock.Of<ILogger<JobLifecycle>>(), jobStore, pipelineFactory, Channel.CreateUnbounded<PreflightRequest>().Writer, scopeFactory, options, Options.Create(new RefMappingOptions()));
+
+    /// <summary>
+    /// Starts a job with a pipeline of the single <paramref name="step"/> through a lifecycle, which holds the job from
+    /// then on as after a real start, and lets its preflight pass, so the job waits in the processing queue of
+    /// <paramref name="store"/> for a free slot.
+    /// </summary>
+    private async Task<(JobLifecycle Lifecycle, ProcessingJob Job)> StartQueuedJobAsync(ProcessingJobStore store, PipelineStep step)
+    {
+        var pipelineFactory = new Mock<IPipelineFactory>();
+        pipelineFactory
+            .Setup(f => f.CreatePipeline("test_pipeline", It.IsAny<Guid>()))
+            .Returns((string _, Guid jobId) => BuildPipeline(jobId, step));
+
+        var lifecycle = CreateLifecycle(store, Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5) }), pipelineFactory.Object);
+        var upload = new UploadInfo(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty, DateTime.UtcNow);
+        var job = await lifecycle.StartAsync(upload, new Mandate { Id = 1 }, "test_pipeline", supplier: null, mayDeliver: true, deliveryFields: null);
+        createdJobIds.Add(job.Id);
+
+        await lifecycle.PreflightPassedAsync(job.Id, new ScanResult(true), []);
+        return (lifecycle, job);
+    }
+
+    /// <summary>
+    /// An aborted job ends like after a timeout, cancelled with the reason of the abort, and keeps its upload: another
+    /// instance may already process the same upload again.
+    /// </summary>
+    private void AssertAbortedAndKeptItsUpload(ProcessingJobStore store, Guid jobId, string reason)
+    {
+        Assert.AreEqual(ProcessingState.Cancelled, store.GetJob(jobId)?.State);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, reason, It.IsAny<CancellationToken>()),
+            Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     /// <summary>
@@ -1215,6 +1426,17 @@ public class ProcessingRunnerTest
             .Inputs(new Dictionary<string, InputValue>())
             .OutputActions([])
             .Process(new BlockingProcess(gate))
+            .Logger(pipelineLogger)
+            .Build();
+
+    private PipelineStep BuildStubbornStep(string id, Task gate, bool fails) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([])
+            .Process(new StubbornProcess(gate, fails))
             .Logger(pipelineLogger)
             .Build();
 

@@ -753,17 +753,7 @@ namespace Geopilot.Api.Controllers
             var mandateToUpdate = mandateToUpdateResult?.Value as Mandate;
             Assert.IsNotNull(mandateToUpdate);
 
-            var guid = Guid.NewGuid();
-            var processingServiceMock = new Mock<IProcessingService>();
-            var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
-            {
-                State = ProcessingState.Success,
-                MayDeliver = true,
-            };
-
-            processingServiceMock
-                .Setup(s => s.GetJob(guid))
-                .Returns(processingJob);
+            var guid = context.AddRun(mandateToUpdate.Id);
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
                 .Setup(p => p.RecordJobAssetsAsync(guid, It.IsAny<CancellationToken>()))
@@ -771,7 +761,7 @@ namespace Geopilot.Api.Controllers
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-            var creationService = new DeliveryCreationService(new Mock<ILogger<DeliveryCreationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()));
+            var creationService = new DeliveryCreationService(new Mock<ILogger<DeliveryCreationService>>().Object, context, mandateServiceMock.Object, assetHandlerMock.Object, Mock.Of<IPipelineFactory>(), Options.Create(new DeliveryOptions()), Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = TimeSpan.FromHours(1) }));
             var reactionStore = new ReactionStore(Options.Create(new DeliveryReactionOptions()), NullLogger<ReactionStore>.Instance);
             var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, creationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object, new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>().Object, reactionStore, Mock.Of<IRecorder>(), Mock.Of<IPipelineFactory>());
             deliveryController.SetupTestUser(editUser);

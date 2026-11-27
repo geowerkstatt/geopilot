@@ -56,6 +56,16 @@ public interface IProcessingJobStore
     bool TryMarkAsFailed(Guid jobId);
 
     /// <summary>
+    /// Marks the job as cancelled (e.g. a preflight the execution protocol could not record) and reports whether it
+    /// happened, instead of throwing when the transition is not allowed, for the reason given on
+    /// <see cref="TryMarkAsFailed"/>.
+    /// </summary>
+    /// <param name="jobId">The job to mark as cancelled.</param>
+    /// <returns><see langword="true"/> when the job was marked as cancelled; <see langword="false"/> when it is
+    /// unknown or already in a terminal state, in which case it is left untouched.</returns>
+    bool TryMarkAsCancelled(Guid jobId);
+
+    /// <summary>
     /// Transitions the running job to the terminal state its pipeline ended in and reports whether it happened,
     /// instead of throwing when the transition is not allowed, for the reason given on
     /// <see cref="TryMarkAsFailed"/>. The caller has to pass a state it already knows to be terminal: that

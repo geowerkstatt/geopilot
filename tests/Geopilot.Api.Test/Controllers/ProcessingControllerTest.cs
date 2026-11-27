@@ -6,10 +6,15 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Geopilot.Api.Controllers;
@@ -24,6 +29,9 @@ public sealed class ProcessingControllerTest
     private Mock<IVisualizationFileStore> visualizationFileStoreMock;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private ProcessingController controller;
+
+    private static readonly TimeSpan JobRetention = TimeSpan.FromHours(1);
+    private static readonly LocalizedText PipelineName = TestHelpers.Localized("pipeline");
 
     [TestInitialize]
     public void Initialize()
@@ -41,7 +49,20 @@ public sealed class ProcessingControllerTest
             downloadFileStoreMock.Object,
             visualizationFileStoreMock.Object,
             contentTypeProviderMock.Object,
-            context);
+            context,
+            Options.Create(new ProcessingOptions { JobTimeout = TimeSpan.FromMinutes(5), JobRetention = JobRetention }));
+
+        var urlHelperMock = new Mock<IUrlHelper>();
+        urlHelperMock
+            .Setup(u => u.RouteUrl(It.IsAny<UrlRouteContext>()))
+            .Returns((UrlRouteContext c) =>
+            {
+                var values = new RouteValueDictionary(c.Values);
+                var segment = c.RouteName == nameof(ProcessingController.Download) ? "files" : "visualizations";
+                return $"https://geopilot.test/api/v2/processing/{values["jobId"]}/{segment}/{values["file"]}";
+            });
+        controller.Url = urlHelperMock.Object;
+        controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
     }
 
     [TestCleanup]
@@ -56,120 +77,167 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
-    public void GetStatus()
+    public async Task StatusOfAPendingRun()
     {
-        var jobId = Guid.NewGuid();
-        var mandateId = 123;
+        var run = await AddRunAsync(heartbeatAgo: TimeSpan.Zero);
 
-        validationServiceMock
-            .Setup(x => x.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now));
+        var response = await GetStatusAsync(run.JobId);
 
-        var response = controller.GetStatus(jobId) as OkObjectResult;
-        var jobResponse = response?.Value as ProcessingJobResponse;
-
-        Assert.IsInstanceOfType<OkObjectResult>(response);
-        Assert.IsInstanceOfType<ProcessingJobResponse>(jobResponse);
-        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.AreEqual(jobId, jobResponse.JobId);
-        Assert.AreEqual(mandateId, jobResponse.MandateId);
-        Assert.AreEqual(ProcessingState.Pending, jobResponse.State);
-        Assert.HasCount(1, jobResponse.Steps);
-        Assert.AreEqual(DtoMapperExtensions.PreflightStepId, jobResponse.Steps[0].Id);
+        Assert.AreEqual(run.JobId, response.JobId);
+        Assert.AreEqual(run.MandateId, response.MandateId);
+        Assert.AreEqual(ProcessingState.Pending, response.State);
+        Assert.HasCount(1, response.Steps);
+        Assert.AreEqual(DtoMapperExtensions.PreflightStepId, response.Steps[0].Id);
+        Assert.AreEqual(StepState.Running, response.Steps[0].State);
     }
 
     [TestMethod]
-    public void GetStatusShowsPreparationRunningWhileTheJobWaitsForAProcessingSlot()
+    public async Task StatusOfARunWaitingForAProcessingSlot()
     {
-        var jobId = Guid.NewGuid();
-        var stepMock = new Mock<IPipelineStep>();
-        stepMock.SetupGet(s => s.Id).Returns("validation");
-        stepMock.SetupGet(s => s.State).Returns(StepState.Pending);
-        stepMock.SetupGet(s => s.Downloads).Returns(new List<PersistedFile>());
-        stepMock.SetupGet(s => s.DeliveryFiles).Returns(new List<PersistedFile>());
-        stepMock.SetupGet(s => s.Visualizations).Returns(new List<StepVisualization>());
-        var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Pending);
-        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
+        var run = await AddRunAsync(heartbeatAgo: TimeSpan.Zero, queued: true, steps: ["validation"], stepState: StepState.Pending);
 
-        // Enqueued jobs are running while their pipeline still waits in the queue.
-        validationServiceMock
-            .Setup(x => x.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), 123, DateTime.Now) { Pipeline = pipelineMock.Object, State = ProcessingState.Running });
+        var response = await GetStatusAsync(run.JobId);
 
-        var jobResponse = (controller.GetStatus(jobId) as OkObjectResult)?.Value as ProcessingJobResponse;
-
-        Assert.IsNotNull(jobResponse);
-        Assert.AreEqual(StepState.Running, jobResponse.Steps[0].State, "The preparation must keep running until the first pipeline step starts.");
-        Assert.AreEqual(StepState.Pending, jobResponse.Steps[1].State);
+        Assert.AreEqual(ProcessingState.Running, response.State, "A queued job is running while it waits for a slot.");
+        Assert.AreEqual(StepState.Running, response.Steps[0].State, "The preparation shows running until the first step starts.");
+        Assert.AreEqual(StepState.Pending, response.Steps[1].State);
     }
 
     [TestMethod]
-    public void GetStatusForInvalid()
+    public async Task StatusOfARunningRun()
     {
-        var jobId = Guid.Empty;
+        var run = await AddRunAsync(heartbeatAgo: TimeSpan.Zero, queued: true, steps: ["validation"]);
 
-        validationServiceMock
-            .Setup(x => x.GetJob(Guid.Empty))
-            .Returns((ProcessingJob?)null);
+        var response = await GetStatusAsync(run.JobId);
 
-        var response = controller.GetStatus(jobId) as ObjectResult;
-
-        Assert.IsInstanceOfType<ObjectResult>(response);
-        Assert.AreEqual(StatusCodes.Status404NotFound, response.StatusCode);
-        Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
+        Assert.AreEqual(ProcessingState.Running, response.State);
+        Assert.AreEqual(StepState.Success, response.Steps[0].State, "The preparation is over once a step has started.");
+        Assert.AreEqual("validation", response.Steps[1].Id);
+        Assert.AreEqual(PipelineName, response.PipelineName);
     }
 
     [TestMethod]
-    public void DownloadFromDownloadStoreUsesOriginalFileName()
+    public async Task StatusOfARunWhosePreflightFailed()
     {
-        var jobId = Guid.NewGuid();
+        var run = await AddRunAsync(terminalState: ProcessingState.Failed);
+
+        var response = await GetStatusAsync(run.JobId);
+
+        Assert.AreEqual(ProcessingState.Failed, response.State);
+        Assert.AreEqual(StepState.Error, response.Steps[0].State);
+        Assert.Contains(run.JobId.ToString(), response.Steps[0].StatusMessage!["en"]);
+    }
+
+    [TestMethod]
+    public async Task StatusOfAFinishedRun()
+    {
+        var run = await AddRunAsync(terminalState: ProcessingState.Success, queued: true, steps: ["validation"]);
+        var step = run.Steps.Single();
+        step.Artifacts.Add(new RecordingArtifact { Kind = ArtifactKind.Download, OriginalFileName = "log.txt", PersistedFileName = "p1.txt" });
+        step.Artifacts.Add(new RecordingArtifact { Kind = ArtifactKind.Delivery, OriginalFileName = "data.xtf", PersistedFileName = "p2.xtf" });
+        step.Artifacts.Add(new RecordingArtifact { Kind = ArtifactKind.Visualization, OriginalFileName = "map.json", PersistedFileName = "p3.json" });
+        await context.SaveChangesAsync();
+
+        var response = await GetStatusAsync(run.JobId);
+
+        Assert.AreEqual(ProcessingState.Success, response.State);
+        Assert.AreEqual(StepState.Success, response.Steps[0].State);
+        var result = response.Steps[1];
+        Assert.AreEqual(StepState.Success, result.State);
+        Assert.AreEqual("log.txt", result.Downloads.Single().OriginalFileName);
+        Assert.EndsWith($"/{run.JobId}/files/p1.txt", result.Downloads.Single().Url.ToString());
+        Assert.AreEqual("p2.xtf", result.Deliveries.Single());
+        Assert.AreEqual("map.json", result.Visualizations.Single().OriginalFileName);
+        Assert.EndsWith($"/{run.JobId}/visualizations/p3.json", result.Visualizations.Single().Url.ToString());
+    }
+
+    [TestMethod]
+    public async Task StatusOfADeadRunIsNotFound()
+    {
+        var run = await AddRunAsync(heartbeatAgo: TimeSpan.FromMinutes(10), queued: true);
+
+        var response = await controller.GetStatus(run.JobId, CancellationToken.None) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, response?.StatusCode);
+        Assert.AreEqual($"No job information available for job id <{run.JobId}>", ((ProblemDetails)response!.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StatusAfterTheRetentionIsNotFound()
+    {
+        var run = await AddRunAsync(terminalState: ProcessingState.Success, terminalAgo: JobRetention + TimeSpan.FromMinutes(1));
+
+        var response = await controller.GetStatus(run.JobId, CancellationToken.None) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, response?.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task StatusOfARunFromBeforeTheUpdate()
+    {
+        var run = await AddRunAsync(terminalState: ProcessingState.Success, withDisplayName: false);
+
+        var response = await GetStatusAsync(run.JobId);
+
+        Assert.AreEqual(LocalizedText.Empty, response.PipelineName);
+    }
+
+    [TestMethod]
+    public async Task StatusForAnUnknownRunIsNotFound()
+    {
+        var response = await controller.GetStatus(Guid.NewGuid(), CancellationToken.None) as ObjectResult;
+
+        Assert.AreEqual(StatusCodes.Status404NotFound, response?.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task DownloadKeepsItsOriginalNameFromTheProtocol()
+    {
+        var run = await AddRunAsync(terminalState: ProcessingState.Success, queued: true, steps: ["validation"]);
+        run.Steps.Single().Artifacts.Add(new RecordingArtifact { Kind = ArtifactKind.Download, OriginalFileName = "validation.log", PersistedFileName = "abc123.log" });
+        await context.SaveChangesAsync();
         var persistedName = "abc123.log";
-        var originalName = "validation.log";
 
-        downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
-        downloadFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
-        validationServiceMock.Setup(x => x.GetJob(jobId))
-            .Returns(BuildJobWithDownload(jobId, new PersistedFile(originalName, persistedName)));
+        downloadFileStoreMock.Setup(x => x.Exists(run.JobId, persistedName)).Returns(true);
+        downloadFileStoreMock.Setup(x => x.OpenFile(run.JobId, persistedName)).Returns(Stream.Null);
 
         var contentType = "text/plain";
         contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
 
-        var response = controller.Download(jobId, persistedName) as FileStreamResult;
+        var response = await controller.Download(run.JobId, persistedName, CancellationToken.None) as FileStreamResult;
 
         Assert.IsInstanceOfType<FileStreamResult>(response);
         Assert.AreEqual("text/plain", response!.ContentType);
-        Assert.AreEqual(originalName, response.FileDownloadName);
+        Assert.AreEqual("validation.log", response.FileDownloadName);
     }
 
     [TestMethod]
-    public void DownloadFallsBackToPersistedNameWhenJobMissing()
+    public async Task DownloadFallsBackToPersistedNameWhenTheProtocolKnowsNoRun()
     {
         var jobId = Guid.NewGuid();
         var persistedName = "abc123.log";
 
         downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
         downloadFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns((ProcessingJob?)null);
 
         var contentType = "text/plain";
         contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
 
-        var response = controller.Download(jobId, persistedName) as FileStreamResult;
+        var response = await controller.Download(jobId, persistedName, CancellationToken.None) as FileStreamResult;
 
         Assert.IsInstanceOfType<FileStreamResult>(response);
         Assert.AreEqual(persistedName, response!.FileDownloadName);
     }
 
     [TestMethod]
-    public void DownloadMissingLog()
+    public async Task DownloadMissingLog()
     {
         var jobId = Guid.NewGuid();
         var fileName = "missing-logfile.log";
 
         downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
 
-        var response = controller.Download(jobId, fileName) as ObjectResult;
+        var response = await controller.Download(jobId, fileName, CancellationToken.None) as ObjectResult;
 
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
@@ -459,16 +527,67 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
     }
 
-    private static ProcessingJob BuildJobWithDownload(Guid jobId, PersistedFile persisted)
-        => BuildJobWithStepFiles(jobId, downloads: new List<PersistedFile> { persisted }, deliveryFiles: new List<PersistedFile>());
-
-    private static ProcessingJob BuildJobWithStepFiles(Guid jobId, List<PersistedFile> downloads, List<PersistedFile> deliveryFiles)
+    private async Task<ProcessingJobResponse> GetStatusAsync(Guid jobId)
     {
-        var stepMock = new Mock<IPipelineStep>();
-        stepMock.SetupGet(s => s.Downloads).Returns(downloads);
-        stepMock.SetupGet(s => s.DeliveryFiles).Returns(deliveryFiles);
-        var pipelineMock = new Mock<IPipeline>();
-        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
-        return new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
+        var result = await controller.GetStatus(jobId, CancellationToken.None) as OkObjectResult;
+        Assert.IsNotNull(result);
+        return (ProcessingJobResponse)result.Value!;
+    }
+
+    // Writes a run into the protocol only, the in-memory job store knows nothing of it. Its steps have started, unless
+    // they are Pending. Heartbeat and end come from the database clock.
+    private async Task<Recording> AddRunAsync(
+        TimeSpan? heartbeatAgo = null,
+        bool queued = false,
+        ProcessingState? terminalState = null,
+        TimeSpan? terminalAgo = null,
+        bool withDisplayName = true,
+        string[]? steps = null,
+        StepState? stepState = null)
+    {
+        var mandate = new Mandate { Name = TestHelpers.Localized(nameof(ProcessingControllerTest)), FileTypes = [".xtf"], PipelineId = "pipe_a" };
+        context.Mandates.Add(mandate);
+        var run = new Recording
+        {
+            JobId = Guid.NewGuid(),
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "test",
+            Mandate = mandate,
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "https://storage.example.com/uploads",
+            UploadInitiatedAt = DateTime.UtcNow,
+            StartedAt = DateTime.UtcNow,
+            QueuedAt = queued ? DateTime.UtcNow : null,
+            PipelineDisplayName = withDisplayName ? PipelineName : null,
+        };
+        var order = 0;
+        var state = stepState ?? (terminalState is null ? StepState.Running : StepState.Success);
+        foreach (var stepId in steps ?? [])
+        {
+            run.Steps.Add(new RecordingStep
+            {
+                Order = order++,
+                StepId = stepId,
+                DisplayName = TestHelpers.Localized(stepId),
+                State = state,
+                StartedAt = state == StepState.Pending ? null : DateTime.UtcNow,
+            });
+        }
+
+        context.Recordings.Add(run);
+        await context.SaveChangesAsync();
+
+        var heartbeat = heartbeatAgo ?? TimeSpan.Zero;
+        var terminalSince = terminalAgo ?? TimeSpan.Zero;
+        await context.Recordings
+            .Where(r => r.Id == run.Id)
+            .ExecuteUpdateAsync(setters =>
+            {
+                setters.SetProperty(r => r.HeartbeatAt, r => DateTime.UtcNow - heartbeat);
+                if (terminalState is not null)
+                    setters.SetProperty(r => r.TerminalState, terminalState).SetProperty(r => r.TerminalAt, r => DateTime.UtcNow - terminalSince);
+            });
+        return run;
     }
 }

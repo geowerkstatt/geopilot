@@ -25,6 +25,20 @@ public sealed class HostedServiceShutdownTest
     }
 
     [TestMethod]
+    public void HeartbeatStopsAfterTheRunner()
+    {
+        using var app = new JwtTestApp();
+        var hostedServices = app.Services.GetServices<IHostedService>().Select(s => s.GetType()).ToList();
+
+        // Otherwise a run that still computes in the drain window would count as dead after Liveness.DeadAfter.
+        Assert.Contains(typeof(RecordingHeartbeatService), hostedServices);
+        Assert.IsLessThan(
+            hostedServices.IndexOf(typeof(ProcessingRunner)),
+            hostedServices.IndexOf(typeof(RecordingHeartbeatService)),
+            "The heartbeat must stop after the runner, so it keeps the runs of a draining runner alive.");
+    }
+
+    [TestMethod]
     public void ShutdownTimeoutCoversTheDrainWindow()
     {
         using var app = new JwtTestApp();

@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.SeedData;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Geopilot.Api;
 
@@ -38,14 +39,21 @@ public class TestDatabaseFixture
     /// data should be loaded explicitly from the database.
     /// </summary>
     /// <returns>Context in transactional state.</returns>
-    public Context GetTestContext()
+    public Context GetTestContext() => GetTestContext([]);
+
+    /// <summary>
+    /// Like <see cref="GetTestContext()"/>, with interceptors on the context, e.g. one that makes a write fail.
+    /// </summary>
+    /// <param name="interceptors">The interceptors of the context.</param>
+    /// <returns>Context in transactional state.</returns>
+    public Context GetTestContext(params IInterceptor[] interceptors)
     {
-        var context = CreateContext();
+        var context = CreateContext(interceptors);
         context.Database.BeginTransaction();
         return context;
     }
 
-    private Context CreateContext()
+    private Context CreateContext(params IInterceptor[] interceptors)
     {
         var options = new DbContextOptionsBuilder<Context>()
             .UseNpgsql(ConnectionString, o =>
@@ -53,6 +61,7 @@ public class TestDatabaseFixture
                 o.UseNetTopologySuite();
                 o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
             })
+            .AddInterceptors(interceptors)
             .Options;
 
         return new Context(options);

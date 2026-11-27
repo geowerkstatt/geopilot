@@ -42,6 +42,8 @@ internal static class DtoMapperExtensions
     /// <param name="job">The processing job to map.</param>
     /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
     /// <param name="buildVisualizationUrl">Builds an absolute visualization-config URL for a (jobId, fileName) pair.</param>
+    // shortcut: maps the job a start just created for its 202, a second path beside ToStatusResponse; answer the 202
+    // from the start record too once the two can differ, for instance by a field only one of them maps.
     public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
     {
         var pipelineName = job.Pipeline?.DisplayName ?? LocalizedText.Empty;
@@ -57,6 +59,28 @@ internal static class DtoMapperExtensions
             job.State,
             job.MandateId,
             pipelineName,
+            steps);
+    }
+
+    /// <summary>
+    /// Maps the protocol <see cref="Recording"/> of a run, loaded with its steps and artifacts, to the same
+    /// <see cref="ProcessingJobResponse"/> the in-memory job yields, so any instance can answer for the run.
+    /// </summary>
+    /// <param name="run">The run to map.</param>
+    /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
+    /// <param name="buildVisualizationUrl">Builds an absolute visualization-config URL for a (jobId, fileName) pair.</param>
+    public static ProcessingJobResponse ToStatusResponse(this Recording run, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
+    {
+        var state = run.TerminalState ?? (run.QueuedAt is null ? ProcessingState.Pending : ProcessingState.Running);
+
+        var steps = new List<StepResultResponse> { BuildPreflightStep(run.JobId, DerivePreflightState(state, run.Steps.Any(s => s.StartedAt is not null))) };
+        steps.AddRange(run.Steps.OrderBy(s => s.Order).Select(step => step.ToStatusResponse(run.JobId, buildDownloadUrl, buildVisualizationUrl)));
+
+        return new ProcessingJobResponse(
+            run.JobId,
+            state,
+            run.MandateId,
+            run.PipelineDisplayName ?? LocalizedText.Empty,
             steps);
     }
 
@@ -89,11 +113,12 @@ internal static class DtoMapperExtensions
     /// Builds the synthetic preflight step that always leads the reported steps. When preflight failed a
     /// generic status message is attached so the user sees that preparation, not a pipeline step, failed.
     /// </summary>
-    private static StepResultResponse BuildPreflightStep(ProcessingJob job)
+    private static StepResultResponse BuildPreflightStep(ProcessingJob job) => BuildPreflightStep(job.Id, DerivePreflightState(job));
+
+    private static StepResultResponse BuildPreflightStep(Guid jobId, StepState state)
     {
-        var state = DerivePreflightState(job);
         var statusMessage = state == StepState.Error
-            ? PreflightFailedMessageTemplate.Map(text => text.Replace("{jobId}", job.Id.ToString(), StringComparison.Ordinal))
+            ? PreflightFailedMessageTemplate.Map(text => text.Replace("{jobId}", jobId.ToString(), StringComparison.Ordinal))
             : null;
 
         return new StepResultResponse(
@@ -126,6 +151,35 @@ internal static class DtoMapperExtensions
             : StepState.Success,
         _ => StepState.Pending,
     };
+
+    // The protocol has no pipeline state, so a failure counts as a preflight failure when no step ever started.
+    private static StepState DerivePreflightState(ProcessingState state, bool anyStepStarted) => state switch
+    {
+        ProcessingState.Failed when !anyStepStarted => StepState.Error,
+        ProcessingState.Pending => StepState.Running,
+        _ => StepState.Success,
+    };
+
+    private static StepResultResponse ToStatusResponse(this RecordingStep step, Guid jobId, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
+    {
+        var artifacts = step.Artifacts.OrderBy(a => a.Id).ToList();
+
+        return new StepResultResponse(
+            step.StepId,
+            step.DisplayName,
+            step.State,
+            step.StatusMessage,
+            step.ConditionMessage,
+            artifacts.Where(a => a.Kind == ArtifactKind.Download)
+                .Select(a => new StepDownload(a.OriginalFileName, buildDownloadUrl(jobId, a.PersistedFileName)))
+                .ToList(),
+            artifacts.Where(a => a.Kind == ArtifactKind.Delivery)
+                .Select(a => a.PersistedFileName)
+                .ToList(),
+            artifacts.Where(a => a.Kind == ArtifactKind.Visualization)
+                .Select(a => new StepVisualizationResponse(a.OriginalFileName, buildVisualizationUrl(jobId, a.PersistedFileName)))
+                .ToList());
+    }
 
     /// <summary>
     /// Maps a single <see cref="IPipelineStep"/> to a <see cref="StepResultResponse"/>.

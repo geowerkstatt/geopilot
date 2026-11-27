@@ -18,7 +18,6 @@ public sealed class RecordingControllerTest
     private static readonly DateTime Window = new(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private Context context;
-    private Mock<IProcessingService> processingServiceMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private RecordingController controller;
 
@@ -26,10 +25,9 @@ public sealed class RecordingControllerTest
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        processingServiceMock = new Mock<IProcessingService>();
         pipelineFactoryMock = new Mock<IPipelineFactory>();
         pipelineFactoryMock.SetupGet(factory => factory.ReactionSets).Returns([]);
-        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, processingServiceMock.Object, pipelineFactoryMock.Object);
+        controller = new RecordingController(Mock.Of<ILogger<RecordingController>>(), context, pipelineFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -254,20 +252,33 @@ public sealed class RecordingControllerTest
     }
 
     [TestMethod]
-    public async Task GetReportsAnUnfinishedRunAsRunningWhileItsJobIsActive()
+    public async Task GetReportsAnUnfinishedRunAsRunningWhileItsHeartbeatIsFresh()
     {
         var run = SeedRun(r =>
         {
             r.TerminalState = null;
             r.TerminalAt = null;
+            r.HeartbeatAt = DateTime.UtcNow;
         });
-        processingServiceMock
-            .Setup(service => service.GetJob(run.JobId))
-            .Returns(new ProcessingJob(run.JobId, run.UploadId, null, DateTime.UtcNow) { State = ProcessingState.Running });
 
         var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
 
         Assert.AreEqual(RecordingOutcomeKind.Running, response.Outcome.Kind);
+    }
+
+    [TestMethod]
+    public async Task GetReportsAnUnfinishedRunAsUnknownWhileItsHeartbeatIsStale()
+    {
+        var run = SeedRun(r =>
+        {
+            r.TerminalState = null;
+            r.TerminalAt = null;
+            r.HeartbeatAt = DateTime.UtcNow.AddMinutes(-10);
+        });
+
+        var response = ActionResultAssert.IsOkObjectResult<RecordingResponse>(await controller.Get(run.JobId, CancellationToken.None));
+
+        Assert.AreEqual(RecordingOutcomeKind.Unknown, response.Outcome.Kind);
     }
 
     [TestMethod]
