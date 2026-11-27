@@ -77,7 +77,7 @@ public class ProcessingJobStore : IProcessingJobStore
         // it still throws. What this operation tolerates is a job that moved on, not a wrong argument.
         EnsureStateIsTerminal(pipelineState);
 
-        return TryTransition(jobId, CanCompletePipeline, pipelineState);
+        return TryTransition(jobId, job => CanCompletePipeline(job, pipelineState), pipelineState);
     }
 
     /// <inheritdoc/>
@@ -149,8 +149,9 @@ public class ProcessingJobStore : IProcessingJobStore
     private static bool CanMarkAsFailed(ProcessingJob job) =>
         job.State is ProcessingState.Pending or ProcessingState.Running;
 
-    private static bool CanCompletePipeline(ProcessingJob job) =>
-        job.State == ProcessingState.Running;
+    // A pending job only ends Cancelled: a host shutdown ended it before its run began.
+    private static bool CanCompletePipeline(ProcessingJob job, ProcessingState pipelineState) =>
+        job.State == ProcessingState.Running || (job.State == ProcessingState.Pending && pipelineState == ProcessingState.Cancelled);
 
     /// <summary>
     /// Applies the terminal <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's

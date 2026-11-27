@@ -9,7 +9,8 @@ namespace Geopilot.Api.Services;
 /// Background worker that processes upload preflight checks.
 /// Reads <see cref="PreflightRequest"/> messages from the channel and runs
 /// verify, scan and queue for processing for each job. The uploaded files stay in the upload storage;
-/// each one is fetched the first time a step reads it.
+/// each one is fetched the first time a step reads it. A host shutdown ends the job whose preflight it cuts short
+/// and every job still queued with <see cref="RunOutcome.ShutDown"/>, as it ends a run.
 /// </summary>
 public class PreflightBackgroundService : BackgroundService
 {
@@ -36,14 +37,38 @@ public class PreflightBackgroundService : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var request in preflightQueue.ReadAllAsync(stoppingToken))
+        var endedByShutdown = new List<PreflightRequest>();
+        try
         {
-            await ProcessRequestAsync(request, stoppingToken);
+            await foreach (var request in preflightQueue.ReadAllAsync(stoppingToken))
+            {
+                try
+                {
+                    await ProcessRequestAsync(request, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    endedByShutdown.Add(request);
+                    break;
+                }
+            }
         }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // The shutdown ended the wait for the next request.
+        }
+
+        // No preflight begins once the host shuts down, so the queued requests end together with the one it cut short.
+        while (preflightQueue.TryRead(out var request))
+            endedByShutdown.Add(request);
+
+        await Task.WhenAll(endedByShutdown.Select(request => EndByShutdownAsync(request, stoppingToken)));
     }
 
     /// <summary>
-    /// Processes a single preflight request: runs the checks and queues the job for processing.
+    /// Processes a single preflight request: runs the checks and queues the job for processing. A host shutdown that
+    /// cuts it short ends in an <see cref="OperationCanceledException"/> and leaves the job pending for
+    /// <see cref="ExecuteAsync"/> to end.
     /// </summary>
     internal async Task ProcessRequestAsync(PreflightRequest request, CancellationToken cancellationToken = default)
     {
@@ -75,9 +100,8 @@ public class PreflightBackgroundService : BackgroundService
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Host shutdown: only the process ends, nothing is wrong with the upload. Job, files and protocol
-            // stay as they are; the run reads as "outcome unknown", like any other restart victim.
-            logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
+            // Host shutdown: nothing is wrong with the upload, so the preflight must not fail the job.
+            throw;
         }
         catch (Exception ex)
         {
@@ -89,5 +113,23 @@ public class PreflightBackgroundService : BackgroundService
 
             await lifecycle.PreflightFailedAsync(request.JobId, failureReason, scanResult ?? (ex as UploadPreflightException)?.ScanResult);
         }
+    }
+
+    /// <summary>
+    /// Ends the job of a request whose preflight the host shutdown cut short or never let begin, the way the shutdown
+    /// ends a run: <see cref="ProcessingState.Cancelled"/>, with its upload kept for another start.
+    /// </summary>
+    private async Task EndByShutdownAsync(PreflightRequest request, CancellationToken stoppingToken)
+    {
+        using var scope = serviceScopeFactory.CreateScope();
+        var job = scope.ServiceProvider.GetRequiredService<IProcessingJobStore>().GetJob(request.JobId);
+        if (job is not { State: ProcessingState.Pending, Pipeline: { } pipeline })
+        {
+            logger.LogWarning("Not ending job <{JobId}> for the host shutdown: job is null, no longer pending or has no pipeline.", request.JobId);
+            return;
+        }
+
+        logger.LogInformation("Preflight for job <{JobId}> cancelled due to host shutdown.", request.JobId);
+        await lifecycle.RunFinishedAsync(pipeline, new RunOutcome.ShutDown(), stoppingToken);
     }
 }

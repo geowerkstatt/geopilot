@@ -3,8 +3,9 @@
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// How a run ended, as the runner reports it to <see cref="JobLifecycle.RunFinishedAsync"/>. The lifecycle derives
-/// the job's new state and every consequence of the run from it, so the reporter only states what happened.
+/// How a run ended, as the runner, or the preflight for a job the shutdown ends before its run, reports it to
+/// <see cref="JobLifecycle.RunFinishedAsync"/>. The lifecycle derives the job's new state and every consequence of
+/// the run from it, so the reporter only states what happened.
 /// </summary>
 public abstract record RunOutcome
 {
@@ -26,7 +27,8 @@ public abstract record RunOutcome
     public sealed record TimedOut : RunOutcome;
 
     /// <summary>
-    /// The run was cut short because the host shut down.
+    /// The run was cut short because the host shut down. A job whose run had not begun gets it too, reported by the
+    /// preflight or by the runner for a job still in the processing queue.
     /// </summary>
     public sealed record ShutDown : RunOutcome;
 

@@ -789,6 +789,40 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task HostShutdownCancelsAWaitingJobRightAwayAndKeepsItsUpload()
+    {
+        var store = new ProcessingJobStore();
+        var gate = new TaskCompletionSource();
+        var runningStep = BuildBlockingStep("step_1", gate.Task);
+        var waitingStep = BuildBlockingStep("step_1", gate.Task);
+        using var runningPipeline = QueueJob(store, runningStep);
+        using var waitingPipeline = QueueJob(store, waitingStep);
+        var waitingJob = store.GetJob(waitingPipeline.JobId)!;
+
+        // One slot, so the second job waits in the queue while the first one runs into the drain window.
+        using var runner = CreateRunner(store, maxConcurrentJobs: 1, shutdownDrainTimeout: TimeSpan.FromSeconds(30));
+        await runner.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => runningStep.State == StepState.Running, TimeSpan.FromSeconds(10));
+        var stopping = runner.StopAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => store.GetJob(waitingJob.Id)!.State == ProcessingState.Cancelled, TimeSpan.FromSeconds(10));
+            Assert.IsFalse(stopping.IsCompleted, "The waiting job must end when the drain window begins, not when it ends.");
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+
+        Assert.AreEqual(StepState.Pending, waitingStep.State, "No step of the waiting job was reached.");
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(waitingJob.Id, It.IsAny<IReadOnlyList<IPipelineStep>>(), ProcessingState.Cancelled, "host shutdown", It.IsAny<CancellationToken>()),
+            Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(waitingJob.UploadId), Times.Never);
+    }
+
+    [TestMethod]
     public async Task DeliveryFilesAreStagedWhenPipelineSucceedsAndDeliveryAllowed()
     {
         var jobId = NewJob();
@@ -1104,6 +1138,19 @@ public class ProcessingRunnerTest
         return jobId;
     }
 
+    /// <summary>
+    /// Creates a job whose pipeline runs the step and queues it for its run, as a passed preflight does.
+    /// </summary>
+    private Geopilot.Pipeline.Pipeline QueueJob(ProcessingJobStore store, PipelineStep step)
+    {
+        var job = store.CreateJob(Guid.NewGuid(), mayDeliver: true);
+        createdJobIds.Add(job.Id);
+        var pipeline = BuildPipeline(job.Id, step);
+        store.AttachPipeline(job.Id, pipeline, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+        return pipeline;
+    }
+
     private ProcessingRunner CreateRunner(IProcessingJobStore jobStore, TimeSpan? jobTimeout = null, int maxConcurrentJobs = 2, TimeSpan shutdownDrainTimeout = default)
     {
         var options = Options.Create(new ProcessingOptions
@@ -1147,7 +1194,7 @@ public class ProcessingRunnerTest
         var store = new Mock<IProcessingJobStore>();
         store.SetupGet(s => s.ProcessingQueue).Returns(channel.Reader);
 
-        // Without this the mock answers false, which is the "job unknown or no longer running" case and
+        // Without this the mock answers false, which is the "job unknown or already ended" case and
         // would send every test down the lifecycle's warning branch instead of its normal one.
         store.Setup(s => s.TryPipelineFinished(It.IsAny<Guid>(), It.IsAny<ProcessingState>())).Returns(true);
 

@@ -146,11 +146,12 @@ public class JobLifecycle
     }
 
     /// <summary>
-    /// Reports that the pipeline of a job stopped running, however it ended, and carries out every consequence:
-    /// the job's terminal state, the machine delivery, the execution protocol, the disposal of the pipeline and,
-    /// as <see cref="Decide"/> says, the release of the upload. Apart from its argument checks it never throws:
-    /// each consequence is guarded on its own, because the caller is the processing loop, which an escaping
-    /// exception would stop.
+    /// Reports that the pipeline of a job stopped running, however it ended, or that a host shutdown ended the job
+    /// before its run began (<see cref="RunOutcome.ShutDown"/>), and carries out every consequence: the job's
+    /// terminal state, the machine delivery, the execution protocol, the disposal of the pipeline and, as
+    /// <see cref="Decide"/> says, the release of the upload. Apart from its argument checks it never throws: each
+    /// consequence is guarded on its own, because the caller is the processing or the preflight loop, which an
+    /// escaping exception would stop.
     /// </summary>
     /// <param name="pipeline">The pipeline whose run ended. It is disposed here.</param>
     /// <param name="runOutcome">How the run ended.</param>
@@ -166,7 +167,7 @@ public class JobLifecycle
         var decision = Decide(runOutcome);
 
         if (!jobStore.TryPipelineFinished(jobId, decision.State))
-            logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or no longer running.", jobId, decision.State);
+            logger.LogWarning("Job <{JobId}> did not successfully transition to <{State}>: it is unknown or has already ended.", jobId, decision.State);
 
         if (decision.State.IsDeliverable() && job?.DeliveryIntent is { } deliveryIntent)
             await CreateDeliveryAsync(jobId, deliveryIntent, cancellationToken);

@@ -5,8 +5,9 @@
 /// </summary>
 public static class ShutdownDrainExtensions
 {
-    // Covers the protocol writes and the services that stop after the runner.
-    private static readonly TimeSpan ShutdownReserve = TimeSpan.FromSeconds(10);
+    // Covers the protocol writes of the preflight, which stops before the runner, and of the runner, and the
+    // services that stop after the runner.
+    private static readonly TimeSpan ShutdownReserve = TimeSpan.FromSeconds(15);
 
     /// <summary>
     /// Raises <see cref="HostOptions.ShutdownTimeout"/> (30 s by default) to at least the drain window plus a

@@ -24,7 +24,7 @@ _Übersetzungen_: EN recording, FR un enregistrement, IT una registrazione
 
 ## Ausgang
 
-Wie die [Pipeline](#pipeline) einer [Verarbeitung](#verarbeitung) geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Im Code: `RunOutcome`.
+Wie die [Pipeline](#pipeline) einer [Verarbeitung](#verarbeitung) geendet hat, gemeldet vom Runner: zu Ende gelaufen mit dem Zustand, den die Pipeline meldet, Zeitüberschreitung, Herunterfahren oder Absturz. Lässt eine Bedingung die Daten scheitern, läuft die Pipeline mit `Failed` zu Ende. Ein Absturz ist dagegen eine Exception, die den Lauf abbricht: Ein Prozessor wirft, oder das Speichern der Downloads oder das Stagen der Lieferdateien scheitert. Den Ausgang Herunterfahren bekommt auch eine Verarbeitung, deren Lauf noch nicht begonnen hat: im Preflight, in seiner Warteschlange oder in der Warteschlange des Runners. Gemeldet wird er dann vom Preflight oder vom Runner, bevor ein Lauf beginnt. Im Code: `RunOutcome`.
 
 ## Folgen
 
