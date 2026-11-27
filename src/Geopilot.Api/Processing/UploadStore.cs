@@ -33,6 +33,22 @@ public class UploadStore : IUploadStore
     }
 
     /// <inheritdoc/>
+    public void SetFiles(Guid uploadId, ImmutableList<UploadedFileInfo> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+
+        // Compare and swap: a removal that lands in between must not be undone by a stale write.
+        while (true)
+        {
+            if (!uploads.TryGetValue(uploadId, out var current))
+                throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
+
+            if (uploads.TryUpdate(uploadId, current with { Files = files }, current))
+                return;
+        }
+    }
+
+    /// <inheritdoc/>
     public UploadInfo? GetUpload(Guid uploadId) => uploads.TryGetValue(uploadId, out var upload) ? upload : null;
 
     /// <inheritdoc/>

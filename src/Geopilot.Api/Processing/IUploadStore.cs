@@ -14,6 +14,14 @@ public interface IUploadStore
     UploadInfo CreateUpload(Guid id, ImmutableList<UploadedFileInfo> files);
 
     /// <summary>
+    /// Replaces the files of an existing upload; its creation time stays.
+    /// </summary>
+    /// <param name="uploadId">The id of the upload.</param>
+    /// <param name="files">The files that replace the current ones.</param>
+    /// <exception cref="ArgumentException">No upload with the specified id exists.</exception>
+    void SetFiles(Guid uploadId, ImmutableList<UploadedFileInfo> files);
+
+    /// <summary>
     /// Retrieves an <see cref="UploadInfo"/> by its id.
     /// </summary>
     /// <param name="uploadId">The id of the upload.</param>
